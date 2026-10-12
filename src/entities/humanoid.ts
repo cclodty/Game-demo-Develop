@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { markCharacterMaterial, silhouetteMaterial, toon } from '../render/materials';
 import { TUNING } from '../config';
 import { damp } from '../util/math';
-import type { CharacterView, ViewState } from './view';
+import type { CharacterView, MuzzleOffset, ViewState } from './view';
 
 /**
  * 可連續轉向的幾何暫用人形（CH-01 / CH-04 / RIG-01 的 R1 替代品）。
@@ -169,6 +169,10 @@ export class Humanoid implements CharacterView {
 
   kickRecoil(): void {
     this.recoil = 1;
+  }
+
+  muzzleOffset(): MuzzleOffset {
+    return { side: TUNING.player.gunSide, height: TUNING.weapon.muzzleHeight, forward: TUNING.player.muzzleForward };
   }
 
   resetPose(): void {

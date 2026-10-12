@@ -18,7 +18,7 @@ export const TUNING = {
     muzzleForward: 0.95, // 槍口離身體中心的前方距離
   },
   weapon: {
-    name: '通用步槍（暫稱）',
+    name: '通用槍械（暫稱）',
     magSize: 30,
     reserveStart: 90,
     reserveMax: 180,

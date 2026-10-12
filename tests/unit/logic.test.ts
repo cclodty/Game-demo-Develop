@@ -218,6 +218,23 @@ describe('外部角色模型：動作與骨頭辨識', () => {
     expect(r.death).toBe('CharacterArmature|Death');
   });
 
+  it('Quaternius Adventurer：四方向跑步與瞄準姿勢', () => {
+    const names = [
+      'Death', 'Gun_Shoot', 'HitRecieve', 'HitRecieve_2', 'Idle', 'Idle_Gun', 'Idle_Gun_Pointing', 'Idle_Gun_Shoot', 'Idle_Neutral',
+      'Idle_Sword', 'Interact', 'Kick_Left', 'Kick_Right', 'Punch_Left', 'Punch_Right', 'Roll', 'Run', 'Run_Back', 'Run_Left',
+      'Run_Right', 'Run_Shoot', 'Sword_Slash', 'Walk', 'Wave',
+    ].map((n) => `CharacterArmature|${n}`);
+    const r = detectClipRoles(names);
+    expect(r.idle).toBe('CharacterArmature|Idle_Gun');
+    expect(r.aim).toBe('CharacterArmature|Idle_Gun_Pointing');
+    expect(r.run).toBe('CharacterArmature|Run');
+    expect(r.walkBack).toBe('CharacterArmature|Run_Back');
+    expect(r.strafeLeft).toBe('CharacterArmature|Run_Left');
+    expect(r.strafeRight).toBe('CharacterArmature|Run_Right');
+    expect(r.death).toBe('CharacterArmature|Death');
+    expect(r.hit).toBe('CharacterArmature|HitRecieve');
+  });
+
   it('喪屍專用動作與 Mixamo 命名', () => {
     const names = ['mixamo.com|Zombie Idle', 'Zombie Walk', 'Zombie Attack', 'Zombie Dying', 'Walking Backwards'];
     const r = detectClipRoles(names);

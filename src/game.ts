@@ -530,6 +530,8 @@ export class Game {
 
   /** 滑鼠位置投射到「槍口高度」的水平面，得到瞄準點；人物面向由此計算，不吸附角度。 */
   private computeAim(): void {
+    // 滑鼠投射到「槍口高度」的平面，游標所指的就是子彈經過的位置
+    this.aimPlane.constant = -this.player.muzzle().y;
     if (!this.input.mouseInside && this.aim.valid) return;
     const p = this.screenToAimPlane(this.input.mouseX, this.input.mouseY);
     if (!p) return;
@@ -538,7 +540,7 @@ export class Game {
     this.aim.valid = true;
     const dx = p.x - this.player.x;
     const dz = p.z - this.player.z;
-    if (Math.hypot(dx, dz) > 0.25) this.aim.yaw = aimYawWithMuzzleOffset(dx, dz, TUNING.player.gunSide);
+    if (Math.hypot(dx, dz) > 0.25) this.aim.yaw = aimYawWithMuzzleOffset(dx, dz, this.player.gunSide());
   }
 
   screenToAimPlane(cssX: number, cssY: number): THREE.Vector3 | null {
@@ -586,31 +588,31 @@ export class Game {
     p.model.kickRecoil();
 
     // 槍口若已伸進牆裡，子彈在牆面就停下，不會穿牆
-    const pointBlank = this.pointBlankHit(shoulder.x, shoulder.z, muzzle.x, muzzle.z, f.x, f.z);
+    const pointBlank = this.pointBlankHit(shoulder.x, shoulder.z, muzzle.x, muzzle.z, muzzle.y, f.x, f.z);
     if (pointBlank) {
       this.stats.blockedAtMuzzle++;
       this.onBulletHit(pointBlank);
     } else {
-      this.projectiles.spawn(muzzle.x, muzzle.z, f.x, f.z);
+      this.projectiles.spawn(muzzle.x, muzzle.y, muzzle.z, f.x, f.z);
     }
 
     // 槍口火光、彈殼、閃光
     const flashX = muzzle.x + f.x * 0.08;
     const flashZ = muzzle.z + f.z * 0.08;
-    this.muzzleLight.position.set(flashX, W.muzzleHeight + 0.1, flashZ);
+    this.muzzleLight.position.set(flashX, muzzle.y + 0.1, flashZ);
     this.muzzleLight.intensity = 55;
     for (let i = 0; i < 5; i++) {
       const a = angle + (this.rng.next() - 0.5) * 0.9;
       const sp = 2 + this.rng.next() * 5;
       this.particles.emit({
-        x: flashX, y: W.muzzleHeight, z: flashZ,
+        x: flashX, y: muzzle.y, z: flashZ,
         vx: Math.sin(a) * sp, vy: (this.rng.next() - 0.3) * 1.5, vz: Math.cos(a) * sp,
         life: 0.05 + this.rng.next() * 0.04, size: 0.12 - i * 0.012, color: i < 2 ? 0xfff2c8 : 0xffb04a, fadeTo: 0xff6a20, drag: 12,
       });
     }
     const side = { x: Math.cos(p.yaw), z: -Math.sin(p.yaw) };
     this.particles.emit({
-      x: shoulder.x + f.x * 0.35, y: W.muzzleHeight + 0.02, z: shoulder.z + f.z * 0.35,
+      x: shoulder.x + f.x * 0.35, y: muzzle.y + 0.02, z: shoulder.z + f.z * 0.35,
       vx: -side.x * (1.6 + this.rng.next()) + (this.rng.next() - 0.5), vy: 2.4 + this.rng.next(), vz: -side.z * (1.6 + this.rng.next()) + (this.rng.next() - 0.5),
       life: 1.2, size: 0.05, color: 0xd8a640, gravity: 14, bounce: 0.35, shrink: false, spin: 18,
     });
@@ -618,27 +620,28 @@ export class Game {
     this.sfx.shot();
   }
 
-  private pointBlankHit(x0: number, z0: number, x1: number, z1: number, dirX: number, dirZ: number): BulletHit | null {
+  private pointBlankHit(x0: number, z0: number, x1: number, z1: number, y: number, dirX: number, dirZ: number): BulletHit | null {
     let best: BulletHit | null = null;
     let bestT = Infinity;
-    const wall = firstBoxHit(x0, z0, x1, z1, this.level.boxes, W.muzzleHeight);
+    const wall = firstBoxHit(x0, z0, x1, z1, this.level.boxes, y);
     if (wall) {
       bestT = wall.t;
-      best = { kind: 'wall', x: x0 + (x1 - x0) * wall.t, z: z0 + (z1 - z0) * wall.t, nx: wall.nx, nz: wall.nz, dirX, dirZ };
+      best = { kind: 'wall', x: x0 + (x1 - x0) * wall.t, y, z: z0 + (z1 - z0) * wall.t, nx: wall.nx, nz: wall.nz, dirX, dirZ };
     }
     this.zombies.forEach((zb, i) => {
       if (!zb.alive || zb.state === 'rising') return;
       const t = segmentCircle(x0, z0, x1, z1, zb.x, zb.z, TUNING.zombie.radius);
       if (t !== null && t < bestT) {
         bestT = t;
-        best = { kind: 'target', group: 'zombie', index: i, x: x0 + (x1 - x0) * t, z: z0 + (z1 - z0) * t, dirX, dirZ };
+        best = { kind: 'target', group: 'zombie', index: i, x: x0 + (x1 - x0) * t, y, z: z0 + (z1 - z0) * t, dirX, dirZ };
       }
     });
     return best;
   }
 
   private onBulletHit(h: BulletHit): void {
-    const y = W.muzzleHeight;
+    if (h.kind === 'expire') return;
+    const y = h.y;
     if (h.kind === 'wall') {
       this.stats.wallHits++;
       this.decals.addHole(h.x, y + (this.rng.next() - 0.5) * 0.08, h.z, h.nx, h.nz);
@@ -664,14 +667,13 @@ export class Game {
       }
       return;
     }
-    if (h.kind === 'expire') return;
 
     this.stats.hits++;
     if (h.group === 'zombie') {
       const zb = this.zombies[h.index];
       if (!zb) return;
       const killed = zb.hit(W.damage, h.dirX, h.dirZ);
-      this.bloodBurst(h.x, h.z, h.dirX, h.dirZ, killed ? 14 : 7);
+      this.bloodBurst(h.x, y, h.z, h.dirX, h.dirZ, killed ? 14 : 7);
       this.hud.floater(String(W.damage), h.x, 1.9, h.z, killed ? 'kill' : '');
       this.hud.hitMarker(killed);
       this.sfx.hitFlesh();
@@ -697,11 +699,11 @@ export class Game {
     }
   }
 
-  private bloodBurst(x: number, z: number, dx: number, dz: number, n: number): void {
+  private bloodBurst(x: number, y: number, z: number, dx: number, dz: number, n: number): void {
     for (let i = 0; i < n; i++) {
       const sp = 1.5 + this.rng.next() * 3.5;
       this.particles.emit({
-        x, y: W.muzzleHeight + (this.rng.next() - 0.5) * 0.25, z,
+        x, y: y + (this.rng.next() - 0.5) * 0.25, z,
         vx: dx * sp + (this.rng.next() - 0.5) * 2.2, vy: 0.5 + this.rng.next() * 2.5, vz: dz * sp + (this.rng.next() - 0.5) * 2.2,
         life: 0.45 + this.rng.next() * 0.4, size: 0.06 + this.rng.next() * 0.05, color: 0x8a1410, fadeTo: 0x3a0806, gravity: 11, drag: 1.5, shrink: false,
       });
@@ -737,7 +739,12 @@ export class Game {
 
   private makeZombieView(): CharacterView | undefined {
     const zt = this.options.characters?.zombie;
-    return zt ? new AnimatedCharacter(zt, { silhouette: 0xff5a4a, withGun: false }) : undefined;
+    if (!zt) return undefined;
+    // 每隻喪屍的明暗與色調略有不同，同一個模型也不會整群一模一樣
+    const v = zt.config.tintVariance;
+    const bright = 1 - this.rng.next() * v;
+    const tint = new THREE.Color(bright * (1 - this.rng.next() * v * 0.6), bright, bright * (1 - this.rng.next() * v * 0.6));
+    return new AnimatedCharacter(zt, { silhouette: 0xff5a4a, withGun: false, tint });
   }
 
   private updateZombies(dt: number): void {
@@ -755,7 +762,7 @@ export class Game {
           this.shake = Math.min(1, this.shake + 0.6);
           this.damageFx = 1;
           this.hud.floater(`-${TUNING.zombie.damage}`, p.x, 2.1, p.z, 'kill');
-          this.bloodBurst(p.x, p.z, 0, 0, 5);
+          this.bloodBurst(p.x, 1.2, p.z, 0, 0, 5);
           if (!p.alive) this.onPlayerDown();
         } else {
           this.sfx.swipe();
@@ -917,7 +924,7 @@ export class Game {
     const mz = p.muzzle();
     const fw = forwardOf(p.yaw);
     this.flashlight.visible = p.alive;
-    this.flashlight.position.set(mz.x - fw.x * 0.3, W.muzzleHeight + 0.15, mz.z - fw.z * 0.3);
+    this.flashlight.position.set(mz.x - fw.x * 0.3, mz.y + 0.15, mz.z - fw.z * 0.3);
     this.flashlight.target.position.set(mz.x + fw.x * 9, 0, mz.z + fw.z * 9);
     this.flashlight.target.updateMatrixWorld();
     this.fillLight.position.set(p.x, 2.4, p.z + 0.6);
@@ -935,7 +942,7 @@ export class Game {
     let x1 = m.x + f.x * W.range;
     let z1 = m.z + f.z * W.range;
     let kind: LaserHit = 'none';
-    const blocked = firstBoxHit(s.x, s.z, m.x, m.z, this.level.boxes, W.muzzleHeight);
+    const blocked = firstBoxHit(s.x, s.z, m.x, m.z, this.level.boxes, m.y);
     if (blocked) {
       x0 = s.x;
       z0 = s.z;
@@ -944,7 +951,7 @@ export class Game {
       kind = 'wall';
     } else {
       let bestT = 1;
-      const wall = firstBoxHit(x0, z0, x1, z1, this.level.boxes, W.muzzleHeight);
+      const wall = firstBoxHit(x0, z0, x1, z1, this.level.boxes, m.y);
       if (wall) {
         bestT = wall.t;
         kind = 'wall';
@@ -968,11 +975,11 @@ export class Game {
       z1 = z0 + (z1 - z0) * bestT;
     }
     const pos = this.laser.geometry.attributes.position as THREE.BufferAttribute;
-    pos.setXYZ(0, x0, W.muzzleHeight, z0);
-    pos.setXYZ(1, x1, W.muzzleHeight, z1);
+    pos.setXYZ(0, x0, m.y, z0);
+    pos.setXYZ(1, x1, m.y, z1);
     pos.needsUpdate = true;
     this.laser.geometry.computeBoundingSphere();
-    this.laserDot.position.set(x1, W.muzzleHeight, z1);
+    this.laserDot.position.set(x1, m.y, z1);
     this.laserDot.visible = kind !== 'none';
     Object.assign(this.laserInfo, { x0, z0, x1, z1, hit: kind });
     this.aim.onTarget = kind === 'zombie' || kind === 'dummy';

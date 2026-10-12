@@ -71,21 +71,28 @@ export class Player {
     return this.reloadTimer > 0;
   }
 
-  /** 槍口的世界座標（由面向計算，與模型上的槍口位置一致）。 */
+  /** 槍口的世界座標（由面向與外觀回報的槍口位置計算，與畫面上的槍一致）。 */
   muzzle(): { x: number; y: number; z: number } {
+    const o = this.model.muzzleOffset();
     const f = forwardOf(this.yaw);
     const l = localXOf(this.yaw);
     return {
-      x: this.x + l.x * P.gunSide + f.x * P.muzzleForward,
-      y: W.muzzleHeight,
-      z: this.z + l.z * P.gunSide + f.z * P.muzzleForward,
+      x: this.x + l.x * o.side + f.x * o.forward,
+      y: o.height,
+      z: this.z + l.z * o.side + f.z * o.forward,
     };
+  }
+
+  /** 槍口的左右偏移（瞄準修正用）。 */
+  gunSide(): number {
+    return this.model.muzzleOffset().side;
   }
 
   /** 肩膀（槍托）位置：用來確認槍口是否被牆擋住。 */
   shoulder(): { x: number; z: number } {
+    const side = this.gunSide();
     const l = localXOf(this.yaw);
-    return { x: this.x + l.x * P.gunSide, z: this.z + l.z * P.gunSide };
+    return { x: this.x + l.x * side, z: this.z + l.z * side };
   }
 
   /**

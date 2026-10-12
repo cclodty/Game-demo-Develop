@@ -24,6 +24,13 @@ export interface ViewState {
   reload: number;
 }
 
+/** 槍口相對角色的位置：左右（本地 X，負值為右手）、離地高度、前方距離。 */
+export interface MuzzleOffset {
+  side: number;
+  height: number;
+  forward: number;
+}
+
 export interface CharacterView {
   /** 位置與面向由遊戲邏輯設定在 root 上。 */
   readonly root: THREE.Group;
@@ -33,6 +40,8 @@ export interface CharacterView {
   setSilhouetteVisible(v: boolean): void;
   resetPose(): void;
   dispose(): void;
+  /** 槍口位置，讓子彈、雷射與畫面上的槍一致。 */
+  muzzleOffset(): MuzzleOffset;
 }
 
 export function idleState(refSpeed: number): ViewState {

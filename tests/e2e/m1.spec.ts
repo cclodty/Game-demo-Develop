@@ -47,8 +47,13 @@ interface State {
 
 const state = (page: Page) => call<State>(page, 'state');
 
+/** 目前槍口高度（方塊人形約 1.2 公尺，外部模型依手的位置而定）。 */
+async function muzzleY(page: Page): Promise<number> {
+  return page.evaluate(() => (window as unknown as { __m1: { state: () => { player: { muzzle: { y: number } } } } }).__m1.state().player.muzzle.y);
+}
+
 async function aimAt(page: Page, x: number, z: number): Promise<{ x: number; y: number }> {
-  const p = await call<{ x: number; y: number }>(page, 'worldToScreen', x, 1.2, z);
+  const p = await call<{ x: number; y: number }>(page, 'worldToScreen', x, await muzzleY(page), z);
   await page.mouse.move(p.x, p.y);
   return p;
 }
@@ -89,7 +94,7 @@ test('啟動後畫面正常、中文介面正常、沒有執行錯誤', async ({
   await expect(page.locator('#hud')).toBeVisible();
   await expect(page.locator('.meter-hp .meter-label')).toContainText('生命');
   await expect(page.locator('#bt-meter')).toContainText('子彈時間');
-  await expect(page.locator('#weapon-name')).toContainText('通用步槍');
+  await expect(page.locator('#weapon-name')).toContainText('通用槍械');
   expect(errors).toEqual([]);
 });
 
@@ -134,7 +139,7 @@ test('滑鼠繞一圈，整個人物連續轉滿 360°，沒有 4／8 方向吸�
   await call(page, 'setSetting', { lookAhead: 0 });
   await call(page, 'teleport', -1, 4, 0);
   await page.waitForTimeout(300);
-  const c = await call<{ x: number; y: number }>(page, 'worldToScreen', -1, 1.2, 4);
+  const c = await call<{ x: number; y: number }>(page, 'worldToScreen', -1, await muzzleY(page), 4);
   // 先把游標放在起始角度並等人物轉到位，再開始記錄
   await page.mouse.move(c.x + 170, c.y);
   await waitState(page, (s) => angleDiff(s.player.yaw, s.aim.yaw) < 0.01 && angleDiff(s.aim.yaw, Math.PI / 2) < 0.1, 5000);
@@ -286,7 +291,7 @@ test('子彈時間：放慢、耗盡、部分回復後可再次啟動，瞄準�
   expect(ratio).toBeLessThan(0.36);
 
   // 子彈時間中，滑鼠轉向仍即時
-  const c = await call<{ x: number; y: number }>(page, 'worldToScreen', -1, 1.2, 4);
+  const c = await call<{ x: number; y: number }>(page, 'worldToScreen', -1, await muzzleY(page), 4);
   await page.mouse.move(c.x - 200, c.y);
   const t0 = Date.now();
   const turned = await waitState(page, (s) => angleDiff(s.player.yaw, -Math.PI / 2) < (15 * Math.PI) / 180, 3000);
@@ -400,7 +405,7 @@ for (const pixelMode of [true, false]) {
     else expect(s.pixel.pixel).toBe(1);
 
     // 讀回畫面：雷射終點附近應出現紅色雷射點
-    const end = await call<{ x: number; y: number }>(page, 'worldToScreen', s.laser.x1, 1.2, s.laser.z1);
+    const end = await call<{ x: number; y: number }>(page, 'worldToScreen', s.laser.x1, await muzzleY(page), s.laser.z1);
     expect(Math.hypot(end.x - mouse.x, end.y - mouse.y)).toBeLessThan(30);
     const radius = 8;
     const px = await call<{ w: number; data: number[] }>(page, 'readPixels', end.x, end.y, radius);

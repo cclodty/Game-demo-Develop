@@ -15,12 +15,14 @@ export interface Target {
 }
 
 export type BulletHit =
-  | { kind: 'wall'; x: number; z: number; nx: number; nz: number; dirX: number; dirZ: number }
-  | { kind: 'target'; index: number; group: 'zombie' | 'dummy'; x: number; z: number; dirX: number; dirZ: number }
+  | { kind: 'wall'; x: number; y: number; z: number; nx: number; nz: number; dirX: number; dirZ: number }
+  | { kind: 'target'; index: number; group: 'zombie' | 'dummy'; x: number; y: number; z: number; dirX: number; dirZ: number }
   | { kind: 'expire'; x: number; z: number };
 
 interface Bullet {
   x: number;
+  /** 飛行高度：低於這個高度的障礙物不擋子彈。 */
+  y: number;
   z: number;
   dx: number;
   dz: number;
@@ -45,13 +47,14 @@ export class Projectiles {
     this.mesh.frustumCulled = false;
     this.mesh.count = 0;
     scene.add(this.mesh);
-    for (let i = 0; i < MAX; i++) this.bullets.push({ x: 0, z: 0, dx: 0, dz: 1, traveled: 0, active: false });
+    for (let i = 0; i < MAX; i++) this.bullets.push({ x: 0, y: 1.2, z: 0, dx: 0, dz: 1, traveled: 0, active: false });
   }
 
-  spawn(x: number, z: number, dx: number, dz: number): void {
+  spawn(x: number, y: number, z: number, dx: number, dz: number): void {
     const b = this.bullets.find((bb) => !bb.active);
     if (!b) return;
     b.x = x;
+    b.y = y;
     b.z = z;
     b.dx = dx;
     b.dz = dz;
@@ -84,11 +87,12 @@ export class Projectiles {
 
       let bestT = Infinity;
       let hit: BulletHit | null = null;
-      const wall = firstBoxHit(b.x, b.z, x1, z1, boxes, W.muzzleHeight);
+      const wall = firstBoxHit(b.x, b.z, x1, z1, boxes, b.y);
       if (wall) {
         bestT = wall.t;
         hit = {
           kind: 'wall',
+          y: b.y,
           x: b.x + (x1 - b.x) * wall.t,
           z: b.z + (z1 - b.z) * wall.t,
           nx: wall.nx,
@@ -108,6 +112,7 @@ export class Projectiles {
               kind: 'target',
               index: i,
               group,
+              y: b.y,
               x: b.x + (x1 - b.x) * tt,
               z: b.z + (z1 - b.z) * tt,
               dirX: b.dx,
@@ -135,7 +140,7 @@ export class Projectiles {
 
       // 曳光：線段尾端落在子彈後方，剛發射時長度較短
       const tl = Math.min(TRACER_LEN, b.traveled + 0.1);
-      this.tmp.position.set(b.x - (b.dx * tl) / 2, W.muzzleHeight, b.z - (b.dz * tl) / 2);
+      this.tmp.position.set(b.x - (b.dx * tl) / 2, b.y, b.z - (b.dz * tl) / 2);
       this.tmp.rotation.set(0, Math.atan2(b.dx, b.dz), 0);
       this.tmp.scale.set(1, 1, tl);
       this.tmp.updateMatrix();
