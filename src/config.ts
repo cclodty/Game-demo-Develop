@@ -82,6 +82,15 @@ export const TUNING = {
 
 /** 試玩中可以在暫停選單調整、並記在瀏覽器裡的設定。 */
 export interface Settings {
+  /** 美術風格：微縮模型（全解析度、柔和光影、景深）或像素風。 */
+  renderStyle: 'diorama' | 'pixel';
+  /** 時段：白天（午後陽光）或夜晚（暗夜、手電筒）。 */
+  timeOfDay: 'day' | 'night';
+  /** 移軸景深強度 0..1（微縮模型風格）。 */
+  tiltShift: number;
+  /** 環境光遮蔽（牆角與物件底部的接觸陰影）。 */
+  ao: boolean;
+  /** 由 renderStyle 決定，不需手動設定。 */
   pixelMode: boolean;
   pixelSize: number;
   outlines: boolean;
@@ -98,7 +107,11 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  pixelMode: true,
+  renderStyle: 'diorama',
+  timeOfDay: 'day',
+  tiltShift: 0.65,
+  ao: true,
+  pixelMode: false,
   pixelSize: 3,
   outlines: true,
   tiltDeg: 56,

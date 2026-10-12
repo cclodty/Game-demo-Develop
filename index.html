@@ -30,7 +30,8 @@
 
         <div class="hud-corner hud-tr">
           <button type="button" id="btn-reset" class="chip">重設</button>
-          <button type="button" id="btn-pixel" class="chip">像素 開</button>
+          <button type="button" id="btn-pixel" class="chip">風格：微縮</button>
+          <button type="button" id="btn-time" class="chip">白天</button>
           <button type="button" id="btn-menu" class="chip">選單 <kbd>Esc</kbd></button>
         </div>
 
@@ -42,7 +43,8 @@
             <dt>左鍵</dt><dd>射擊（按住連射）</dd>
             <dt><kbd>R</kbd></dt><dd>換彈</dd>
             <dt><kbd>Space</kbd></dt><dd id="help-bt">子彈時間（按住）</dd>
-            <dt><kbd>P</kbd></dt><dd>像素風／標準畫面</dd>
+            <dt><kbd>P</kbd></dt><dd>微縮模型／像素風</dd>
+            <dt><kbd>N</kbd></dt><dd>白天／夜晚</dd>
             <dt>滾輪</dt><dd>鏡頭遠近</dd>
             <dt><kbd>F3</kbd></dt><dd>除錯資訊</dd>
           </dl>
@@ -89,6 +91,7 @@
             <dt>滑鼠</dt><dd>瞄準方向；左鍵射擊</dd>
             <dt><kbd>Space</kbd></dt><dd>按住開啟子彈時間</dd>
             <dt><kbd>R</kbd></dt><dd>換彈；彈藥箱可補充</dd>
+            <dt><kbd>P</kbd> <kbd>N</kbd></dt><dd>切換美術風格、白天／夜晚</dd>
             <dt><kbd>Esc</kbd></dt><dd>暫停、調整鏡頭與畫面</dd>
           </dl>
           <button type="button" id="btn-start" class="primary">開始測試</button>
@@ -109,8 +112,23 @@
           <form id="settings" class="settings" autocomplete="off">
             <fieldset>
               <legend>畫面</legend>
-              <label class="check"><input type="checkbox" id="set-pixel" /> 像素風低解析度</label>
-              <label>像素大小
+              <label>美術風格
+                <select id="set-style">
+                  <option value="diorama">微縮模型</option>
+                  <option value="pixel">像素風</option>
+                </select>
+              </label>
+              <label>時段
+                <select id="set-time">
+                  <option value="day">白天</option>
+                  <option value="night">夜晚</option>
+                </select>
+              </label>
+              <label>移軸景深 <output id="out-tilt-shift">65%</output>
+                <input type="range" id="set-tilt-shift" min="0" max="1" step="0.05" />
+              </label>
+              <label class="check"><input type="checkbox" id="set-ao" /> 接觸陰影（環境光遮蔽）</label>
+              <label>像素大小（像素風）
                 <select id="set-pixel-size">
                   <option value="2">2 倍</option>
                   <option value="3">3 倍</option>
@@ -118,7 +136,7 @@
                   <option value="5">5 倍</option>
                 </select>
               </label>
-              <label class="check"><input type="checkbox" id="set-outline" /> 像素描邊</label>
+              <label class="check"><input type="checkbox" id="set-outline" /> 像素描邊（像素風）</label>
             </fieldset>
             <fieldset>
               <legend>鏡頭</legend>

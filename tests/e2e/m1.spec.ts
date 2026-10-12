@@ -7,7 +7,13 @@ import { expect, test, type Page } from '@playwright/test';
 
 type Api = Record<string, (...args: never[]) => unknown>;
 
-async function boot(page: Page): Promise<string[]> {
+/**
+ * 開啟遊戲並按下開始。
+ * 測試遊戲邏輯時改用較輕的像素風、關掉接觸陰影：雲端測試機是軟體繪圖，微縮模型的寫實光照
+ * 只有每秒約 3 幀，模擬會變慢而逾時（遊戲邏輯與美術風格無關）。
+ * 檢查畫面的測試傳 fullLook: true，使用預設的微縮模型風格與完整效果。
+ */
+async function boot(page: Page, opts: { fullLook?: boolean } = {}): Promise<string[]> {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => {
@@ -16,6 +22,9 @@ async function boot(page: Page): Promise<string[]> {
   await page.goto('/?test');
   await page.waitForFunction(() => (window as unknown as { __m1?: { ready: boolean } }).__m1?.ready === true);
   await page.click('#btn-start');
+  if (!opts.fullLook) {
+    await page.evaluate(() => (window as unknown as { __m1: { setSetting: (p: object) => void } }).__m1.setSetting({ renderStyle: 'pixel', ao: false, tiltShift: 0 }));
+  }
   await page.waitForTimeout(300);
   return errors;
 }
@@ -86,7 +95,7 @@ const angleDiff = (a: number, b: number) => {
 };
 
 test('啟動後畫面正常、中文介面正常、沒有執行錯誤', async ({ page }) => {
-  const errors = await boot(page);
+  const errors = await boot(page, { fullLook: true });
   await page.waitForTimeout(1000);
   const st = await call<{ mean: number; std: number }>(page, 'frameStats');
   expect(st.mean).toBeGreaterThan(8);
@@ -390,9 +399,9 @@ test('暫停時遊戲時間與能量回復都停止', async ({ page }) => {
 });
 
 for (const pixelMode of [true, false]) {
-  test(`${pixelMode ? '像素風' : '標準'}呈現：游標、瞄準點與畫面上的雷射點對齊`, async ({ page }) => {
-    await boot(page);
-    await call(page, 'setSetting', { pixelMode });
+  test(`${pixelMode ? '像素風' : '微縮模型'}呈現：游標、瞄準點與畫面上的雷射點對齊`, async ({ page }) => {
+    await boot(page, { fullLook: true });
+    await call(page, 'setSetting', { renderStyle: pixelMode ? 'pixel' : 'diorama' });
     await call(page, 'teleport', 13, 8, Math.PI / 2);
     // 對準假人中心
     await settleAim(page, 21, 8);
@@ -456,5 +465,31 @@ test('外部角色模型：載入後會播放待機與移動動作（沒有放�
     await call(page, 'spawnZombie', -1, 1);
     await waitState(page, (s) => s.player.hp < 100, 15_000);
   }
+  expect(errors).toEqual([]);
+});
+
+test('美術風格與時段：P、N 切換四種組合都能正常繪製', async ({ page }) => {
+  const errors = await boot(page, { fullLook: true });
+  await call(page, 'teleport', -1, 6, 0);
+  const shots: Record<string, { mean: number; std: number }> = {};
+  const look = () => page.evaluate(() => (window as unknown as { __m1: { state: () => { settings: { renderStyle: string; timeOfDay: string } } } }).__m1.state().settings);
+  for (const step of ['start', 'KeyN', 'KeyP', 'KeyN']) {
+    if (step !== 'start') {
+      await page.keyboard.press(step);
+      await page.waitForTimeout(400);
+    }
+    const s = await look();
+    shots[`${s.renderStyle}-${s.timeOfDay}`] = await call(page, 'frameStats');
+  }
+  expect(Object.keys(shots).sort()).toEqual(['diorama-day', 'diorama-night', 'pixel-day', 'pixel-night']);
+  for (const v of Object.values(shots)) {
+    expect(v.mean).toBeGreaterThan(5);
+    expect(v.std).toBeGreaterThan(5);
+  }
+  // 白天明顯比夜晚亮
+  expect(shots['diorama-day'].mean).toBeGreaterThan(shots['diorama-night'].mean * 1.3);
+  // 順序：微縮白天 → N 微縮夜晚 → P 像素夜晚 → N 像素白天
+  await expect(page.locator('#btn-pixel')).toHaveText('風格：像素');
+  await expect(page.locator('#btn-time')).toHaveText('白天');
   expect(errors).toEqual([]);
 });

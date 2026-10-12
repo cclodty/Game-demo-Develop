@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { markCharacterMaterial, silhouetteMaterial, toon } from '../render/materials';
+import { markCharacterMaterial, setFlashEmissive, silhouetteMaterial, toon } from '../render/materials';
 import { TUNING } from '../config';
 import { damp } from '../util/math';
 import type { CharacterView, MuzzleOffset, ViewState } from './view';
@@ -256,9 +256,7 @@ export class Humanoid implements CharacterView {
     if (this.flash > 0) {
       this.flash = Math.max(0, this.flash - dt * 7);
     }
-    for (const m of this.materials) {
-      m.emissive.copy(this.flashColor).multiplyScalar(this.flash * 0.7);
-    }
+    for (const m of this.materials) setFlashEmissive(m, this.flashColor, this.flash * 0.7);
   }
 
   dispose(): void {

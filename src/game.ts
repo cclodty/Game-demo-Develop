@@ -20,6 +20,8 @@ import { Sfx } from './audio';
 import { Hud, bindSettingsForm } from './ui/hud';
 import { loadSettings, saveSettings } from './settings';
 import { Textures } from './render/textures';
+import { ART, styleTree } from './render/materials';
+import type { PipelineSettings } from './render/pipeline';
 import { aimYawWithMuzzleOffset, clamp, damp, DEG, forwardOf, Rng, wrapAngle } from './util/math';
 
 type Mode = 'start' | 'playing' | 'paused' | 'dead';
@@ -71,6 +73,14 @@ export class Game {
   private readonly muzzleLight: THREE.PointLight;
   private readonly flashlight: THREE.SpotLight;
   private readonly fillLight: THREE.PointLight;
+  private hemi!: THREE.HemisphereLight;
+  private sun!: THREE.DirectionalLight;
+  /** 時段對路燈、火光的亮度倍率。 */
+  private readonly lightScale = { lamp: 1, fire: 1 };
+  private flashlightOn = true;
+  private ashOn = true;
+  private readonly windowMats: THREE.MeshToonMaterial[] = [];
+  private readonly lampHeads: THREE.MeshBasicMaterial[] = [];
   private readonly laser: THREE.Line;
   private readonly laserDot: THREE.Mesh;
   private readonly raycaster = new THREE.Raycaster();
@@ -154,6 +164,18 @@ export class Game {
     this.hud = new Hud();
     this.bindUi();
 
+    // 為整個場景準備兩套材質（微縮模型／像素風），並找出只在夜晚發光的窗戶與路燈
+    styleTree(this.scene, this.settings.renderStyle);
+    this.scene.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const pixelMats = (mesh.userData.styleMats?.pixel ?? mesh.material) as THREE.Material | THREE.Material[];
+      for (const m of Array.isArray(pixelMats) ? pixelMats : [pixelMats]) {
+        if (m.userData.nightWindows && !this.windowMats.includes(m as THREE.MeshToonMaterial)) this.windowMats.push(m as THREE.MeshToonMaterial);
+        if (m.userData.lampHead && !this.lampHeads.includes(m as THREE.MeshBasicMaterial)) this.lampHeads.push(m as THREE.MeshBasicMaterial);
+      }
+    });
+
     this.resetWorld();
     this.applySettings(this.settings, false);
     this.updateCamera(0, true);
@@ -166,7 +188,9 @@ export class Game {
   private setupLights(): void {
     const hemi = new THREE.HemisphereLight(0x7c818b, 0x3a3229, 1.7);
     this.scene.add(hemi);
+    this.hemi = hemi;
     const moon = new THREE.DirectionalLight(0xd2d8e8, 1.15);
+    this.sun = moon;
     moon.position.set(-14, 30, -12);
     moon.target.position.set(0, 0, 0);
     moon.castShadow = true;
@@ -224,7 +248,8 @@ export class Game {
     byId('btn-retry').addEventListener('click', () => this.reset());
     byId('btn-menu').addEventListener('click', () => this.setPaused(this.mode !== 'paused'));
     byId('btn-resume').addEventListener('click', () => this.setPaused(false));
-    byId('btn-pixel').addEventListener('click', () => this.togglePixel());
+    byId('btn-pixel').addEventListener('click', () => this.toggleStyle());
+    byId('btn-time').addEventListener('click', () => this.toggleTime());
     this.refreshForm = bindSettingsForm(
       () => this.settings,
       (s) => this.applySettings(s, true),
@@ -234,22 +259,93 @@ export class Game {
   applySettings(s: Settings, persist: boolean): void {
     s.tiltDeg = clamp(s.tiltDeg, TILT_RANGE.min, TILT_RANGE.max);
     s.viewHeight = clamp(s.viewHeight, VIEW_HEIGHT_RANGE.min, VIEW_HEIGHT_RANGE.max);
+    s.pixelMode = s.renderStyle === 'pixel';
     const prev = this.settings;
     this.settings = { ...s };
-    this.pipeline.configure({ pixelMode: s.pixelMode, pixelSize: s.pixelSize, outlines: s.outlines });
+    if (ART.style !== s.renderStyle) {
+      ART.style = s.renderStyle;
+      styleTree(this.scene, s.renderStyle);
+    }
+    this.pipeline.configure(this.pipelineFor(s));
+    this.applyLighting(s.timeOfDay);
     this.sfx.setVolume(s.volume, s.muted);
     this.hud.setHelpCollapsed(!s.showHelp);
-    this.hud.setPixelLabel(s.pixelMode);
+    this.hud.setLookLabels(s.renderStyle, s.timeOfDay);
     this.hud.setBulletTimeHelp(s.bulletTimeMode);
     if (prev.bulletTimeMode !== s.bulletTimeMode) this.btWant = false;
     this.updateProjection();
     if (persist && !this.options.testMode) saveSettings(this.settings);
   }
 
-  private togglePixel(): void {
-    this.applySettings({ ...this.settings, pixelMode: !this.settings.pixelMode }, true);
+  /** 兩種美術風格的後製參數。 */
+  private pipelineFor(s: Settings): PipelineSettings {
+    const day = s.timeOfDay === 'day';
+    if (s.renderStyle === 'pixel') {
+      return {
+        pixelMode: true,
+        pixelSize: s.pixelSize,
+        outlines: s.outlines,
+        ao: s.ao ? 0.3 : 0,
+        tiltShift: 0,
+        saturation: day ? 1.1 : 1,
+        contrast: 1,
+        warmth: day ? 0.03 : 0,
+        vignette: day ? 0.3 : 0.45,
+      };
+    }
+    // 微縮模型：全解析度、接觸陰影、移軸景深、明亮飽和的調色
+    return {
+      pixelMode: false,
+      pixelSize: s.pixelSize,
+      outlines: false,
+      ao: s.ao ? 0.85 : 0,
+      tiltShift: s.tiltShift,
+      saturation: day ? 1.22 : 1.05,
+      contrast: day ? 1.06 : 1.04,
+      warmth: day ? 0.05 : -0.02,
+      vignette: day ? 0.22 : 0.4,
+    };
+  }
+
+  /** 白天：偏暖的午後陽光、柔和陰影；夜晚：月光、路燈、手電筒。 */
+  private applyLighting(time: Settings['timeOfDay']): void {
+    const day = time === 'day';
+    this.hemi.color.set(day ? 0xcfe0ff : 0x7c818b);
+    this.hemi.groundColor.set(day ? 0xa08a6c : 0x3a3229);
+    this.hemi.intensity = day ? 1.6 : 1.7;
+    this.sun.color.set(day ? 0xffe6c4 : 0xd2d8e8);
+    this.sun.intensity = day ? 3.4 : 1.15;
+    if (day) this.sun.position.set(-16, 26, 13);
+    else this.sun.position.set(-14, 30, -12);
+    this.sun.shadow.radius = day ? 3 : 1.5;
+    this.renderer.toneMappingExposure = day ? 1.0 : 1.15;
+    (this.scene.background as THREE.Color).set(day ? 0x9fb2c0 : 0x0b0d10);
+    this.lightScale.lamp = day ? 0 : 1;
+    this.lightScale.fire = day ? 0.35 : 1;
+    this.flashlightOn = !day;
+    this.fillLight.intensity = day ? 0 : 4;
+    // 白天熄滅的燈直接移出光照計算（切換時重新編譯一次材質，平時省下每個像素的計算）
+    this.fillLight.visible = !day;
+    for (const fl of this.level.flickerLights) if (fl.kind === 'lamp') fl.light.visible = !day;
+    this.ashOn = !day;
+    for (const m of this.windowMats) {
+      m.emissiveIntensity = day ? 0 : 1.4;
+      const twin = m.userData.twin as THREE.MeshStandardMaterial | undefined;
+      if (twin) twin.emissiveIntensity = m.emissiveIntensity;
+    }
+    for (const m of this.lampHeads) m.color.set(day ? 0x8a8478 : 0xffd9a0);
+  }
+
+  private toggleStyle(): void {
+    this.applySettings({ ...this.settings, renderStyle: this.settings.renderStyle === 'pixel' ? 'diorama' : 'pixel' }, true);
     this.refreshForm();
-    this.hud.toast(this.settings.pixelMode ? '像素風呈現' : '標準解析度呈現', 'info', 1.1);
+    this.hud.toast(this.settings.renderStyle === 'pixel' ? '像素風' : '微縮模型風格', 'info', 1.1);
+  }
+
+  private toggleTime(): void {
+    this.applySettings({ ...this.settings, timeOfDay: this.settings.timeOfDay === 'day' ? 'night' : 'day' }, true);
+    this.refreshForm();
+    this.hud.toast(this.settings.timeOfDay === 'day' ? '白天' : '夜晚', 'info', 1.1);
   }
 
   start(): void {
@@ -361,7 +457,8 @@ export class Game {
       if (this.mode === 'playing') this.setPaused(true);
       else if (this.mode === 'paused') this.setPaused(false);
     }
-    if (inp.pressed('KeyP') && this.mode !== 'start') this.togglePixel();
+    if (inp.pressed('KeyP') && this.mode !== 'start') this.toggleStyle();
+    if (inp.pressed('KeyN') && this.mode !== 'start') this.toggleTime();
     if (inp.pressed('KeyH')) {
       this.applySettings({ ...this.settings, showHelp: !this.settings.showHelp }, true);
     }
@@ -450,7 +547,8 @@ export class Game {
 
     if (this.player.alive) {
       if (inp.pressed('KeyR') && this.player.startReload()) this.sfx.reload();
-      if (inp.fireHeld()) this.tryFire(inp.firePressed());
+      // 按住連射；畫面很卡時，按下又放開都在同一幀內的點擊也要算一發
+      if (inp.fireHeld() || inp.firePressed()) this.tryFire(inp.firePressed());
     }
 
     const targets = this.zombies.map((z) => ({ x: z.x, z: z.z, radius: TUNING.zombie.radius, alive: z.alive && z.state !== 'rising' }));
@@ -724,6 +822,7 @@ export class Game {
       sz = p.z + (this.rng.next() - 0.5);
     }
     const zb = new Zombie(this.scene, sx, sz, this.rng, instant, this.makeZombieView());
+    styleTree(zb.model.root);
     this.zombies.push(zb);
     if (!instant) {
       for (let i = 0; i < 10; i++) {
@@ -873,11 +972,11 @@ export class Game {
     for (const fl of this.level.flickerLights) {
       const t = this.gameTime + fl.phase;
       if (fl.kind === 'fire') {
-        fl.light.intensity = fl.base * (0.72 + 0.18 * Math.sin(t * 13) + 0.1 * Math.sin(t * 29 + 1.3));
+        fl.light.intensity = fl.base * this.lightScale.fire * (0.72 + 0.18 * Math.sin(t * 13) + 0.1 * Math.sin(t * 29 + 1.3));
       } else {
         // 其中一盞路燈接觸不良，偶爾閃爍
         const broken = fl.phase > 5 && Math.sin(t * 0.7) > 0.93 && Math.sin(t * 37) > 0;
-        fl.light.intensity = broken ? fl.base * 0.15 : fl.base;
+        fl.light.intensity = (broken ? fl.base * 0.15 : fl.base) * this.lightScale.lamp;
       }
     }
     this.fireTimers.emit += dt;
@@ -906,7 +1005,7 @@ export class Game {
       }
     }
     // 飄落的灰燼
-    this.fireTimers.ash += dt;
+    this.fireTimers.ash += this.ashOn ? dt : 0;
     while (this.fireTimers.ash > 0.12) {
       this.fireTimers.ash -= 0.12;
       const cx = this.camTarget.x + (this.rng.next() - 0.5) * this.settings.viewHeight * 2;
@@ -923,7 +1022,7 @@ export class Game {
     const p = this.player;
     const mz = p.muzzle();
     const fw = forwardOf(p.yaw);
-    this.flashlight.visible = p.alive;
+    this.flashlight.visible = p.alive && this.flashlightOn;
     this.flashlight.position.set(mz.x - fw.x * 0.3, mz.y + 0.15, mz.z - fw.z * 0.3);
     this.flashlight.target.position.set(mz.x + fw.x * 9, 0, mz.z + fw.z * 9);
     this.flashlight.target.updateMatrixWorld();

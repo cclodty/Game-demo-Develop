@@ -220,6 +220,7 @@ function addMesh(
 function buildFloors(group: THREE.Group): void {
   const dirt = toon({ map: Textures.dirt() });
   const asphalt = toon({ map: Textures.asphalt() });
+  asphalt.userData.dioramaTint = 0xfff0de;
   const sidewalk = toon({ map: Textures.sidewalk() });
   const concrete = toon({ map: Textures.concrete() });
   const wood = toon({ map: Textures.wood() });
@@ -300,6 +301,8 @@ function buildBoxVisual(
       break;
     case 'building': {
       const facade = toon({ map: Textures.facade(), emissiveMap: Textures.facadeGlow(), emissive: 0xffffff, emissiveIntensity: 1.4 });
+      // 夜晚才亮的窗戶（白天由遊戲把自發光關掉）
+      facade.userData.nightWindows = true;
       box(w, h, d, cx, h / 2, cz, sideTopMaterials(facade, toon({ map: Textures.roof() })), 4);
       // 屋頂邊緣與冷氣機，讓俯視時有層次
       const trim = toon({ color: 0x3a3836 });
@@ -359,6 +362,7 @@ function buildBoxVisual(
       const armDir = cx < 0 ? 1 : -1;
       box(1.2, 0.1, 0.12, cx + armDir * 0.55, h - 0.05, cz, metal);
       const lamp = new THREE.MeshBasicMaterial({ color: 0xffd9a0 });
+      lamp.userData.lampHead = true;
       const head = box(0.42, 0.14, 0.26, cx + armDir * 1.1, h - 0.16, cz, lamp);
       head.castShadow = false;
       const light = new THREE.PointLight(0xffb36b, 34, 13, 1.6);

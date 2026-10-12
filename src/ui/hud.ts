@@ -54,6 +54,7 @@ export class Hud {
   readonly dead = $('dead');
   private readonly deadStats = $('dead-stats');
   private readonly pixelBtn = $('btn-pixel');
+  private readonly timeBtn = $('btn-time');
   private toastTimer = 0;
   private hitTimer = 0;
   private lagHp = 1;
@@ -139,8 +140,9 @@ export class Hud {
     $('help-toggle-label').textContent = collapsed ? '展開' : '收合';
   }
 
-  setPixelLabel(on: boolean): void {
-    this.pixelBtn.textContent = on ? '像素 開' : '像素 關';
+  setLookLabels(style: Settings['renderStyle'], time: Settings['timeOfDay']): void {
+    this.pixelBtn.textContent = style === 'pixel' ? '風格：像素' : '風格：微縮';
+    this.timeBtn.textContent = time === 'day' ? '白天' : '夜晚';
   }
 
   setBulletTimeHelp(mode: Settings['bulletTimeMode']): void {
@@ -198,7 +200,11 @@ export class Hud {
 
 /** 暫停選單裡的設定表單：雙向同步，變更時回呼。 */
 export function bindSettingsForm(get: () => Settings, onChange: (s: Settings) => void): () => void {
-  const pixel = $<HTMLInputElement>('set-pixel');
+  const style = $<HTMLSelectElement>('set-style');
+  const time = $<HTMLSelectElement>('set-time');
+  const tiltShift = $<HTMLInputElement>('set-tilt-shift');
+  const ao = $<HTMLInputElement>('set-ao');
+  const outTiltShift = $('out-tilt-shift');
   const pixelSize = $<HTMLSelectElement>('set-pixel-size');
   const outline = $<HTMLInputElement>('set-outline');
   const tilt = $<HTMLInputElement>('set-tilt');
@@ -217,10 +223,16 @@ export function bindSettingsForm(get: () => Settings, onChange: (s: Settings) =>
 
   const refresh = () => {
     const s = get();
-    pixel.checked = s.pixelMode;
+    style.value = s.renderStyle;
+    time.value = s.timeOfDay;
+    tiltShift.value = String(s.tiltShift);
+    tiltShift.disabled = s.renderStyle !== 'diorama';
+    outTiltShift.textContent = `${Math.round(s.tiltShift * 100)}%`;
+    ao.checked = s.ao;
     pixelSize.value = String(s.pixelSize);
-    pixelSize.disabled = !s.pixelMode;
+    pixelSize.disabled = s.renderStyle !== 'pixel';
     outline.checked = s.outlines;
+    outline.disabled = s.renderStyle !== 'pixel';
     tilt.value = String(s.tiltDeg);
     yaw.value = String(s.yawDeg);
     view.value = String(s.viewHeight);
@@ -239,7 +251,10 @@ export function bindSettingsForm(get: () => Settings, onChange: (s: Settings) =>
   const commit = () => {
     const s: Settings = {
       ...get(),
-      pixelMode: pixel.checked,
+      renderStyle: style.value === 'pixel' ? 'pixel' : 'diorama',
+      timeOfDay: time.value === 'night' ? 'night' : 'day',
+      tiltShift: Number(tiltShift.value),
+      ao: ao.checked,
       pixelSize: Number(pixelSize.value),
       outlines: outline.checked,
       tiltDeg: Number(tilt.value),
@@ -256,7 +271,7 @@ export function bindSettingsForm(get: () => Settings, onChange: (s: Settings) =>
     refresh();
   };
 
-  for (const el of [pixel, pixelSize, outline, tilt, yaw, view, look, btMode, spawn, debug, vol, mute]) {
+  for (const el of [style, time, tiltShift, ao, pixelSize, outline, tilt, yaw, view, look, btMode, spawn, debug, vol, mute]) {
     el.addEventListener('input', commit);
     el.addEventListener('change', commit);
   }

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 import type { CharacterTemplate, ClipRole } from './characterAssets';
 import type { CharacterView, MuzzleOffset, ViewAction, ViewState } from './view';
-import { markCharacterMaterial, silhouetteMaterial } from '../render/materials';
+import { markCharacterMaterial, setFlashEmissive, silhouetteMaterial } from '../render/materials';
 import { getToonRamp } from '../render/textures';
 import { TUNING } from '../config';
 import { clamp, damp, wrapAngle } from '../util/math';
@@ -279,7 +279,7 @@ export class AnimatedCharacter implements CharacterView {
     this.updateGun(st.action === 'dead');
 
     this.flash = Math.max(0, this.flash - dt * 7);
-    for (const m of this.materials) m.emissive.copy(this.flashColor).multiplyScalar(this.flash * 0.7);
+    for (const m of this.materials) setFlashEmissive(m, this.flashColor, this.flash * 0.7);
   }
 
   /** 依移動方向混合前、後、左、右四個跑步動作，並與待機動作依速度交叉淡入。 */

@@ -21,7 +21,8 @@ npm run dev          # 開發伺服器，瀏覽器開啟顯示的網址
 | 換彈 | `R`（打空時自動換彈） |
 | 子彈時間 | 按住 `Space`（選單可改成切換） |
 | 暫停、調整鏡頭與畫面 | `Esc` |
-| 像素風／標準畫面 | `P` |
+| 美術風格：微縮模型／像素風 | `P` |
+| 時段：白天／夜晚 | `N` |
 | 鏡頭遠近 | 滑鼠滾輪 |
 | 除錯資訊 | `F3` |
 | 收合操作說明 | `H` |
@@ -45,12 +46,12 @@ npm run dev          # 開發伺服器，瀏覽器開啟顯示的網址
 src/
   config.ts            所有暫定數值與預設設定（調手感從這裡改）
   game.ts              主迴圈：輸入、移動、射擊、敵人、鏡頭、介面串接
-  render/pipeline.ts   像素風渲染：低解析度、像素描邊、鏡頭對齊像素格、子彈時間色調
+  render/pipeline.ts   渲染流程：接觸陰影、移軸景深、調色（微縮模型）；低解析度、像素描邊（像素風）
   entities/characterAssets.ts 外部角色模型的載入、縮放與動作辨識
   entities/animatedCharacter.ts 骨架動畫角色（上下半身分開轉向）
   assets/models/       放主角與喪屍模型的地方（player.glb、zombie.glb）
   render/textures.ts   程式繪製的像素材質（暫用素材）
-  render/materials.ts  卡通光影材質、牆面網點淡出、穿牆剪影
+  render/materials.ts  兩套材質（微縮模型／像素風）、牆面網點淡出、穿牆剪影
   world/level.ts       MAP-01 測試場配置（碰撞與外觀共用同一份資料）
   world/collision.ts   平面碰撞、掃掠線段、子彈高度判定
   world/navGrid.ts     敵人尋路（格子 A*）

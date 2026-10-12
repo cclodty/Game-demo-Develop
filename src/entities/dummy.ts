@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { markCharacterMaterial, toon } from '../render/materials';
+import { markCharacterMaterial, setFlashEmissive, toon } from '../render/materials';
+
+const WHITE = new THREE.Color(1, 1, 1);
 
 /** 試射用的稻草假人：不會移動、不會倒下，被擊中會晃動並顯示傷害。 */
 export class Dummy {
@@ -69,7 +71,7 @@ export class Dummy {
     this.swing.rotation.x = Math.cos(this.wobbleDir) * a;
     this.swing.rotation.z = -Math.sin(this.wobbleDir) * a;
     this.flash = Math.max(0, this.flash - dt * 7);
-    for (const m of this.mats) m.emissive.setScalar(this.flash * 0.8);
+    for (const m of this.mats) setFlashEmissive(m, WHITE, this.flash * 0.8);
   }
 
   reset(): void {
