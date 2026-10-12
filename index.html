@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>M1 操作測試場</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Pixelify+Sans:wght@400;600&display=swap"
+    />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <!--APP-START-->
+    <div id="app">
+      <canvas id="view" aria-label="M1 操作測試場畫面"></canvas>
+
+      <div id="hud" hidden>
+        <div class="hud-corner hud-tl">
+          <div class="objective"><span class="tag">M1</span>操作測試場</div>
+          <div class="wave-line">
+            <span>第 <b id="wave" class="num">0</b> 波</span>
+            <span class="sep"></span>
+            <span>擊倒 <b id="kills" class="num">0</b></span>
+          </div>
+          <div id="wave-note" class="note"></div>
+        </div>
+
+        <div class="hud-corner hud-tr">
+          <button type="button" id="btn-reset" class="chip">重設</button>
+          <button type="button" id="btn-pixel" class="chip">像素 開</button>
+          <button type="button" id="btn-menu" class="chip">選單 <kbd>Esc</kbd></button>
+        </div>
+
+        <aside id="help" class="help" aria-label="操作說明">
+          <div class="help-title">操作 <kbd>H</kbd> <span id="help-toggle-label">收合</span></div>
+          <dl>
+            <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>依畫面方向移動</dd>
+            <dt>滑鼠</dt><dd>360° 瞄準，人物跟著轉</dd>
+            <dt>左鍵</dt><dd>射擊（按住連射）</dd>
+            <dt><kbd>R</kbd></dt><dd>換彈</dd>
+            <dt><kbd>Space</kbd></dt><dd id="help-bt">子彈時間（按住）</dd>
+            <dt><kbd>P</kbd></dt><dd>像素風／標準畫面</dd>
+            <dt>滾輪</dt><dd>鏡頭遠近</dd>
+            <dt><kbd>F3</kbd></dt><dd>除錯資訊</dd>
+          </dl>
+        </aside>
+
+        <div class="hud-bottom">
+          <div class="meter meter-hp">
+            <div class="meter-label"><span>生命</span><span class="num"><b id="hp-text">100</b>/100</span></div>
+            <div class="bar"><div id="hp-bar" class="fill"></div><div id="hp-lag" class="lag"></div></div>
+          </div>
+
+          <div class="meter meter-bt" id="bt-meter">
+            <div class="meter-label"><span>子彈時間</span><span id="bt-state" class="state">可啟動</span></div>
+            <div class="bar">
+              <div id="bt-bar" class="fill"></div>
+              <div id="bt-min" class="min-tick" title="最低啟動量"></div>
+            </div>
+          </div>
+
+          <div class="ammo" id="ammo">
+            <div class="ammo-name" id="weapon-name">通用步槍（暫稱）</div>
+            <div class="ammo-count num"><b id="mag">30</b><span class="slash">/</span><span id="reserve">90</span></div>
+            <div class="bar thin"><div id="reload-bar" class="fill"></div></div>
+          </div>
+        </div>
+
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+        <pre id="debug" class="debug" hidden></pre>
+        <div id="floaters" class="floaters"></div>
+      </div>
+
+      <div id="crosshair" class="crosshair" hidden>
+        <i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="dot"></i>
+        <span class="hitmark"></span>
+      </div>
+
+      <section id="start" class="screen">
+        <div class="card">
+          <p class="eyebrow">末日生存遊戲・Three.js 原型</p>
+          <h1>M1 操作測試場</h1>
+          <p class="lead">驗證固定俯視鏡頭、鍵鼠 360° 瞄準、整個人物平滑轉身、邊退邊射，以及有限度的子彈時間。</p>
+          <dl class="keys">
+            <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>依畫面方向移動</dd>
+            <dt>滑鼠</dt><dd>瞄準方向；左鍵射擊</dd>
+            <dt><kbd>Space</kbd></dt><dd>按住開啟子彈時間</dd>
+            <dt><kbd>R</kbd></dt><dd>換彈；彈藥箱可補充</dd>
+            <dt><kbd>Esc</kbd></dt><dd>暫停、調整鏡頭與畫面</dd>
+          </dl>
+          <button type="button" id="btn-start" class="primary">開始測試</button>
+          <p class="fine">暫用素材與暫定數值；音效為程式即時合成。</p>
+          <p class="fine touch-note">這個測試需要鍵盤與滑鼠，請在電腦上開啟。</p>
+        </div>
+      </section>
+
+      <section id="pause" class="screen" hidden>
+        <div class="card wide">
+          <div class="card-head">
+            <h2>暫停</h2>
+            <div class="row-buttons">
+              <button type="button" id="btn-resume" class="primary">繼續 <kbd>Esc</kbd></button>
+              <button type="button" id="btn-reset2">重設測試場</button>
+            </div>
+          </div>
+          <form id="settings" class="settings" autocomplete="off">
+            <fieldset>
+              <legend>畫面</legend>
+              <label class="check"><input type="checkbox" id="set-pixel" /> 像素風低解析度</label>
+              <label>像素大小
+                <select id="set-pixel-size">
+                  <option value="2">2 倍</option>
+                  <option value="3">3 倍</option>
+                  <option value="4">4 倍</option>
+                  <option value="5">5 倍</option>
+                </select>
+              </label>
+              <label class="check"><input type="checkbox" id="set-outline" /> 像素描邊</label>
+            </fieldset>
+            <fieldset>
+              <legend>鏡頭</legend>
+              <label>俯角 <output id="out-tilt">56°</output>
+                <input type="range" id="set-tilt" min="35" max="80" step="1" />
+              </label>
+              <label>觀看方向
+                <select id="set-yaw">
+                  <option value="0">正面（0°）</option>
+                  <option value="45">斜角（45°）</option>
+                </select>
+              </label>
+              <label>取景高度 <output id="out-view">15 m</output>
+                <input type="range" id="set-view" min="9" max="26" step="0.5" />
+              </label>
+              <label>瞄準時畫面偏移 <output id="out-look">0.18</output>
+                <input type="range" id="set-look" min="0" max="0.4" step="0.02" />
+              </label>
+            </fieldset>
+            <fieldset>
+              <legend>操作與測試</legend>
+              <label>子彈時間啟動
+                <select id="set-bt-mode">
+                  <option value="hold">按住使用</option>
+                  <option value="toggle">按一下切換</option>
+                </select>
+              </label>
+              <label class="check"><input type="checkbox" id="set-spawn" /> 生成喪屍波次</label>
+              <label class="check"><input type="checkbox" id="set-debug" /> 顯示除錯資訊</label>
+            </fieldset>
+            <fieldset>
+              <legend>聲音</legend>
+              <label>音量 <output id="out-vol">70%</output>
+                <input type="range" id="set-vol" min="0" max="1" step="0.05" />
+              </label>
+              <label class="check"><input type="checkbox" id="set-mute" /> 靜音</label>
+              <button type="button" id="btn-defaults" class="ghost">恢復預設設定</button>
+            </fieldset>
+          </form>
+        </div>
+      </section>
+
+      <section id="dead" class="screen dim" hidden>
+        <div class="card">
+          <p class="eyebrow">測試失敗</p>
+          <h2>你倒下了</h2>
+          <p id="dead-stats" class="lead"></p>
+          <button type="button" id="btn-retry" class="primary">重設測試場 <kbd>Enter</kbd></button>
+        </div>
+      </section>
+    </div>
+    <!--APP-END-->
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

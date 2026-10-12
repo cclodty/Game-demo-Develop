@@ -1,0 +1,25 @@
+{
+  "name": "apocalypse-m1-threejs",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:artifact": "vite build && node scripts/build-artifact.mjs",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/three": "0.186.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.3"
+  }
+}
