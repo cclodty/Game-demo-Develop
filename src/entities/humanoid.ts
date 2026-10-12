@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { markCharacterMaterial, silhouetteMaterial, toon } from '../render/materials';
 import { TUNING } from '../config';
+import { damp } from '../util/math';
+import type { CharacterView, ViewState } from './view';
 
 /**
  * 可連續轉向的幾何暫用人形（CH-01 / CH-04 / RIG-01 的 R1 替代品）。
@@ -23,7 +25,7 @@ export interface HumanoidStyle {
 const HIP_Y = 0.86;
 const SHOULDER_Y = 1.4;
 
-export class Humanoid {
+export class Humanoid implements CharacterView {
   readonly root = new THREE.Group();
   /** 承載倒下、前傾等整體姿勢；root 只負責位置與面向。 */
   readonly body = new THREE.Group();
@@ -40,8 +42,12 @@ export class Humanoid {
   private walkPhase = 0;
   private flash = 0;
   private flashColor = new THREE.Color(1, 1, 1);
-  recoil = 0;
-  lean = 0;
+  private time = 0;
+  private recoil = 0;
+  private lean = 0;
+
+  private static nextId = 1;
+  private readonly id = Humanoid.nextId++;
 
   constructor(readonly style: HumanoidStyle) {
     this.root.add(this.body);
@@ -161,11 +167,59 @@ export class Humanoid {
     this.flashColor.set(color);
   }
 
+  kickRecoil(): void {
+    this.recoil = 1;
+  }
+
+  resetPose(): void {
+    this.body.rotation.set(0, 0, 0);
+    this.body.position.set(0, 0, 0);
+    this.recoil = 0;
+    this.flash = 0;
+  }
+
+  update(dt: number, st: ViewState): void {
+    this.time += dt;
+    this.animateLegs(dt, st.vx, st.vz, st.refSpeed);
+    this.lean = st.reload;
+    const t = Math.min(1, st.actionTime / Math.max(0.001, st.actionDuration));
+    switch (st.action) {
+      case 'rising':
+        this.body.position.y = -1.7 * (1 - t) * (1 - t);
+        this.body.rotation.x = (1 - t) * 0.6;
+        break;
+      case 'dead': {
+        const f = Math.min(1, st.actionTime / 0.42);
+        this.body.rotation.x = -(Math.PI / 2) * f * f;
+        this.body.position.y = 0.13 * f - st.sink;
+        break;
+      }
+      case 'windup':
+        // 出手前搖：雙手舉高、身體後仰
+        this.armL.rotation.x = -1.25 - t * 1.0;
+        this.armR.rotation.x = -1.45 - t * 1.0;
+        this.body.rotation.x = -t * 0.18;
+        break;
+      case 'recover':
+        this.armL.rotation.x = damp(this.armL.rotation.x, -0.9, 12, dt);
+        this.armR.rotation.x = damp(this.armR.rotation.x, -1.0, 12, dt);
+        this.body.rotation.x = damp(this.body.rotation.x, 0.22, 12, dt);
+        break;
+      default:
+        if (this.style.zombie) {
+          this.armL.rotation.x = damp(this.armL.rotation.x, -1.25 + Math.sin(this.time * 3 + this.id) * 0.08, 6, dt);
+          this.armR.rotation.x = damp(this.armR.rotation.x, -1.45, 6, dt);
+        }
+        this.body.rotation.x = damp(this.body.rotation.x, 0, 6, dt);
+        this.body.position.y = damp(this.body.position.y, 0, 10, dt);
+    }
+  }
+
   /**
-   * 依速度做程序動畫。vx/vz 為世界速度，yaw 為目前面向。
+   * 依速度做程序動畫。vx/vz 為世界速度。
    * 腿部的擺動方向由「移動方向相對於面向」決定，所以後退與橫移看得出來。
    */
-  animate(dt: number, vx: number, vz: number, refSpeed: number): void {
+  private animateLegs(dt: number, vx: number, vz: number, refSpeed: number): void {
     const yaw = this.root.rotation.y;
     const fx = Math.sin(yaw);
     const fz = Math.cos(yaw);

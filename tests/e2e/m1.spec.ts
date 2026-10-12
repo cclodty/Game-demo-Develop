@@ -430,3 +430,26 @@ test('點過介面按鈕後，按空白鍵只會開子彈時間，不會再觸�
   expect(s.stats.shots).toBe(shots);
   expect(s.bt.activations).toBe(1);
 });
+
+test('外部角色模型：載入後會播放待機與移動動作（沒有放模型時略過）', async ({ page }) => {
+  const errors = await boot(page);
+  const models = await page.evaluate(() => (window as unknown as { __m1: { state: () => { models: { player: string | null; zombie: string | null } } } }).__m1.state().models);
+  test.skip(!models.player && !models.zombie, 'src/assets/models/ 沒有模型檔，使用方塊人形');
+  type ModelState = State & { models: { playerClips: string[] } };
+  if (models.player) {
+    await call(page, 'teleport', -1, 5, Math.PI / 2);
+    await settleAim(page, 5, 5);
+    const idle = (await state(page)) as ModelState;
+    expect(idle.models.playerClips.length).toBeGreaterThan(0);
+    await page.keyboard.down('KeyW');
+    const moving = (await waitState(page, (s) => (s as ModelState).models.playerClips.join() !== idle.models.playerClips.join(), 5000)) as ModelState;
+    await page.keyboard.up('KeyW');
+    expect(moving.models.playerClips.length).toBeGreaterThan(0);
+  }
+  if (models.zombie) {
+    await call(page, 'teleport', -1, 6, 0);
+    await call(page, 'spawnZombie', -1, 1);
+    await waitState(page, (s) => s.player.hp < 100, 15_000);
+  }
+  expect(errors).toEqual([]);
+});

@@ -7,7 +7,8 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 2000,
-    assetsInlineLimit: 0,
+    // 單一 HTML 版本把模型等資源內嵌成 data URL；一般版本保持獨立檔案
+    assetsInlineLimit: mode === 'artifact' ? 64 * 1024 * 1024 : 0,
     outDir: mode === 'artifact' ? 'dist-artifact' : 'dist',
     rollupOptions: mode === 'artifact' ? { external: ['three'] } : {},
   },

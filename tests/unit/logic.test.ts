@@ -6,6 +6,7 @@ import { WaveDirector } from '../../src/systems/waves';
 import { aimYawWithMuzzleOffset, dampAngle, forwardOf, localXOf, wrapAngle } from '../../src/util/math';
 import { buildColliders, LEVEL_DATA } from '../../src/world/level';
 import { TUNING } from '../../src/config';
+import { detectBones, detectClipRoles } from '../../src/entities/characterAssets';
 
 const wall: Box = { minX: 0, maxX: 1, minZ: -5, maxZ: 5, height: 2.6 };
 const lowCrate: Box = { minX: 3, maxX: 4, minZ: -0.5, maxZ: 0.5, height: 0.9 };
@@ -197,5 +198,46 @@ describe('波次', () => {
   it('關閉生成時不產生事件', () => {
     const w = new WaveDirector();
     for (let i = 0; i < 100; i++) expect(w.update(0.1, 0, false)).toBeNull();
+  });
+});
+
+describe('外部角色模型：動作與骨頭辨識', () => {
+  it('Quaternius 風格的動作名稱（RobotExpressive）', () => {
+    const names = ['Dance', 'Death', 'Idle', 'Jump', 'No', 'Punch', 'Running', 'Sitting', 'Standing', 'ThumbsUp', 'Walking', 'WalkJump', 'Wave', 'Yes'];
+    expect(detectClipRoles(names)).toEqual({ idle: 'Idle', walk: 'Walking', run: 'Running', death: 'Death', attack: 'Punch' });
+  });
+
+  it('持槍動作優先於一般動作，後退與橫移不會被當成前進', () => {
+    const names = ['CharacterArmature|Idle', 'CharacterArmature|Idle_Gun', 'CharacterArmature|Walk', 'CharacterArmature|Run', 'CharacterArmature|Run_Back', 'CharacterArmature|Run_Left', 'CharacterArmature|Gun_Shoot', 'CharacterArmature|HitReact', 'CharacterArmature|Death'];
+    const r = detectClipRoles(names);
+    expect(r.idle).toBe('CharacterArmature|Idle_Gun');
+    expect(r.walk).toBe('CharacterArmature|Walk');
+    expect(r.run).toBe('CharacterArmature|Run');
+    expect(r.walkBack).toBe('CharacterArmature|Run_Back');
+    expect(r.hit).toBe('CharacterArmature|HitReact');
+    expect(r.death).toBe('CharacterArmature|Death');
+  });
+
+  it('喪屍專用動作與 Mixamo 命名', () => {
+    const names = ['mixamo.com|Zombie Idle', 'Zombie Walk', 'Zombie Attack', 'Zombie Dying', 'Walking Backwards'];
+    const r = detectClipRoles(names);
+    expect(r.idle).toBe('mixamo.com|Zombie Idle');
+    expect(r.walk).toBe('Zombie Walk');
+    expect(r.attack).toBe('Zombie Attack');
+    expect(r.death).toBe('Zombie Dying');
+    expect(r.walkBack).toBe('Walking Backwards');
+  });
+
+  it('可以手動指定動作名稱', () => {
+    expect(detectClipRoles(['A', 'B'], { idle: 'B' }).idle).toBe('B');
+  });
+
+  it('辨識髖部、脊椎與右手骨頭', () => {
+    expect(detectBones(['Bone', 'Hips', 'Abdomen', 'Torso', 'UpperArm.R', 'Palm2.R', 'Thumb.R'])).toEqual({ hips: 'Hips', spine: 'Abdomen', handR: 'Palm2.R' });
+    expect(detectBones(['mixamorig:Hips', 'mixamorig:Spine', 'mixamorig:Spine1', 'mixamorig:Spine2', 'mixamorig:RightHand', 'mixamorig:RightHandThumb1'])).toEqual({
+      hips: 'mixamorig:Hips',
+      spine: 'mixamorig:Spine1',
+      handR: 'mixamorig:RightHand',
+    });
   });
 });

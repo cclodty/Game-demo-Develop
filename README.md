@@ -46,6 +46,9 @@ src/
   config.ts            所有暫定數值與預設設定（調手感從這裡改）
   game.ts              主迴圈：輸入、移動、射擊、敵人、鏡頭、介面串接
   render/pipeline.ts   像素風渲染：低解析度、像素描邊、鏡頭對齊像素格、子彈時間色調
+  entities/characterAssets.ts 外部角色模型的載入、縮放與動作辨識
+  entities/animatedCharacter.ts 骨架動畫角色（上下半身分開轉向）
+  assets/models/       放主角與喪屍模型的地方（player.glb、zombie.glb）
   render/textures.ts   程式繪製的像素材質（暫用素材）
   render/materials.ts  卡通光影材質、牆面網點淡出、穿牆剪影
   world/level.ts       MAP-01 測試場配置（碰撞與外觀共用同一份資料）

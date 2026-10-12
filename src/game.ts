@@ -6,6 +6,9 @@ import { NavGrid } from './world/navGrid';
 import { firstBoxHit, rayHitsBox3D, segmentCircle } from './world/collision';
 import { Player } from './entities/player';
 import { Zombie } from './entities/zombie';
+import { AnimatedCharacter } from './entities/animatedCharacter';
+import type { CharacterTemplates } from './entities/characterAssets';
+import type { CharacterView } from './entities/view';
 import { Dummy } from './entities/dummy';
 import { Projectiles, type BulletHit } from './combat/projectiles';
 import { Particles } from './fx/particles';
@@ -33,6 +36,8 @@ interface Pickup {
 
 export interface GameOptions {
   testMode: boolean;
+  /** 外部角色模型；沒有的種類使用方塊暫用人形。 */
+  characters?: CharacterTemplates;
 }
 
 const W = TUNING.weapon;
@@ -114,7 +119,8 @@ export class Game {
     this.scene.add(this.level.group);
     this.nav = new NavGrid(-24, -18, 24, 18, 0.5, this.level.boxes, TUNING.zombie.radius);
 
-    this.player = new Player(this.scene);
+    const pt = options.characters?.player;
+    this.player = new Player(this.scene, pt ? new AnimatedCharacter(pt, { silhouette: 0x6fd6ff, withGun: true }) : undefined);
     for (const d of this.level.dummySpots) this.dummies.push(new Dummy(this.scene, d.x, d.z));
     this.projectiles = new Projectiles(this.scene);
     this.particles = new Particles(this.scene);
@@ -577,7 +583,7 @@ export class Game {
     const shoulder = p.shoulder();
     Object.assign(this.lastShot, { x: muzzle.x, z: muzzle.z, dx: f.x, dz: f.z, moveX: p.vx, moveZ: p.vz });
     p.bloomDeg = Math.min(W.maxBloomDeg, p.bloomDeg + W.bloomPerShot);
-    p.model.recoil = 1;
+    p.model.kickRecoil();
 
     // 槍口若已伸進牆裡，子彈在牆面就停下，不會穿牆
     const pointBlank = this.pointBlankHit(shoulder.x, shoulder.z, muzzle.x, muzzle.z, f.x, f.z);
@@ -715,7 +721,7 @@ export class Game {
       sx = p.x + (this.rng.next() - 0.5);
       sz = p.z + (this.rng.next() - 0.5);
     }
-    const zb = new Zombie(this.scene, sx, sz, this.rng, instant);
+    const zb = new Zombie(this.scene, sx, sz, this.rng, instant, this.makeZombieView());
     this.zombies.push(zb);
     if (!instant) {
       for (let i = 0; i < 10; i++) {
@@ -727,6 +733,11 @@ export class Game {
       }
     }
     return zb;
+  }
+
+  private makeZombieView(): CharacterView | undefined {
+    const zt = this.options.characters?.zombie;
+    return zt ? new AnimatedCharacter(zt, { silhouette: 0xff5a4a, withGun: false }) : undefined;
   }
 
   private updateZombies(dt: number): void {
@@ -1071,6 +1082,11 @@ export class Game {
       state: () => ({
         mode: this.mode,
         fps: this.fps,
+        models: {
+          player: this.options.characters?.player?.fileName ?? null,
+          zombie: this.options.characters?.zombie?.fileName ?? null,
+          playerClips: this.player.model instanceof AnimatedCharacter ? this.player.model.activeClips() : [],
+        },
         player: {
           x: this.player.x,
           z: this.player.z,

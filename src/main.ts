@@ -1,4 +1,5 @@
 import { Game } from './game';
+import { loadCharacterTemplates } from './entities/characterAssets';
 
 declare global {
   interface Window {
@@ -6,14 +7,29 @@ declare global {
   }
 }
 
-function boot(): void {
+async function boot(): Promise<void> {
   const canvas = document.getElementById('view') as HTMLCanvasElement | null;
   if (!canvas) return;
   const params = new URLSearchParams(window.location.search);
   const testMode = params.has('test') || window.location.hash === '#test';
+
+  // 先載入角色模型；載入期間「開始測試」按鈕暫時停用
+  const startBtn = document.getElementById('btn-start') as HTMLButtonElement | null;
+  const label = startBtn?.textContent ?? '';
+  if (startBtn) {
+    startBtn.disabled = true;
+    startBtn.textContent = '載入角色模型…';
+  }
+  const { templates, errors } = await loadCharacterTemplates();
+  for (const e of errors) console.warn(`角色模型載入失敗，改用方塊人形：${e}`);
+  if (startBtn) {
+    startBtn.disabled = false;
+    startBtn.textContent = label;
+  }
+
   let game: Game;
   try {
-    game = new Game(canvas, { testMode });
+    game = new Game(canvas, { testMode, characters: templates });
   } catch (err) {
     showFatal(err);
     return;
@@ -43,4 +59,4 @@ function showFatal(err: unknown): void {
   start.append(card);
 }
 
-boot();
+void boot();

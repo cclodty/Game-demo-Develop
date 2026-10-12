@@ -1,14 +1,16 @@
 import * as THREE from 'three';
 import { TUNING } from '../config';
 import { Humanoid } from './humanoid';
+import { idleState, type CharacterView } from './view';
 import { type Box, resolveCircle } from '../world/collision';
 import { dampAngle, damp, forwardOf, localXOf } from '../util/math';
 
 const P = TUNING.player;
 const W = TUNING.weapon;
 
-export class Player {
-  readonly model = new Humanoid({
+/** 方塊暫用主角（沒有外部模型時使用）。 */
+export function blockPlayerView(): CharacterView {
+  return new Humanoid({
     skin: 0xc29274,
     shirt: 0x3c5875,
     pants: 0x35363b,
@@ -18,6 +20,10 @@ export class Player {
     withGun: true,
     silhouette: 0x6fd6ff,
   });
+}
+
+export class Player {
+  private readonly viewState = idleState(P.moveSpeed);
   x = 0;
   z = 0;
   vx = 0;
@@ -34,7 +40,10 @@ export class Player {
   deadTime = 0;
   shotsFired = 0;
 
-  constructor(scene: THREE.Scene) {
+  constructor(
+    scene: THREE.Scene,
+    readonly model: CharacterView = blockPlayerView(),
+  ) {
     scene.add(this.model.root);
   }
 
@@ -54,8 +63,7 @@ export class Player {
     this.bloomDeg = 0;
     this.deadTime = 0;
     this.shotsFired = 0;
-    this.model.body.rotation.set(0, 0, 0);
-    this.model.body.position.set(0, 0, 0);
+    this.model.resetPose();
     this.syncModel();
   }
 
@@ -87,13 +95,10 @@ export class Player {
   update(gameDt: number, realDt: number, moveX: number, moveZ: number, aimYaw: number, boxes: readonly Box[]): void {
     if (!this.alive) {
       this.deadTime += gameDt;
-      const t = Math.min(1, this.deadTime / 0.45);
-      this.model.body.rotation.x = -(Math.PI / 2) * t * t;
-      this.model.body.position.y = 0.12 * t;
       this.vx = damp(this.vx, 0, 10, gameDt);
       this.vz = damp(this.vz, 0, 10, gameDt);
       this.syncModel();
-      this.model.animate(gameDt, 0, 0, P.moveSpeed);
+      this.updateView(gameDt, 'dead', this.deadTime);
       return;
     }
 
@@ -135,11 +140,20 @@ export class Player {
         this.reserve -= take;
       }
     }
-    // 換彈時槍口下壓
-    this.model.lean = this.reloadTimer > 0 ? 0.35 * Math.sin(Math.min(1, 1 - this.reloadTimer / W.reloadTime) * Math.PI) : 0;
-
     this.syncModel();
-    this.model.animate(gameDt, this.vx, this.vz, P.moveSpeed);
+    this.updateView(gameDt, 'none', 0);
+  }
+
+  private updateView(dt: number, action: 'none' | 'dead', actionTime: number): void {
+    const v = this.viewState;
+    v.vx = this.vx;
+    v.vz = this.vz;
+    v.action = action;
+    v.actionTime = actionTime;
+    v.actionDuration = 0.45;
+    // 換彈時槍口下壓
+    v.reload = this.reloadTimer > 0 ? 0.35 * Math.sin(Math.min(1, 1 - this.reloadTimer / W.reloadTime) * Math.PI) : 0;
+    this.model.update(dt, v);
   }
 
   startReload(): boolean {

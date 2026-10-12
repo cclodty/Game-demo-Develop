@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { TUNING } from '../config';
 import { Humanoid } from './humanoid';
+import { idleState, type CharacterView, type ViewAction } from './view';
 import { type Box, lineClear, resolveCircle } from '../world/collision';
 import type { NavGrid } from '../world/navGrid';
-import { damp, dampAngle, Rng, yawOf } from '../util/math';
+import { dampAngle, Rng, yawOf } from '../util/math';
 
 const Z = TUNING.zombie;
 
@@ -23,9 +24,26 @@ const SKINS = [0x95a87c, 0x9fa37e, 0x8aa07c];
 
 let nextId = 1;
 
+/** 方塊暫用喪屍（沒有外部模型時使用），衣服與膚色隨機。 */
+export function blockZombieView(rng: Rng): CharacterView {
+  return new Humanoid({
+    skin: rng.pick(SKINS),
+    shirt: rng.pick(SHIRTS),
+    pants: 0x2f2f2c,
+    hair: 0x2b2a22,
+    shoes: 0x1e1c1a,
+    eyes: 0xffc94a,
+    zombie: true,
+    silhouette: 0xff5a4a,
+  });
+}
+
 export class Zombie {
   readonly id = nextId++;
-  readonly model: Humanoid;
+  readonly model: CharacterView;
+  private readonly viewState = idleState(TUNING.zombie.speed);
+  private actionTime = 0;
+  private lastViewAction: ViewAction = 'none';
   x: number;
   z: number;
   vx = 0;
@@ -45,17 +63,8 @@ export class Zombie {
   corpseTimer = 0;
   removed = false;
 
-  constructor(scene: THREE.Scene, x: number, z: number, rng: Rng, instant = false) {
-    this.model = new Humanoid({
-      skin: rng.pick(SKINS),
-      shirt: rng.pick(SHIRTS),
-      pants: 0x2f2f2c,
-      hair: 0x2b2a22,
-      shoes: 0x1e1c1a,
-      eyes: 0xffc94a,
-      zombie: true,
-      silhouette: 0xff5a4a,
-    });
+  constructor(scene: THREE.Scene, x: number, z: number, rng: Rng, instant = false, view?: CharacterView) {
+    this.model = view ?? blockZombieView(rng);
     this.x = x;
     this.z = z;
     this.yaw = rng.range(-Math.PI, Math.PI);
@@ -66,10 +75,31 @@ export class Zombie {
       this.state = 'chase';
     } else {
       this.timer = 1.0;
-      this.model.body.position.y = -1.7;
     }
     scene.add(this.model.root);
     this.sync();
+    this.viewState.refSpeed = this.speed;
+    this.updateView(0);
+  }
+
+  /** 把目前的狀態交給外觀呈現（方塊人形或骨架動畫）。 */
+  private updateView(dt: number): void {
+    const v = this.viewState;
+    const action: ViewAction =
+      this.state === 'dead' ? 'dead' : this.state === 'rising' ? 'rising' : this.state === 'windup' ? 'windup' : this.state === 'recover' ? 'recover' : 'none';
+    if (action !== this.lastViewAction) {
+      this.actionTime = 0;
+      this.lastViewAction = action;
+    } else {
+      this.actionTime += dt;
+    }
+    v.vx = this.vx;
+    v.vz = this.vz;
+    v.action = action;
+    v.actionTime = this.actionTime;
+    v.actionDuration = action === 'rising' ? 1.0 : action === 'windup' ? Z.attackWindup : 0.4;
+    v.sink = this.corpseTimer > Z.corpseTime ? (this.corpseTimer - Z.corpseTime) * 0.35 : 0;
+    this.model.update(dt, v);
   }
 
   get alive(): boolean {
@@ -109,16 +139,9 @@ export class Zombie {
 
     if (this.state === 'rising') {
       this.timer -= dt;
-      const t = 1 - Math.max(0, this.timer) / 1.0;
-      this.model.body.position.y = -1.7 * (1 - t) * (1 - t);
-      this.model.body.rotation.x = (1 - t) * 0.6;
-      if (this.timer <= 0) {
-        this.model.body.position.y = 0;
-        this.model.body.rotation.x = 0;
-        this.state = 'chase';
-      }
+      if (this.timer <= 0) this.state = 'chase';
       this.sync();
-      this.model.animate(dt, 0, 0, this.speed);
+      this.updateView(dt);
       return false;
     }
 
@@ -206,22 +229,6 @@ export class Zombie {
       this.yaw = dampAngle(this.yaw, yawOf(dx, dz), 12, dt);
     }
 
-    // 出手姿勢：手臂舉高後撲下
-    if (this.state === 'windup') {
-      const t = 1 - this.timer / Z.attackWindup;
-      this.model.armL.rotation.x = -1.25 - t * 1.0;
-      this.model.armR.rotation.x = -1.45 - t * 1.0;
-      this.model.body.rotation.x = -t * 0.18;
-    } else if (this.state === 'recover') {
-      this.model.armL.rotation.x = damp(this.model.armL.rotation.x, -0.9, 12, dt);
-      this.model.armR.rotation.x = damp(this.model.armR.rotation.x, -1.0, 12, dt);
-      this.model.body.rotation.x = damp(this.model.body.rotation.x, 0.22, 12, dt);
-    } else {
-      this.model.armL.rotation.x = damp(this.model.armL.rotation.x, -1.25 + Math.sin(this.timer * 3 + this.id) * 0.08, 6, dt);
-      this.model.armR.rotation.x = damp(this.model.armR.rotation.x, -1.45, 6, dt);
-      this.model.body.rotation.x = damp(this.model.body.rotation.x, 0, 6, dt);
-    }
-
     this.groanTimer -= dt;
     if (this.groanTimer <= 0) {
       this.groanTimer = 4 + (this.id % 5) * 1.3;
@@ -229,7 +236,7 @@ export class Zombie {
     }
 
     this.sync();
-    this.model.animate(dt, this.vx, this.vz, this.speed * 1.6);
+    this.updateView(dt);
     return groan;
   }
 
@@ -258,20 +265,16 @@ export class Zombie {
   private updateDead(dt: number): void {
     this.timer += dt;
     this.corpseTimer += dt;
-    const t = Math.min(1, this.timer / 0.4);
-    this.model.body.rotation.x = -(Math.PI / 2) * t * t;
-    this.model.body.position.y = 0.14 * t;
     this.x += this.knockX * dt;
     this.z += this.knockZ * dt;
     const kd = Math.exp(-8 * dt);
     this.knockX *= kd;
     this.knockZ *= kd;
-    if (this.corpseTimer > Z.corpseTime) {
-      this.model.body.position.y -= dt * 0.35;
-      if (this.corpseTimer > Z.corpseTime + 2.5) this.removed = true;
-    }
+    if (this.corpseTimer > Z.corpseTime + 2.5) this.removed = true;
+    this.vx = 0;
+    this.vz = 0;
     this.sync();
-    this.model.animate(dt, 0, 0, this.speed);
+    this.updateView(dt);
   }
 
   sync(): void {
