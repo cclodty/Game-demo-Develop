@@ -1,0 +1,118 @@
+// Wave director: builds each wave's roster and feeds enemies in through the
+// stairwell doors and over the roof ledges, telegraphing each spawn.
+
+import { rand } from './utils.js';
+
+export class Waves {
+  constructor(game) {
+    this.game = game;
+    this.reset();
+  }
+
+  reset() {
+    this.wave = 0;
+    this.queue = [];
+    this.pending = [];
+    this.state = 'intermission';
+    this.timer = 2.4;
+    this.maxAlive = 3;
+    this.spawnCd = 0;
+    this.clock = 0;
+  }
+
+  get remaining() {
+    return this.queue.length + this.pending.length + this.game.enemies.aliveCount;
+  }
+
+  get finishedSpawning() {
+    return this.state === 'active' && this.queue.length === 0 && this.pending.length === 0;
+  }
+
+  compose(n) {
+    const total = 3 + Math.floor(n * 1.7);
+    const brutes = n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
+    const weights = [
+      ['grunt', 6],
+      ['shotgun', n >= 2 ? 2.5 : 0],
+      ['rifle', n >= 2 ? 2 : 0],
+      ['rusher', n >= 3 ? 2.2 : 0],
+    ];
+    const sum = weights.reduce((a, w) => a + w[1], 0);
+    const list = [];
+    for (let i = 0; i < total - brutes; i++) {
+      let r = Math.random() * sum;
+      for (const [type, w] of weights) {
+        r -= w;
+        if (r <= 0) {
+          list.push(type);
+          break;
+        }
+      }
+    }
+    for (let b = 0; b < brutes; b++) list.splice(Math.floor(rand(list.length * 0.4, list.length)), 0, 'brute');
+    return list;
+  }
+
+  startWave() {
+    const g = this.game;
+    this.wave++;
+    this.queue = this.compose(this.wave);
+    this.maxAlive = Math.min(3 + Math.floor(this.wave * 0.7), 9);
+    this.state = 'active';
+    this.spawnCd = 0.3;
+    const tips = [
+      '敵人的紅色激光變亮 = 即將開槍',
+      '按 Shift 進入子彈時間，看清每一顆子彈',
+      '射擊平底鍋，子彈會自動反彈到最近的敵人',
+      'Space 旋轉時子彈會穿身而過',
+      '按住右鍵：左手槍鎖定另一個目標',
+      '把敵人踢向同伴，可以打保齡球',
+    ];
+    g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
+    g.audio.waveStart();
+  }
+
+  pickSpawn() {
+    const { player, level } = this.game;
+    const far = level.spawns.filter((sp) => Math.hypot(sp.ex - player.x, sp.ez - player.z) > 7.5);
+    const pool = far.length ? far : level.spawns;
+    pool.sort((a, b) => a.lastUsed - b.lastUsed);
+    const choice = pool[Math.floor(Math.random() * Math.min(2, pool.length))];
+    choice.lastUsed = this.clock;
+    return choice;
+  }
+
+  update(dt, realDt) {
+    this.clock += dt;
+    if (this.state === 'intermission') {
+      this.timer -= realDt;
+      if (this.timer <= 0 && this.game.player.alive) this.startWave();
+      return;
+    }
+    if (this.state !== 'active') return;
+    const enemies = this.game.enemies;
+
+    for (let i = this.pending.length - 1; i >= 0; i--) {
+      const p = this.pending[i];
+      p.t -= dt;
+      p.sp.heat = 1;
+      if (p.t <= 0) {
+        enemies.spawn(p.type, p.sp);
+        this.pending.splice(i, 1);
+      }
+    }
+
+    this.spawnCd -= dt;
+    if (this.queue.length && this.spawnCd <= 0 && enemies.aliveCount + this.pending.length < this.maxAlive) {
+      const type = this.queue.shift();
+      this.pending.push({ type, sp: this.pickSpawn(), t: 0.9 });
+      this.spawnCd = rand(0.5, 1.3);
+    }
+
+    if (!this.queue.length && !this.pending.length && enemies.aliveCount === 0) {
+      this.state = 'intermission';
+      this.timer = 3.8;
+      this.game.onWaveClear(this.wave);
+    }
+  }
+}
