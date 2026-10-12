@@ -374,8 +374,9 @@ export class FX {
     this.glow.spawn({ x, y, z, life: 0.06, size: 0.32, r: color[0], g: color[1], b: color[2], spin: 4 });
   }
 
-  casing(x, y, z, dx, dz) {
+  casing(x, y, z, dx, dz, color = null) {
     const audio = this.game.audio;
+    const [cr, cg, cb] = color || [0.95, 0.7, 0.25];
     this.solid.spawn({
       x,
       y,
@@ -387,9 +388,9 @@ export class FX {
       sx: 0.05,
       sy: 0.05,
       sz: 0.12,
-      r: 0.95,
-      g: 0.7,
-      b: 0.25,
+      r: cr,
+      g: cg,
+      b: cb,
       grav: 22,
       bounce: 0.45,
       spin: 22,

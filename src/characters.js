@@ -1,5 +1,6 @@
 // Blocky low-poly humanoids. Read well from a top-down camera: glowing
-// shoulder pads + visor carry each faction's colour.
+// shoulder pads + visor carry each faction's colour. Weapons are swappable
+// models so the player (and pickups) can show what is being held.
 
 import * as THREE from 'three';
 
@@ -14,10 +15,151 @@ function box(w, h, d, tx = 0, ty = 0, tz = 0) {
   return g;
 }
 const ringGeo = new THREE.RingGeometry(0.58, 0.7, 36).rotateX(-Math.PI / 2);
+const woodMat = new THREE.MeshStandardMaterial({ color: 0x5a3a22, roughness: 0.7 });
 
 export const SHOULDER_X = 0.41;
 export const SHOULDER_Y = 1.38;
 export const MUZZLE_Z = 0.95;
+
+const ANCHOR = { x: -0.18, y: SHOULDER_Y - 0.04, z: 0.28 };
+const CENTER = { x: 0, y: SHOULDER_Y - 0.06, z: 0.35 };
+
+/**
+ * Weapon models. `hold` says where the parts attach:
+ *   dual   - one copy on each forearm
+ *   right  - right forearm only
+ *   anchor - a two-handed long gun held at the right shoulder
+ *   center - a heavy gun held at the chest
+ * Parts are [w, h, d, x, y, z, material]; `end` is the barrel tip along z.
+ */
+export const MODELS = {
+  dualPistol: { hold: 'dual', end: 0.95, parts: [[0.09, 0.15, 0.36, 0, 0.06, 0.76, 'gun']] },
+  dualSmg: {
+    hold: 'dual',
+    end: 1.04,
+    parts: [
+      [0.1, 0.16, 0.44, 0, 0.06, 0.8, 'gun'],
+      [0.06, 0.22, 0.08, 0, -0.08, 0.7, 'gun'],
+      [0.11, 0.03, 0.2, 0, 0.15, 0.82, 'accent'],
+    ],
+  },
+  pistol: { hold: 'right', end: 0.95, parts: [[0.09, 0.15, 0.36, 0, 0.06, 0.76, 'gun']] },
+  shotgun: {
+    hold: 'anchor',
+    end: 1.02,
+    parts: [
+      [0.08, 0.08, 1.0, 0, 0.05, 0.5, 'gun'],
+      [0.07, 0.07, 0.75, 0, -0.04, 0.45, 'gun'],
+      [0.12, 0.1, 0.26, 0, -0.04, 0.64, 'wood'],
+      [0.1, 0.16, 0.36, 0, -0.02, -0.12, 'wood'],
+    ],
+  },
+  rifle: {
+    hold: 'anchor',
+    end: 1.08,
+    parts: [
+      [0.1, 0.16, 0.72, 0, 0.02, 0.3, 'gun'],
+      [0.05, 0.05, 0.45, 0, 0.05, 0.86, 'gun'],
+      [0.07, 0.24, 0.1, 0, -0.14, 0.36, 'gun'],
+      [0.11, 0.03, 0.32, 0, 0.11, 0.3, 'accent'],
+    ],
+  },
+  sniper: {
+    hold: 'anchor',
+    end: 1.46,
+    parts: [
+      [0.09, 0.14, 0.82, 0, 0, 0.24, 'gun'],
+      [0.045, 0.045, 0.8, 0, 0.03, 1.06, 'gun'],
+      [0.07, 0.07, 0.36, 0, 0.13, 0.3, 'gun'],
+      [0.075, 0.075, 0.02, 0, 0.13, 0.49, 'accent'],
+    ],
+  },
+  launcher: {
+    hold: 'anchor',
+    end: 0.88,
+    parts: [
+      [0.2, 0.2, 0.86, 0, 0.03, 0.43, 'gun'],
+      [0.27, 0.27, 0.24, 0, -0.02, 0.14, 'gun'],
+      [0.23, 0.23, 0.05, 0, 0.03, 0.86, 'accent'],
+    ],
+  },
+  minigun: {
+    hold: 'center',
+    end: 1.15,
+    parts: [
+      [0.3, 0.3, 1.15, 0, 0, 0.55, 'gun'],
+      [0.34, 0.08, 0.1, 0, 0, 1.1, 'accent'],
+    ],
+  },
+  blade: { hold: 'right', end: 1.15, parts: [[0.05, 0.04, 0.55, 0, 0, 0.9, 'accent']] },
+};
+
+const POSES = {
+  dual: { lx: 0, ly: 0.05, rx: 0, ry: -0.05 },
+  right: { lx: 1.25, ly: 0, rx: 0, ry: 0 },
+  anchor: { lx: 0, ly: -0.75, rx: 0, ry: 0.35 },
+  center: { lx: 0, ly: -0.35, rx: 0, ry: 0.35 },
+  blade: { lx: 0.9, ly: 0, rx: 0.5, ry: 0 },
+};
+
+function partMesh(p, mats) {
+  const [w, h, d, x, y, z, m] = p;
+  const mesh = new THREE.Mesh(box(w, h, d, x, y, z), m === 'wood' ? woodMat : mats[m]);
+  mesh.castShadow = true;
+  return mesh;
+}
+
+/** A free-standing copy of a weapon model (used by floor pickups). */
+export function buildWeaponModel(model, mats) {
+  const def = MODELS[model];
+  const g = new THREE.Group();
+  const copies = def.hold === 'dual' ? [-0.16, 0.16] : [0];
+  for (const off of copies) {
+    const sub = new THREE.Group();
+    for (const p of def.parts) sub.add(partMesh(p, mats));
+    sub.position.set(off, 0, def.hold === 'dual' ? -0.7 : -def.end / 2);
+    g.add(sub);
+  }
+  return g;
+}
+
+/** Swap the weapon a rig is holding and set the matching arm pose. */
+export function attachWeapon(rig, model) {
+  for (const m of rig.weaponParts) m.parent.remove(m);
+  rig.weaponParts.length = 0;
+  const def = MODELS[model];
+  const add = (parent) => {
+    for (const p of def.parts) {
+      const mesh = partMesh(p, rig.mats);
+      parent.add(mesh);
+      rig.weaponParts.push(mesh);
+    }
+  };
+  const s = rig.scale;
+  if (def.hold === 'dual') {
+    add(rig.armL);
+    add(rig.armR);
+    rig.muzzles = [
+      [-SHOULDER_X * s, def.end * s],
+      [SHOULDER_X * s, def.end * s],
+    ];
+  } else if (def.hold === 'right') {
+    add(rig.armR);
+    rig.muzzles = [[-SHOULDER_X * s, def.end * s]];
+  } else {
+    const a = def.hold === 'center' ? CENTER : ANCHOR;
+    const anchor = def.hold === 'center' ? rig.center : rig.anchor;
+    add(anchor);
+    rig.muzzles = [[a.x * s, (a.z + def.end) * s]];
+    rig.gripZ = a.z * s;
+  }
+  const pose = POSES[model === 'blade' ? 'blade' : def.hold];
+  rig.pose = pose;
+  rig.armL.rotation.set(pose.lx, pose.ly, 0);
+  rig.armR.rotation.set(pose.rx, pose.ry, 0);
+  rig.model = model;
+  rig.hold = def.hold;
+}
 
 export function buildCharacter(options) {
   const o = {
@@ -79,42 +221,12 @@ export function buildCharacter(options) {
   };
   const armL = makeArm(1);
   const armR = makeArm(-1);
-  const pistol = () => new THREE.Mesh(box(0.09, 0.15, 0.36, 0, 0.06, 0.76), mats.gun);
+  const anchor = new THREE.Group();
+  anchor.position.set(ANCHOR.x, ANCHOR.y, ANCHOR.z);
+  const center = new THREE.Group();
+  center.position.set(CENTER.x, CENTER.y, CENTER.z);
 
-  switch (o.weapon) {
-    case 'dual':
-      armL.add(pistol());
-      armR.add(pistol());
-      break;
-    case 'pistol':
-      armR.add(pistol());
-      armL.rotation.x = 1.25;
-      break;
-    case 'long':
-      armR.add(new THREE.Mesh(box(0.1, 0.14, 1.0, 0, 0.06, 0.82), mats.gun));
-      armR.rotation.y = 0.12;
-      armL.rotation.y = -0.5;
-      break;
-    case 'blade': {
-      const knife = new THREE.Mesh(box(0.05, 0.04, 0.55, 0, 0, 0.9), mats.accent);
-      armR.add(knife);
-      armL.rotation.x = 0.9;
-      armR.rotation.x = 0.5;
-      break;
-    }
-    case 'minigun': {
-      const gun = new THREE.Group();
-      gun.add(new THREE.Mesh(box(0.3, 0.3, 1.15, 0, 0, 0.55), mats.gun));
-      gun.add(new THREE.Mesh(box(0.34, 0.08, 0.1, 0, 0, 1.1), mats.accent));
-      gun.position.set(0, SHOULDER_Y - 0.06, 0.35);
-      inner.add(gun);
-      armR.rotation.y = 0.35;
-      armL.rotation.y = -0.35;
-      break;
-    }
-  }
-
-  inner.add(legL, legR, torso, head, armL, armR);
+  inner.add(legL, legR, torso, head, armL, armR, anchor, center);
   inner.traverse((m) => {
     if (m.isMesh) m.castShadow = true;
   });
@@ -130,7 +242,9 @@ export function buildCharacter(options) {
   ring.scale.setScalar(o.scale);
   root.add(ring);
 
-  return { root, inner, legL, legR, torso, head, armL, armR, mats, ring, scale: o.scale, weapon: o.weapon };
+  const rig = { root, inner, legL, legR, torso, head, armL, armR, anchor, center, mats, ring, scale: o.scale, weaponParts: [], muzzles: [], gripZ: 0 };
+  attachWeapon(rig, o.weapon);
+  return rig;
 }
 
 export function animateRig(rig, phase, moveAmt) {

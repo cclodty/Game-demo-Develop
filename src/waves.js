@@ -18,6 +18,7 @@ export class Waves {
     this.maxAlive = 3;
     this.spawnCd = 0;
     this.clock = 0;
+    this.stageNext = false;
   }
 
   get remaining() {
@@ -66,10 +67,14 @@ export class Waves {
       '射擊平底鍋，子彈會自動反彈到最近的敵人',
       'Space 旋轉時子彈會穿身而過',
       '按住右鍵：左手槍鎖定另一個目標',
+      '金色武器台每波都會刷出新武器',
       '把敵人踢向同伴，可以打保齡球',
+      '狙擊槍的子彈會穿透敵人和玻璃',
+      '站在另一把武器上按 E 交換；1 / 2 或滾輪切換',
     ];
     g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
     g.audio.waveStart();
+    g.pickups.refillPads();
   }
 
   pickSpawn() {
@@ -86,7 +91,16 @@ export class Waves {
     this.clock += dt;
     if (this.state === 'intermission') {
       this.timer -= realDt;
-      if (this.timer <= 0 && this.game.player.alive) this.startWave();
+      if (this.timer <= 0 && this.game.player.alive) {
+        if (this.stageNext) {
+          // every third wave the fight moves to the next map
+          this.stageNext = false;
+          this.state = 'transition';
+          this.game.beginStageTransition();
+        } else {
+          this.startWave();
+        }
+      }
       return;
     }
     if (this.state !== 'active') return;
@@ -112,7 +126,8 @@ export class Waves {
     if (!this.queue.length && !this.pending.length && enemies.aliveCount === 0) {
       this.state = 'intermission';
       this.timer = 3.8;
-      this.game.onWaveClear(this.wave);
+      this.stageNext = this.wave % 3 === 0;
+      this.game.onWaveClear(this.wave, this.stageNext);
     }
   }
 }

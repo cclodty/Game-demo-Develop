@@ -1,6 +1,6 @@
 // Keyboard + mouse state with "pressed this frame" edges.
 
-const BLOCKED = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+const BLOCKED = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'Tab', 'Digit1', 'Digit2', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
 export class Input {
   constructor() {
@@ -44,6 +44,8 @@ export class Input {
         this.mouse.rightReleased = true;
       }
     });
+    this.wheel = 0;
+    addEventListener('wheel', (e) => (this.wheel += Math.sign(e.deltaY)), { passive: true });
     addEventListener('contextmenu', (e) => e.preventDefault());
     addEventListener('blur', () => this.releaseAll());
   }
@@ -66,6 +68,7 @@ export class Input {
   }
 
   endFrame() {
+    this.wheel = 0;
     this.pressed.clear();
     this.mouse.leftPressed = false;
     this.mouse.rightPressed = false;

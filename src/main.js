@@ -6,12 +6,17 @@ import { Enemies } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
 import { Input } from './input.js';
-import { Level, PLAYER_START } from './level.js';
+import { Level } from './level.js';
+import { MAPS } from './maps.js';
+import { Pickups } from './pickups.js';
 import { Player } from './player.js';
 import { PostFX } from './postfx.js';
 import { Score } from './score.js';
 import { clamp, damp, lerp } from './utils.js';
 import { Waves } from './waves.js';
+import { Grenades } from './weapons.js';
+
+const MAP_KEY = 'bullet-ballet.map';
 
 const $ = (id) => document.getElementById(id);
 
@@ -32,8 +37,20 @@ class Game {
     this.input = new Input();
     this.audio = new AudioSys();
     this.fx = new FX(this);
+    this.maps = MAPS;
+    this.startMap = 0;
+    try {
+      this.startMap = Math.min(MAPS.length - 1, Math.max(0, Number(localStorage.getItem(MAP_KEY)) || 0));
+    } catch {
+      this.startMap = 0;
+    }
+    this.stage = 0;
+    this.transition = null;
     this.level = new Level(this);
+    if (this.startMap) this.level.load(MAPS[this.startMap]);
     this.bullets = new Bullets(this);
+    this.grenades = new Grenades(this);
+    this.pickups = new Pickups(this);
     this.enemies = new Enemies(this);
     this.player = new Player(this);
     this.score = new Score(this);
@@ -45,8 +62,9 @@ class Game {
     this.raycaster = new THREE.Raycaster();
     this.ndc = new THREE.Vector2();
     this.aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GUN_Y);
-    this.aimPoint = new THREE.Vector3(PLAYER_START.x, GUN_Y, PLAYER_START.z - 5);
-    this.camTarget = new THREE.Vector3(PLAYER_START.x, 0, PLAYER_START.z);
+    const start = this.level.start;
+    this.aimPoint = new THREE.Vector3(start.x, GUN_Y, start.z - 5);
+    this.camTarget = new THREE.Vector3(start.x, 0, start.z);
     this.zoom = 1;
     this.trauma = 0;
 
@@ -81,11 +99,25 @@ class Game {
   // ------------------------------------------------------------ flow
 
   bindUI() {
-    const start = () => {
+    const start = (map = this.startMap) => {
       this.audio.init();
-      this.startRun();
+      this.startRun(map);
     };
-    $('title').addEventListener('click', start);
+    const cards = $('map-cards');
+    MAPS.forEach((m, i) => {
+      const b = document.createElement('button');
+      b.className = 'map-card';
+      b.type = 'button';
+      b.style.setProperty('--map', m.color);
+      b.innerHTML = `<span class="map-key">${i + 1}</span><span class="map-zh">${m.name}</span><span class="map-en">${m.en}</span><span class="map-desc">${m.desc}</span>`;
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        start(i);
+      });
+      cards.appendChild(b);
+    });
+    this.markMapCard();
+    $('title').addEventListener('click', () => start());
     $('gameover').addEventListener('click', () => {
       if (performance.now() - this.overAt > 700) start();
     });
@@ -100,6 +132,9 @@ class Game {
       } else if (e.code === 'Enter') {
         if (this.state === 'title') start();
         else if (this.state === 'over' && performance.now() - this.overAt > 700) start();
+      } else if (this.state === 'title' && /^Digit[1-9]$/.test(e.code)) {
+        const i = Number(e.code.slice(5)) - 1;
+        if (i < MAPS.length) start(i);
       }
     });
     addEventListener('blur', () => this.setPaused(true));
@@ -108,11 +143,32 @@ class Game {
     });
   }
 
-  startRun() {
+  markMapCard() {
+    [...$('map-cards').children].forEach((c, i) => c.classList.toggle('selected', i === this.startMap));
+  }
+
+  startRun(mapIndex = this.startMap) {
+    this.startMap = mapIndex;
+    this.markMapCard();
+    try {
+      localStorage.setItem(MAP_KEY, String(mapIndex));
+    } catch {
+      /* storage unavailable */
+    }
+    this.stage = 0;
+    this.transition = null;
+    $('fade').classList.remove('on');
     this.enemies.clear();
     this.bullets.clear();
+    this.grenades.clear();
+    this.pickups.clear();
     this.fx.clear();
-    this.level.resetProps();
+    if (this.level.map !== MAPS[mapIndex]) {
+      this.level.load(MAPS[mapIndex]);
+      this.renderer.compile(this.scene, this.camera);
+    } else {
+      this.level.resetProps();
+    }
     this.player.reset();
     this.score.reset();
     this.waves.reset();
@@ -136,7 +192,43 @@ class Game {
     document.body.classList.add('playing');
     this.hud.show(true);
     this.audio.setSlow(0);
+    this.updateCamera(1, true);
     this.last = performance.now();
+  }
+
+  get stageMap() {
+    return MAPS[(this.startMap + this.stage) % MAPS.length];
+  }
+
+  beginStageTransition() {
+    this.transition = { t: 0, loaded: false };
+    $('fade').classList.add('on');
+  }
+
+  updateTransition(realDt) {
+    const tr = this.transition;
+    tr.t += realDt;
+    if (!tr.loaded && tr.t >= 0.65) {
+      tr.loaded = true;
+      this.stage++;
+      this.enemies.clear();
+      this.bullets.clear();
+      this.grenades.clear();
+      this.pickups.clear();
+      this.fx.clear();
+      this.level.load(this.stageMap);
+      this.player.placeAtStart();
+      this.updateCamera(1, true);
+      this.renderer.compile(this.scene, this.camera);
+      $('fade').classList.remove('on');
+    }
+    if (tr.t >= 1.3) {
+      this.transition = null;
+      const m = this.stageMap;
+      this.hud.banner(`STAGE ${this.stage + 1}`, `${m.name} · ${m.en}`, 'stage');
+      this.waves.state = 'intermission';
+      this.waves.timer = 2.6;
+    }
   }
 
   setPaused(on) {
@@ -243,6 +335,7 @@ class Game {
     if (this.worldTime - this.lastKillAt < 0.5) tags.push({ label: 'MULTI KILL', pts: 100, cls: 'pink' });
     this.lastKillAt = this.worldTime;
     const last = this.waves.finishedSpawning && this.enemies.aliveCount === 0;
+    if (info.bullet && info.bullet.kills >= 2) tags.push({ label: 'COLLATERAL', pts: 150 * (info.bullet.kills - 1), cls: 'gold' });
     if (last) tags.push({ label: 'LAST ONE', pts: 100 });
 
     this.score.kill(tags);
@@ -286,23 +379,24 @@ class Game {
     this.hud.banner('YOU DIED', '你倒下了', 'dead');
   }
 
-  onWaveClear(n) {
+  onWaveClear(n, stageEnd = false) {
     if (!this.player.alive) return;
     const bonus = 250 * n;
     this.score.bonus('WAVE CLEAR', bonus);
     this.addFocus(0.35);
     this.player.hp = PLAYER.hp;
-    this.hud.banner('WAVE CLEAR', `+${bonus.toLocaleString('en-US')} · 生命值回滿`, 'clear');
+    const next = stageEnd ? ` · 下一站：${MAPS[(this.startMap + this.stage + 1) % MAPS.length].name}` : '';
+    this.hud.banner(stageEnd ? 'STAGE CLEAR' : 'WAVE CLEAR', `+${bonus.toLocaleString('en-US')} · 生命值回滿${next}`, 'clear');
     this.audio.waveClear();
   }
 
-  explode(x, z, r) {
+  explode(x, z, r, opts = {}) {
     const p = this.player;
     this.fx.explosion(x, z, r);
     this.audio.explosion(this.panFor(x));
     const dp = Math.hypot(p.x - x, p.z - z);
     this.shake(clamp(1.1 - dp / 25, 0.3, 0.9));
-    this.flashFx = Math.max(this.flashFx, clamp(0.3 - dp / 70, 0, 0.3));
+    this.flashFx = Math.max(this.flashFx, clamp(0.16 - dp / 120, 0, 0.16));
     this.hitstop(0.06);
 
     for (const e of this.enemies.list) {
@@ -322,7 +416,8 @@ class Game {
     if (p.alive && dp < r && this.level.hasLOS(x, z, p.x, p.z)) {
       const dmg = Math.round(lerp(55, 15, dp / r));
       const k = 1 / (dp || 1);
-      p.hurt(p.spinning ? dmg * 0.5 : dmg, (p.x - x) * k, (p.z - z) * k, true);
+      const mul = (p.spinning ? 0.5 : 1) * (opts.selfMul ?? 1);
+      p.hurt(Math.round(dmg * mul), (p.x - x) * k, (p.z - z) * k, true);
     }
     for (const b of this.level.barrels) {
       if (!b.alive) continue;
@@ -412,10 +507,13 @@ class Game {
     const pdt = realDt * ps;
     this.worldTime += dt;
 
+    if (this.transition) this.updateTransition(realDt);
     this.player.update(pdt, input);
     this.enemies.update(dt);
     this.level.updateProps(dt);
     this.bullets.update(dt);
+    this.grenades.update(dt);
+    this.pickups.update(dt, realDt, input);
     this.fx.update(dt);
     this.waves.update(dt, realDt);
     this.score.update(dt);
@@ -436,6 +534,7 @@ class Game {
     this.enemies.update(dt);
     this.level.updateProps(dt);
     this.bullets.update(dt);
+    this.grenades.update(dt);
     this.fx.update(dt);
     this.level.updateAmbient(realDt, dt, this.camTarget.x, this.camTarget.z);
     this.focusAmt = damp(this.focusAmt, 0, 4, realDt);
@@ -453,16 +552,21 @@ class Game {
     let tz = p.z;
     let zoom = 1;
     if (this.state === 'playing') {
-      let lx = (this.aimPoint.x - p.x) * CAMERA.lookAhead;
-      let lz = (this.aimPoint.z - p.z) * CAMERA.lookAhead;
+      // holding right mouse with a sniper rifle pushes the view out along the aim
+      const scoped = p.alive && p.weapon.scope && this.input.mouse.right;
+      const ahead = scoped ? 0.55 : CAMERA.lookAhead;
+      const aheadMax = scoped ? 13 : CAMERA.lookAheadMax;
+      let lx = (this.aimPoint.x - p.x) * ahead;
+      let lz = (this.aimPoint.z - p.z) * ahead;
       const ll = Math.hypot(lx, lz);
-      if (ll > CAMERA.lookAheadMax) {
-        lx *= CAMERA.lookAheadMax / ll;
-        lz *= CAMERA.lookAheadMax / ll;
+      if (ll > aheadMax) {
+        lx *= aheadMax / ll;
+        lz *= aheadMax / ll;
       }
+      if (scoped) zoom *= 1.12;
       tx += lx;
       tz += lz;
-      zoom = lerp(1, CAMERA.focusZoom, this.focusAmt);
+      zoom *= lerp(1, CAMERA.focusZoom, this.focusAmt);
       if (this.killcamT > 0) {
         tx = lerp(tx, this.killcamPos.x, 0.6);
         tz = lerp(tz, this.killcamPos.z, 0.6);

@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BULLET, GUN_Y, PLAYER } from './config.js';
-import { animateRig, buildCharacter, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
+import { GUN_Y, PLAYER } from './config.js';
+import { animateRig, attachWeapon, buildCharacter, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
 import { Laser } from './fx.js';
-import { PLAYER_START } from './level.js';
 import { angleTo, clamp, damp, rand, wrapAngle } from './utils.js';
+import { PLAYER_WEAPONS } from './weapons.js';
 
 export class Player {
   constructor(game) {
@@ -15,10 +15,12 @@ export class Player {
       hair: 0x1b1b22,
       accent: 0x2ee8ff,
       gun: 0x3a3d48,
-      weapon: 'dual',
+      weapon: 'dualPistol',
       glow: 2.6,
       ring: 0.9,
     });
+    this.anchorZ = this.rig.anchor.position.z;
+    this.centerZ = this.rig.center.position.z;
     game.scene.add(this.rig.root);
     this.aimLaser = new Laser(game.scene, new THREE.Color(0.25, 1.2, 1.5));
     this.splitLaser = new Laser(game.scene, new THREE.Color(1.8, 0.35, 1.3));
@@ -26,8 +28,9 @@ export class Player {
   }
 
   reset() {
-    this.x = PLAYER_START.x;
-    this.z = PLAYER_START.z;
+    const start = this.game.level.start;
+    this.x = start.x;
+    this.z = start.z;
     this.vx = this.vz = 0;
     this.facing = Math.PI;
     this.hp = PLAYER.hp;
@@ -37,8 +40,10 @@ export class Player {
     this.spinDirX = 0;
     this.spinDirZ = -1;
     this.fireCd = 0;
-    this.ammo = PLAYER.magSize;
+    this.ammo = PLAYER_WEAPONS.pistols.mag;
     this.reloadT = 0;
+    this.special = null;
+    this.slot = 'pistols';
     this.kickCd = 0;
     this.kickT = 0;
     this.splitTarget = null;
@@ -56,7 +61,19 @@ export class Player {
     r.inner.rotation.set(0, 0, 0);
     r.inner.position.set(0, 0, 0);
     r.ring.visible = true;
+    attachWeapon(r, PLAYER_WEAPONS.pistols.model);
     setFlash(r, 0);
+    this.syncRig(0);
+  }
+
+  /** Put the player back at the map's start (used between stages). */
+  placeAtStart() {
+    const start = this.game.level.start;
+    this.x = start.x;
+    this.z = start.z;
+    this.vx = this.vz = 0;
+    this.spinT = 0;
+    this.splitTarget = null;
     this.syncRig(0);
   }
 
@@ -64,21 +81,70 @@ export class Player {
     return this.spinT > 0;
   }
 
-  get reloadProgress() {
-    return this.reloadT > 0 ? 1 - this.reloadT / PLAYER.reloadTime : 1;
+  get weapon() {
+    return this.slot === 'special' && this.special ? PLAYER_WEAPONS[this.special.id] : PLAYER_WEAPONS.pistols;
   }
 
-  /** World position of a gun muzzle. side -1 = right hand, +1 = left hand. */
-  shoulder(side) {
+  get reloadProgress() {
+    return this.reloadT > 0 ? 1 - this.reloadT / PLAYER_WEAPONS.pistols.reload : 1;
+  }
+
+  // ------------------------------------------------------------ weapons
+
+  equip(slot) {
+    if (slot === 'special' && !this.special) return;
+    if (slot === this.slot && this.rig.model === this.weapon.model) return;
+    this.slot = slot;
+    this.reloadT = 0;
+    this.fireCd = Math.max(this.fireCd, 0.12);
+    if (!this.weapon.dual) this.splitTarget = null;
+    attachWeapon(this.rig, this.weapon.model);
+    this.game.audio.weaponSwitch();
+  }
+
+  giveWeapon(kind, ammo, replace = false) {
+    const w = PLAYER_WEAPONS[kind];
+    if (this.special && this.special.id === kind && !replace) {
+      this.special.ammo = Math.min(this.special.ammo + ammo, w.ammo * 2);
+    } else {
+      this.special = { id: kind, ammo };
+    }
+    this.slot = 'pistols';
+    this.equip('special');
+    this.game.hud.toast(`${w.name} <small>${w.en}</small>`);
+    this.game.audio.pickup();
+  }
+
+  /** Ammo for the shot about to be fired. Returns false if empty. */
+  useAmmo() {
+    if (this.slot === 'special') {
+      if (this.special.ammo <= 0) return false;
+      this.special.ammo--;
+      return true;
+    }
+    if (this.ammo <= 0) return false;
+    this.ammo--;
+    return true;
+  }
+
+  /** Local (character space) point -> world. */
+  local(lx, lz) {
     const f = this.facing;
-    const lx = side * SHOULDER_X;
-    return { x: this.x + lx * Math.cos(f), z: this.z - lx * Math.sin(f) };
+    return { x: this.x + lx * Math.cos(f) + lz * Math.sin(f), z: this.z - lx * Math.sin(f) + lz * Math.cos(f) };
+  }
+
+  /** World position of a shoulder. side -1 = right hand, +1 = left hand. */
+  shoulder(side) {
+    return this.local(side * SHOULDER_X, 0);
   }
 
   muzzle(side, angle) {
     const s = this.shoulder(side);
-    return { x: s.x + Math.sin(angle) * MUZZLE_Z, z: s.z + Math.cos(angle) * MUZZLE_Z };
+    const len = this.rig.muzzles[0] ? this.rig.muzzles[0][1] : MUZZLE_Z;
+    return { x: s.x + Math.sin(angle) * len, z: s.z + Math.cos(angle) * len };
   }
+
+  // -------------------------------------------------------------- update
 
   update(dt, input) {
     if (!this.alive) {
@@ -95,6 +161,12 @@ export class Player {
     this.recoilL = Math.max(0, this.recoilL - dt * 8);
     this.recoilR = Math.max(0, this.recoilR - dt * 8);
     if (this.sinceHurt > PLAYER.regenDelay && this.hp < PLAYER.hp) this.hp = Math.min(PLAYER.hp, this.hp + PLAYER.regenRate * dt);
+
+    // --- weapon switching
+    if (input.hit('Digit1')) this.equip('pistols');
+    else if (input.hit('Digit2')) this.equip('special');
+    else if (input.wheel && this.special) this.equip(this.slot === 'pistols' ? 'special' : 'pistols');
+    const w = this.weapon;
 
     // --- movement (camera never rotates, so WASD maps to world axes)
     let ix = (input.down('KeyD', 'ArrowRight') ? 1 : 0) - (input.down('KeyA', 'ArrowLeft') ? 1 : 0);
@@ -120,9 +192,10 @@ export class Player {
     let tx;
     let tz;
     let accel = PLAYER.accel;
+    const speed = PLAYER.speed * (w.moveMul || 1);
     if (this.spinT > 0) {
       this.spinT -= dt;
-      const sp = PLAYER.speed * PLAYER.spinSpeedMul;
+      const sp = speed * PLAYER.spinSpeedMul;
       tx = this.spinDirX * sp;
       tz = this.spinDirZ * sp;
       accel = 30;
@@ -131,8 +204,8 @@ export class Player {
       }
       if (this.spinT <= 0) this.spinCd = PLAYER.spinCooldown;
     } else {
-      tx = ix * PLAYER.speed;
-      tz = iz * PLAYER.speed;
+      tx = ix * speed;
+      tz = iz * speed;
     }
     this.vx = damp(this.vx, tx, accel, dt);
     this.vz = damp(this.vz, tz, accel, dt);
@@ -145,30 +218,30 @@ export class Player {
     const aimDist = Math.hypot(aim.x - this.x, aim.z - this.z);
     if (aimDist > 0.35) this.facing = angleTo(this.x, this.z, aim.x, aim.z);
 
-    // --- split aim: hold right mouse to lock the left gun onto an enemy
-    if (input.mouse.rightPressed) {
+    // --- split aim (dual weapons only): hold right mouse to lock the left gun
+    if (input.mouse.rightPressed && w.dual) {
       this.splitTarget = g.enemies.closestTo(aim.x, aim.z, 7) || g.enemies.closestTo(this.x, this.z, 30);
       if (!this.splitTarget) g.audio.denied();
     }
-    if (!input.mouse.right) this.splitTarget = null;
+    if (!input.mouse.right || !w.dual) this.splitTarget = null;
     else if (this.splitTarget && !this.splitTarget.alive) {
       this.splitTarget = g.enemies.closestTo(this.splitTarget.x, this.splitTarget.z, 14);
     }
 
-    // --- reload / fire
+    // --- reload (pistols only) / fire
     if (this.reloadT > 0) {
       this.reloadT -= dt;
       if (this.reloadT <= 0) {
-        this.ammo = PLAYER.magSize;
+        this.ammo = PLAYER_WEAPONS.pistols.mag;
         g.audio.reloadDone();
       }
-    } else if (input.hit('KeyR') && this.ammo < PLAYER.magSize) {
+    } else if (input.hit('KeyR') && this.slot === 'pistols' && this.ammo < PLAYER_WEAPONS.pistols.mag) {
       this.startReload();
     }
     if (input.mouse.left && this.fireCd <= 0) {
-      if (this.reloadT > 0) {
+      if (this.slot === 'pistols' && this.reloadT > 0) {
         if (input.mouse.leftPressed) g.audio.empty();
-      } else if (this.ammo <= 0) {
+      } else if (this.slot === 'pistols' && this.ammo <= 0) {
         this.startReload();
       } else {
         this.fire();
@@ -177,11 +250,11 @@ export class Player {
 
     // --- kick
     if (this.kickT > 0) this.kickT -= dt;
-    if (input.hit('KeyF', 'KeyE') && this.kickCd <= 0) this.kick();
+    if (input.hit('KeyF') && this.kickCd <= 0) this.kick();
 
-    const speed = Math.hypot(this.vx, this.vz);
-    this.moveAmt = damp(this.moveAmt, clamp(speed / PLAYER.speed, 0, 1), 10, dt);
-    this.phase += speed * dt * 2.1;
+    const sp = Math.hypot(this.vx, this.vz);
+    this.moveAmt = damp(this.moveAmt, clamp(sp / PLAYER.speed, 0, 1), 10, dt);
+    this.phase += sp * dt * 2.1;
     this.syncRig(dt);
     this.updateLasers();
   }
@@ -222,53 +295,109 @@ export class Player {
 
   startReload() {
     if (this.reloadT > 0) return;
-    this.reloadT = PLAYER.reloadTime;
+    this.reloadT = PLAYER_WEAPONS.pistols.reload;
     this.game.audio.reload();
   }
 
   fire() {
     const g = this.game;
+    const w = this.weapon;
     const aim = g.aimPoint;
-    const target = this.splitTarget && this.splitTarget.alive ? this.splitTarget : null;
-    const shots = target
-      ? [
-          { side: -1, tx: aim.x, tz: aim.z, split: false },
-          { side: 1, tx: target.x, tz: target.z, split: true },
-        ]
-      : [{ side: this.nextGun ? 1 : -1, tx: aim.x, tz: aim.z, split: false }];
-    if (!target) this.nextGun ^= 1;
+    const shots = [];
+    if (w.dual) {
+      const target = this.splitTarget && this.splitTarget.alive ? this.splitTarget : null;
+      if (target) {
+        shots.push({ side: -1, tx: aim.x, tz: aim.z, split: false }, { side: 1, tx: target.x, tz: target.z, split: true });
+      } else {
+        shots.push({ side: this.nextGun ? 1 : -1, tx: aim.x, tz: aim.z, split: false });
+        this.nextGun ^= 1;
+      }
+    } else {
+      shots.push({ side: 0, tx: aim.x, tz: aim.z, split: false });
+    }
 
+    let fired = false;
     for (const s of shots) {
-      if (this.ammo <= 0) break;
-      this.ammo--;
-      const arm = s.side === 1 ? this.rig.armL : this.rig.armR;
-      const armAngle = this.facing + arm.rotation.y;
-      const sh = this.shoulder(s.side);
-      const m = this.muzzle(s.side, armAngle);
-      let dx = s.tx - sh.x;
-      let dz = s.tz - sh.z;
+      if (!this.useAmmo()) break;
+      fired = true;
+      let origin;
+      let m;
+      let armAngle = this.facing;
+      if (s.side) {
+        const arm = s.side === 1 ? this.rig.armL : this.rig.armR;
+        armAngle = this.facing + arm.rotation.y;
+        origin = this.shoulder(s.side);
+        m = this.muzzle(s.side, armAngle);
+      } else {
+        const [lx, lz] = this.rig.muzzles[0];
+        origin = this.local(lx, this.rig.gripZ);
+        m = this.local(lx, lz);
+      }
+      let dx = s.tx - origin.x;
+      let dz = s.tz - origin.z;
       let l = Math.hypot(dx, dz);
       if (l < 1) {
         dx = Math.sin(armAngle);
         dz = Math.cos(armAngle);
         l = 1;
       }
-      const a = Math.atan2(dx / l, dz / l) + rand(-1, 1) * PLAYER.spread;
-      dx = Math.sin(a);
-      dz = Math.cos(a);
-      g.bullets.spawn({ x: sh.x, z: sh.z, dx, dz, speed: BULLET.playerSpeed, owner: 'player', damage: 1, split: s.split });
+      const base = Math.atan2(dx / l, dz / l);
+      if (w.grenade) {
+        g.grenades.spawn(m.x, m.z, s.tx, s.tz, w.speed);
+        dx = Math.sin(base);
+        dz = Math.cos(base);
+      } else {
+        const pellets = w.pellets || 1;
+        for (let i = 0; i < pellets; i++) {
+          const a = pellets > 1 ? base + (i / (pellets - 1) - 0.5) * w.spread * 2 + rand(-0.03, 0.03) : base + rand(-1, 1) * w.spread;
+          dx = Math.sin(a);
+          dz = Math.cos(a);
+          g.bullets.spawn({
+            x: origin.x,
+            z: origin.z,
+            dx,
+            dz,
+            speed: w.speed * (pellets > 1 ? rand(0.88, 1.08) : 1),
+            owner: 'player',
+            damage: w.damage,
+            split: s.split,
+            look: w.look,
+            trail: w.trail,
+            pierce: w.pierce,
+            knock: w.knock,
+            range: w.range,
+            weapon: w.id,
+          });
+        }
+        dx = Math.sin(base);
+        dz = Math.cos(base);
+      }
       g.fx.muzzle(m.x, GUN_Y, m.z, dx, dz);
-      const ex = Math.cos(this.facing) * s.side;
-      const ez = -Math.sin(this.facing) * s.side;
-      g.fx.casing(m.x - dx * 0.4, GUN_Y, m.z - dz * 0.4, ex, ez);
-      g.fx.flash(m.x, GUN_Y + 0.4, m.z, 0xffc070, 16, 0.08, 9);
+      if (w.pellets || w.scope) g.fx.muzzle(m.x, GUN_Y, m.z, dx, dz, [6, 4, 1.6]);
+      const side = s.side || -1;
+      const c = w.casing;
+      if (!w.grenade) {
+        g.fx.casing(m.x - dx * 0.5, GUN_Y, m.z - dz * 0.5, Math.cos(this.facing) * side, -Math.sin(this.facing) * side, c);
+      }
+      g.fx.flash(m.x, GUN_Y + 0.4, m.z, 0xffc070, w.flash || 16, w.scope ? 0.14 : 0.08, w.scope ? 14 : 9);
       if (s.side === 1) this.recoilL = 1;
       else this.recoilR = 1;
+      if (w.recoil) {
+        this.vx -= dx * w.recoil;
+        this.vz -= dz * w.recoil;
+      }
     }
-    g.audio.shot('player', g.panFor(this.x));
-    g.shake(0.05);
-    this.fireCd = PLAYER.fireInterval;
-    if (this.ammo <= 0) this.startReload();
+    if (!fired) return;
+    g.audio.shot(w.sound, g.panFor(this.x));
+    g.shake(w.shake);
+    this.fireCd = w.interval;
+    if (this.slot === 'pistols') {
+      if (this.ammo <= 0) this.startReload();
+    } else if (this.special.ammo <= 0) {
+      this.special = null;
+      this.equip('pistols');
+      g.hud.toast('彈藥用盡 <small>OUT OF AMMO</small>');
+    }
   }
 
   kick() {
@@ -355,13 +484,13 @@ export class Player {
     this.game.level.collideCircle(this, PLAYER.radius);
     const k = clamp(this.deathT / 0.45, 0, 1);
     const r = this.rig;
-    r.inner.rotation.x = -Math.PI / 2 * (1 - (1 - k) * (1 - k));
+    r.inner.rotation.x = (-Math.PI / 2) * (1 - (1 - k) * (1 - k));
     r.inner.position.y = 0.2 * k;
     r.root.position.set(this.x, 0, this.z);
     setFlash(r, 0);
   }
 
-  syncRig(dt) {
+  syncRig() {
     const r = this.rig;
     r.root.position.set(this.x, 0, this.z);
     r.root.rotation.y = this.facing;
@@ -380,16 +509,23 @@ export class Player {
       r.legR.rotation.x = -1.7 * Math.sin(k * Math.PI);
     }
 
+    const pose = r.pose;
     const t = this.splitTarget && this.splitTarget.alive ? this.splitTarget : null;
     if (t) {
       const sh = this.shoulder(1);
       r.armL.rotation.y = clamp(wrapAngle(angleTo(sh.x, sh.z, t.x, t.z) - this.facing), -1.5, 1.5);
     } else {
-      r.armL.rotation.y = 0.05;
+      r.armL.rotation.y = pose.ly;
     }
-    r.armR.rotation.y = -0.05;
-    r.armL.position.z = -this.recoilL * 0.14;
-    r.armR.position.z = -this.recoilR * 0.14;
+    r.armR.rotation.y = pose.ry;
+    if (r.hold === 'dual') {
+      r.armL.position.z = -this.recoilL * 0.14;
+      r.armR.position.z = -this.recoilR * 0.14;
+    } else {
+      r.armL.position.z = r.armR.position.z = -this.recoilR * 0.08;
+      r.anchor.position.z = this.anchorZ - this.recoilR * 0.16;
+      r.center.position.z = this.centerZ - this.recoilR * 0.1;
+    }
 
     setFlash(r, this.hurtFlash * 2.5);
     const ringBoost = this.spinT > 0 ? 3 : 1;
@@ -398,17 +534,31 @@ export class Player {
 
   updateLasers() {
     const g = this.game;
+    const w = this.weapon;
     const aim = g.aimPoint;
-    const armR = this.facing + this.rig.armR.rotation.y;
-    const m = this.muzzle(-1, armR);
+    let m;
+    if (this.rig.hold === 'dual') {
+      m = this.muzzle(-1, this.facing + this.rig.armR.rotation.y);
+    } else {
+      const [lx, lz] = this.rig.muzzles[0];
+      m = this.local(lx, lz);
+    }
     let dx = aim.x - m.x;
     let dz = aim.z - m.z;
     const l = Math.hypot(dx, dz);
     if (l > 0.5) {
       dx /= l;
       dz /= l;
-      const len = g.level.rayLength(m.x, m.z, dx, dz, Math.min(l, 45));
-      this.aimLaser.set(m.x, m.z, m.x + dx * len, m.z + dz * len, 0.035, this.reloadT > 0 ? 0.25 : 0.7);
+      if (w.scope) {
+        // the sniper's sight runs all the way to the first wall
+        const len = g.level.rayLength(m.x, m.z, dx, dz, 60);
+        this.aimLaser.base.setRGB(1.6, 0.2, 0.25);
+        this.aimLaser.set(m.x, m.z, m.x + dx * len, m.z + dz * len, 0.05, 1.1);
+      } else {
+        const len = g.level.rayLength(m.x, m.z, dx, dz, Math.min(l, 45));
+        this.aimLaser.base.setRGB(0.25, 1.2, 1.5);
+        this.aimLaser.set(m.x, m.z, m.x + dx * len, m.z + dz * len, 0.035, this.reloadT > 0 ? 0.25 : 0.7);
+      }
     } else {
       this.aimLaser.hide();
     }

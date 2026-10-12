@@ -2,9 +2,10 @@
 // brightens while they aim, so a quick read (or bullet time) lets you dodge.
 
 import * as THREE from 'three';
-import { ARENA, GUN_Y } from './config.js';
+import { GUN_Y } from './config.js';
 import { animateRig, buildCharacter, disposeRig, setFlash } from './characters.js';
 import { Laser } from './fx.js';
+import { DROPS } from './weapons.js';
 import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowards } from './utils.js';
 
 export const TYPES = {
@@ -34,7 +35,7 @@ export const TYPES = {
     score: 150,
     lead: [0.3, 0.8],
     turn: 4.5,
-    look: { body: 0x3a2a1e, pants: 0x1e1a18, accent: 0xff8a1f, hair: 0xd06a10, weapon: 'long' },
+    look: { body: 0x3a2a1e, pants: 0x1e1a18, accent: 0xff8a1f, hair: 0xd06a10, weapon: 'shotgun' },
   },
   rifle: {
     label: 'RIFLEMAN',
@@ -48,7 +49,7 @@ export const TYPES = {
     score: 150,
     lead: [0.5, 1.0],
     turn: 3.5,
-    look: { body: 0x2a2440, pants: 0x1a1830, accent: 0xb36bff, hair: 0x3a2466, weapon: 'long' },
+    look: { body: 0x2a2440, pants: 0x1a1830, accent: 0xb36bff, hair: 0x3a2466, weapon: 'rifle' },
   },
   rusher: {
     label: 'BLADE',
@@ -78,10 +79,10 @@ export const TYPES = {
 };
 
 const WEAPONS = {
-  pistol: { shots: 1, interval: 0.1, speed: 20, dmg: 20, pellets: 1, spread: 0.02, sound: 'pistol', muzzle: [-0.41, 0.95] },
-  shotgun: { shots: 1, interval: 0.1, speed: 17, dmg: 13, pellets: 6, spread: 0.28, range: 13, sound: 'shotgun', muzzle: [-0.25, 1.3] },
-  rifle: { shots: 3, interval: 0.11, speed: 28, dmg: 16, pellets: 1, spread: 0.035, sound: 'rifle', muzzle: [-0.25, 1.3] },
-  minigun: { shots: 14, interval: 0.09, speed: 18, dmg: 11, pellets: 1, spread: 0.07, sound: 'minigun', muzzle: [0, 1.2], track: 1.1 },
+  pistol: { shots: 1, interval: 0.1, speed: 20, dmg: 20, pellets: 1, spread: 0.02, sound: 'pistol' },
+  shotgun: { shots: 1, interval: 0.1, speed: 17, dmg: 13, pellets: 6, spread: 0.28, range: 13, sound: 'shotgun' },
+  rifle: { shots: 3, interval: 0.11, speed: 28, dmg: 16, pellets: 1, spread: 0.035, sound: 'rifle' },
+  minigun: { shots: 14, interval: 0.09, speed: 18, dmg: 11, pellets: 1, spread: 0.07, sound: 'minigun', track: 1.1 },
 };
 
 const _aim = { x: 0, z: 0 };
@@ -112,7 +113,7 @@ class Enemy {
     this.aimAngle = this.facing;
     this.state = 'enter';
     this.enterT = 0;
-    this.spawnLock = sp.kind === 'ledge' ? 0.35 : 0.1;
+    this.spawnLock = sp.climb ? 0.35 : 0.1;
     this.path = null;
     this.pathI = 0;
     this.repath = 0;
@@ -134,8 +135,8 @@ class Enemy {
     this.struck = false;
     this.corpseT = 0;
     this.pooled = false;
-    if (sp.kind === 'ledge') {
-      const out = Math.abs(sp.x) > 20 ? [Math.sign(sp.x), 0] : [0, Math.sign(sp.z)];
+    if (sp.climb) {
+      const out = [-sp.dirX, -sp.dirZ];
       this.enterFrom = { x: sp.x + out[0] * 1.6, z: sp.z + out[1] * 1.6 };
       this.enterMid = { x: sp.x + out[0] * 0.6, z: sp.z + out[1] * 0.6 };
       this.x = this.enterFrom.x;
@@ -163,16 +164,20 @@ class Enemy {
     const fromPlayer = b.owner === 'player';
     this.hp -= fromPlayer ? b.damage : 3;
     this.flash = 1;
-    const push = this.cfg.heavy ? 0.6 : 2.5;
+    const knock = b.knock || 1;
+    const push = (this.cfg.heavy ? 0.6 : 2.5) * knock;
     this.vx += b.dx * push;
     this.vz += b.dz * push;
     g.fx.blood(this.x, 1.3, this.z, b.dx, b.dz, 7);
     g.audio.flesh(g.panFor(this.x));
     if (this.hp <= 0) {
+      if (fromPlayer) b.kills = (b.kills || 0) + 1;
       this.die(b.dx, b.dz, {
         cause: fromPlayer ? 'bullet' : 'friendly',
         split: b.split,
         ricochet: b.ricochet,
+        bullet: b,
+        knock,
       });
       return;
     }
@@ -220,7 +225,7 @@ class Enemy {
     dz /= l;
     this.dirX = dx;
     this.dirZ = dz;
-    const power = info.cause === 'explosion' ? 15 : info.cause === 'kick' || info.cause === 'strike' ? 12 : 8;
+    const power = info.cause === 'explosion' ? 15 : info.cause === 'kick' || info.cause === 'strike' ? 12 : 8 * Math.min(info.knock || 1, 1.8);
     this.vx = dx * power;
     this.vz = dz * power;
     this.corpseSpin = rand(-2.5, 2.5);
@@ -229,7 +234,17 @@ class Enemy {
     this.rig.ring.visible = false;
     g.fx.blood(this.x, 1.2, this.z, dx, dz, 24, 1.3);
     g.fx.decal(this.x + dx * 0.6, this.z + dz * 0.6, rand(0.6, 1), 0.2, 0.01, 0.02);
+    this.dropWeapon();
     g.onEnemyKilled(this, info);
+  }
+
+  dropWeapon() {
+    for (const [kind, chance] of DROPS[this.type] || []) {
+      if (Math.random() >= chance) continue;
+      for (const m of this.rig.weaponParts) m.visible = false;
+      this.game.pickups.drop(kind, this.x, this.z, this.type === 'brute' ? 1 : 0.6);
+      return;
+    }
   }
 
   endAim() {
@@ -240,10 +255,7 @@ class Enemy {
   // --------------------------------------------------------------- AI
 
   muzzle() {
-    const w = WEAPONS[this.cfg.weapon] || WEAPONS.pistol;
-    const s = this.rig.scale;
-    const lx = w.muzzle[0] * s;
-    const lz = w.muzzle[1] * s;
+    const [lx, lz] = this.rig.muzzles[0];
     const f = this.facing;
     return { x: this.x + lx * Math.cos(f) + lz * Math.sin(f), z: this.z - lx * Math.sin(f) + lz * Math.cos(f) };
   }
@@ -259,7 +271,8 @@ class Enemy {
       const r = rand(rmin, rmax);
       const x = p.x + Math.sin(a) * r;
       const z = p.z + Math.cos(a) * r;
-      if (Math.abs(x) > ARENA.halfW - 1 || Math.abs(z) > ARENA.halfD - 1) continue;
+      const B = g.level.bounds;
+      if (Math.abs(x) > B.halfW - 1 || Math.abs(z) > B.halfD - 1) continue;
       if (!g.level.nav.isWalkable(x, z)) continue;
       let score = g.level.hasLOS(x, z, p.x, p.z) ? 6 : 0;
       score -= Math.hypot(x - this.x, z - this.z) * 0.3;
@@ -380,7 +393,7 @@ class Enemy {
       switch (this.state) {
         case 'enter': {
           this.enterT += dt;
-          if (this.sp.kind === 'ledge') {
+          if (this.sp.climb) {
             collide = false;
             const t = this.enterT;
             if (t < 0.45) {
@@ -535,7 +548,7 @@ class Enemy {
       this.vx = damp(this.vx, want[0], 10, dt);
       this.vz = damp(this.vz, want[1], 10, dt);
     }
-    if (this.state !== 'enter' || this.sp.kind !== 'ledge') {
+    if (this.state !== 'enter' || !this.sp.climb) {
       this.x += this.vx * dt;
       this.z += this.vz * dt;
     }
@@ -738,10 +751,10 @@ export class Enemies {
     const L = this.list;
     for (let i = 0; i < L.length; i++) {
       const a = L[i];
-      if (!a.alive || (a.state === 'enter' && a.sp.kind === 'ledge')) continue;
+      if (!a.alive || (a.state === 'enter' && a.sp.climb)) continue;
       for (let j = i + 1; j < L.length; j++) {
         const b = L[j];
-        if (!b.alive || (b.state === 'enter' && b.sp.kind === 'ledge')) continue;
+        if (!b.alive || (b.state === 'enter' && b.sp.climb)) continue;
         const dx = b.x - a.x;
         const dz = b.z - a.z;
         const rr = a.radius + b.radius;

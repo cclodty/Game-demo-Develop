@@ -196,6 +196,38 @@ export class AudioSys {
         if (!this.limit('minigun', 45)) return;
         this.noise({ type: 'bandpass', freq: 1700 * p, freqEnd: 600 * p, q: 1, dur: 0.08 / p, vol: 0.24, pan });
         break;
+      case 'smg':
+        if (!this.limit('smg', 35)) return;
+        this.noise({ type: 'bandpass', freq: 2800 * p, freqEnd: 900 * p, q: 0.9, dur: 0.09 / p, vol: 0.34, pan });
+        this.tone({ type: 'square', f0: 300 * p, f1: 90 * p, dur: 0.05 / p, vol: 0.1, pan, filter: 2200 });
+        break;
+      case 'pshotgun':
+        this.noise({ type: 'lowpass', freq: 4200 * p, freqEnd: 200 * p, dur: 0.42 / p, vol: 0.8, pan });
+        this.tone({ type: 'sine', f0: 140 * p, f1: 36 * p, dur: 0.26 / p, vol: 0.6, pan });
+        this.noise({ type: 'bandpass', freq: 1800 * p, q: 4, dur: 0.05, vol: 0.18, delay: 0.28 / p, pan });
+        this.noise({ type: 'bandpass', freq: 1400 * p, q: 4, dur: 0.06, vol: 0.18, delay: 0.4 / p, pan });
+        break;
+      case 'prifle':
+        if (!this.limit('prifle', 40)) return;
+        this.noise({ type: 'bandpass', freq: 3200 * p, freqEnd: 700 * p, q: 0.8, dur: 0.12 / p, vol: 0.42, pan });
+        this.tone({ type: 'sawtooth', f0: 260 * p, f1: 70 * p, dur: 0.07 / p, vol: 0.14, pan, filter: 2400 });
+        break;
+      case 'sniper':
+        this.noise({ type: 'highpass', freq: 3000 * p, dur: 0.06 / p, vol: 0.5, pan });
+        this.noise({ type: 'lowpass', freq: 2600 * p, freqEnd: 90 * p, dur: 1.1 / p, vol: 0.75, pan });
+        this.tone({ type: 'sine', f0: 110 * p, f1: 30 * p, dur: 0.5 / p, vol: 0.55, pan });
+        this.noise({ type: 'bandpass', freq: 2200 * p, q: 5, dur: 0.05, vol: 0.16, delay: 0.42 / p, pan });
+        this.noise({ type: 'bandpass', freq: 1600 * p, q: 5, dur: 0.06, vol: 0.16, delay: 0.55 / p, pan });
+        break;
+      case 'launcher':
+        this.tone({ type: 'sine', f0: 190 * p, f1: 55 * p, dur: 0.25 / p, vol: 0.6, pan });
+        this.noise({ type: 'lowpass', freq: 900 * p, dur: 0.2 / p, vol: 0.4, pan });
+        break;
+      case 'pminigun':
+        if (!this.limit('pminigun', 40)) return;
+        this.noise({ type: 'bandpass', freq: 2000 * p, freqEnd: 700 * p, q: 1, dur: 0.07 / p, vol: 0.3, pan });
+        this.tone({ type: 'square', f0: 140 * p, f1: 60 * p, dur: 0.04 / p, vol: 0.08, pan, filter: 1500 });
+        break;
     }
   }
 
@@ -337,6 +369,24 @@ export class AudioSys {
     if (!this.ready) return;
     const f = noteHz(Math.min(level, 14) * 2, 440);
     this.tone({ type: 'triangle', f0: f, dur: 0.12, vol: 0.06 });
+  }
+
+  pickup() {
+    if (!this.ready) return;
+    this.tone({ type: 'triangle', f0: 660, dur: 0.1, vol: 0.12 });
+    this.tone({ type: 'triangle', f0: 990, dur: 0.16, vol: 0.12, delay: 0.07 });
+    this.noise({ type: 'bandpass', freq: 2500, q: 3, dur: 0.05, vol: 0.12 });
+  }
+
+  weaponSwitch() {
+    if (!this.ready || !this.limit('switch', 80)) return;
+    this.noise({ type: 'bandpass', freq: 1800, q: 4, dur: 0.04, vol: 0.14 });
+    this.noise({ type: 'bandpass', freq: 2600, q: 4, dur: 0.04, vol: 0.12, delay: 0.06 });
+  }
+
+  padSpawn() {
+    if (!this.ready) return;
+    this.tone({ type: 'sine', f0: 520, f1: 1040, dur: 0.35, vol: 0.08 });
   }
 
   denied() {

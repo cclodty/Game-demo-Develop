@@ -1,110 +1,64 @@
-// The rooftop arena: static cover, destructible glass, explosive barrels,
-// ricochet frying pans, spawn points, the neon city backdrop and rain.
+// The arena. A Level loads one map from maps.js at a time: static cover,
+// destructible glass, explosive barrels/gas tanks, ricochet pans, weapon
+// pads, spawn points and the map's own decoration and lighting.
 
 import * as THREE from 'three';
-import { ARENA, GUN_Y } from './config.js';
+import { MAPS } from './maps.js';
 import { NavGrid } from './nav.js';
 import { clamp, rand, resolveCircleAABB, segAABB, segCircle, TAU } from './utils.js';
-import { crateTexture, floorTexture, helipadTexture, signTexture, windowTexture } from './textures.js';
-
-// [x, z, width(x), depth(z), height]
-const LAYOUT = {
-  crates: [
-    [-7.5, -5, 2, 2, 1.7],
-    [-5.9, -5.6, 1.2, 1.2, 1.1],
-    [7.5, -5, 2, 2, 1.7],
-    [9.1, -4.4, 1.2, 1.2, 1.1],
-    [-18, 10, 1.6, 1.6, 1.4],
-    [18, 10, 1.6, 1.6, 1.4],
-    [-2.5, 11.5, 1.4, 1.4, 1.3],
-  ],
-  walls: [
-    [0, -8, 7, 0.6, 1.25],
-    [-10.5, 9, 0.6, 4.5, 1.25],
-    [10.5, 9, 0.6, 4.5, 1.25],
-  ],
-  pillars: [
-    [-4.5, 2.5, 1, 1, 3.4],
-    [4.5, 2.5, 1, 1, 3.4],
-  ],
-  units: [
-    [-14, 4, 2.8, 1.8, 1.5],
-    [14, 4, 2.8, 1.8, 1.5],
-    [-17, -6, 1.4, 1.4, 1.0],
-    [17, -6, 1.4, 1.4, 1.0],
-  ],
-  huts: [
-    [-13, -13.5, 4, 3, 2.9],
-    [13, -13.5, 4, 3, 2.9],
-  ],
-  glass: [
-    [0, -12.4, 6, 0.25, 1.9],
-    [-19.5, -2.5, 0.25, 4, 1.9],
-    [19.5, -2.5, 0.25, 4, 1.9],
-    [0, 7, 5, 0.25, 1.9],
-  ],
-  barrels: [
-    [-6, -3.4],
-    [11.8, 6.2],
-    [-12, -2],
-    [3.5, -10],
-    [-19.5, 13],
-    [5.2, 12.4],
-    [15.5, -9.5],
-  ],
-  pans: [
-    [-2.5, -1.5],
-    [2.5, -1.5],
-    [-12.5, -8.5],
-    [12.5, -8.5],
-    [-16, 7],
-    [16, 7],
-  ],
-  spawns: [
-    { x: -13, z: -11.4, ex: -13, ez: -9.2, kind: 'door' },
-    { x: 13, z: -11.4, ex: 13, ez: -9.2, kind: 'door' },
-    { x: -21.4, z: 3.5, ex: -18.6, ez: 3.5, kind: 'ledge' },
-    { x: 21.4, z: 3.5, ex: 18.6, ez: 3.5, kind: 'ledge' },
-    { x: 7.5, z: 14.4, ex: 7.5, ez: 11.6, kind: 'ledge' },
-  ],
-};
-
-export const PLAYER_START = { x: 0, z: 4 };
+import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenceTexture, floorTexture } from './textures.js';
 
 const _hit = { t: 0, nx: 0, nz: 0 };
 
 class Barrel {
-  constructor(level, x, z) {
+  constructor(level, x, z, variant = 'barrel') {
     this.level = level;
     this.kind = 'barrel';
+    this.variant = variant;
     this.home = [x, z];
-    this.r = 0.48;
+    const gas = variant === 'gas';
+    this.r = gas ? 0.62 : 0.48;
+    this.blast = gas ? 5.6 : 4.4;
+    this.maxHp = gas ? 4 : 3;
     const g = new THREE.Group();
-    const body = new THREE.Mesh(level.geo.barrel, level.mat.barrel);
-    body.position.y = 0.6;
-    const stripe = new THREE.Mesh(level.geo.barrelStripe, level.mat.hazard);
-    stripe.position.y = 0.75;
-    const top = new THREE.Mesh(level.geo.barrelTop, level.mat.barrelTop);
-    top.position.y = 1.21;
-    g.add(body, stripe, top);
+    const G = level.geo;
+    const M = level.mat;
+    if (gas) {
+      const body = new THREE.Mesh(G.gas, M.gas);
+      body.position.y = 0.8;
+      const band = new THREE.Mesh(G.gasBand, M.gasBand);
+      band.position.y = 1.0;
+      const valve = new THREE.Mesh(G.gasValve, M.darkMetal);
+      valve.position.y = 1.7;
+      g.add(body, band, valve);
+      this.body = body;
+    } else {
+      const body = new THREE.Mesh(G.barrel, M.barrel);
+      body.position.y = 0.6;
+      const stripe = new THREE.Mesh(G.barrelStripe, M.hazard);
+      stripe.position.y = 0.75;
+      const top = new THREE.Mesh(G.barrelTop, M.barrelTop);
+      top.position.y = 1.21;
+      g.add(body, stripe, top);
+      this.body = body;
+    }
     g.traverse((m) => {
       if (m.isMesh) m.castShadow = m.receiveShadow = true;
     });
-    this.body = body;
     this.mesh = g;
-    level.scene.add(g);
+    level.add(g);
     this.reset();
   }
 
   reset() {
     [this.x, this.z] = this.home;
     this.vx = this.vz = 0;
-    this.hp = 3;
+    this.hp = this.maxHp;
     this.fuse = -1;
     this.alive = true;
     this.mesh.visible = true;
+    this.body.scale.setScalar(1);
     this.mesh.rotation.set(0, rand(0, TAU), 0);
-    this.level.mat.barrel.emissiveIntensity = 0.25;
   }
 
   hit(dmg, dx, dz) {
@@ -127,7 +81,7 @@ class Barrel {
       if (this.fuse < 0) {
         this.alive = false;
         this.mesh.visible = false;
-        this.level.game.explode(this.x, this.z, 4.4);
+        this.level.game.explode(this.x, this.z, this.blast);
         return;
       }
     }
@@ -136,20 +90,24 @@ class Barrel {
 }
 
 class Pan {
-  constructor(level, x, z) {
+  constructor(level, x, z, variant = 'pan') {
     this.level = level;
     this.kind = 'pan';
     this.home = [x, z];
     this.r = 0.46;
     const g = new THREE.Group();
     const tilt = new THREE.Group();
-    const disk = new THREE.Mesh(level.geo.pan, level.mat.pan);
+    const tray = variant === 'tray';
+    const disk = new THREE.Mesh(level.geo.pan, tray ? level.mat.tray : level.mat.pan);
     const rim = new THREE.Mesh(level.geo.panRim, level.mat.panRim);
     rim.rotation.x = Math.PI / 2;
     rim.position.y = 0.03;
-    const handle = new THREE.Mesh(level.geo.panHandle, level.mat.pan);
-    handle.position.set(0, 0.03, 0.62);
-    tilt.add(disk, rim, handle);
+    tilt.add(disk, rim);
+    if (!tray) {
+      const handle = new THREE.Mesh(level.geo.panHandle, level.mat.pan);
+      handle.position.set(0, 0.03, 0.62);
+      tilt.add(handle);
+    }
     tilt.traverse((m) => {
       if (m.isMesh) m.castShadow = true;
     });
@@ -157,10 +115,10 @@ class Pan {
     const marker = new THREE.Mesh(level.geo.panMarker, level.mat.panMarker);
     marker.position.y = 0.025;
     this.marker = marker;
-    level.scene.add(marker);
+    level.add(marker);
     this.tilt = tilt;
     this.mesh = g;
-    level.scene.add(g);
+    level.add(g);
     this.reset();
   }
 
@@ -215,6 +173,7 @@ class Rain {
   }
 
   update(dt, cx, cz) {
+    if (!this.lines.visible) return;
     const pos = this.geo.attributes.position.array;
     const wind = 3;
     for (let i = 0; i < this.count; i++) {
@@ -242,44 +201,43 @@ export class Level {
   constructor(game) {
     this.game = game;
     this.scene = game.scene;
-    this.solids = [];
-    this.glass = [];
-    this.barrels = [];
-    this.pans = [];
-    this.props = [];
     this.time = 0;
+    this.beat = 0;
+    this.root = null;
+    this.owned = [];
     this.makeAssets();
     this.buildLights();
-    this.buildFloor();
-    this.buildStatic();
-    this.buildProps();
-    this.buildSpawns();
-    this.buildBackdrop();
     this.rain = new Rain(this.scene, 900);
-    this.nav = new NavGrid(-ARENA.halfW, -ARENA.halfD, ARENA.halfW, ARENA.halfD, 0.5);
-    this.rebuildNav();
+    this.load(MAPS[0]);
   }
 
   makeAssets() {
     const std = (o) => new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.05, ...o });
+    const container = (color) => std({ map: corrugatedTexture(3), color, roughness: 0.6, metalness: 0.3 });
     this.geo = {
       unit: new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0),
       barrel: new THREE.CylinderGeometry(0.45, 0.45, 1.2, 16),
       barrelStripe: new THREE.CylinderGeometry(0.46, 0.46, 0.18, 16),
       barrelTop: new THREE.CylinderGeometry(0.4, 0.4, 0.03, 16),
+      gas: new THREE.CylinderGeometry(0.58, 0.58, 1.6, 18),
+      gasBand: new THREE.CylinderGeometry(0.59, 0.59, 0.3, 18),
+      gasValve: new THREE.CylinderGeometry(0.12, 0.16, 0.22, 8),
       pan: new THREE.CylinderGeometry(0.38, 0.32, 0.07, 20),
       panRim: new THREE.TorusGeometry(0.38, 0.03, 6, 24),
       panHandle: new THREE.BoxGeometry(0.08, 0.05, 0.55),
       panMarker: new THREE.RingGeometry(0.5, 0.56, 32).rotateX(-Math.PI / 2),
       ring: new THREE.RingGeometry(0.8, 1, 40).rotateX(-Math.PI / 2),
+      padRing: new THREE.RingGeometry(0.72, 0.86, 6).rotateX(-Math.PI / 2),
+      padBase: new THREE.CircleGeometry(0.8, 6).rotateX(-Math.PI / 2),
+      door: new THREE.PlaneGeometry(1, 1),
     };
     this.mat = {
-      floor: std({ map: floorTexture(), roughness: 0.82 }),
       concrete: std({ color: 0x55525e, roughness: 0.9 }),
       parapet: std({ color: 0x3c3a46, roughness: 0.9 }),
       pillar: std({ color: 0x4a4756, roughness: 0.85 }),
       crate: std({ map: crateTexture(), roughness: 0.85 }),
       metal: std({ color: 0x8c93a0, roughness: 0.45, metalness: 0.6 }),
+      unit: std({ color: 0x8c93a0, roughness: 0.45, metalness: 0.6 }),
       darkMetal: std({ color: 0x2c2f38, roughness: 0.5, metalness: 0.6 }),
       hut: std({ color: 0x34313c, roughness: 0.9 }),
       door: std({ color: 0x0c0b10, roughness: 0.6 }),
@@ -288,228 +246,327 @@ export class Level {
       glassEdge: std({ color: 0x9fe8ff, emissive: 0x58d8ff, emissiveIntensity: 0.55 }),
       neonPink: new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 0.28, 1.3) }),
       neonCyan: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.22, 1.6, 2.2) }),
+      neonViolet: new THREE.MeshBasicMaterial({ color: new THREE.Color(1.1, 0.4, 2.4) }),
+      neonOrange: new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 1.0, 0.2) }),
       neonCap: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.9, 0.12, 0.55) }),
       barrel: std({ color: 0xb3121b, roughness: 0.5, metalness: 0.3, emissive: 0xff2200, emissiveIntensity: 0.25 }),
       barrelTop: std({ color: 0x5a0a0e, roughness: 0.5, metalness: 0.3 }),
       hazard: std({ color: 0xf2c230, emissive: 0xf2c230, emissiveIntensity: 0.35 }),
+      gas: std({ color: 0xd8dde4, roughness: 0.35, metalness: 0.4 }),
+      gasBand: std({ color: 0x2a6cff, emissive: 0x2a6cff, emissiveIntensity: 0.5 }),
       pan: std({ color: 0x22242a, roughness: 0.3, metalness: 0.85 }),
+      tray: std({ color: 0xb8bcc6, roughness: 0.2, metalness: 0.95 }),
       panRim: std({ color: 0xffd38a, emissive: 0xffb347, emissiveIntensity: 1.4, metalness: 0.9, roughness: 0.25 }),
       panMarker: new THREE.MeshBasicMaterial({ color: new THREE.Color(1.2, 0.9, 0.4), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }),
       spawnRing: new THREE.MeshBasicMaterial({ color: 0x000000, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }),
+      padRing: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.7, 0.45, 0.1), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }),
+      padBase: std({ color: 0x1c1d24, roughness: 0.4, metalness: 0.6 }),
+      // nightclub
+      clubWall: std({ color: 0x221a2e, roughness: 0.85 }),
+      bar: std({ color: 0x3a2418, roughness: 0.5 }),
+      dj: std({ color: 0x111116, roughness: 0.4, metalness: 0.3 }),
+      speaker: std({ color: 0x0d0d10, roughness: 0.7 }),
+      sofa: std({ color: 0x4a1a5e, roughness: 0.95 }),
+      table: std({ color: 0x1a1a22, roughness: 0.3, metalness: 0.4 }),
+      // docks
+      containerRed: container(0xa8322a),
+      containerBlue: container(0x2a5a9a),
+      containerGreen: container(0x2f7a4a),
+      containerOrange: container(0xd0782a),
+      curb: std({ color: 0x6a6a70, roughness: 0.95 }),
+      forklift: std({ color: 0xe0b020, roughness: 0.5, metalness: 0.3 }),
     };
   }
 
   buildLights() {
     const s = this.scene;
-    s.background = new THREE.Color(0x0a0816);
-    s.fog = new THREE.FogExp2(0x0d0a1c, 0.011);
-
-    s.add(new THREE.HemisphereLight(0x8c80ff, 0x1c1020, 1.1));
-    const moon = new THREE.DirectionalLight(0xc4d2ff, 1.6);
-    moon.position.set(-14, 32, 16);
+    s.background = new THREE.Color();
+    s.fog = new THREE.FogExp2(0x000000, 0.01);
+    this.hemi = new THREE.HemisphereLight(0xffffff, 0x000000, 1);
+    s.add(this.hemi);
+    const moon = (this.moon = new THREE.DirectionalLight(0xffffff, 1));
     moon.castShadow = true;
     moon.shadow.mapSize.set(2048, 2048);
-    const c = moon.shadow.camera;
-    c.left = -28;
-    c.right = 28;
-    c.top = 22;
-    c.bottom = -22;
-    c.near = 1;
-    c.far = 90;
     moon.shadow.bias = -0.0005;
     moon.shadow.normalBias = 0.03;
-    s.add(moon);
-    s.add(moon.target);
-
-    const neon = [
-      [0xff3fa4, 0, 3.5, -16.5, 90, 34],
-      [0x3fe6ff, -23, 2.5, 6, 60, 26],
-      [0x3fe6ff, 23, 2.5, 6, 60, 26],
-      [0xffa040, 0, 4, 16.5, 50, 26],
-    ];
-    for (const [col, x, y, z, i, d] of neon) {
-      const l = new THREE.PointLight(col, i, d, 1.6);
-      l.position.set(x, y, z);
+    moon.shadow.camera.near = 1;
+    moon.shadow.camera.far = 100;
+    s.add(moon, moon.target);
+    // Always exactly four map lights, so switching maps never changes the
+    // light count (which would force every shader to recompile).
+    this.points = [];
+    for (let i = 0; i < 4; i++) {
+      const l = new THREE.PointLight(0xffffff, 0, 20, 1.6);
       s.add(l);
+      this.points.push({ light: l, base: new THREE.Vector3(), intensity: 0 });
     }
   }
 
-  addBox(x, z, w, d, h, mat, kind, { cast = true, solid = true } = {}) {
-    const m = new THREE.Mesh(this.geo.unit, mat);
-    m.position.set(x, 0, z);
-    m.scale.set(w, h, d);
-    m.castShadow = cast;
-    m.receiveShadow = true;
-    this.scene.add(m);
+  // ------------------------------------------------------------ loading
+
+  add(obj) {
+    this.root.add(obj);
+    return obj;
+  }
+
+  own(res) {
+    this.owned.push(res);
+    return res;
+  }
+
+  unload() {
+    if (!this.root) return;
+    this.scene.remove(this.root);
+    for (const r of this.owned) r.dispose();
+    this.owned = [];
+    this.root = null;
+  }
+
+  load(map) {
+    this.unload();
+    this.map = map;
+    this.root = new THREE.Group();
+    this.scene.add(this.root);
+    const [halfW, halfD] = map.size;
+    this.bounds = { halfW, halfD };
+    this.start = { x: map.start[0], z: map.start[1] };
+    this.solids = [];
+    this.glass = [];
+    this.barrels = [];
+    this.pans = [];
+    this.props = [];
+    this.pads = [];
+    this.animators = [];
+
+    this.applyTheme(map.theme);
+    this.buildFloor(map.floor);
+    this.buildEdges(map.edges);
+    for (const s of map.solids) this.addSolid(...s);
+    for (const g of map.glass || []) this.addGlass(...g);
+    for (const [x, z, v] of map.barrels || []) this.barrels.push(new Barrel(this, x, z, v));
+    for (const [x, z, v] of map.pans || []) this.pans.push(new Pan(this, x, z, v));
+    this.props = [...this.barrels, ...this.pans];
+    for (const [x, z] of map.pads || []) this.addPad(x, z);
+    this.buildSpawns(map.spawns);
+    if (map.decorate) map.decorate(this);
+
+    this.nav = new NavGrid(-halfW, -halfD, halfW, halfD, 0.5);
+    this.rebuildNav();
+  }
+
+  applyTheme(t) {
+    const s = this.scene;
+    s.background.set(t.bg);
+    s.fog.color.set(t.fog[0]);
+    s.fog.density = t.fog[1];
+    this.hemi.color.set(t.hemi[0]);
+    this.hemi.groundColor.set(t.hemi[1]);
+    this.hemi.intensity = t.hemi[2];
+    this.moon.color.set(t.moon[0]);
+    this.moon.intensity = t.moon[1];
+    this.moon.position.set(-14, 32, 16);
+    const c = this.moon.shadow.camera;
+    const { halfW, halfD } = this.bounds;
+    c.left = -halfW - 6;
+    c.right = halfW + 6;
+    c.top = halfD + 7;
+    c.bottom = -halfD - 7;
+    c.updateProjectionMatrix();
+    t.points.forEach(([color, x, y, z, intensity, distance], i) => {
+      const p = this.points[i];
+      p.light.color.set(color);
+      p.light.position.set(x, y, z);
+      p.light.distance = distance;
+      p.light.intensity = intensity;
+      p.base.set(x, y, z);
+      p.intensity = intensity;
+    });
+    this.rain.lines.visible = !!t.rain;
+  }
+
+  addBox(x, z, w, d, h, mat, kind, { cast = true, solid = true, visible = true } = {}) {
+    let m = null;
+    if (visible) {
+      m = new THREE.Mesh(this.geo.unit, mat);
+      m.position.set(x, 0, z);
+      m.scale.set(w, h, d);
+      m.castShadow = cast;
+      m.receiveShadow = true;
+      this.add(m);
+    }
     if (!solid) return m;
     const s = { minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2, h, kind, alive: true, mesh: m };
     this.solids.push(s);
     return s;
   }
 
-  buildFloor() {
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(ARENA.halfW * 2, ARENA.halfD * 2), this.mat.floor);
+  /** Decorative box (no collision); returns the mesh. */
+  deco(x, y, z, w, h, d, mat, cast = false) {
+    const m = new THREE.Mesh(this.geo.unit, mat);
+    m.position.set(x, y, z);
+    m.scale.set(w, h, d);
+    m.castShadow = cast;
+    m.receiveShadow = true;
+    return this.add(m);
+  }
+
+  addSolid(x, z, w, d, h, matKey) {
+    const M = this.mat;
+    const s = this.addBox(x, z, w, d, h, M[matKey], matKey === 'crate' ? 'crate' : 'wall');
+    switch (matKey) {
+      case 'pillar':
+        this.deco(x, h, z, w + 0.06, 0.08, d + 0.06, M.neonCap);
+        break;
+      case 'unit': {
+        const r = Math.min(w, d) * 0.32;
+        const grill = new THREE.Mesh(this.own(new THREE.CylinderGeometry(r, r, 0.04, 20)), M.darkMetal);
+        grill.position.set(x, h + 0.02, z);
+        this.add(grill);
+        break;
+      }
+      case 'hut':
+        this.deco(x, h, z, w + 0.4, 0.15, d + 0.4, M.darkMetal, true);
+        break;
+      case 'bar':
+        this.deco(x, h - 0.02, z, w + 0.1, 0.06, d + 0.15, M.darkMetal);
+        this.deco(x, h * 0.75, z + d / 2 + 0.01, w, 0.06, 0.02, M.neonPink);
+        break;
+      case 'dj':
+        this.deco(x, 0.35, z + d / 2 + 0.01, w * 0.9, 0.6, 0.02, M.neonCyan);
+        this.deco(x, h, z, w * 0.7, 0.05, d * 0.6, M.neonViolet);
+        break;
+      case 'speaker':
+        this.deco(x, h * 0.62, z + d / 2 + 0.01, w * 0.62, w * 0.62, 0.02, M.darkMetal);
+        this.deco(x, h + 0.01, z, w * 0.9, 0.02, d * 0.9, M.darkMetal);
+        break;
+      case 'table':
+        this.deco(x, h, z, 0.12, 0.12, 0.12, M.neonOrange);
+        break;
+      case 'forklift':
+        this.deco(x, 0, z - d / 2 - 0.15, w * 0.9, 2.6, 0.18, M.darkMetal, true);
+        this.deco(x - w * 0.3, 0.12, z - d / 2 - 0.65, 0.12, 0.06, 1.0, M.darkMetal);
+        this.deco(x + w * 0.3, 0.12, z - d / 2 - 0.65, 0.12, 0.06, 1.0, M.darkMetal);
+        this.deco(x, h, z + d * 0.15, w, 0.08, d * 0.55, M.darkMetal, true);
+        break;
+    }
+    return s;
+  }
+
+  addGlass(x, z, w, d, h) {
+    const mesh = new THREE.Group();
+    const pane = new THREE.Mesh(this.geo.unit, this.mat.glass);
+    pane.scale.set(w, h, d);
+    pane.renderOrder = 1;
+    const top = new THREE.Mesh(this.geo.unit, this.mat.glassEdge);
+    top.scale.set(w + 0.04, 0.06, d + 0.04);
+    top.position.y = h;
+    const bot = new THREE.Mesh(this.geo.unit, this.mat.darkMetal);
+    bot.scale.set(w + 0.06, 0.12, d + 0.06);
+    mesh.add(pane, top, bot);
+    mesh.position.set(x, 0, z);
+    this.add(mesh);
+    const s = { minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2, h, kind: 'glass', alive: true, mesh, w, d, x, z };
+    this.solids.push(s);
+    this.glass.push(s);
+    return s;
+  }
+
+  addPad(x, z) {
+    const base = new THREE.Mesh(this.geo.padBase, this.mat.padBase);
+    base.position.set(x, 0.01, z);
+    base.receiveShadow = true;
+    const ring = new THREE.Mesh(this.geo.padRing, this.mat.padRing);
+    ring.position.set(x, 0.03, z);
+    this.add(base);
+    this.add(ring);
+    this.pads.push({ x, z, pickup: null });
+  }
+
+  buildFloor(kind) {
+    const { halfW, halfD } = this.bounds;
+    const tex = this.own(kind === 'club' ? clubFloorTexture() : kind === 'asphalt' ? asphaltTexture() : floorTexture());
+    tex.repeat.set((halfW * 2) / 8, (halfD * 2) / 8);
+    const mat = this.own(
+      new THREE.MeshStandardMaterial({
+        map: tex,
+        roughness: kind === 'club' ? 0.28 : kind === 'asphalt' ? 0.9 : 0.82,
+        metalness: kind === 'club' ? 0.25 : 0.05,
+      }),
+    );
+    const geo = this.own(new THREE.PlaneGeometry(halfW * 2, halfD * 2));
+    const floor = new THREE.Mesh(geo, mat);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
-    this.scene.add(floor);
-
-    const pad = new THREE.Mesh(
-      new THREE.PlaneGeometry(8.5, 8.5),
-      new THREE.MeshStandardMaterial({ map: helipadTexture(), transparent: true, roughness: 0.7, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
-    );
-    pad.rotation.x = -Math.PI / 2;
-    pad.position.set(0, 0.005, -1.5);
-    pad.receiveShadow = true;
-    this.scene.add(pad);
+    this.add(floor);
   }
 
-  buildStatic() {
-    const W = ARENA.halfW;
-    const D = ARENA.halfD;
+  buildEdges(edges) {
+    const { halfW: W, halfD: D } = this.bounds;
     const t = 0.6;
-    const ph = 1.0;
-    this.addBox(0, -D - t / 2, W * 2 + t * 2, t, ph, this.mat.parapet, 'wall');
-    this.addBox(0, D + t / 2, W * 2 + t * 2, t, ph * 0.8, this.mat.parapet, 'wall');
-    this.addBox(-W - t / 2, 0, t, D * 2, ph, this.mat.parapet, 'wall');
-    this.addBox(W + t / 2, 0, t, D * 2, ph, this.mat.parapet, 'wall');
-
-    // neon trims along the parapet
-    const trim = (x, z, w, d, y, mat) => this.addBox(x, z, w, d, 0.06, mat, 'trim', { cast: false, solid: false }).position.setY(y);
-    trim(0, -D - t / 2, W * 2 + t * 2, 0.1, ph, this.mat.neonPink);
-    trim(0, D + t / 2, W * 2 + t * 2, 0.1, ph * 0.8, this.mat.neonCyan);
-    trim(-W - t / 2, 0, 0.1, D * 2, ph, this.mat.neonCyan);
-    trim(W + t / 2, 0, 0.1, D * 2, ph, this.mat.neonCyan);
-
-    for (const [x, z, w, d, h] of LAYOUT.crates) this.addBox(x, z, w, d, h, this.mat.crate, 'crate');
-    for (const [x, z, w, d, h] of LAYOUT.walls) this.addBox(x, z, w, d, h, this.mat.concrete, 'wall');
-    for (const [x, z, w, d, h] of LAYOUT.pillars) {
-      this.addBox(x, z, w, d, h, this.mat.pillar, 'wall');
-      const cap = this.addBox(x, z, w + 0.06, d + 0.06, 0.08, this.mat.neonCap, 'trim', { cast: false, solid: false });
-      cap.position.y = h;
-    }
-    for (const [x, z, w, d, h] of LAYOUT.units) {
-      this.addBox(x, z, w, d, h, this.mat.metal, 'unit');
-      const grill = new THREE.Mesh(new THREE.CylinderGeometry(Math.min(w, d) * 0.32, Math.min(w, d) * 0.32, 0.04, 20), this.mat.darkMetal);
-      grill.position.set(x, h + 0.02, z);
-      this.scene.add(grill);
-    }
-    this.doorLamps = [];
-    for (const [x, z, w, d, h] of LAYOUT.huts) {
-      this.addBox(x, z, w, d, h, this.mat.hut, 'wall');
-      const roof = this.addBox(x, z, w + 0.4, d + 0.4, 0.15, this.mat.darkMetal, 'trim', { solid: false });
-      roof.position.y = h;
-      const door = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 2.1), this.mat.door);
-      door.position.set(x, 1.05, z + d / 2 + 0.01);
-      this.scene.add(door);
-      const lampMat = this.mat.lamp.clone();
-      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, 0.12), lampMat);
-      lamp.position.set(x, 2.35, z + d / 2 + 0.08);
-      this.scene.add(lamp);
-      this.doorLamps.push({ x, mat: lampMat });
-    }
-    for (const [x, z, w, d, h] of LAYOUT.glass) {
-      const mesh = new THREE.Group();
-      const pane = new THREE.Mesh(this.geo.unit, this.mat.glass);
-      pane.scale.set(w, h, d);
-      pane.renderOrder = 1;
-      const top = new THREE.Mesh(this.geo.unit, this.mat.glassEdge);
-      top.scale.set(w + 0.04, 0.06, d + 0.04);
-      top.position.y = h;
-      const bot = new THREE.Mesh(this.geo.unit, this.mat.darkMetal);
-      bot.scale.set(w + 0.06, 0.12, d + 0.06);
-      mesh.add(pane, top, bot);
-      mesh.position.set(x, 0, z);
-      this.scene.add(mesh);
-      const s = { minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2, h, kind: 'glass', alive: true, mesh, w, d, x, z };
-      this.solids.push(s);
-      this.glass.push(s);
-    }
-
-    // corner light poles (decor)
-    for (const [x, z] of [[-21.4, -14.4], [21.4, -14.4], [-21.4, 14.4], [21.4, 14.4]]) {
-      this.addBox(x, z, 0.18, 0.18, 4.2, this.mat.darkMetal, 'decor', { solid: false });
-      const head = this.addBox(x, z, 0.6, 0.3, 0.12, this.mat.neonCyan, 'decor', { solid: false, cast: false });
-      head.position.y = 4.2;
-    }
+    const side = (key, x, z, w, d) => {
+      const [h, matKey, trim] = edges[key];
+      const length = Math.max(w, d);
+      if (matKey === 'fence') {
+        // collision box stays thick; the visible fence is a thin lattice
+        this.addBox(x, z, w, d, h, null, 'wall', { visible: false });
+        const tex = this.own(fenceTexture());
+        tex.repeat.set(length / 1.5, h / 1.5);
+        const mat = this.own(new THREE.MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide, metalness: 0.6, roughness: 0.4 }));
+        const along = w > d;
+        this.deco(x, 0, z, along ? w : 0.04, h, along ? 0.04 : d, mat);
+        for (let o = -length / 2; o <= length / 2 + 0.01; o += 3) {
+          this.deco(along ? x + o : x, 0, along ? z : z + o, 0.1, h + 0.1, 0.1, this.mat.darkMetal, true);
+        }
+        this.deco(x, h, z, along ? w : 0.08, 0.06, along ? 0.08 : d, this.mat.darkMetal);
+      } else {
+        let mat = this.mat[matKey];
+        if (matKey === 'warehouse') {
+          const tex = this.own(corrugatedTexture(length / 3));
+          mat = this.own(new THREE.MeshStandardMaterial({ map: tex, color: 0x6a7686, roughness: 0.6, metalness: 0.4 }));
+        }
+        this.addBox(x, z, w, d, h, mat, 'wall');
+      }
+      if (trim) this.deco(x, h, z, w > d ? w : 0.1, 0.06, w > d ? 0.1 : d, this.mat[trim]);
+    };
+    side('n', 0, -D - t / 2, W * 2 + t * 2, t);
+    side('s', 0, D + t / 2, W * 2 + t * 2, t);
+    side('w', -W - t / 2, 0, t, D * 2);
+    side('e', W + t / 2, 0, t, D * 2);
   }
 
-  buildProps() {
-    for (const [x, z] of LAYOUT.barrels) this.barrels.push(new Barrel(this, x, z));
-    for (const [x, z] of LAYOUT.pans) this.pans.push(new Pan(this, x, z));
-    this.props = [...this.barrels, ...this.pans];
-  }
-
-  buildSpawns() {
-    this.spawns = LAYOUT.spawns.map((sp, i) => {
-      const mat = this.mat.spawnRing.clone();
+  buildSpawns(list) {
+    this.spawns = list.map((sp) => {
+      const mat = this.own(this.mat.spawnRing.clone());
       const ring = new THREE.Mesh(this.geo.ring, mat);
       ring.position.set(sp.ex, 0.04, sp.ez);
-      this.scene.add(ring);
-      if (sp.kind === 'ledge') {
-        // ladder rails poking over the parapet
-        const dirX = Math.sign(sp.x) * (Math.abs(sp.x) > 20 ? 1 : 0);
-        const dirZ = dirX ? 0 : Math.sign(sp.z);
+      this.add(ring);
+      let dx = sp.ex - sp.x;
+      let dz = sp.ez - sp.z;
+      const l = Math.hypot(dx, dz) || 1;
+      dx /= l;
+      dz /= l;
+      let lamp = null;
+      if (sp.kind === 'door') {
+        const [dw, dh] = sp.door || [1.3, 2.1];
+        const door = new THREE.Mesh(this.geo.door, this.mat.door);
+        door.scale.set(dw, dh, 1);
+        door.position.set(sp.x - dx * 0.59, dh / 2, sp.z - dz * 0.59);
+        door.rotation.y = Math.atan2(dx, dz);
+        this.add(door);
+        const lampMat = this.own(this.mat.lamp.clone());
+        const lm = new THREE.Mesh(this.geo.unit, lampMat);
+        lm.scale.set(Math.abs(dz) * 0.8 + 0.12, 0.12, Math.abs(dx) * 0.8 + 0.12);
+        lm.position.set(sp.x - dx * 0.52, dh + 0.2, sp.z - dz * 0.52);
+        this.add(lm);
+        lamp = { mat: lampMat };
+      } else if (sp.kind === 'ledge') {
+        // ladder rails poking over the edge
         for (const o of [-0.35, 0.35]) {
-          const rail = this.addBox(sp.x + dirX * 0.9 + (dirZ ? o : 0), sp.z + dirZ * 0.9 + (dirX ? o : 0), 0.08, 0.08, 1.6, this.mat.metal, 'decor', { solid: false });
-          rail.position.y = -0.2;
+          this.deco(sp.x - dx * 0.9 - dz * o, -0.2, sp.z - dz * 0.9 + dx * o, 0.08, 1.6, 0.08, this.mat.metal, true);
         }
       }
-      return { ...sp, ring, mat, heat: 0, lamp: sp.kind === 'door' ? this.doorLamps[i] : null, lastUsed: -99 };
+      return { ...sp, dirX: dx, dirZ: dz, climb: sp.kind === 'ledge' || sp.kind === 'stairs', ring, mat, heat: 0, lamp, lastUsed: -99 };
     });
-  }
-
-  buildBackdrop() {
-    const s = this.scene;
-    const facadeTex = windowTexture(0.28);
-    facadeTex.wrapS = facadeTex.wrapT = THREE.RepeatWrapping;
-    facadeTex.repeat.set(4, 2);
-    const facade = new THREE.Mesh(
-      new THREE.BoxGeometry(ARENA.halfW * 2 + 1.2, 80, ARENA.halfD * 2 + 1.2).translate(0, -40.02, 0),
-      new THREE.MeshStandardMaterial({ color: 0x15141c, emissive: 0xffffff, emissiveMap: facadeTex, emissiveIntensity: 1.2, roughness: 0.9 }),
-    );
-    s.add(facade);
-
-    const tex = windowTexture(0.32);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x14131c, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 1.5, roughness: 0.9 });
-    const geo = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
-    const spots = [];
-    for (let gx = -7; gx <= 7; gx++) {
-      for (let gz = -7; gz <= 5; gz++) {
-        const x = gx * 15 + rand(-4, 4);
-        const z = gz * 15 + rand(-4, 4);
-        if (Math.abs(x) < 36 && Math.abs(z) < 28) continue;
-        if (Math.random() < 0.2) continue;
-        const tall = z < -40 && Math.random() < 0.5;
-        const top = tall ? rand(5, 35) : rand(-45, -6);
-        spots.push([x, z, rand(7, 13), rand(7, 13), top]);
-      }
-    }
-    const city = new THREE.InstancedMesh(geo, mat, spots.length);
-    const m = new THREE.Matrix4();
-    spots.forEach(([x, z, w, d, top], i) => {
-      const h = top + 90;
-      m.makeScale(w, h, d);
-      m.setPosition(x, -90, z);
-      city.setMatrixAt(i, m);
-    });
-    s.add(city);
-
-    // rooftop sign
-    const sign = new THREE.Mesh(
-      new THREE.PlaneGeometry(13, 3.25),
-      new THREE.MeshBasicMaterial({ map: signTexture(), color: new THREE.Color(2.2, 2.2, 2.2), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }),
-    );
-    sign.position.set(0, 2.6, -16.6);
-    s.add(sign);
-    this.sign = sign;
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(13.4, 3.6, 0.15), this.mat.darkMetal);
-    frame.position.set(0, 2.6, -16.75);
-    s.add(frame);
-    for (const x of [-5, 5]) {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.2, 0.2), this.mat.darkMetal);
-      leg.position.set(x, 0.4, -16.75);
-      s.add(leg);
-    }
   }
 
   // ------------------------------------------------------------- queries
@@ -558,11 +615,11 @@ export class Level {
   }
 
   /** Props hit by a segment: returns {t, prop} or null. */
-  raycastProps(x0, z0, x1, z1, ignore) {
+  raycastProps(x0, z0, x1, z1, ignore, skip) {
     let best = null;
     let bt = Infinity;
     for (const p of this.props) {
-      if (!p.alive || p === ignore) continue;
+      if (!p.alive || p === ignore || (skip && skip.length && skip.includes(p))) continue;
       const t = segCircle(x0, z0, x1, z1, p.x, p.z, p.r);
       if (t >= 0 && t < bt) {
         bt = t;
@@ -595,6 +652,7 @@ export class Level {
       s.mesh.visible = true;
     }
     for (const sp of this.spawns) sp.heat = 0;
+    for (const pad of this.pads) pad.pickup = null;
     this.rebuildNav();
   }
 
@@ -661,6 +719,9 @@ export class Level {
 
   updateAmbient(realDt, worldDt, cx, cz) {
     this.rain.update(worldDt, cx, cz);
+    // a beat clock that follows the (time-stretched) music
+    this.beat += (realDt * this.game.audio.musicRate * 124) / 60;
+    for (const fn of this.animators) fn(realDt, worldDt);
     for (const sp of this.spawns) {
       sp.heat = Math.max(0, sp.heat - realDt * 0.8);
       const pulse = sp.heat > 0 ? 0.6 + 0.4 * Math.sin(performance.now() * 0.02) : 0;
@@ -670,5 +731,3 @@ export class Level {
     }
   }
 }
-
-export { GUN_Y };

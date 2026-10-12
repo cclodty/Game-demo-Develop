@@ -3,6 +3,7 @@
 
 import * as THREE from 'three';
 import { COMBO_WINDOW, FOCUS, PLAYER } from './config.js';
+import { PLAYER_WEAPONS } from './weapons.js';
 
 const $ = (id) => document.getElementById(id);
 const _v = new THREE.Vector3();
@@ -18,7 +19,12 @@ export class HUD {
       focus: $('focus-fill'),
       focusBar: $('focus-bar'),
       ammo: $('ammo-count'),
+      ammoMax: $('ammo-max'),
       ammoBox: $('ammo'),
+      weaponName: $('weapon-name'),
+      slots: $('slots'),
+      prompt: $('prompt'),
+      toast: $('toast'),
       reload: $('reload-fill'),
       score: $('score'),
       best: $('best'),
@@ -40,6 +46,7 @@ export class HUD {
     this.displayScore = 0;
     this.arrows = [];
     this.bannerTimer = 0;
+    this.toastTimer = 0;
   }
 
   set(key, value, apply) {
@@ -77,10 +84,29 @@ export class HUD {
     });
 
     const reloading = p.reloadT > 0;
-    this.set('ammo', reloading ? -1 : p.ammo, (v) => {
+    const w = p.weapon;
+    const special = p.slot === 'special' && p.special;
+    const lowAt = special ? Math.ceil(w.ammo * 0.15) : 6;
+    this.set('ammo', special ? p.special.ammo : reloading ? -1 : p.ammo, (v) => {
       e.ammo.textContent = v < 0 ? 'RELOAD' : String(v);
       e.ammoBox.classList.toggle('reloading', v < 0);
-      e.ammoBox.classList.toggle('low', v >= 0 && v <= 6);
+      e.ammoBox.classList.toggle('low', v >= 0 && v <= lowAt);
+    });
+    this.set('ammoMax', special ? '' : `/ ${w.mag}`, (v) => (e.ammoMax.textContent = v));
+    this.set('weapon', w.id, () => {
+      e.weaponName.innerHTML = `${w.name} <small>${w.en}</small>`;
+      e.weaponName.classList.toggle('special', w.id !== 'pistols');
+    });
+    this.set('slots', `${p.slot}|${p.special ? p.special.id : ''}`, () => {
+      const sp = p.special ? PLAYER_WEAPONS[p.special.id] : null;
+      e.slots.innerHTML =
+        `<span class="slot ${p.slot === 'pistols' ? 'on' : ''}"><b>1</b>雙槍</span>` +
+        (sp ? `<span class="slot ${p.slot === 'special' ? 'on' : ''}"><b>2</b>${sp.name}</span>` : '<span class="slot empty"><b>2</b>—</span>');
+    });
+    const q = g.pickups.prompt;
+    this.set('prompt', q ? q.kind : '', (v) => {
+      e.prompt.innerHTML = v ? `<b>E</b> 交換為 ${PLAYER_WEAPONS[v].name}` : '';
+      e.prompt.classList.toggle('show', !!v);
     });
     this.set('reload', reloading ? Math.round(p.reloadProgress * 50) / 50 : 0, (v) => {
       e.reload.style.transform = `scaleX(${v})`;
@@ -102,9 +128,10 @@ export class HUD {
     });
     this.set('comboT', Math.round((sc.comboT / COMBO_WINDOW) * 60) / 60, (v) => (e.comboFill.style.transform = `scaleX(${Math.max(0, v)})`));
 
-    const w = g.waves;
-    this.set('wave', w.wave, (v) => (e.wave.textContent = v > 0 ? `WAVE ${v}` : ''));
-    const sub = w.state === 'active' ? `剩餘敵人 ${w.remaining}` : w.wave > 0 ? '下一波準備中…' : '準備…';
+    this.set('wave', g.waves.wave, (v) => (e.wave.textContent = v > 0 ? `WAVE ${v}` : ''));
+    const wv = g.waves;
+    const where = g.level.map.name;
+    const sub = wv.state === 'active' ? `剩餘敵人 ${wv.remaining} · ${where}` : wv.wave > 0 ? `下一波準備中… · ${where}` : `準備… · ${where}`;
     this.set('waveSub', sub, (v) => (e.waveSub.textContent = v));
 
     const m = g.input.mouse;
@@ -209,6 +236,16 @@ export class HUD {
     b.className = `show ${cls}`;
     clearTimeout(this.bannerTimer);
     this.bannerTimer = setTimeout(() => (b.className = ''), 2600);
+  }
+
+  toast(html) {
+    const t = this.el.toast;
+    t.innerHTML = html;
+    t.className = '';
+    void t.offsetWidth;
+    t.className = 'show';
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => (t.className = ''), 1700);
   }
 
   hitMarker(kill) {

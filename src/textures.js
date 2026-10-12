@@ -149,3 +149,120 @@ export function signTexture() {
   glowText('BULLET  BALLET', 512, 200, 'bold 64px "Bebas Neue", Impact, sans-serif', '#3fe6ff', '#3fe6ff');
   return finish(c);
 }
+
+/** Generic neon sign: lines = [{ text, font, color, y }]. */
+export function neonSignTexture(lines, w = 1024, h = 256) {
+  const [c, g] = canvas(w, h);
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, w, h);
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.lineJoin = 'round';
+  for (const l of lines) {
+    g.font = l.font;
+    g.shadowColor = l.color;
+    g.shadowBlur = 24;
+    g.strokeStyle = l.color;
+    g.lineWidth = 6;
+    g.strokeText(l.text, w / 2, l.y);
+    g.shadowBlur = 8;
+    g.fillStyle = '#fff';
+    g.fillText(l.text, w / 2, l.y);
+  }
+  return finish(c);
+}
+
+export function clubFloorTexture() {
+  const [c, g] = canvas(512, 512);
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      g.fillStyle = (x + y) % 2 ? '#17121f' : '#1f1829';
+      g.fillRect(x * 64, y * 64, 64, 64);
+    }
+  }
+  g.strokeStyle = 'rgba(0,0,0,0.6)';
+  g.lineWidth = 2;
+  for (let i = 0; i <= 8; i++) {
+    g.beginPath();
+    g.moveTo(i * 64, 0);
+    g.lineTo(i * 64, 512);
+    g.moveTo(0, i * 64);
+    g.lineTo(512, i * 64);
+    g.stroke();
+  }
+  for (let i = 0; i < 40; i++) {
+    g.fillStyle = `rgba(255,255,255,${rand(0.01, 0.04)})`;
+    g.fillRect(rand(0, 512), rand(0, 512), rand(20, 90), rand(1, 3));
+  }
+  return finish(c, { repeat: [5, 3.5] });
+}
+
+export function asphaltTexture() {
+  const [c, g] = canvas(512, 512);
+  g.fillStyle = '#2b2d31';
+  g.fillRect(0, 0, 512, 512);
+  const img = g.getImageData(0, 0, 512, 512);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const n = (Math.random() - 0.5) * 30;
+    img.data[i] += n;
+    img.data[i + 1] += n;
+    img.data[i + 2] += n;
+  }
+  g.putImageData(img, 0, 0);
+  g.strokeStyle = 'rgba(12,12,14,0.7)';
+  for (let i = 0; i < 10; i++) {
+    g.lineWidth = rand(1, 2.5);
+    g.beginPath();
+    let x = rand(0, 512);
+    let y = rand(0, 512);
+    g.moveTo(x, y);
+    for (let k = 0; k < 6; k++) {
+      x += rand(-40, 40);
+      y += rand(-40, 40);
+      g.lineTo(x, y);
+    }
+    g.stroke();
+  }
+  for (let i = 0; i < 18; i++) {
+    g.fillStyle = `rgba(5,5,8,${rand(0.08, 0.2)})`;
+    g.beginPath();
+    g.ellipse(rand(0, 512), rand(0, 512), rand(15, 60), rand(10, 40), rand(0, 3), 0, Math.PI * 2);
+    g.fill();
+  }
+  return finish(c, { repeat: [6, 4] });
+}
+
+/** Grey corrugation; tint it with the material colour. */
+export function corrugatedTexture(repeatX = 1) {
+  const [c, g] = canvas(256, 128);
+  for (let x = 0; x < 256; x += 8) {
+    const grad = g.createLinearGradient(x, 0, x + 8, 0);
+    grad.addColorStop(0, '#9a9a9a');
+    grad.addColorStop(0.5, '#e6e6e6');
+    grad.addColorStop(1, '#8a8a8a');
+    g.fillStyle = grad;
+    g.fillRect(x, 0, 8, 128);
+  }
+  g.fillStyle = 'rgba(60,40,30,0.25)';
+  for (let i = 0; i < 30; i++) g.fillRect(rand(0, 256), rand(0, 128), rand(2, 18), rand(4, 30));
+  g.fillStyle = 'rgba(0,0,0,0.35)';
+  g.fillRect(0, 0, 256, 5);
+  g.fillRect(0, 123, 256, 5);
+  return finish(c, { repeat: [repeatX, 1] });
+}
+
+export function fenceTexture() {
+  const [c, g] = canvas(128, 128);
+  g.clearRect(0, 0, 128, 128);
+  g.strokeStyle = 'rgba(190,200,215,0.9)';
+  g.lineWidth = 2;
+  for (let i = -128; i < 256; i += 16) {
+    g.beginPath();
+    g.moveTo(i, 0);
+    g.lineTo(i + 128, 128);
+    g.moveTo(i + 128, 0);
+    g.lineTo(i, 128);
+    g.stroke();
+  }
+  return finish(c, { repeat: [8, 1] });
+}

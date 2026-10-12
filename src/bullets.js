@@ -33,12 +33,15 @@ export class Bullets {
     this.geo = {
       playerTrail: trailGeometry(0.11, 0.01),
       enemyTrail: trailGeometry(0.26, 0.02),
+      sniperTrail: trailGeometry(0.2, 0.03),
       head: new THREE.SphereGeometry(1, 8, 6),
     };
     this.looks = {
       player: { trail: additive(3.5, 2.4, 0.9, true), head: additive(7, 5.5, 3), headSize: 0.07, geo: this.geo.playerTrail },
       ricochet: { trail: additive(0.8, 3, 4.5, true), head: additive(3, 6, 8), headSize: 0.08, geo: this.geo.playerTrail },
       enemy: { trail: additive(5, 0.7, 0.35, true), head: additive(9, 2.6, 1.2), headSize: 0.13, geo: this.geo.enemyTrail },
+      pellet: { trail: additive(3.5, 2, 0.7, true), head: additive(7, 4.5, 2), headSize: 0.05, geo: this.geo.playerTrail },
+      sniper: { trail: additive(2.2, 3.6, 4.5, true), head: additive(8, 9, 10), headSize: 0.1, geo: this.geo.sniperTrail },
     };
   }
 
@@ -68,10 +71,11 @@ export class Bullets {
   }
 
   /**
-   * o: { x, z, dx, dz, speed, owner: 'player'|'enemy', damage, range, split, source }
+   * o: { x, z, dx, dz, speed, owner: 'player'|'enemy', damage, range, split, source,
+   *      look, trail, pierce, knock, weapon }
    */
   spawn(o) {
-    const b = this.acquire(o.owner === 'player' ? 'player' : 'enemy');
+    const b = this.acquire(o.look || (o.owner === 'player' ? 'player' : 'enemy'));
     b.x = o.x;
     b.z = o.z;
     b.dx = o.dx;
@@ -80,7 +84,12 @@ export class Bullets {
     b.owner = o.owner;
     b.damage = o.damage ?? 1;
     b.range = o.range ?? BULLET.maxRange;
-    b.trailMax = o.owner === 'player' ? BULLET.playerTrail : BULLET.enemyTrail;
+    b.trailMax = o.trail || (o.owner === 'player' ? BULLET.playerTrail : BULLET.enemyTrail);
+    b.pierce = o.pierce || 0;
+    b.knock = o.knock || 1;
+    b.weapon = o.weapon || null;
+    b.kills = 0;
+    b.hits = [];
     b.trailLen = 0;
     b.traveled = 0;
     b.split = !!o.split;
@@ -174,12 +183,12 @@ export class Bullets {
     const solid = game.level.raycast(x0, z0, x1, z1);
     if (solid) best = { t: solid.t, type: 'solid', solid: solid.solid, nx: solid.nx, nz: solid.nz };
 
-    const prop = game.level.raycastProps(x0, z0, x1, z1, b.ignore);
+    const prop = game.level.raycastProps(x0, z0, x1, z1, b.ignore, b.hits);
     if (prop && (!best || prop.t < best.t)) best = { t: prop.t, type: prop.prop.kind, prop: prop.prop };
 
     if (b.owner === 'player') {
       for (const e of game.enemies.list) {
-        if (!e.alive || e.spawnLock > 0) continue;
+        if (!e.alive || e.spawnLock > 0 || (b.hits.length && b.hits.includes(e))) continue;
         const t = segCircle(x0, z0, x1, z1, e.x, e.z, e.radius + 0.12);
         if (t >= 0 && (!best || t < best.t)) best = { t, type: 'enemy', enemy: e };
       }
@@ -230,17 +239,23 @@ export class Bullets {
         return;
       }
       case 'barrel':
-        hit.prop.hit(b.owner === 'player' ? 1 : 0.5, b.dx, b.dz);
+        hit.prop.hit(b.owner === 'player' ? Math.max(1, b.damage) : 0.5, b.dx, b.dz);
         fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 8, [7, 3, 1], 6);
         game.audio.impact(pan);
-        b.alive = false;
+        if (b.pierce > 0) {
+          b.pierce--;
+          b.hits.push(hit.prop);
+        } else b.alive = false;
         return;
       case 'pan':
         this.ricochet(b, hit.prop);
         return;
       case 'enemy':
         hit.enemy.hit(b);
-        b.alive = false;
+        if (b.pierce > 0) {
+          b.pierce--;
+          b.hits.push(hit.enemy);
+        } else b.alive = false;
         return;
       case 'player':
         game.player.hurt(b.damage, b.dx, b.dz);
