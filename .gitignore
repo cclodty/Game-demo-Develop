@@ -1,0 +1,4 @@
+node_modules/
+# Esri imagery is reference-only; regenerate with senado/scripts/fetch_imagery.py
+senado/reference/*.jpg
+senado/reference/tiles/

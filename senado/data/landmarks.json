@@ -1,0 +1,122 @@
+{
+  "note": "Curated metadata layered on OSM footprints. colorSrc: known = well-documented colour, photo = sampled from a reference photo, pending = not yet checked against photos. Edifício Lei Si (利斯大廈, w391321517) is not listed: in OSM it sits about 30 m behind the west frontage, not on the square.",
+  "landmarks": [
+    {
+      "key": "leal_senado",
+      "osm": "w192573674",
+      "zh": "市政署大樓",
+      "pt": "Edifício do Leal Senado",
+      "en": "Leal Senado Building",
+      "facade": "#f1eee6",
+      "colorSrc": "known",
+      "role": "Faces the square across Av. de Almeida Ribeiro",
+      "short": "市政署大樓"
+    },
+    {
+      "key": "sao_domingos",
+      "osm": "w192573688",
+      "zh": "玫瑰堂",
+      "pt": "Igreja de São Domingos",
+      "en": "St. Dominic's Church",
+      "facade": "#e9c25a",
+      "colorSrc": "known",
+      "role": "Closes the view at the north end of the square",
+      "short": "玫瑰堂"
+    },
+    {
+      "key": "santa_casa",
+      "osm": "w265433529",
+      "zh": "仁慈堂大樓",
+      "pt": "Santa Casa da Misericórdia",
+      "en": "Holy House of Mercy",
+      "facade": "#f4f2ec",
+      "colorSrc": "known",
+      "role": "East side, beside the fountain",
+      "short": "仁慈堂大樓"
+    },
+    {
+      "key": "correios",
+      "osm": "w205784429",
+      "zh": "郵政局大樓",
+      "pt": "Edifício dos Correios",
+      "en": "General Post Office",
+      "facade": "#d8d2c4",
+      "colorSrc": "pending",
+      "role": "South-east corner on the avenue",
+      "short": "郵政局大樓"
+    },
+    {
+      "key": "mgto",
+      "osm": "w391321516",
+      "zh": "澳門商務旅遊中心",
+      "pt": "Largo do Senado n.º 9",
+      "en": "Macau Business Tourism Centre",
+      "facade": "#e8cf9a",
+      "colorSrc": "pending",
+      "role": "West side",
+      "short": "商務旅遊中心"
+    },
+    {
+      "key": "shun_tak",
+      "osm": "w391321519",
+      "zh": "信德堡",
+      "pt": "Shun Tak House",
+      "en": "Shun Tak House",
+      "facade": "#ead9a8",
+      "colorSrc": "pending",
+      "role": "West side, north half",
+      "short": "信德堡"
+    },
+    {
+      "key": "mercado",
+      "osm": "w205784462",
+      "zh": "營地街市市政綜合大樓",
+      "pt": "Complexo Municipal de S. Domingos",
+      "en": "S. Domingos Market Complex",
+      "facade": "#cfd2cf",
+      "colorSrc": "pending",
+      "role": "Behind the west row, 30 m tall",
+      "short": "營地街市大樓"
+    },
+    {
+      "key": "hotel_central",
+      "osm": "w397915628",
+      "zh": "新中央酒店",
+      "pt": "Hotel Central",
+      "en": "Hotel Central",
+      "facade": "#d9d3c7",
+      "colorSrc": "pending",
+      "role": "On the avenue west of the square, 50 m tall",
+      "short": "新中央酒店"
+    },
+    {
+      "key": "se",
+      "osm": "w330368426",
+      "zh": "主教座堂",
+      "pt": "Sé Catedral",
+      "en": "Cathedral",
+      "facade": "#e6e1d6",
+      "colorSrc": "pending",
+      "role": "Up the hill east of the square",
+      "short": "主教座堂"
+    },
+    {
+      "key": "grand_lisboa",
+      "osm": "w192182405",
+      "zh": "新葡京酒店",
+      "pt": "Hotel Grand Lisboa",
+      "en": "Grand Lisboa",
+      "facade": "#c9a24a",
+      "colorSrc": "known",
+      "role": "Skyline marker to the south-east (211 m)",
+      "short": "新葡京"
+    }
+  ],
+  "heightOverrides": [
+    {
+      "osm": "w1279798975",
+      "h": 4.0,
+      "reason": "23 m² 八角形構築物，位於郵政局旁花園樹蔭下；衛星圖沒有高樓應有的長影子，按單層亭處理"
+    }
+  ]
+}

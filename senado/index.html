@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>議事亭前地量體研究</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one working viewport dominates; a narrow instrument rail on the right carries map, readouts and the picked building. */
+:root {
+  --bg: #eceee9;          /* limestone setts */
+  --surface: #f8f9f6;
+  --sunken: #e3e6e0;
+  --ink: #1e2120;         /* basalt */
+  --muted: #5d635e;
+  --line: #d0d4cd;
+  --accent: #1f4f93;      /* azulejo cobalt */
+  --accent-ink: #ffffff;
+  --ochre: #d6a21f;       /* São Domingos */
+  --warn: #a8532a;
+  --ok: #3d7a4f;
+  --sans: "IBM Plex Sans", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --cjk: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141615; --surface: #1c1f1d; --sunken: #232724; --ink: #e8eae5; --muted: #a0a7a0; --line: #343a35;
+    --accent: #86a9e4; --accent-ink: #0f1a2c; --ochre: #e6b94a; --warn: #e08a5e; --ok: #7cc08f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141615; --surface: #1c1f1d; --sunken: #232724; --ink: #e8eae5; --muted: #a0a7a0; --line: #343a35;
+  --accent: #86a9e4; --accent-ink: #0f1a2c; --ochre: #e6b94a; --warn: #e08a5e; --ok: #7cc08f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1440px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 36px); padding-block: 22px 40px; display: grid; gap: 18px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; font-family: var(--cjk); }
+.num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* header */
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.eyebrow { font: 500 11px/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.title { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
+.title h1 { font-size: clamp(24px, 3.2vw, 34px); font-weight: 700; letter-spacing: .02em; }
+.title .pt { font: 400 15px/1.3 var(--sans); color: var(--muted); font-style: italic; }
+.lede { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+.status { display: inline-flex; align-items: center; gap: 8px; font: 500 12px/1 var(--cjk); padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.status i { width: 8px; height: 8px; border-radius: 50%; background: var(--ochre); }
+
+/* main grid */
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+@media (max-width: 1040px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* viewport */
+.stage { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; min-width: 0; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button, .chip, .btn { font: 500 12.5px/1 var(--cjk); color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 8px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.seg button:hover, .chip:hover, .btn:hover { background: var(--sunken); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button .k { font: 500 10px/1 var(--mono); opacity: .6; }
+.chip { border-color: var(--line); }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn { border-color: var(--line); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--ochre); outline-offset: 2px; }
+.canvas-box { position: relative; aspect-ratio: 16 / 10; min-height: 360px; max-height: 76vh; width: 100%; background: #cfd8de; touch-action: none; }
+.canvas-box canvas { display: block; width: 100%; height: 100%; }
+.canvas-box .labels { position: absolute; inset: 0; pointer-events: none; }
+.tag { pointer-events: none; font: 500 11.5px/1.2 var(--cjk); color: #1e2120; background: rgba(250, 250, 247, .92); border: 1px solid rgba(30, 33, 32, .18); border-radius: 3px; padding: 4px 6px; white-space: nowrap; transform: translateY(-6px); }
+.tag small { display: block; font: 400 10px/1.2 var(--sans); color: #5d635e; font-style: italic; }
+.tag.fig { background: #ff6a2a; color: #fff; border-color: #ff6a2a; font: 500 10px/1 var(--mono); padding: 3px 5px; }
+.overlay { position: absolute; display: flex; gap: 6px; align-items: center; font: 500 11px/1.3 var(--mono); color: #1e2120; }
+.ov-tl { top: 10px; left: 10px; background: rgba(250, 250, 247, .9); padding: 6px 8px; border-radius: 4px; max-width: calc(100% - 20px); }
+.ov-br { right: 10px; bottom: 10px; background: rgba(250, 250, 247, .9); padding: 6px 8px; border-radius: 4px; }
+.ov-bl { left: 10px; bottom: 10px; flex-direction: column; align-items: flex-start; gap: 4px; }
+.scalebar { background: rgba(250, 250, 247, .9); padding: 6px 8px; border-radius: 4px; }
+.scalebar .rule { height: 6px; border: 1.5px solid #1e2120; border-top: 0; margin-top: 3px; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; font: 500 13px/1.4 var(--cjk); color: #1e2120; background: #cfd8de; }
+.photo-ov { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; opacity: .5; pointer-events: none; }
+.photo-ctl { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--sunken); font-size: 12.5px; }
+.photo-ctl label { display: inline-flex; gap: 8px; align-items: center; }
+.photo-ctl #photoName { max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.walkpad { position: absolute; right: 10px; bottom: 54px; display: grid; grid-template-columns: repeat(3, 40px); gap: 4px; }
+.walkpad button { width: 40px; height: 40px; border-radius: 6px; border: 1px solid rgba(30,33,32,.2); background: rgba(250,250,247,.92); font: 600 14px/1 var(--mono); color: #1e2120; touch-action: none; }
+.walkpad .sp { visibility: hidden; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; padding: 12px; border-top: 1px solid var(--line); }
+.controls label { display: inline-flex; align-items: center; gap: 8px; font: 500 12.5px/1.2 var(--cjk); }
+.controls input[type="range"] { width: 180px; accent-color: var(--accent); }
+.controls .val { font: 500 13px/1 var(--mono); min-width: 4ch; }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.hint { color: var(--muted); font-size: 12px; }
+
+/* rail */
+.rail { display: grid; gap: 14px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; min-width: 0; }
+.card h2 { font-size: 13px; font-weight: 700; letter-spacing: .04em; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card h2 span { font: 500 10.5px/1 var(--mono); color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.minimap { position: relative; margin-top: 10px; border-radius: 4px; overflow: hidden; background: var(--sunken); }
+.minimap img { display: block; width: 100%; height: auto; }
+.minimap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mm-note { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+dl.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 10px 0 0; }
+dl.kv dt { color: var(--muted); font-size: 12.5px; }
+dl.kv dd { margin: 0; text-align: right; font: 500 13px/1.4 var(--mono); font-variant-numeric: tabular-nums; }
+dl.kv dd small { color: var(--muted); font-weight: 400; }
+.pick-empty { margin: 10px 0 0; color: var(--muted); font-size: 12.5px; }
+.pick-name { margin-top: 10px; font: 700 15px/1.35 var(--cjk); }
+.pick-sub { color: var(--muted); font-size: 12px; font-style: italic; }
+.pill { display: inline-block; font: 500 11px/1 var(--cjk); padding: 4px 7px; border-radius: 3px; border: 1px solid var(--line); }
+.pill.osm { color: var(--ok); border-color: currentColor; }
+.pill.est { color: var(--warn); border-color: currentColor; }
+.legend { display: grid; gap: 6px; margin-top: 10px; font-size: 12.5px; }
+.legend div { display: flex; align-items: center; gap: 8px; }
+.sw { width: 14px; height: 14px; border-radius: 2px; border: 1px solid rgba(0,0,0,.15); flex: none; }
+.sw.cal { background: repeating-linear-gradient(135deg, #3b3b39 0 3px, #ede7d9 3px 7px); }
+
+/* notes */
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.notes .card h2 { font-size: 14px; }
+.notes ul { margin: 10px 0 0; padding-left: 1.1em; display: grid; gap: 6px; }
+.notes li { max-width: 62ch; }
+.notes li b { font-weight: 600; }
+.foot { color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; }
+.foot a { color: inherit; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div>
+      <div class="eyebrow">Macau · Largo do Senado · 22.1937°N 113.5399°E</div>
+      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · massing v1</span></div>
+      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。這一版只有量體，未加入細節。</p>
+    </div>
+    <div class="status"><i></i>量體階段 · 外牆顏色待照片核對</div>
+  </header>
+
+  <div class="grid">
+    <section class="stage" aria-label="3D 量體">
+      <div class="bar">
+        <div class="seg" id="presets" role="group" aria-label="鏡頭"></div>
+        <div class="seg">
+          <button class="btn" id="photoBtn" type="button" title="選一張實景照片，半透明疊在 3D 畫面上對位">疊上實景照片</button>
+          <input type="file" id="photoFile" accept="image/*" hidden>
+          <button class="btn" id="walkBtn" type="button" aria-pressed="false" title="WASD／方向鍵移動，拖曳轉向，Shift 跑步">步行模式</button>
+        </div>
+      </div>
+      <div class="photo-ctl" id="photoCtl" hidden>
+        <span class="mono" id="photoName"></span>
+        <label for="photoOpacity">透明度 <input type="range" id="photoOpacity" min="0" max="1" step="0.05" value="0.5"></label>
+        <span class="hint">畫面已改為照片長寬比。調 FOV 和拖曳鏡頭，直至樓宇邊線重疊。</span>
+        <button class="btn" id="photoClear" type="button">移除照片</button>
+      </div>
+      <div class="canvas-box" id="view">
+        <div class="loading" id="loading">載入量體資料…</div>
+        <img class="photo-ov" id="photoOverlay" alt="疊圖用實景照片" hidden>
+        <div class="labels" id="labels"></div>
+        <div class="overlay ov-tl" id="camInfo"></div>
+        <div class="overlay ov-bl">
+          <div class="scalebar"><span id="sbLabel">10 m</span><div class="rule" id="sbRule" style="width:60px"></div></div>
+        </div>
+        <div class="overlay ov-br" id="hintBox">拖曳旋轉 · 右鍵平移 · 滾輪縮放 · 點選建築</div>
+        <div class="walkpad" id="walkpad" hidden>
+          <span class="sp"></span><button data-k="f" aria-label="前進">▲</button><span class="sp"></span>
+          <button data-k="l" aria-label="左移">◀</button><button data-k="b" aria-label="後退">▼</button><button data-k="r" aria-label="右移">▶</button>
+        </div>
+      </div>
+      <div class="controls">
+        <label for="scale">環境比例 <input type="range" id="scale" min="1" max="1.6" step="0.05" value="1"> <span class="val" id="scaleVal">1.00×</span></label>
+        <label for="planOnly"><input type="checkbox" id="planOnly"> 只放大平面（樓高不變）</label>
+        <label for="fov">FOV <input type="range" id="fov" min="25" max="95" step="1" value="60"> <span class="val" id="fovVal">60°</span></label>
+        <div class="toggles" role="group" aria-label="圖層">
+          <button class="chip" id="tSat" aria-pressed="false">衛星底圖</button>
+          <button class="chip" id="tLabels" aria-pressed="true">地標名稱</button>
+          <button class="chip" id="tFigs" aria-pressed="true">比例人</button>
+          <button class="chip" id="tFloors" aria-pressed="true">樓層線</button>
+          <button class="chip" id="tContext" aria-pressed="true">外圍建築</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="rail">
+      <div class="card">
+        <h2>位置圖 <span>衛星 · 已對位</span></h2>
+        <div class="minimap" id="minimap">
+          <img id="mmImg" src="reference/sat_core.jpg" alt="議事亭前地衛星俯瞰，已按 OSM 校正" width="880" height="1000">
+          <svg id="mmSvg" viewBox="0 0 880 1000" aria-hidden="true"></svg>
+        </div>
+        <p class="mm-note">橙點是鏡頭位置，點選圓點可切換視角。衛星圖已按噴水池平移約 7.6 米，與 OSM 對齊。</p>
+      </div>
+      <div class="card" id="pickCard">
+        <h2>所選建築 <span id="pickTier">—</span></h2>
+        <p class="pick-empty" id="pickEmpty">在 3D 量體中點選任何建築，查看名稱、高度和資料來源。</p>
+        <div id="pickBody" hidden>
+          <div class="pick-name" id="pickName"></div>
+          <div class="pick-sub" id="pickSub"></div>
+          <dl class="kv">
+            <dt>高度</dt><dd id="pickH"></dd>
+            <dt>高度來源</dt><dd id="pickSrc"></dd>
+            <dt>距廣場</dt><dd id="pickD"></dd>
+            <dt>OSM</dt><dd id="pickId"></dd>
+          </dl>
+        </div>
+      </div>
+      <div class="card">
+        <h2>廣場尺寸 <span id="dimScale">實際比例</span></h2>
+        <dl class="kv" id="dims"></dl>
+      </div>
+      <div class="card">
+        <h2>圖例</h2>
+        <div class="legend">
+          <div><span class="sw" style="background:#e9c25a"></span>地標，顏色已知（玫瑰堂黃、市政署及仁慈堂白）</div>
+          <div><span class="sw" style="background:#eee5d2"></span>臨街建築及其他地標（顏色待照片核對）</div>
+          <div><span class="sw" style="background:#e0dcd3"></span>核心範圍（170 米內）</div>
+          <div><span class="sw" style="background:#c4c7c9"></span>外圍天際線</div>
+          <div><span class="sw cal"></span>葡式碎石波浪地磚</div>
+          <div><span class="sw" style="background:#ff6a2a"></span>比例人 1.75 米</div>
+          <div><span class="sw" style="background:repeating-linear-gradient(0deg,#8a8478 0 2px,#e0dcd3 2px 9px)"></span>樓層線，每 3.2 米一條</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="notes">
+    <div class="card">
+      <h2>為何這版應該較像實景</h2>
+      <ul>
+        <li><b>廣場是漏斗形，不是長方形。</b>新馬路口約 38 米闊，往東北收窄到兩邊牆面相距約 10 米（地磚範圍約 7 米），再轉入板樟堂前地到玫瑰堂。輪廓直接取自 OSM。</li>
+        <li><b>高度是實測值。</b>1,124 棟建築有 OSM 高度（例如市政署 16.8 米、仁慈堂 16.5 米、玫瑰堂 17.9 米）。廣場四周是 17 至 23 米的一排，背後有 60 至 80 米的高樓。</li>
+        <li><b>地磚方向按衛星圖量度。</b>波浪帶與新馬路平行，每組黑白約 2.25 米，波長約 6 米。</li>
+        <li><b>範圍夠大。</b>地圖約 710 × 680 米，包括新馬路、營地街市、大堂一帶，以及遠處的新葡京作天際線參照。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>比例與「人物好巨型」的問題</h2>
+      <ul>
+        <li>比例人是 1.75 米。用「第三人稱」鏡頭可看到遊戲常用的肩後視角下，廣場和樓宇的真實比例。</li>
+        <li>真實尺寸的窄段牆面之間只有約 10 米，對射擊遊戲來說偏窄。可拖動「環境比例」試 1.2 至 1.4 倍，人物大小保持不變。</li>
+        <li>「只放大平面」只拉闊街道和廣場，樓高不變，適合想保留街道壓迫感的情況。</li>
+        <li>步行模式用 1.5 米／秒步速，按 Shift 用 6 米／秒跑速，可直接感受穿越廣場所需時間。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>待核對（下一輪）</h2>
+      <ul>
+        <li><b>外牆顏色：</b>只有玫瑰堂、市政署、仁慈堂是已知顏色，其餘臨街樓宇暫用統一淺色，要對照實景照片。</li>
+        <li><b>862 棟建築沒有 OSM 高度，</b>暫按「同面積已知樓宇的中位數」估算，點選建築時會標明是估算。大部分在外圍。</li>
+        <li><b>未建模：</b>地面層騎樓、屋頂形狀、玫瑰堂立面、噴水池細節（中央渾天儀只是示意）。</li>
+        <li><b>衛星圖</b>只作對位參考，不會放入遊戲資源。</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <div>建築、街道及廣場輪廓：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors，ODbL 授權，經 Overpass API 擷取。</div>
+    <div>衛星影像：Esri World Imagery（Esri, Maxar, Earthstar Geographics），只作參考對位，已按噴水池平移校正。</div>
+    <div id="buildStamp"></div>
+  </footer>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module" src="viewer/main.js"></script>
+</body>
+</html>
