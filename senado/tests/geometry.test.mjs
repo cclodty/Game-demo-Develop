@@ -87,3 +87,43 @@ test('facade buildings build finite arcades, bands and parapets', async () => {
     assert.ok(g.trim.boundingBox.max.y <= b.h + 1e-3 && g.trim.boundingBox.min.y >= -1e-3, b.id);
   }
 });
+
+test('sunken fountain: treads face up, step risers face the fountain, pool rim faces up', () => {
+  const { root } = buildSenado(data, { mode: 'export' });
+  const fountain = root.getObjectByName('Fountain');
+  const check = (name) => {
+    const m = fountain.getObjectByName(name);
+    const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry;
+    const p = g.attributes.position;
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    const out = { up: 0, down: 0, inward: 0, outward: 0 };
+    for (let i = 0; i < p.count; i += 3) {
+      a.fromBufferAttribute(p, i); b.fromBufferAttribute(p, i + 1); c.fromBufferAttribute(p, i + 2);
+      const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
+      if (n.lengthSq() < 1e-12) continue;
+      n.normalize();
+      const mid = a.clone().add(b).add(c).divideScalar(3);
+      if (n.y > 0.9) out.up++; else if (n.y < -0.9) out.down++;
+      else if (Math.abs(n.y) < 0.1) (n.x * mid.x + n.z * mid.z < 0 ? out.inward++ : out.outward++);
+    }
+    return out;
+  };
+  const steps = check('Fountain_Steps');
+  assert.equal(steps.down, 0);
+  assert.ok(steps.up > 0 && steps.inward > 0);
+  assert.equal(steps.outward, 0);
+  const pool = check('Fountain_PoolWall');
+  assert.equal(pool.down, 0);
+  assert.ok(pool.up > 0 && pool.outward > 0);                 // outer face of the pool wall looks at the sunken path
+});
+
+test('triangle budget: the whole map stays under 100k triangles', () => {
+  const { root } = buildSenado(data, { mode: 'export' });
+  let tris = 0;
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const g = o.geometry;
+    tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+  });
+  assert.ok(tris < 100000, `${Math.round(tris)} triangles`);
+});

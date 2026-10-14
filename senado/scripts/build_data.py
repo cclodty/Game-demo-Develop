@@ -426,7 +426,17 @@ def attach_facades(buildings, curated):
             kinds = arcade_on.split("+")
             arcade_on = [f["i"] for f in b.get("fronts", []) if f["kind"] in kinds]
         b["facade"] = {"style": spec["style"], **style, "edges": edges, "arcadeEdges": arcade_on,
-                       "evidence": spec.get("evidence", []), "note": spec.get("note")}
+                       "evidence": spec.get("evidence", []), "note": spec.get("note"),
+                       "wallColor": wall_color(curated, spec)}
+
+
+def wall_color(curated, spec):
+    """{hex, label, samples} for a facade spec's photo-sampled wall colour, or None while unchecked."""
+    key = spec.get("wall")
+    if not key:
+        return None
+    c = curated["wallColors"][key]
+    return {"key": key, "hex": c["hex"], "label": c["label"], "photos": sorted({x["photo"] for x in c["samples"]})}
 
 
 def add_bridges(buildings, curated):
@@ -450,7 +460,7 @@ def add_bridges(buildings, curated):
             "id": br["id"], "name": br["name"], "h": br["h"], "minH": 0, "hSrc": "bridge", "levels": None,
             "outer": ring, "holes": [], "tier": "frontage", "dSquare": 0.0,
             "facade": {"style": br["style"], **style, "edges": [front], "arcadeEdges": [front], "passage": True,
-                       "evidence": br.get("evidence", []), "note": br.get("note")},
+                       "evidence": br.get("evidence", []), "note": br.get("note"), "wallColor": wall_color(curated, br)},
         })
 
 

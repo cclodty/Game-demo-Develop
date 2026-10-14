@@ -122,6 +122,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
 .evidence img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 2px 2px 0 0; }
 .evidence span { font: 500 10.5px/1.3 var(--mono); color: var(--muted); padding: 3px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .evidence button:hover span { color: var(--ink); }
+.chipcol { display: inline-block; width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0,0,0,.2); vertical-align: -1px; margin-right: 6px; }
 .pill { display: inline-block; font: 500 11px/1 var(--cjk); padding: 4px 7px; border-radius: 3px; border: 1px solid var(--line); }
 .pill.osm { color: var(--ok); border-color: currentColor; }
 .pill.est { color: var(--warn); border-color: currentColor; }
@@ -146,10 +147,10 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
   <header class="head">
     <div>
       <div class="eyebrow">Macau · Largo do Senado · 22.1937°N 113.5399°E</div>
-      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v2 騎樓與外圍</span></div>
-      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。這一版按 29 張實景照片加入騎樓、樓層腰線、壁柱、簷口和女兒牆；外牆顏色留待下一輪。</p>
+      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v3 噴水池與外牆顏色</span></div>
+      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。按 29 張實景照片加入騎樓及樓層外圍（v2），再補上噴水池的下沉台階，並從照片取得外牆顏色（v3）。</p>
     </div>
-    <div class="status"><i></i>v2 騎樓及外圍已加入 · 外牆顏色待核對</div>
+    <div class="status"><i></i>v3 外牆顏色取自照片 · 窗戶未建模</div>
   </header>
 
   <div class="grid">
@@ -216,6 +217,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
             <dt>高度來源</dt><dd id="pickSrc"></dd>
             <dt>距廣場</dt><dd id="pickD"></dd>
             <dt>OSM</dt><dd id="pickId"></dd>
+            <dt>外牆顏色</dt><dd id="pickColor"></dd>
           </dl>
           <div id="pickFacade" hidden>
             <dl class="kv" id="pickFacadeKv"></dl>
@@ -232,8 +234,17 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
       <div class="card">
         <h2>圖例</h2>
         <div class="legend">
-          <div><span class="sw" style="background:#e9c25a"></span>地標，顏色已知（玫瑰堂黃、市政署及仁慈堂白）</div>
-          <div><span class="sw" style="background:#eee5d2"></span>臨街建築及其他地標（顏色待照片核對）</div>
+          <div><span class="sw" style="background:#e0c99d"></span>商務旅遊中心一排的淡黃</div>
+          <div><span class="sw" style="background:#d9c498"></span>信德堡，略深的黃</div>
+          <div><span class="sw" style="background:#dbca9a"></span>梁族大廈及窄段西面一排，偏檸檬黃</div>
+          <div><span class="sw" style="background:#d6ad6b"></span>便民藥房，赭黃</div>
+          <div><span class="sw" style="background:#e0c47b"></span>玫瑰堂，黃</div>
+          <div><span class="sw" style="background:#e0afab"></span>粉紅角樓</div>
+          <div><span class="sw" style="background:#97c7c1"></span>新中央酒店，薄荷綠</div>
+          <div><span class="sw" style="background:#e6ddc3"></span>中華商業大廈，米白</div>
+          <div><span class="sw" style="background:#d1c1a5"></span>郵政局，米色石材</div>
+          <div><span class="sw" style="background:#f2efeb"></span>仁慈堂，白</div>
+          <div><span class="sw" style="background:#eee5d2"></span>未有照片證據的臨街建築（中性色）</div>
           <div><span class="sw" style="background:#f6f3ec;box-shadow:inset 0 -4px 0 #d8d2c4"></span>白色線腳：腰線、簷口、女兒牆（已按照片加入）</div>
           <div><span class="sw" style="background:#e0dcd3"></span>核心範圍（170 米內）</div>
           <div><span class="sw" style="background:#c4c7c9"></span>外圍天際線</div>
@@ -247,31 +258,30 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
 
   <div class="notes">
     <div class="card">
-      <h2>本輪：騎樓與樓層外圍</h2>
+      <h2>v3：噴水池下沉台階</h2>
       <ul>
-        <li><b>按照片判斷，不靠估計。</b>從 Wikimedia Commons 的 197 張議事亭前地照片中選出 29 張，逐棟對照 OSM 輪廓。點選建築可看到所用的照片。</li>
-        <li><b>有騎樓：</b>西面黃色一排（商務旅遊中心、信德堡及南段）、梁族大廈及窄段西面一排、東面的中華商業大廈。</li>
-        <li><b>沒有騎樓：</b>仁慈堂、市政署、郵政局、便民藥房；粉紅角樓地面層是拱形店面，只做淺拱。</li>
-        <li><b>樓層比例是量出來的。</b>在照片 #87 同一條垂直線上量得騎樓 5.3 米、二樓 6.5 米、三樓 5.8 米、女兒牆 1.1 米，合共 18.7 米，與 OSM 高度相同。</li>
-        <li><b>過街樓：</b>OSM 在商務旅遊中心南面有一條橫巷，但照片中立面連續，所以補建了跨巷的樓上部分，橫巷從騎樓下穿過。</li>
+        <li><b>結構：</b>廣場向下三級花崗岩台階（每級約 16 厘米），到一圈下沉約 0.5 米的環形通道；然後是粉紅花崗岩外池、深色內池和渾天儀。</li>
+        <li><b>尺寸來源：</b>半徑來自已對位衛星圖的徑向亮度剖面（台階外緣 7.1 米、外池 4.5 米、內池 2.9 米），高度按照片 #87、#126 中的人估算。OSM 的環形行人路（半徑約 5.7 米）正好落在下沉通道上。</li>
+        <li><b>渾天儀：</b>直徑約 1.7 米，極軸按澳門緯度 22° 傾斜；v1 放得太高，已改正。</li>
+        <li>下沉台階在遊戲中是天然掩護位，GLB 內有完整幾何，可以直接做碰撞。</li>
       </ul>
     </div>
     <div class="card">
-      <h2>比例與遊戲</h2>
+      <h2>v3：外牆顏色</h2>
       <ul>
-        <li>騎樓深約 3 米、高 5.3 米，拱距約 3.9 米。用「騎樓內」鏡頭可看到人物在拱廊下的比例，這也是天然的掩護位。</li>
-        <li>真實尺寸的窄段牆面之間只有約 10 米。可拖動「環境比例」試 1.2 至 1.4 倍，人物大小保持不變。</li>
-        <li>步行模式用 1.5 米／秒步速，按 Shift 用 6 米／秒跑速。</li>
+        <li><b>取色方法：</b>在照片中圈出牆身，只取有牆身顏色的像素中最亮的 40%（即向光的牆，排除陰影、窗玻璃和百葉窗），計算色相和飽和度。每棟盡量用兩張以上照片交叉核對。</li>
+        <li><b>明度另行設定：</b>晴天照片會過曝，陰天照片偏暗，所以明度按材質統一設定（淡色牆約 0.85、白牆約 0.93）。</li>
+        <li><b>燈光同步調整：</b>太陽改為東南方（與照片 #87 的上午光線一致），加強地面反射光，否則背光的淡黃牆會變成卡其色。</li>
+        <li>點選建築可看到顏色和取色所用的照片；資料在 <span class="mono">landmarks.json</span> 的 <span class="mono">wallColors</span>。</li>
       </ul>
     </div>
     <div class="card">
-      <h2>待做（下一輪）</h2>
+      <h2>下一步</h2>
       <ul>
-        <li><b>外牆顏色：</b>照片已經下載，下一輪按照片取色（黃、粉紅、白、淺綠）。</li>
-        <li><b>噴水池外圍的下沉台階：</b>照片和衛星圖都顯示直徑約 13.6 米的台階圈，OSM 只畫了水池。</li>
-        <li><b>窗戶、欄杆和屋頂形狀</b>仍未建模；女兒牆暫時是實心，未做欄杆。</li>
-        <li><b>新馬路的騎樓</b>未有足夠照片證據，暫不加入。</li>
-        <li><b>修正：</b>v1 匯出的 GLB 外牆法線向內，在引擎中會內外反轉。本版已修正，並加入自動測試。</li>
+        <li><b>窗戶、百葉窗和帆布篷：</b>照片中鮮明的觀感很大程度來自深色窗戶、啡紅或綠色百葉窗和白色帆布篷的對比。未建模之前，牆身看起來會比照片淡。</li>
+        <li><b>屋頂：</b>暫用中性暖灰，瓦頂形狀和顏色未做。</li>
+        <li><b>未有照片證據的樓宇</b>（板樟堂前地東面、新馬路一段）仍用中性色。</li>
+        <li><b>新馬路的騎樓</b>仍未有足夠證據。</li>
       </ul>
     </div>
   </div>

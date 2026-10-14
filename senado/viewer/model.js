@@ -18,6 +18,8 @@ export const PALETTE = {
   contextRoof: 0xb3b6b9,
   frontage: 0xeee5d2,
   trim: 0xf6f3ec,      // white mouldings: seen on every colonial facade around the square
+  granite: 0xbfa194,   // fountain steps (photos #87, #126)
+  poolGranite: 0xa97563, // pink granite pool wall
   figure: 0xff6a2a,
   calcadaLight: 0xede7d9,
   calcadaDark: 0x3b3b39,
@@ -382,36 +384,125 @@ function mergeFlatGrouped(geoms) {
 }
 
 // ---------- fountain (approximate: basin + pedestal + armillary sphere) ----------
+// The fountain sits in a sunken ring: three granite steps down from the square to a paved ring path,
+// then a pink granite pool wall, an outer pool, a raised dark inner basin and the armillary sphere.
+// Radii from the satellite radial profile, heights from photos #87 and #126 (people as scale).
+// Heights are relative to the square (0); the OSM ring footway at r ≈ 5.7 m runs along the sunken path.
+export const FOUNTAIN = {
+  stepsOuter: 7.1, steps: 3, stepRun: 0.33, stepRise: 0.16,
+  poolOuter: 4.5, poolInner: 4.0, poolTop: 0.42, poolWater: 0.27,
+  basinOuter: 2.9, basinInner: 2.65, basinTop: 0.9, basinWater: 0.75,
+  pedestal: { w: 0.8, bottom: 0.4, top: 1.05 },
+  sphere: { r: 0.85, cz: 1.85, tube: 0.05 },
+};
+export const fountainFloor = () => -FOUNTAIN.steps * FOUNTAIN.stepRise;
+
+export function circleRing(cx, cy, r, n = 64, clockwise = false) {
+  const pts = [];
+  for (let k = 0; k < n; k++) {
+    const t = ((clockwise ? -k : k) / n) * Math.PI * 2;
+    pts.push([cx + Math.cos(t) * r, cy + Math.sin(t) * r]);
+  }
+  return pts;
+}
+
 function buildFountain(f, mats) {
+  const F = FOUNTAIN;
   const g = new THREE.Group();
   g.name = 'Fountain';
-  const { x, y, r } = f;
-  const wallH = 0.55, wallT = 0.35;
-  const lathe = new THREE.LatheGeometry(
-    [new THREE.Vector2(r - wallT, 0.05), new THREE.Vector2(r - wallT, wallH), new THREE.Vector2(r, wallH), new THREE.Vector2(r, 0)],
-    48,
-  );
-  const basin = new THREE.Mesh(lathe, mats.stone);
-  basin.name = 'Fountain_Basin';
-  const water = new THREE.Mesh(new THREE.CircleGeometry(r - wallT, 48).rotateX(-Math.PI / 2), mats.water);
-  water.position.y = 0.38;
+  const floor = fountainFloor();
+  const V = (r, z) => new THREE.Vector2(r, z);
+  const lathe = (pts, mat, name) => {
+    const m = new THREE.Mesh(new THREE.LatheGeometry(pts, 72), mat);
+    m.name = name;
+    m.castShadow = m.receiveShadow = true;
+    return m;
+  };
+  // steps: risers and treads from the square edge down to the ring path (profile listed outside-in, top-down)
+  const stepPts = [V(F.stepsOuter, 0)];
+  for (let k = 1; k <= F.steps; k++) {
+    const r = F.stepsOuter - (k - 1) * F.stepRun;
+    stepPts.push(V(r, -k * F.stepRise), V(r - F.stepRun, -k * F.stepRise));
+  }
+  const steps = lathe(stepPts, mats.granite, 'Fountain_Steps');
+  // ring path at the bottom, paved like the square
+  const pathR0 = F.poolOuter, pathR1 = F.stepsOuter - F.steps * F.stepRun;
+  const ring = new THREE.RingGeometry(pathR0, pathR1, 72, 1).rotateX(-Math.PI / 2);
+  const uv = ring.attributes.uv, pos = ring.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const [u, v] = calcadaUV(f.x + pos.getX(i), f.y - pos.getZ(i));
+    uv.setXY(i, u, v);
+  }
+  const path = new THREE.Mesh(ring, mats.calcada);
+  path.position.y = floor;
+  path.name = 'Fountain_SunkenPath';
+  path.receiveShadow = true;
+  // pink granite pool wall and the outer pool
+  const pool = lathe([V(F.poolInner, F.poolWater - 0.3), V(F.poolInner, F.poolTop), V(F.poolOuter, F.poolTop), V(F.poolOuter, floor)].reverse(), mats.poolGranite, 'Fountain_PoolWall');
+  const water = new THREE.Mesh(new THREE.RingGeometry(F.basinOuter, F.poolInner, 72, 1).rotateX(-Math.PI / 2), mats.water);
+  water.position.y = F.poolWater;
   water.name = 'Fountain_Water';
-  const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.7, 1.9, 24), mats.stone);
-  ped.position.y = 0.95;
+  // raised dark inner basin
+  const basin = lathe([V(F.basinInner, F.pedestal.bottom), V(F.basinInner, F.basinTop), V(F.basinOuter, F.basinTop), V(F.basinOuter, F.poolWater - 0.05)].reverse(), mats.bronze, 'Fountain_InnerBasin');
+  const inner = new THREE.Mesh(new THREE.CircleGeometry(F.basinInner, 72).rotateX(-Math.PI / 2), mats.water);
+  inner.position.y = F.basinWater;
+  inner.name = 'Fountain_InnerWater';
+  const pedH = F.pedestal.top - F.pedestal.bottom;
+  const ped = new THREE.Mesh(new THREE.BoxGeometry(F.pedestal.w, pedH, F.pedestal.w), mats.bronze);
+  ped.position.y = F.pedestal.bottom + pedH / 2;
   ped.name = 'Fountain_Pedestal';
+  ped.castShadow = true;
+  // armillary sphere: meridian, horizon and equator rings, a broad ecliptic band, polar axis at Macau's latitude
+  const S = F.sphere;
   const sphere = new THREE.Group();
   sphere.name = 'Fountain_ArmillarySphere';
-  const ringGeo = new THREE.TorusGeometry(0.85, 0.05, 8, 40);
-  for (const [rx, ry] of [[0, 0], [Math.PI / 2, 0], [Math.PI / 2, Math.PI / 2], [Math.PI / 3, Math.PI / 5]]) {
-    const ring = new THREE.Mesh(ringGeo, mats.bronze);
-    ring.rotation.set(rx, ry, 0);
-    sphere.add(ring);
-  }
-  sphere.position.y = 2.8;
-  g.add(basin, water, ped, sphere);
-  g.position.copy(toV3(x, y));
-  g.userData = { kind: 'fountain', name: '噴水池 Fountain', note: '池徑取自 OSM；中央渾天儀為示意' };
+  // local frame: X = north (after the group turns), Y = up; the polar axis rises toward north by the latitude
+  const lat = THREE.MathUtils.degToRad(22.2), obliq = THREE.MathUtils.degToRad(23.4);
+  const dir = (a) => new THREE.Vector3(Math.cos(a), Math.sin(a), 0);
+  const add = (geo, from, to) => {
+    const m = new THREE.Mesh(geo, mats.bronze);
+    m.quaternion.setFromUnitVectors(from, to);
+    m.castShadow = true;
+    sphere.add(m);
+  };
+  const Z = new THREE.Vector3(0, 0, 1), Y = new THREE.Vector3(0, 1, 0);
+  add(new THREE.TorusGeometry(S.r, S.tube, 8, 64), Z, Z);                                   // meridian ring
+  add(new THREE.TorusGeometry(S.r, S.tube, 8, 64), Z, Y);                                   // horizon ring
+  add(new THREE.TorusGeometry(S.r * 0.97, S.tube, 8, 64), Z, dir(lat));                     // equator, square to the polar axis
+  add(new THREE.CylinderGeometry(S.r * 0.95, S.r * 0.95, 0.16, 64, 1, true), Y, dir(lat + obliq)); // ecliptic band
+  add(new THREE.CylinderGeometry(0.03, 0.03, S.r * 2.3, 8), Y, dir(lat));                   // polar axis
+  sphere.rotation.y = Math.PI / 2;                              // local X -> world north (-Z)
+  sphere.position.y = S.cz;
+  g.add(steps, path, pool, water, basin, inner, ped, sphere);
+  g.position.copy(toV3(f.x, f.y));
+  g.userData = { kind: 'fountain', name: '噴水池 Fountain', note: '下沉台階、花崗岩池壁、內池及渾天儀按衛星圖和照片量度' };
   return g;
+}
+
+// Drop the parts of street strips that would float over the sunken fountain ring.
+function clipAroundFountain(roads, f, R) {
+  const out = [];
+  for (const r of roads) {
+    let cur = [];
+    const flush = () => { if (cur.length > 1) out.push({ ...r, pts: cur }); cur = []; };
+    const clear = R + r.w / 2 + 0.5;
+    for (let i = 0; i < r.pts.length - 1; i++) {
+      const [ax, ay] = r.pts[i], [bx, by] = r.pts[i + 1];
+      // segments that stay clear of the ring keep their own vertices; only nearby ones are subdivided
+      const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+      const t = L2 ? Math.max(0, Math.min(1, ((f.x - ax) * dx + (f.y - ay) * dy) / L2)) : 0;
+      const far = Math.hypot(ax + dx * t - f.x, ay + dy * t - f.y) > clear;
+      const n = far ? 1 : Math.max(1, Math.ceil(Math.hypot(dx, dy) / 0.5));
+      for (let k = 0; k <= n; k++) {
+        if (k === 0 && i > 0) continue;
+        const p = [ax + ((bx - ax) * k) / n, ay + ((by - ay) * k) / n];
+        if (Math.hypot(p[0] - f.x, p[1] - f.y) < R + r.w / 2) flush();
+        else cur.push(p);
+      }
+    }
+    flush();
+  }
+  return out;
 }
 
 function buildTree(x, y, mats) {
@@ -459,7 +550,9 @@ export function buildSenado(data, opts = {}) {
     green: named(std(PALETTE.green), 'Grass'),
     water: named(std(PALETTE.water, { roughness: 0.2 }), 'Water'),
     stone: named(std(PALETTE.stone), 'Stone'),
-    bronze: named(std(0x5d5a4a, { metalness: 0.4, roughness: 0.5 }), 'Bronze'),
+    bronze: named(std(0x4a4038, { metalness: 0.4, roughness: 0.55 }), 'Bronze'),
+    granite: named(std(PALETTE.granite), 'Granite'),
+    poolGranite: named(std(PALETTE.poolGranite), 'PoolGranite'),
     trunk: named(std(0x6b5a48), 'Trunk'),
     leaf: named(std(0x5f7a4c), 'Foliage'),
     calcada: named(std(0xffffff, { map: opts.calcadaTexture || null, color: opts.calcadaTexture ? 0xffffff : PALETTE.calcadaLight }), 'Calcada'),
@@ -471,11 +564,13 @@ export function buildSenado(data, opts = {}) {
     return matCache.get(key);
   };
 
-  // ground
+  // ground, with a hole where the fountain ring is sunk below the square
+  const fc = data.fountain;
+  const sunk = fc ? [circleRing(fc.x, fc.y, FOUNTAIN.stepsOuter, 72, true)] : [];
   const [x0, y0, x1, y1] = data.meta.bounds;
   const pad = 30;
   const ground = new THREE.Mesh(
-    flatGeometry([{ outer: [[x0 - pad, y0 - pad], [x1 + pad, y0 - pad], [x1 + pad, y1 + pad], [x0 - pad, y1 + pad]] }], 0),
+    flatGeometry([{ outer: [[x0 - pad, y0 - pad], [x1 + pad, y0 - pad], [x1 + pad, y1 + pad], [x0 - pad, y1 + pad]], holes: sunk }], 0),
     mats.ground,
   );
   ground.name = 'Ground';
@@ -483,8 +578,9 @@ export function buildSenado(data, opts = {}) {
   root.add(ground);
 
   // streets
-  const car = data.roads.filter((r) => r.car);
-  const foot = data.roads.filter((r) => !r.car);
+  const roadsKept = fc ? clipAroundFountain(data.roads, fc, FOUNTAIN.stepsOuter) : data.roads;
+  const car = roadsKept.filter((r) => r.car);
+  const foot = roadsKept.filter((r) => !r.car);
   const roads = new THREE.Group();
   roads.name = 'Streets';
   const carMesh = new THREE.Mesh(stripGeometry(car, 0.02), mats.road);
@@ -500,7 +596,9 @@ export function buildSenado(data, opts = {}) {
   root.add(green);
 
   // squares (calçada)
-  const sq = new THREE.Mesh(flatGeometry(data.squares, 0.04, calcadaUV), mats.calcada);
+  // the fountain hole goes into whichever square contains the fountain
+  const squares = data.squares.map((s, i) => (i === 0 && fc ? { ...s, holes: [...(s.holes || []), ...sunk] } : s));
+  const sq = new THREE.Mesh(flatGeometry(squares, 0.04, calcadaUV), mats.calcada);
   sq.name = 'Calcada_Squares';
   sq.receiveShadow = true;
   sq.userData = { kind: 'square', name: '議事亭前地／板樟堂前地', note: '葡式碎石波浪地磚' };
@@ -509,10 +607,12 @@ export function buildSenado(data, opts = {}) {
   // buildings
   const lmByKey = Object.fromEntries(data.landmarks.map((l) => [l.key, l]));
   const tierColor = (b) => {
+    // photo-sampled wall colour first; roofs stay a neutral warm grey (most are tiled, not painted)
+    if (b.facade && b.facade.wallColor) return [new THREE.Color(b.facade.wallColor.hex).getHex(), PALETTE.coreRoof];
     if (b.tier === 'landmark' && lmByKey[b.key].colorSrc !== 'pending') {
       const lm = lmByKey[b.key];
       const c = new THREE.Color(lm.facade).getHex();
-      return [c, shade(c, 0.86).getHex()];
+      return [c, lm.colorSrc === 'photo' ? PALETTE.coreRoof : shade(c, 0.86).getHex()];
     }
     if (b.tier === 'landmark' || b.tier === 'frontage' || b.tier === 'avenue') return [PALETTE.frontage, shade(PALETTE.frontage, 0.86).getHex()];
     if (b.tier === 'core' || b.tier === 'part') return [PALETTE.core, PALETTE.coreRoof];

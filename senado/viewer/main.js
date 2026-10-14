@@ -24,9 +24,9 @@ const PRESETS = [
   { id: 'top', label: '俯瞰', key: '7', pos: [10, 24, 330], tgt: [10, 25, 0], fov: 40,
     note: '正上方，上方為北' },
 ];
-const FIGURES = [[-7, -12, 52], [4, -6, 200], [12, -15, 120], [28, 37, 230], [52, 80, 30], [-31, -38, 60]];
+const FIGURES = [[-7, -12, 52], [5.5, -7.5, 200], [12, -15, 120], [28, 37, 230], [52, 80, 30], [-31, -38, 60]];
 
-const state = { scale: 1, planOnly: false, preset: 'mouth', walk: false, data: null, picked: null };
+const state = { scale: 1, planOnly: false, preset: 'mouth', walk: false, data: null, picked: null, sunAz: 125, sunEl: 50 };
 const v3 = (x, y, z = 0) => new THREE.Vector3(x * state.scale, z * (state.planOnly ? 1 : state.scale), -y * state.scale);
 
 // ---------------- renderer / scene ----------------
@@ -48,8 +48,12 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.12;
 controls.maxPolarAngle = Math.PI * 0.495;
 
-scene.add(new THREE.HemisphereLight(0xe8eef4, 0x8d877b, 1.35));
-const sun = new THREE.DirectionalLight(0xfff4e2, 2.3);
+// Lighting compared side by side with photos #87 and #130: morning sun from the south-east lights the
+// west row as in #87; a warm ground bounce keeps shaded pastel walls from going khaki. AgX and ACES
+// tone mapping were tried and washed the pastels out, so output is plain sRGB.
+const hemi = new THREE.HemisphereLight(0xeef3f8, 0xc9b99c, 1.8);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff2de, 2.5);
 sun.castShadow = true;
 sun.shadow.mapSize.set(4096, 4096);
 sun.shadow.bias = -0.0004;
@@ -59,7 +63,7 @@ sc.left = -230; sc.right = 230; sc.top = 230; sc.bottom = -230; sc.near = 10; sc
 scene.add(sun, sun.target);
 function placeSun() {
   // afternoon sun from the south-west, 48° elevation
-  const az = THREE.MathUtils.degToRad(225), el = THREE.MathUtils.degToRad(48), d = 420;
+  const az = THREE.MathUtils.degToRad(state.sunAz), el = THREE.MathUtils.degToRad(state.sunEl), d = 420;
   sun.target.position.set(10 * state.scale, 0, -20 * state.scale);
   sun.position.set(sun.target.position.x + Math.sin(az) * Math.cos(el) * d, Math.sin(el) * d, sun.target.position.z - Math.cos(az) * Math.cos(el) * d);
 }
@@ -124,7 +128,7 @@ async function init() {
   $('buildStamp').textContent = `資料版本：${data.meta.source}`;
   resize();
   renderer.setAnimationLoop(tick);
-  window.senado = { THREE, scene, camera, controls, state, setPreset, world, showPick, info: null };
+  window.senado = { THREE, scene, camera, controls, state, setPreset, world, showPick, renderer, hemi, sun, placeSun };
 }
 
 // ---------------- scale ----------------
@@ -297,6 +301,12 @@ function showPick(u) {
     ? '<span class="mono">按照片補建（非 OSM）</span>'
     : `<a href="https://www.openstreetmap.org/${kind}/${n}" target="_blank" rel="noopener" class="mono">${kind}/${n}</a>`;
   showFacade(b);
+  const wcol = b && b.facade && b.facade.wallColor;
+  const lmCol = lm && lm.colorSrc !== 'pending' ? { hex: lm.facade, label: lm.colorSrc === 'photo' ? '照片取色' : '已知顏色' } : null;
+  const col = wcol || lmCol;
+  $('pickColor').innerHTML = col
+    ? `<span class="chipcol" style="background:${col.hex}"></span>${col.hex}${wcol ? ` <small>${wcol.photos.join(' ')}</small>` : ` <small>${col.label}</small>`}`
+    : '<small>未核對（中性色）</small>';
   if (b) {
     const g = new THREE.EdgesGeometry(prismGeometry(b.outer, b.holes, b.h + 0.05, b.minH), 20);
     highlight = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x1f4f93, depthTest: false, transparent: true, opacity: 0.95 }));
