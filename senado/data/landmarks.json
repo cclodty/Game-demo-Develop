@@ -98,7 +98,8 @@
       "facade": "#e6e1d6",
       "colorSrc": "pending",
       "role": "Up the hill east of the square",
-      "short": "主教座堂"
+      "short": "主教座堂",
+      "windowGrid": false
     },
     {
       "key": "grand_lisboa",
@@ -479,6 +480,48 @@
         },
         "evidence": [
           "#263"
+        ]
+      }
+    },
+    "church_front": {
+      "floors": [
+        7.6,
+        5.8
+      ],
+      "arcade": null,
+      "cornice": {
+        "h": 0.8,
+        "proj": 0.45
+      },
+      "parapet": null,
+      "pilasters": true,
+      "bay": 6.6,
+      "frontispiece": {
+        "w": 13.4,
+        "h": 4.0,
+        "pediment": 3.4,
+        "t": 0.6
+      },
+      "windows": {
+        "shape": "rect",
+        "w": 2.4,
+        "h": [
+          3.6
+        ],
+        "sill": 0.6,
+        "depth": 0.3,
+        "fill": "shutter_green",
+        "surround": 0.22,
+        "hood": "flat",
+        "ground": {
+          "shape": "rect",
+          "w": 2.4,
+          "h": 4.8,
+          "sill": 0,
+          "fill": "shutter_green"
+        },
+        "evidence": [
+          "#23"
         ]
       }
     },
@@ -924,6 +967,18 @@
         ],
         "surround": 0.08
       }
+    },
+    {
+      "osm": "w192573688",
+      "style": "church_front",
+      "on": [
+        7
+      ],
+      "wall": "sao_domingos",
+      "evidence": [
+        "#23"
+      ],
+      "note": "玫瑰堂正立面：兩層壁柱、三門三窗（墨綠門窗），頂上山花牆連三角楣；山花牆按照片 #23 約 13 m 寬、高出簷口約 7 m"
     }
   ],
   "bridges": [
@@ -2145,6 +2200,110 @@
           ]
         }
       ]
+    }
+  },
+  "genericWalls": {
+    "_note": "Buildings without photo evidence get one of these muted colours, chosen per OSM id with a stable hash and weighted by w. They are a plausible mix for central Macau (off-white and grey render, mosaic tile, pale pastel paint), not a record of any one building; the viewer and the GLB mark them as generic.",
+    "colors": [
+      {
+        "hex": "#e8e5de",
+        "w": 5,
+        "label": "通用：灰白"
+      },
+      {
+        "hex": "#d6d5d0",
+        "w": 4,
+        "label": "通用：淺灰"
+      },
+      {
+        "hex": "#e3d8c3",
+        "w": 4,
+        "label": "通用：米色"
+      },
+      {
+        "hex": "#e6dcae",
+        "w": 2,
+        "label": "通用：淡黃"
+      },
+      {
+        "hex": "#e2cbc1",
+        "w": 1.5,
+        "label": "通用：淡粉紅"
+      },
+      {
+        "hex": "#cdd6d8",
+        "w": 1.5,
+        "label": "通用：淡藍灰"
+      },
+      {
+        "hex": "#d3dccf",
+        "w": 1,
+        "label": "通用：淡綠"
+      },
+      {
+        "hex": "#bdbab3",
+        "w": 2,
+        "label": "通用：灰色紙皮石"
+      }
+    ]
+  },
+  "roofPalette": {
+    "_note": "One colour per roof class. classify_roofs.py puts every footprint into a class from the aligned satellite reference (majority of HSV-classified pixels about 1 m inside the walls); only the class name is stored (data/roof_classes.json), never the imagery. sat = median colour of that class's pixels over all roofs in the class. The model keeps its hue and 90% of its saturation but lifts the value to that of a sunlit roof, because the satellite medians include shadow and haze. Red keeps its full saturation so tiled roofs still stand out as on the image.",
+    "light": {
+      "hex": "#dbdacf",
+      "sat": "#e5e4d7",
+      "label": "淺色平頂（白漆、新防水層）"
+    },
+    "grey": {
+      "hex": "#a5a69c",
+      "sat": "#83847b",
+      "label": "灰色平頂（水泥）"
+    },
+    "dark": {
+      "hex": "#797a75",
+      "sat": "#4a4b47",
+      "label": "深灰平頂（舊水泥、陰影中）"
+    },
+    "brown": {
+      "hex": "#918372",
+      "sat": "#64594c",
+      "label": "啡灰平頂（風化水泥、鐵皮）"
+    },
+    "beige": {
+      "hex": "#c7b5a0",
+      "sat": "#bca993",
+      "label": "米黃平頂"
+    },
+    "red": {
+      "hex": "#a8705e",
+      "sat": "#855e51",
+      "label": "紅瓦／紅漆"
+    },
+    "green": {
+      "hex": "#919981",
+      "sat": "#5d6352",
+      "label": "綠色（天台花園、綠漆）"
+    },
+    "blue": {
+      "hex": "#7c949e",
+      "sat": "#425157",
+      "label": "藍色（藍漆、帆布）"
+    }
+  },
+  "roofShapes": {
+    "_note": "Pitched roofs. type gable: ridge along the footprint's long axis through its minimum bounding rectangle, or, with front (outer-ring edge index), perpendicular to that edge through its midpoint. eave defaults to h - rise; halfWidth limits the pitched part (flat at eave height beyond it). build_data.py also gives a gable to small rectangular buildings whose roof reads as red tiles (class red, h <= 14 m), with a 25° pitch capped at 2.8 m.",
+    "w192573688": {
+      "type": "gable",
+      "front": 7,
+      "eave": 13.4,
+      "rise": 4.5,
+      "halfWidth": 9.95,
+      "note": "玫瑰堂：中殿雙坡頂，山牆即正立面（照片 #23）"
+    },
+    "w330368426": {
+      "type": "gable",
+      "rise": 5.5,
+      "note": "大堂（主教座堂）：中殿雙坡頂，鐘樓未建模"
     }
   }
 }

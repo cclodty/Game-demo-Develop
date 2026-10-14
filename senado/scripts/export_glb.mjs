@@ -40,6 +40,8 @@ const out = injectTextures(Buffer.from(glb), [
   // detail maps multiply the window colour, so those materials keep their baseColorFactor
   { name: 'louvre', png: asset('louvre.png'), materials: (m) => m.startsWith('Window_shutter'), tint: true },
   { name: 'glazing', png: asset('glazing.png'), materials: (m) => m === 'Window_glass' || m.startsWith('Window_glaze'), tint: true },
+  // generic window grid on the buildings without a facade spec; their colours are vertex colours (COLOR_0)
+  { name: 'facade_generic', png: asset('facade_generic.png'), materials: (m) => m === 'Facade_generic', tint: true },
 ]);
 
 const suffix = scale !== 1 ? `_x${scale}` : plan !== 1 ? `_plan${plan}` : '';

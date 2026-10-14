@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "osm_raw.json"
 LANDMARKS = ROOT / "data" / "landmarks.json"
+ROOF_CLASSES = ROOT / "data" / "roof_classes.json"   # written by classify_roofs.py
 OUT = ROOT / "data" / "senado_massing.json"
 
 ORIGIN_NODE = 5692359322            # 噴水池 San Ma Lou (historic=memorial node at the fountain)
@@ -272,6 +273,8 @@ def main():
     find_fronts(buildings, squares, roads)
     attach_facades(buildings, curated)
     add_bridges(buildings, curated)
+    attach_roofs(buildings + parts, curated)
+    attach_generic_walls(buildings + parts, curated)
 
     data = {
         "meta": {
@@ -289,6 +292,9 @@ def main():
                        for k, v in curated.get("wallColors", {}).items() if not k.startswith("_")},
         "windowColors": {k: {f: v[f] for f in ("hex", "frame", "label") if f in v}
                          for k, v in curated.get("windowColors", {}).items() if not k.startswith("_")},
+        "roofPalette": {k: {"hex": v["hex"], "label": v["label"]}
+                        for k, v in curated["roofPalette"].items() if not k.startswith("_")},
+        "genericWalls": [{"hex": v["hex"], "label": v["label"]} for v in curated["genericWalls"]["colors"]],
         "squares": squares,
         "buildings": buildings,
         "parts": parts,
@@ -480,6 +486,78 @@ def add_bridges(buildings, curated):
                        "edgeKinds": {str(front): "square"},
                        "evidence": br.get("evidence", []), "note": br.get("note"), "wallColor": wall_color(curated, br)},
         })
+
+
+def attach_roofs(items, curated):
+    """Roof material class (classify_roofs.py) and roof shape.
+
+    Gables: the landmarks listed in roofShapes (ridge along the footprint's long axis), plus low terracotta roofs
+    (class "red", h <= 14 m) whose footprint is close to a rectangle. Everything else stays flat.
+    """
+    classes = json.loads(ROOF_CLASSES.read_text()) if ROOF_CLASSES.exists() else {}
+    shapes = {k: v for k, v in curated.get("roofShapes", {}).items() if not k.startswith("_")}
+    gables = 0
+    for b in items:
+        roof = {"cls": classes.get(b["id"], "grey")}
+        spec = shapes.get(b["id"])
+        auto = (spec is None and roof["cls"] == "red" and not b.get("facade") and not b["holes"]
+                and b["h"] <= 14 and not b.get("minH"))
+        if (spec and spec.get("type") == "gable") or auto:
+            box = min_rect(b["outer"])
+            if spec or (box["fill"] >= 0.88 and 4 <= box["short"] <= 14):
+                spec = spec or {}
+                rise = spec.get("rise") or round(min(2.8, box["short"] / 2 * math.tan(math.radians(25))), 2)
+                axis, c = box["axis"], box["c"]
+                if "front" in spec:                   # ridge runs back from the middle of the entrance wall
+                    p, q = b["outer"][spec["front"]], b["outer"][(spec["front"] + 1) % len(b["outer"])]
+                    L = math.hypot(q[0] - p[0], q[1] - p[1])
+                    axis = (-(q[1] - p[1]) / L, (q[0] - p[0]) / L)
+                    c = ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2)
+                shape = {"type": "gable", "rise": rise, "eave": spec.get("eave", r2(b["h"] - rise)),
+                         "axis": [round(axis[0], 4), round(axis[1], 4)], "c": [r2(c[0]), r2(c[1])]}
+                if "halfWidth" in spec:
+                    shape["halfWidth"] = spec["halfWidth"]
+                roof["shape"] = shape
+                gables += 1
+        b["roof"] = roof
+    print("roofs", len(items), "classified", sum(1 for b in items if b["id"] in classes), "gables", gables)
+
+
+def min_rect(ring):
+    """Minimum-area bounding rectangle: long axis (unit), centre, long and short side, footprint/rectangle area."""
+    best = None
+    for i in range(len(ring)):
+        a, b = ring[i], ring[(i + 1) % len(ring)]
+        L = math.hypot(b[0] - a[0], b[1] - a[1])
+        if L < 1e-6:
+            continue
+        u = ((b[0] - a[0]) / L, (b[1] - a[1]) / L)
+        su = [p[0] * u[0] + p[1] * u[1] for p in ring]
+        sn = [-p[0] * u[1] + p[1] * u[0] for p in ring]
+        w, h = max(su) - min(su), max(sn) - min(sn)
+        if best is None or w * h < best[0]:
+            best = (w * h, u, (min(su) + max(su)) / 2, (min(sn) + max(sn)) / 2, w, h)
+    area, u, mu, mn, w, h = best
+    c = (mu * u[0] - mn * u[1], mu * u[1] + mn * u[0])
+    axis = u if w >= h else (-u[1], u[0])
+    return {"axis": axis, "c": c, "long": max(w, h), "short": min(w, h), "fill": ring_area(ring) / area if area else 0}
+
+
+def attach_generic_walls(items, curated):
+    """Buildings without photo evidence get a muted colour from a weighted generic palette (stable per OSM id).
+
+    Landmarks keep the colour listed for them in landmarks.json (marked pending there while unchecked)."""
+    colors = curated["genericWalls"]["colors"]
+    total = sum(c["w"] for c in colors)
+    for b in items:
+        if b.get("facade") or b["tier"] == "landmark":
+            continue
+        t = jitter(b["id"] + ":wall", 0, total)
+        for i, c in enumerate(colors):
+            t -= c["w"]
+            if t <= 0 or i == len(colors) - 1:
+                b["wallGeneric"] = i
+                break
 
 
 def bbox(ring):

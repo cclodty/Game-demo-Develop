@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import * as THREE from 'three';
-import { prismGeometry, buildSenado } from '../viewer/model.js';
+import { prismGeometry, buildSenado, gableGeometry, massGeometry } from '../viewer/model.js';
 
 const data = JSON.parse(fs.readFileSync(new URL('../data/senado_massing.json', import.meta.url), 'utf8'));
 
@@ -82,9 +82,11 @@ test('facade buildings build finite arcades, bands and parapets', async () => {
     for (const geo of [g.walls, g.trim, g.screens].filter(Boolean)) {
       for (const v of geo.attributes.position.array) assert.ok(Number.isFinite(v), b.id);
     }
-    // mouldings and parapets stay between the ground and the building height
+    // mouldings and parapets stay between the ground and the building height (a church front may rise above it)
+    const fr = b.facade.frontispiece;
+    const top = fr ? b.roof.shape.eave + fr.h + 0.5 + fr.pediment + 1.7 : b.h;
     g.trim.computeBoundingBox();
-    assert.ok(g.trim.boundingBox.max.y <= b.h + 1e-3 && g.trim.boundingBox.min.y >= -1e-3, b.id);
+    assert.ok(g.trim.boundingBox.max.y <= top + 1e-3 && g.trim.boundingBox.min.y >= -1e-3, b.id);
   }
 });
 
@@ -115,6 +117,51 @@ test('sunken fountain: treads face up, step risers face the fountain, pool rim f
   const pool = check('Fountain_PoolWall');
   assert.equal(pool.down, 0);
   assert.ok(pool.up > 0 && pool.outward > 0);                 // outer face of the pool wall looks at the sunken path
+});
+
+test('gable roof: slopes face up, gable ends face out, ridge at eave + rise', () => {
+  const sq = [[0, 0], [12, 0], [12, 8], [0, 8]];                    // ridge along x through y = 4
+  const shape = { type: 'gable', eave: 6, rise: 2, axis: [1, 0], c: [6, 4] };
+  const g = gableGeometry(sq, shape);
+  const { bad } = checkOutward(g, sq);
+  assert.equal(bad, 0);
+  g.computeBoundingBox();
+  assert.ok(Math.abs(g.boundingBox.max.y - 8) < 1e-6 && Math.abs(g.boundingBox.min.y - 6) < 1e-6);
+  const [walls, roof] = g.groups;
+  assert.equal(walls.count / 3, 4);                                 // two triangular gable ends, two triangles each
+  assert.equal(roof.count / 3, 4);                                  // two rectangular slopes
+  // slopes cover the footprint once: plan area of the roof triangles equals the footprint area
+  const p = g.attributes.position, ix = g.index.array;
+  let area = 0;
+  for (let t = roof.start; t < roof.start + roof.count; t += 3) {
+    const [a, b, c] = [ix[t], ix[t + 1], ix[t + 2]].map((i) => [p.getX(i), -p.getZ(i)]);
+    area += ((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) / 2;
+  }
+  assert.ok(Math.abs(area - 96) < 1e-6, `roof plan area ${area}`);
+});
+
+test('pitched data buildings build closed, finite roofs', () => {
+  const pitched = data.buildings.concat(data.parts).filter((b) => b.roof && b.roof.shape);
+  assert.ok(pitched.length >= 2);
+  for (const b of pitched) {
+    const g = massGeometry(b, new THREE.Color(1, 1, 1), new THREE.Color(1, 0, 0));
+    for (const v of g.attributes.position.array) assert.ok(Number.isFinite(v), b.id);
+    g.computeBoundingBox();
+    const s = b.roof.shape;
+    assert.ok(g.boundingBox.max.y <= s.eave + s.rise + 1e-3, b.id);
+    assert.ok(g.attributes.color, b.id);
+  }
+});
+
+test('rooftop housings and tanks sit on their roofs', () => {
+  const { root } = buildSenado(data, { mode: 'export' });
+  const meshes = [];
+  root.traverse((o) => { if (o.isMesh && o.name.startsWith('Rooftops_')) meshes.push(o); });
+  assert.ok(meshes.length >= 2);
+  for (const m of meshes) {
+    m.geometry.computeBoundingBox();
+    assert.ok(m.geometry.boundingBox.min.y >= 5.9, m.name);         // flat roofs of 6 m and more only
+  }
 });
 
 // Recessed windows (v4) roughly add 40k triangles; 150k is still light for a game level of this size.

@@ -72,26 +72,28 @@ function placeSun() {
 const texLoader = new THREE.TextureLoader();
 const loadTex = (url) => new Promise((res, rej) => texLoader.load(url, res, undefined, rej));
 
-let world, pickTables = [], figureGroup, labelObjs = [], satMesh = null, highlight = null, floorTex = null;
+let world, pickTables = [], figureGroup, labelObjs = [], satMesh = null, highlight = null, gridTex = null;
 
 async function init() {
-  const [data, calcada, louvre, glazing, credits] = await Promise.all([
+  const [data, calcada, louvre, glazing, facade, credits] = await Promise.all([
     fetch('data/senado_massing.json').then((r) => { if (!r.ok) throw new Error(`data ${r.status}`); return r.json(); }),
     loadTex('viewer/assets/calcada_waves.png'),
     loadTex('viewer/assets/louvre.png'),
     loadTex('viewer/assets/glazing.png'),
+    loadTex('viewer/assets/facade_generic.png'),
     fetch('reference/photos/credits.json').then((r) => (r.ok ? r.json() : { photos: {} })).catch(() => ({ photos: {} })),
   ]);
   state.photos = credits.photos;
-  for (const t of [calcada, louvre, glazing]) {
+  for (const t of [calcada, louvre, glazing, facade]) {
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = renderer.capabilities.getMaxAnisotropy();
   }
   // window detail maps are stored bottom-up (glTF convention), see scripts/make_window_textures.py
-  louvre.flipY = glazing.flipY = false;
+  louvre.flipY = glazing.flipY = facade.flipY = false;
+  gridTex = facade;
   state.data = data;
-  const built = buildSenado(data, { mode: 'viewer', calcadaTexture: calcada, louvreTexture: louvre, glazingTexture: glazing });
+  const built = buildSenado(data, { mode: 'viewer', calcadaTexture: calcada, louvreTexture: louvre, glazingTexture: glazing, facadeTexture: facade });
   world = built.root;
   pickTables = built.pickTables;
   scene.add(world);
@@ -123,8 +125,6 @@ async function init() {
     scene.add(o);
   }
 
-  floorTex = makeFloorTexture();
-  setFloorLines(true);
   buildDims();
   buildLegend();
   buildMinimap();
@@ -309,11 +309,18 @@ function showPick(u) {
     : `<a href="https://www.openstreetmap.org/${kind}/${n}" target="_blank" rel="noopener" class="mono">${kind}/${n}</a>`;
   showFacade(b);
   const wcol = b && b.facade && b.facade.wallColor;
-  const lmCol = lm && lm.colorSrc !== 'pending' ? { hex: lm.facade, label: lm.colorSrc === 'photo' ? '照片取色' : '已知顏色' } : null;
-  const col = wcol || lmCol;
-  $('pickColor').innerHTML = col
-    ? `<span class="chipcol" style="background:${col.hex}"></span>${col.hex}${wcol ? ` <small>${wcol.photos.join(' ')}</small>` : ` <small>${col.label}</small>`}`
-    : '<small>未核對（中性色）</small>';
+  const lmCol = lm ? { hex: lm.facade, label: { photo: '照片取色', known: '已知顏色' }[lm.colorSrc] || '未核對，暫定色' } : null;
+  const gen = b && b.wallGeneric != null ? state.data.genericWalls[b.wallGeneric] : null;
+  const chip = (hex) => `<span class="chipcol" style="background:${hex}"></span>`;
+  $('pickColor').innerHTML = wcol ? `${chip(wcol.hex)}${wcol.hex} <small>${wcol.photos.join(' ')}</small>`
+    : lmCol ? `${chip(lmCol.hex)}${lmCol.hex} <small>${lmCol.label}</small>`
+      : gen ? `${chip(gen.hex)}<small>${gen.label.replace('通用：', '')} · 通用色（無照片證據）</small>`
+        : '<small>未核對（中性色）</small>';
+  const roof = b && b.roof && state.data.roofPalette[b.roof.cls];
+  const shape = b && b.roof && b.roof.shape;
+  $('pickRoof').innerHTML = roof
+    ? `${chip(roof.hex)}<small>${roof.label}${shape ? ` · 雙坡頂，屋脊高 ${(shape.eave + shape.rise).toFixed(1)} m` : ''}</small>`
+    : '<small>—</small>';
   if (b) {
     const g = new THREE.EdgesGeometry(prismGeometry(b.outer, b.holes, b.h + 0.05, b.minH), 20);
     highlight = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x1f4f93, depthTest: false, transparent: true, opacity: 0.95 }));
@@ -330,18 +337,19 @@ function bindToggle(id, fn) {
 bindToggle('tLabels', (on) => labelObjs.forEach((o) => { o.visible = on; o.element.hidden = !on; }));
 bindToggle('tFigs', (on) => { figureGroup.visible = on; figureGroup.traverse((o) => { if (o.isCSS2DObject) o.element.hidden = !on; }); });
 bindToggle('tContext', (on) => { const g = world.getObjectByName('Buildings_context'); if (g) g.visible = on; });
-bindToggle('tFloors', (on) => setFloorLines(on));
-function setFloorLines(on) {
+// generic window grid on the buildings without a facade spec (Facade_generic)
+bindToggle('tGrid', (on) => {
   const seen = new Set();
   world.traverse((o) => {
-    if (!o.isMesh || !Array.isArray(o.material)) return;
-    const m = o.material[0];
-    if (seen.has(m) || !m.name.startsWith('Facade')) return;
-    seen.add(m);
-    m.map = on ? floorTex : null;
-    m.needsUpdate = true;
+    if (!o.isMesh) return;
+    for (const m of [].concat(o.material)) {
+      if (seen.has(m) || !m.userData.windowGrid) continue;
+      seen.add(m);
+      m.map = on ? gridTex : null;
+      m.needsUpdate = true;
+    }
   });
-}
+});
 bindToggle('tSat', async (on) => {
   if (on && !satMesh) {
     const tex = await loadTex('reference/sat_local.jpg').catch(() => null);
@@ -443,20 +451,6 @@ $('photoClear').addEventListener('click', () => {
   $('photoCtl').hidden = true; $('photoFile').value = '';
 });
 
-// ---------------- floor lines ----------------
-function makeFloorTexture() {
-  const c = document.createElement('canvas');
-  c.width = 8; c.height = 64;
-  const g = c.getContext('2d');
-  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 8, 64);
-  g.fillStyle = '#8a8478'; g.fillRect(0, 0, 8, 3);
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(1 / 4, 1 / 3.2); // one line every 3.2 m of wall height
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
 // ---------------- dimensions ----------------
 let dimsBase = null;
 function buildDims() {
@@ -471,6 +465,9 @@ function buildLegend() {
   const row = (bg, text, extra = '') => `<div><span class="sw" style="background:${bg}${extra}"></span>${esc(text)}</div>`;
   const walls = Object.values(state.data.wallColors || {});
   $('legendWalls').innerHTML = walls.map((c) => row(c.hex, c.label, c.trim ? `;box-shadow:inset 0 -4px 0 ${c.trim}` : '')).join('');
+  // generic colours: swatch with the window grid drawn on top
+  $('legendGeneric').innerHTML = (state.data.genericWalls || []).map((c) => row(`linear-gradient(#3b3f42,#3b3f42) 50% 55% / 40% 45% no-repeat,${c.hex}`, c.label.replace('通用：', ''))).join('');
+  $('legendRoofs').innerHTML = Object.values(state.data.roofPalette || {}).map((c) => row(c.hex, c.label)).join('');
   const wins = Object.entries(state.data.windowColors || {}).map(([k, c]) => (k.startsWith('shutter')
     ? row(`repeating-linear-gradient(180deg,${c.hex} 0 2px,color-mix(in srgb,${c.hex} 70%,#000) 2px 3px)`, c.label)
     : row(c.frame ? `linear-gradient(90deg,${c.frame} 0 2px,${c.hex} 2px 6px,${c.frame} 6px 7px,${c.hex} 7px 11px,${c.frame} 11px)` : c.hex, c.label)));

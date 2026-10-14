@@ -15,8 +15,6 @@ export const PALETTE = {
   core: 0xe0dcd3,
   coreRoof: 0xcdc8be,
   context: 0xc4c7c9,
-  contextRoof: 0xb3b6b9,
-  frontage: 0xeee5d2,
   trim: 0xf6f3ec,      // white mouldings: seen on every colonial facade around the square
   awning: 0xf3f0e8,    // canvas hoods over the MGTO windows (photos #10, #87)
   glass: 0x2e3539,
@@ -36,11 +34,6 @@ export const CALCADA = {
 
 const toV3 = (x, y, h = 0) => new THREE.Vector3(x, h, -y);
 
-function shade(hex, k) {
-  const c = new THREE.Color(hex);
-  return c.multiplyScalar(k);
-}
-
 // Order a triangle counter-clockwise in plan so its normal points up (+Y) after the y -> -Z flip.
 function upward(verts, base, t) {
   const [a, b, c] = t.map((i) => verts[i]);
@@ -50,7 +43,8 @@ function upward(verts, base, t) {
 
 // ---------- prism (walls + flat roof) with UVs: walls u = perimeter m, v = height m ----------
 // opts.bottom adds a downward face at minH (arcade ceilings); opts.roof = false drops the top face;
-// opts.skip (Set of outer-ring edge indices) leaves those wall faces out so a wall with window openings can replace them.
+// opts.skip (Set of outer-ring edge indices) leaves those wall faces out so a wall with window openings can replace them;
+// opts.bays switches the wall UVs to the generic window grid (see bayUV).
 // Groups: 0 = walls (+ bottom), 1 = roof.
 export function prismGeometry(outer, holes, h, minH = 0, opts = {}) {
   const pos = [], nor = [], uv = [], idx = [];
@@ -64,10 +58,12 @@ export function prismGeometry(outer, holes, h, minH = 0, opts = {}) {
       // outward normal for CCW outer rings (holes are CW, so this flips correctly)
       const nx = (b[1] - a[1]) / len, ny = -(b[0] - a[0]) / len;
       const base = pos.length / 3;
+      const ub = opts.bays ? bayU(len) : 0;
       for (const [p, z, u] of [[a, minH, run], [b, minH, run + len], [b, h, run + len], [a, h, run]]) {
         pos.push(p[0], z, -p[1]);
         nor.push(nx, 0, -ny);
-        uv.push(u, z);
+        if (opts.bays) uv.push(u === run ? 0 : ub, bayV(z, h));
+        else uv.push(u, z);
       }
       idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
       run += len;
@@ -107,6 +103,13 @@ export function prismGeometry(outer, holes, h, minH = 0, opts = {}) {
   g.addGroup(wallCount, idx.length - wallCount, 1);
   return g;
 }
+
+// Generic window grid (facade_generic.png): one texture tile is one bay across by one storey high. Each wall gets a
+// whole number of bays (walls under 1.5 m show plain wall), and the storeys are counted down from 0.4 m under the
+// roof line so the top floor is never cut; whatever is left at the bottom reads as a taller ground floor.
+export const GRID = { bay: 3.0, storey: 3.2, top: 0.4 };
+const bayU = (len) => { const n = Math.round(len / GRID.bay); return n || 0.1 * len; };
+const bayV = (z, top) => (z - (top - GRID.top)) / GRID.storey;
 
 // ---------- flat polygon at a given height, optional calçada UVs ----------
 function flatGeometry(polys, y, uvFn) {
@@ -177,8 +180,8 @@ function stripGeometry(lines, y) {
 
 function mergePrisms(geoms) {
   // minimal merge keeping groups: all inputs share the same attribute layout and two groups (walls, roof)
-  const attrs = ['position', 'normal', 'uv'];
-  const out = { position: [], normal: [], uv: [] };
+  const attrs = Object.keys(geoms[0].attributes);
+  const out = Object.fromEntries(attrs.map((a) => [a, []]));
   const wallIdx = [], roofIdx = [], ranges = [];
   let vOff = 0;
   for (const g of geoms) {
@@ -192,9 +195,7 @@ function mergePrisms(geoms) {
     vOff += g.attributes.position.count;
   }
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(out.position, 3));
-  g.setAttribute('normal', new THREE.Float32BufferAttribute(out.normal, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(out.uv, 2));
+  for (const a of attrs) g.setAttribute(a, new THREE.Float32BufferAttribute(out[a], geoms[0].attributes[a].itemSize));
   g.setIndex(wallIdx.concat(roofIdx));
   g.addGroup(0, wallIdx.length, 0);
   g.addGroup(wallIdx.length, roofIdx.length, 1);
@@ -205,6 +206,228 @@ function mergePrisms(geoms) {
     triOwner.fill(i, (wallIdx.length + r.rStart) / 3, (wallIdx.length + r.rStart + r.rCount) / 3);
   });
   return { geometry: g, triOwner };
+}
+
+// Per-vertex colour by group (0 = walls, 1 = roof), so one material can carry many building colours.
+function paint(g, cols) {
+  const col = new Float32Array(g.attributes.position.count * 3);
+  const ix = g.index.array;
+  g.groups.forEach((grp, gi) => {
+    const c = cols[Math.min(gi, cols.length - 1)];
+    for (let i = grp.start; i < grp.start + grp.count; i++) col.set([c.r, c.g, c.b], ix[i] * 3);
+  });
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+}
+
+// Stable per-building randomness (FNV-1a seed, mulberry32 stream): the same OSM id always gets the same result.
+function hash01(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0) / 4294967296;
+}
+function rng(seed) {
+  let a = Math.floor(hash01(seed) * 4294967296);
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ---------- pitched roofs ----------
+// Gable: the ridge runs along shape.axis through shape.c; the roof falls linearly from eave + rise at the ridge to the
+// eave at halfWidth (default: the farthest footprint vertex on that side) and stays at the eave beyond it.
+export function gableProfile(outer, shape) {
+  const { eave, rise, axis, c } = shape;
+  const n = [axis[1], -axis[0]];                               // across the ridge
+  const dOf = (p) => (p[0] - c[0]) * n[0] + (p[1] - c[1]) * n[1];
+  const ds = outer.map(dOf);
+  const hwR = shape.halfWidth ?? Math.max(...ds), hwL = shape.halfWidth ?? -Math.min(...ds);
+  const zAt = (d) => eave + rise * Math.max(0, d >= 0 ? 1 - d / hwR : 1 + d / hwL);
+  return { n, dOf, zAt, cuts: [-hwL, 0, hwR], slope: [0, rise / hwL, -rise / hwR, 0] };
+}
+
+// Keep the part of a polygon where sign * (d - k) >= 0 (Sutherland–Hodgman against one line; keeps the winding).
+function clipStrip(poly, dOf, k, sign) {
+  const out = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    const fa = sign * (dOf(a) - k), fb = sign * (dOf(b) - k);
+    if (fa >= 0) out.push(a);
+    if ((fa > 0 && fb < 0) || (fa < 0 && fb > 0)) {
+      const t = fa / (fa - fb);
+      out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+    }
+  }
+  return out.filter((p, i) => Math.hypot(p[0] - out[(i + 1) % out.length][0], p[1] - out[(i + 1) % out.length][1]) > 1e-6);
+}
+
+// The footprint is cut into strips at the ridge and eave lines, so every strip is one plane. Footprint edges whose
+// roof line rises above the eave get a vertical gable-end wall. Groups: 0 = gable ends, 1 = roof slopes.
+export function gableGeometry(outer, shape) {
+  const P = gableProfile(outer, shape);
+  const { dOf, zAt, cuts } = P;
+  const eave = shape.eave;
+  const pos = [], nor = [], uv = [], wallIdx = [], roofIdx = [];
+  const bounds = [-Infinity, ...cuts, Infinity];
+  for (let k = 0; k < bounds.length - 1; k++) {
+    let poly = outer;
+    if (bounds[k] > -Infinity) poly = clipStrip(poly, dOf, bounds[k], 1);
+    if (bounds[k + 1] < Infinity) poly = clipStrip(poly, dOf, bounds[k + 1], -1);
+    if (poly.length < 3) continue;
+    // roof plane of this strip
+    const g = P.slope[k];
+    const nl = Math.hypot(g, 1);
+    const [nx, nyUp, nz] = [(-g * P.n[0]) / nl, 1 / nl, (g * P.n[1]) / nl];
+    const contour = poly.map((p) => new THREE.Vector2(p[0], p[1]));
+    const tris = THREE.ShapeUtils.triangulateShape(contour, []);
+    let base = pos.length / 3;
+    for (const p of poly) {
+      pos.push(p[0], zAt(dOf(p)), -p[1]);
+      nor.push(nx, nyUp, nz);
+      uv.push(p[0], p[1]);
+    }
+    for (const t of tris) roofIdx.push(...upward(contour, base, t));
+    // gable ends along the footprint boundary (edges lying on a cut line are inside the roof)
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length];
+      const da = dOf(a), db = dOf(b);
+      if (cuts.some((c) => Math.abs(da - c) < 1e-6 && Math.abs(db - c) < 1e-6)) continue;
+      const za = zAt(da), zb = zAt(db);
+      if (Math.max(za, zb) - eave < 1e-3) continue;
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (len < 1e-4) continue;
+      const tx = (b[0] - a[0]) / len, ty = (b[1] - a[1]) / len;
+      base = pos.length / 3;
+      for (const [p, z] of [[a, eave], [b, eave], [b, zb], [a, za]]) {
+        pos.push(p[0], z, -p[1]);
+        nor.push(ty, 0, tx);                                   // outward (ty, -tx) in data axes, Z flipped
+        uv.push((p[0] * tx + p[1] * ty) / GRID.bay, bayV(z, eave));
+      }
+      if (zb - eave > 1e-3) wallIdx.push(base, base + 1, base + 2);
+      if (za - eave > 1e-3) wallIdx.push(base, base + 2, base + 3);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(wallIdx.concat(roofIdx));
+  geo.addGroup(0, wallIdx.length, 0);
+  geo.addGroup(wallIdx.length, roofIdx.length, 1);
+  return geo;
+}
+
+// Walls and roof of a building without a facade spec: flat or gable roof, generic window grid UVs, vertex colours.
+export function massGeometry(b, wallCol, roofCol) {
+  const shape = b.roof && b.roof.shape;
+  const body = prismGeometry(b.outer, b.holes, shape ? shape.eave : b.h, b.minH, { roof: !shape, bays: true });
+  const g = shape ? mergePrisms([body, gableGeometry(b.outer, shape)]).geometry : body;
+  return paint(g, [wallCol, roofCol]);
+}
+
+// ---------- rooftop clutter: stair/lift housings and water tanks on flat roofs ----------
+// Not surveyed one by one: sizes follow the satellite image (most flat roofs carry a stair housing and one to three
+// tanks); positions are random but stable per OSM id and keep clear of the roof edge.
+const TANK_COLORS = [[0xb8bec3, 3], [0x4a78b0, 2], [0xe8e8e4, 2]];   // stainless, blue plastic, white plastic
+const ringArea = (r) => r.reduce((s, p, i) => { const q = r[(i + 1) % r.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0) / 2;
+function pointIn(p, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function edgeClearance(p, rings) {
+  let d = Infinity;
+  for (const r of rings) {
+    for (let i = 0; i < r.length; i++) {
+      const a = r[i], b = r[(i + 1) % r.length];
+      const dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy || 1e-9;
+      const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2));
+      d = Math.min(d, Math.hypot(a[0] + dx * t - p[0], a[1] + dy * t - p[1]));
+    }
+  }
+  return d;
+}
+
+const newColorSink = () => ({ pos: [], nor: [], uv: [], col: [], idx: [] });
+function sinkQuad(s, a, b, z0, z1, c) {
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const nx = (b[1] - a[1]) / len, ny = -(b[0] - a[0]) / len;
+  const base = s.pos.length / 3;
+  for (const [p, z] of [[a, z0], [b, z0], [b, z1], [a, z1]]) {
+    s.pos.push(p[0], z, -p[1]); s.nor.push(nx, 0, -ny); s.uv.push(0, 0); s.col.push(c.r, c.g, c.b);
+  }
+  s.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+}
+function sinkPrism(s, ring, z0, z1, side, top) {
+  for (let i = 0; i < ring.length; i++) sinkQuad(s, ring[i], ring[(i + 1) % ring.length], z0, z1, side);
+  const base = s.pos.length / 3;
+  const v = ring.map((p) => new THREE.Vector2(p[0], p[1]));
+  for (const p of ring) { s.pos.push(p[0], z1, -p[1]); s.nor.push(0, 1, 0); s.uv.push(0, 0); s.col.push(top.r, top.g, top.b); }
+  for (let i = 1; i < ring.length - 1; i++) s.idx.push(...upward(v, base, [0, i, i + 1]));   // convex: fan
+}
+
+function rooftopClutter(b, wallCol, roofCol, sink, tanks) {
+  if ((b.roof && b.roof.shape) || b.h < 6) return;
+  const rings = [b.outer, ...b.holes];
+  const area = ringArea(b.outer) + b.holes.reduce((s, r) => s + ringArea(r), 0);
+  if (area < (tanks ? 50 : 80)) return;
+  const R = rng(`${b.id}:roof`);
+  let lx = 0, ly = 0, best = 0;                                // align with the longest wall
+  for (let i = 0; i < b.outer.length; i++) {
+    const a = b.outer[i], q = b.outer[(i + 1) % b.outer.length];
+    const L = Math.hypot(q[0] - a[0], q[1] - a[1]);
+    if (L > best) { best = L; lx = (q[0] - a[0]) / L; ly = (q[1] - a[1]) / L; }
+  }
+  const xs = b.outer.map((p) => p[0]), ys = b.outer.map((p) => p[1]);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const placed = [];
+  const spot = (clear) => {
+    for (let k = 0; k < 24; k++) {
+      const p = [x0 + R() * (x1 - x0), y0 + R() * (y1 - y0)];
+      if (!pointIn(p, b.outer) || b.holes.some((h) => pointIn(p, h))) continue;
+      if (edgeClearance(p, rings) < clear + 0.3) continue;
+      if (placed.some(([q, r]) => Math.hypot(p[0] - q[0], p[1] - q[1]) < clear + r + 0.3)) continue;
+      return p;
+    }
+    return null;
+  };
+  // stair / lift housing, 2.6 x 3.6 m, 2.8 m high, in the wall colour
+  const c = spot(2.2);
+  if (c) {
+    const hw = 1.3, hd = 1.8, vx = -ly, vy = lx;
+    const ring = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]].map(([u, v]) => [c[0] + lx * u + vx * v, c[1] + ly * u + vy * v]);
+    sinkPrism(sink, ring, b.h, b.h + 2.8, wallCol.clone().multiplyScalar(0.93), roofCol);
+    placed.push([c, 2.2]);
+  }
+  if (!tanks || area < 80) return;
+  const total = TANK_COLORS.reduce((s, [, w]) => s + w, 0);
+  const n = 1 + Math.floor(R() * 3);
+  for (let k = 0; k < n; k++) {
+    const p = spot(0.7);
+    if (!p) break;
+    let t = R() * total, hex = TANK_COLORS[0][0];
+    for (const [h, w] of TANK_COLORS) { t -= w; if (t <= 0) { hex = h; break; } }
+    const col = new THREE.Color(hex);
+    const ring = Array.from({ length: 8 }, (_, i) => [p[0] + 0.7 * Math.cos((i * Math.PI) / 4), p[1] + 0.7 * Math.sin((i * Math.PI) / 4)]);
+    sinkPrism(sink, ring, b.h, b.h + 1.4, col, col);
+    placed.push([p, 0.7]);
+  }
+}
+
+function colorSinkGeometry(s) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(s.pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(s.nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(s.uv, 2));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(s.col, 3));
+  g.setIndex(s.idx);
+  return g;
 }
 
 // ---------- facade periphery: arcades (騎樓), entablature, string courses, pilasters, cornice, parapet ----------
@@ -491,7 +714,8 @@ export function facadeGeometries(b) {
   const F = b.facade;
   const ring = b.outer;
   const parapetH = F.parapet ? F.parapet.h : 0;
-  const roofH = b.h - parapetH;
+  const pitched = b.roof && b.roof.shape;                      // gable: the walls stop at the eave
+  const roofH = pitched ? pitched.eave : b.h - parapetH;
   const arcade = F.arcade && F.arcadeEdges.length ? F.arcade : null;
   const aH = arcade ? arcade.height : 0;
   const arcadeEdges = arcade ? F.arcadeEdges.filter((i) => edgeFrame(ring, i).L >= 2.5) : [];
@@ -530,12 +754,13 @@ export function facadeGeometries(b) {
       const recessed = offsetEdges(ring, depth);
       out.walls.push(prismGeometry(recessed, b.holes, aH, 0, { roof: false }));
     }
-    const upper = prismGeometry(ring, b.holes, roofH, aH, { bottom: true, skip });
+    const upper = prismGeometry(ring, b.holes, roofH, aH, { bottom: true, skip, roof: !pitched });
     out.walls.push(upper);
     for (const i of arcadeEdges) out.screens.push(arcadeScreenGeometry(edgeFrame(ring, i), arcade));
   } else {
-    out.walls.push(prismGeometry(ring, b.holes, roofH, 0, { skip }));
+    out.walls.push(prismGeometry(ring, b.holes, roofH, 0, { skip, roof: !pitched }));
   }
+  if (pitched) out.walls.push(gableGeometry(ring, pitched));
   for (const { f, ws } of windowed.values()) {
     out.walls.push(holedWall(f, arcadeEdges.length ? aH : 0, roofH, ws));
     for (const w of ws) {
@@ -560,6 +785,21 @@ export function facadeGeometries(b) {
       for (const p of piers) out.trim.push(wallBox(f, p - 0.28, p + 0.28, z0, corniceZ, 0.1, 0.05));
     }
   }
+  if (pitched) {
+    // white raking cornice along the gable ends of the facade walls
+    const P = gableProfile(ring, pitched);
+    for (const i of F.edges) {
+      const f = edgeFrame(ring, i);
+      const da = P.dOf(f.a), db = P.dOf(f.b);
+      const ss = [0, f.L, ...P.cuts.filter((c) => (c - da) * (c - db) < 0).map((c) => ((c - da) / (db - da)) * f.L)].sort((x, y) => x - y);
+      const line = ss.map((sv) => [sv, P.zAt(da + ((db - da) * sv) / f.L)]);
+      for (let k = 0; k < line.length - 1; k++) {
+        const [[s0, z0], [s1, z1]] = [line[k], line[k + 1]];
+        if (Math.max(z0, z1) - roofH > 1e-3) out.trim.push(rakeGeometry(f, s0, z0, s1, z1, 0.4, 0.22));
+      }
+    }
+  }
+  if (F.frontispiece) frontispiece(F, edgeFrame(ring, F.edges[0]), roofH, out);
   if (F.parapet) {
     const inner = offsetEdges(ring, new Map(ring.map((_, i) => [i, F.parapet.t])));
     out.trim.push(prismGeometry(ring, [inner.slice().reverse()], b.h, roofH));
@@ -578,6 +818,32 @@ export function facadeGeometries(b) {
     railings: mergeFlat(out.railings),
     windowCount: [...windowed.values()].reduce((n, e) => n + e.ws.length, 0),
   };
+}
+
+// Sloped moulding under a roof line from (s0, z0) to (s1, z1) on wall f: `t` high, standing `proj` proud of the wall.
+function rakeGeometry(f, s0, z0, s1, z1, t, proj) {
+  const V = (x, z) => new THREE.Vector2(x, z);
+  const shp = new THREE.Shape([V(s0, z0 - t), V(s1, z1 - t), V(s1, z1), V(s0, z0)]);
+  return new THREE.ExtrudeGeometry(shp, { depth: proj, bevelEnabled: false }).applyMatrix4(edgeMatrix(f));
+}
+
+// Church front above the main cornice (玫瑰堂, photo #23): an attic storey narrower than the facade with an oval
+// medallion, its own cornice, a triangular pediment and a cross. Wall parts go with the arcade screens (wall colour).
+function frontispiece(F, f, roofH, out) {
+  const fr = F.frontispiece;
+  const c = f.L / 2, s0 = c - fr.w / 2, s1 = c + fr.w / 2;
+  const z1 = roofH + fr.h, zp = z1 + 0.5, apex = zp + fr.pediment;
+  const V = (x, z) => new THREE.Vector2(x, z);
+  out.screens.push(wallBox(f, s0, s1, roofH - 0.3, z1, 0.02, fr.t));
+  for (const s of [s0 + 0.3, s1 - 0.3]) out.trim.push(wallBox(f, s - 0.3, s + 0.3, roofH, z1, 0.12, 0.05));
+  out.trim.push(wallBox(f, s0 - 0.3, s1 + 0.3, z1, zp, 0.3, fr.t));
+  const tri = new THREE.Shape([V(s0, zp), V(s1, zp), V(c, apex)]);
+  out.screens.push(new THREE.ExtrudeGeometry(tri, { depth: fr.t, bevelEnabled: false }).applyMatrix4(edgeMatrix(f, -fr.t)));
+  out.trim.push(rakeGeometry(f, s0 - 0.3, zp + 0.35, c, apex + 0.35, 0.4, 0.2), rakeGeometry(f, c, apex + 0.35, s1 + 0.3, zp + 0.35, 0.4, 0.2));
+  const oval = new THREE.Shape().absellipse(c, roofH + fr.h / 2, 1.25, 1.7, 0, Math.PI * 2);
+  oval.holes.push(new THREE.Path().absellipse(c, roofH + fr.h / 2, 0.95, 1.4, 0, Math.PI * 2, true));
+  out.trim.push(new THREE.ExtrudeGeometry(oval, { depth: 0.1, bevelEnabled: false, curveSegments: 20 }).applyMatrix4(edgeMatrix(f)));
+  out.trim.push(wallBox(f, c - 0.09, c + 0.09, apex + 0.2, apex + 1.6, 0.09, 0.09), wallBox(f, c - 0.45, c + 0.45, apex + 1.05, apex + 1.23, 0.09, 0.09));
 }
 
 // Merge prisms but keep the wall/roof split as two material groups.
@@ -822,18 +1088,20 @@ export function buildSenado(data, opts = {}) {
   root.add(sq);
 
   // buildings
+  // Walls: photo-sampled colour (facade spec), the landmark's listed colour, else the weighted generic palette.
+  // Roofs: the satellite roof class. Generic colours vary by a few percent per building so neighbours separate.
   const lmByKey = Object.fromEntries(data.landmarks.map((l) => [l.key, l]));
-  const tierColor = (b) => {
-    // photo-sampled wall colour first; roofs stay a neutral warm grey (most are tiled, not painted)
-    if (b.facade && b.facade.wallColor) return [new THREE.Color(b.facade.wallColor.hex).getHex(), PALETTE.coreRoof];
-    if (b.tier === 'landmark' && lmByKey[b.key].colorSrc !== 'pending') {
-      const lm = lmByKey[b.key];
-      const c = new THREE.Color(lm.facade).getHex();
-      return [c, lm.colorSrc === 'photo' ? PALETTE.coreRoof : shade(c, 0.86).getHex()];
-    }
-    if (b.tier === 'landmark' || b.tier === 'frontage' || b.tier === 'avenue') return [PALETTE.frontage, shade(PALETTE.frontage, 0.86).getHex()];
-    if (b.tier === 'core' || b.tier === 'part') return [PALETTE.core, PALETTE.coreRoof];
-    return [PALETTE.context, PALETTE.contextRoof];
+  const generic = (data.genericWalls || []).map((c) => new THREE.Color(c.hex));
+  const roofPal = Object.fromEntries(Object.entries(data.roofPalette || {}).map(([k, v]) => [k, new THREE.Color(v.hex)]));
+  const wallColor = (b) => {
+    if (b.facade && b.facade.wallColor) return new THREE.Color(b.facade.wallColor.hex);
+    if (b.tier === 'landmark') return new THREE.Color(lmByKey[b.key].facade);
+    if (b.wallGeneric != null && generic[b.wallGeneric]) return generic[b.wallGeneric].clone().multiplyScalar(0.95 + 0.08 * hash01(`${b.id}:tone`));
+    return new THREE.Color(b.tier === 'context' ? PALETTE.context : PALETTE.core);
+  };
+  const roofColor = (b) => {
+    const c = roofPal[b.roof && b.roof.cls] || new THREE.Color(PALETTE.coreRoof);
+    return b.facade ? c.clone() : c.clone().multiplyScalar(0.94 + 0.12 * hash01(`${b.id}:roof`));
   };
   const info = (b) => ({
     kind: 'building', id: b.id, name: b.name, key: b.key, tier: b.tier,
@@ -847,6 +1115,13 @@ export function buildSenado(data, opts = {}) {
   const tiers = ['landmark', 'frontage', 'avenue', 'core', 'part', 'context'];
   const pickTables = [];
   const trimMat = named(std(PALETTE.trim), 'Trim');
+  // vertex-coloured materials shared by all buildings without a facade spec; Facade_generic carries the window grid
+  const vcol = (n, extra = {}) => named(std(0xffffff, { vertexColors: true, ...extra }), n);
+  const gridMat = vcol('Facade_generic', { map: opts.facadeTexture || null });
+  gridMat.userData.windowGrid = true;
+  const plainMat = vcol('Facade_plain');
+  const roofMat = vcol('Roof');
+  const rooftopMat = vcol('Rooftop');
   const awningMat = named(std(PALETTE.awning, { side: THREE.DoubleSide }), 'Awning');
   const paneMats = new Map();
   const paneMat = (key) => {
@@ -871,17 +1146,17 @@ export function buildSenado(data, opts = {}) {
     buildingsGroup.add(tg);
     // buildings with a photo-based facade spec get arcades, bands, cornice and parapet
     for (const b of tierList.filter((q) => q.facade)) {
-      const [wc, rc] = tierColor(b);
       const label = tier === 'landmark' ? b.key : tier;
       const wcol = b.facade.wallColor;
-      const wallMat = colorMat(wc, `Wall_${wcol ? wcol.key : label}`);
+      const wallMat = colorMat(wallColor(b).getHex(), `Wall_${wcol ? wcol.key : label}`);
+      const roofCls = (b.roof && b.roof.cls) || 'grey';
       const trim = wcol && wcol.trim ? colorMat(new THREE.Color(wcol.trim).getHex(), `Trim_${wcol.key}`) : trimMat;
       const g = facadeGeometries(b);
       const grp = new THREE.Group();
       grp.name = `B_${b.id}${b.key ? '_' + b.key : ''}`;
       grp.userData = { ...info(b), facadeStyle: b.facade.style, evidence: b.facade.evidence };
       const parts = [
-        ['body', g.walls, [wallMat, colorMat(rc, `Roof_${label}`)]],
+        ['body', g.walls, [wallMat, colorMat(roofColor(b).getHex(), `Roof_${roofCls}`)]],
         ['arcade', g.screens, wallMat],
         ['trim', g.trim, trim],
         ['windows', g.panes && g.panes.geometry, g.panes && g.panes.keys.map(paneMat)],
@@ -900,28 +1175,35 @@ export function buildSenado(data, opts = {}) {
     }
     const list = tierList.filter((q) => !q.facade);
     if (!list.length) continue;
+    const cols = new Map(list.map((b) => [b, [wallColor(b), roofColor(b)]]));
     const individual = mode === 'export' ? tier !== 'context' : tier === 'landmark' || tier === 'frontage' || tier === 'avenue';
     if (individual) {
       for (const b of list) {
-        const [wc, rc] = tierColor(b);
-        const mesh = new THREE.Mesh(prismGeometry(b.outer, b.holes, b.h, b.minH), [
-          colorMat(wc, tier === 'landmark' ? `Facade_${b.key}` : `Facade_${tier}`),
-          colorMat(rc, tier === 'landmark' ? `Roof_${b.key}` : `Roof_${tier}`),
-        ]);
+        const plain = tier === 'landmark' && lmByKey[b.key].windowGrid === false;   // churches: no window grid
+        const mesh = new THREE.Mesh(massGeometry(b, ...cols.get(b)), [plain ? plainMat : gridMat, roofMat]);
         mesh.name = `B_${b.id}${b.key ? '_' + b.key : ''}`;
         mesh.userData = info(b);
         mesh.castShadow = mesh.receiveShadow = true;
         tg.add(mesh);
       }
     } else {
-      const [wc, rc] = tierColor(list[0]);
-      const { geometry, triOwner } = mergePrisms(list.map((b) => prismGeometry(b.outer, b.holes, b.h, b.minH)));
-      const mesh = new THREE.Mesh(geometry, [colorMat(wc, `Facade_${tier}`), colorMat(rc, `Roof_${tier}`)]);
+      const { geometry, triOwner } = mergePrisms(list.map((b) => massGeometry(b, ...cols.get(b))));
+      const mesh = new THREE.Mesh(geometry, [gridMat, roofMat]);
       mesh.name = `Buildings_${tier}_merged`;
       mesh.castShadow = mesh.receiveShadow = true;
       mesh.userData = { kind: 'merged', tier };
       pickTables.push({ mesh, triOwner, list });
       tg.add(mesh);
+    }
+    // rooftop housings and tanks, one mesh per tier (the far context gets housings only)
+    const sink = newColorSink();
+    for (const b of list) rooftopClutter(b, ...cols.get(b), sink, tier !== 'context');
+    if (sink.idx.length) {
+      const m = new THREE.Mesh(colorSinkGeometry(sink), rooftopMat);
+      m.name = `Rooftops_${tier}`;
+      m.castShadow = m.receiveShadow = true;
+      m.userData = { kind: 'rooftops', tier };
+      tg.add(m);
     }
   }
 

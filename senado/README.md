@@ -1,4 +1,4 @@
-# 議事亭前地 Largo do Senado：量體研究 v4
+# 議事亭前地 Largo do Senado：量體研究 v5
 
 子彈時間射擊遊戲地圖：按實景比例建立的議事亭前地模型。
 
@@ -6,6 +6,7 @@
 - **v2**：按實景照片加入騎樓、樓層腰線、壁柱、簷口和女兒牆。
 - **v3**：噴水池的下沉台階；外牆顏色從照片取得；燈光按照片調整。
 - **v4**：凹入牆身的窗戶（百葉、玻璃、窗框、欄杆、帆布篷）；再按照片為 12 棟樓宇上色。
+- **v5**：屋頂按衛星圖分類上色；雙坡頂、天台樓梯屋和水缸；玫瑰堂立面（山花牆、門窗）；其餘樓宇用通用色和窗格貼圖。
 
 - **單位**：1 單位 = 1 米。glTF 為 Y 軸向上。
 - **原點**：噴水池中心（OSM node 5692359322，22.1936819°N, 113.5398859°E）。
@@ -18,15 +19,17 @@
 | --- | --- |
 | `index.html` + `viewer/` | 瀏覽器檢視器，包括鏡頭預設、步行模式、比例人、環境比例滑桿和照片疊圖 |
 | `viewer/model.js` | 由資料建模的程式，檢視器和 GLB 匯出共用，所以看到的就是匯出的 |
-| `export/senado_massing.glb` | 遊戲用模型，9.6 MB，約 12.9 萬個三角面，64 種材質，已通過 glTF Validator（0 錯誤、0 警告） |
+| `export/senado_massing.glb` | 遊戲用模型，11.9 MB，約 14.5 萬個三角面，49 種材質，已通過 glTF Validator（0 錯誤、0 警告） |
 | `data/osm_raw.json` | Overpass 原始擷取（© OpenStreetMap contributors，ODbL） |
-| `data/landmarks.json` | 人手整理：地標名稱、已知外牆顏色、高度修正、立面樣式（`facadeStyles`）、每棟樓的立面規格與照片證據（`facades`）、過街樓（`bridges`）、照片取色（`wallColors`、`windowColors`） |
+| `data/landmarks.json` | 人手整理：地標名稱、已知外牆顏色、高度修正、立面樣式（`facadeStyles`）、每棟樓的立面規格與照片證據（`facades`）、過街樓（`bridges`）、照片取色（`wallColors`、`windowColors`）、通用色（`genericWalls`）、屋頂顏色（`roofPalette`）和坡頂（`roofShapes`） |
+| `data/roof_classes.json` | 每棟樓的屋頂類別（`classify_roofs.py` 由衛星圖分類，只存類別名稱） |
 | `data/senado_massing.json` | 處理後的本地米制資料 |
 | `viewer/assets/calcada_waves.png` | 可平鋪的葡式碎石波浪貼圖，每格 6.0 × 2.25 米 |
 | `viewer/assets/louvre.png`、`glazing.png` | 窗扇的灰階細節貼圖（百葉、玻璃窗格），每格一扇 × 1 米，乘上窗戶材質的顏色 |
+| `viewer/assets/facade_generic.png` | 通用窗格貼圖，每格一個開間（3.0 米）× 一層（3.2 米），乘上牆身的頂點顏色 |
 | `reference/*.jpg` | Esri 衛星參考圖，已對位。不入 git，只作對位參考 |
 | `reference/photos/` | 36 張 Wikimedia Commons 照片（640 px），用作立面證據；作者與授權見 `credits.json` |
-| `tests/` | `npm test`：外牆法線向外、輪廓逆時針、騎樓內縮面積、立面幾何無 NaN、噴水池台階朝向、全圖三角面少於 15 萬 |
+| `tests/` | `npm test`：外牆法線向外、輪廓逆時針、騎樓內縮面積、立面幾何無 NaN、噴水池台階朝向、雙坡頂朝向和面積、天台物件在屋頂上、全圖三角面少於 15 萬 |
 
 ## GLB 結構
 
@@ -42,7 +45,8 @@ LargoDoSenado
 │  ├─ Buildings_avenue     新馬路臨街
 │  ├─ Buildings_core       噴水池 170 米內
 │  ├─ Buildings_part
-│  └─ Buildings_context    外圍天際線，合併成一個網格
+│  ├─ Buildings_context    外圍天際線，合併成一個網格
+│  └─ （每層）Rooftops_<tier>  該層所有天台樓梯屋和水缸，合併成一個網格
 ├─ Fountain                下沉台階、環形通道、花崗岩外池、深色內池、渾天儀（地面和廣場在此開了圓洞）
 └─ Trees
 ```
@@ -53,7 +57,9 @@ LargoDoSenado
 
 牆身的 UV 以米為單位（u = 沿牆周長，v = 高度），之後在引擎內可以直接套用按米平鋪的材質。
 
-材質名稱：牆身 `Wall_<wallColors key>`（例如 `Wall_mgto_yellow`）、線腳 `Trim` 或 `Trim_<key>`、窗扇 `Window_<windowColors key>`。`Window_shutter_*` 帶百葉貼圖，`Window_glass` 和 `Window_glaze_*` 帶玻璃窗格貼圖，貼圖是灰階，與 `baseColorFactor` 相乘。窗扇的 UV：u = 窗扇數（每個窗兩扇），v = 由窗洞底部起的米數。
+材質名稱：牆身 `Wall_<wallColors key>`（例如 `Wall_mgto_yellow`）、屋頂 `Roof_<屋頂類別>`、線腳 `Trim` 或 `Trim_<key>`、窗扇 `Window_<windowColors key>`。`Window_shutter_*` 帶百葉貼圖，`Window_glass` 和 `Window_glaze_*` 帶玻璃窗格貼圖，貼圖是灰階，與 `baseColorFactor` 相乘。窗扇的 UV：u = 窗扇數（每個窗兩扇），v = 由窗洞底部起的米數。
+
+沒有立面規格的樓宇共用三種材質，顏色存在頂點顏色（`COLOR_0`）：`Facade_generic`（牆身，帶 `facade_generic` 窗格貼圖）、`Facade_plain`（大堂，不加窗格）和 `Roof`（屋頂）；天台物件用 `Rooftop`。這些牆身的 UV 不是米：u = 開間數（每面牆取整數個 3 米開間，短於 1.5 米的牆只顯示牆身），v = 層數（每 3.2 米一層，由屋頂下 0.4 米往下數）。
 
 ## 比例
 
@@ -78,8 +84,10 @@ npm install
 bash senado/scripts/fetch_osm.sh            # 重新擷取 OSM（可略過，repo 已附）
 python3 senado/scripts/build_data.py        # osm_raw.json → senado_massing.json
 python3 senado/scripts/make_calcada.py      # 地磚貼圖
-python3 senado/scripts/make_window_textures.py  # 百葉、玻璃窗格細節貼圖
+python3 senado/scripts/make_window_textures.py  # 百葉、玻璃窗格、通用窗格貼圖
 python3 senado/scripts/fetch_imagery.py     # 衛星參考圖（不入 git）
+python3 senado/scripts/classify_roofs.py    # 屋頂類別 → roof_classes.json（需要衛星參考圖；repo 已附結果）
+python3 senado/scripts/build_data.py        # 再跑一次，把屋頂類別寫入 senado_massing.json
 node senado/scripts/export_glb.mjs          # → export/senado_massing.glb
 npm run senado:serve                        # 檢視器：http://localhost:8000
 ```
@@ -124,7 +132,7 @@ npm run senado:serve                        # 檢視器：http://localhost:8000
 - **明度另行設定**：各照片曝光不同（晴天過曝、陰天偏暗），所以明度按材質統一設定。
 - **資料**：每種顏色連同取樣照片、範圍和量得的 HSV，記錄在 `landmarks.json` 的 `wallColors`。
 - **已上色**：西面黃色一排、信德堡、梁族大廈、中華商業大廈（米白）、便民藥房（赭黃）、粉紅角樓、新中央酒店（薄荷綠）、市政署及仁慈堂（白）、郵政局（米色石材）、玫瑰堂（黃）。v4 再加 12 棟，見下文。
-- **未有照片證據**：其餘臨街樓宇仍用中性色；屋頂一律用中性暖灰。
+- **未有照片證據**：其餘樓宇在 v5 改用通用色，見下文。
 - **燈光**：太陽改為東南方（照片 #87 的上午光線），並加強地面反射光。AgX 和 ACES 色調映射都試過，會把淡色牆洗白，所以輸出用 sRGB、不做色調映射。遊戲引擎內需要按引擎自身的燈光重新調整。
 
 ### 窗戶（v4）
@@ -134,7 +142,7 @@ npm run senado:serve                        # 檢視器：http://localhost:8000
 - **規格**：寫在 `facadeStyles.<樣式>.windows`，每棟可以在 `facades[].windows` 逐項覆寫：
   `shape`（`round` 圓拱、`segment` 弧頂、`rect` 長方）、`w`、`h`（每層窗高，最後一個重複）、`sill`（距樓層腰線）、`depth`（退入深度）、`fill`（`windowColors` 的鍵）、`panel`（窗下的欄板）、`surround`、`keystone`、`hood`（`flat` 或 `pediment`）、`balustrade`（`railing: true` 為鐵欄）、`awning`、`onStreet`（向街一面的覆寫）、`ground`。
 - **窗扇**：百葉只蓋住長方部分，圓拱頂是玻璃扇形窗。顏色從照片框選取樣，見 `windowColors`：啡色、栗紅、墨綠、灰色百葉，深色花欄板，藍綠窗框玻璃（信德堡），深色木格窗（北端黃樓）。玻璃未取樣，用中性深灰。
-- **數量**：共 441 個窗。全圖約 12.9 萬個三角面，其中線腳和窗框約 4.1 萬。
+- **數量**：v4 共 441 個窗（v5 玫瑰堂再加 6 個，共 447 個）。v4 全圖約 12.9 萬個三角面，其中線腳和窗框約 4.1 萬。
 
 ### 外牆顏色（v4 新增）
 
@@ -145,10 +153,27 @@ npm run senado:serve                        # 檢視器：http://localhost:8000
 - **信德堡向街一面**改用樣式本身的栗紅百葉（照片 #6），向廣場一面仍是藍綠窗框玻璃。
 - 照片 #174 的 GPS 位置在 150 米外的花王堂區，與畫面不符，所以 `credits.json` 內不記錄其拍攝位置。
 
+### 屋頂（v5）
+
+- **分類**：`classify_roofs.py` 把每個輪廓畫到已對位的衛星圖上，向內縮約 1 米（避開牆頂和鄰樓），逐像素按 HSV 分成 `light` 淺色、`grey` 灰、`dark` 深灰、`brown` 啡灰、`beige` 米黃、`red` 紅瓦、`green` 綠、`blue` 藍，取多數；陰影像素不計，除非佔七成以上（當作 `dark`）。結果是 `data/roof_classes.json`，只有類別名稱，衛星影像本身不入 git，也不進入模型。1,930 棟有分類，其餘（在衛星圖範圍外或太小）當作 `grey`。
+- **顏色**：`roofPalette` 每類一色。`sat` 是該類所有屋頂像素的中位色；模型保留其色相和九成飽和度，明度提到晴天屋頂的水平，因為中位色包括陰影和霧。紅瓦保留全部飽和度。
+- **雙坡頂**（`roofShapes`）：屋脊沿最小外接長方形的長軸，或用 `front` 指定由某面牆的中點垂直向後。玫瑰堂：簷口 13.4 米、屋脊 17.9 米（即 OSM 高度），只在正立面寬度內起坡，兩旁附屬部分是平頂。大堂：坡高 5.5 米，鐘樓未建模。另外 9 棟紅瓦、14 米以下、近似長方形（填滿外接長方形 88% 以上、短邊 4–14 米）的樓宇自動加 25° 坡頂，最高 2.8 米。
+- **天台物件**：6 米以上、面積 50 平方米以上的平頂加一個樓梯屋（2.6 × 3.6 米、高 2.8 米，沿最長的牆擺放，牆身顏色略深），80 平方米以上再加一至三個水缸（直徑 1.4 米、高 1.4 米；不鏽鋼、藍色或白色）。位置隨機，但按 OSM 編號固定，每次匯出相同；外圍只加樓梯屋。這是按衛星圖的一般情況補上的，不是逐棟測量。約 1.5 萬個三角面。
+
+### 玫瑰堂立面（v5）
+
+- 照片 #23：以立面寬 19.9 米為比例，地面層約 7.6 米、二層約 5.8 米到簷口；簷口上是約 13 米寬的山花牆，高約 4 米，再加 3.4 米高的三角楣和十字架，頂部約 21 米。
+- 新樣式 `church_front`：每層三個開間、雙壁柱，地面層三道墨綠門，二層三個墨綠百葉窗；`frontispiece` 建山花牆、橢圓飾框、三角楣和十字架；正立面兩旁露出的中殿山牆加白色斜簷。
+
+### 其餘樓宇的顏色（v5）
+
+- 沒有照片證據的 1,963 棟（地標除外）按 OSM 編號雜湊，從 `genericWalls` 的八種顏色按權重固定分配：灰白 5、淺灰 4、米色 4、淡黃 2、灰色紙皮石 2、淡粉紅 1.5、淡藍灰 1.5、淡綠 1，再按編號錯開 −5% 至 +3% 亮度。這是澳門舊區的常見配色，不是逐棟核對；檢視器點選時標明「通用色（無照片證據）」。
+- 未核對的地標（營地街市、大堂）用 `landmarks.json` 內的暫定色。
+- 窗格貼圖每 3 米一窗、每 3.2 米一層，由屋頂往下數，所以頂層不會切開半個窗；牆底剩下的部分就像較高的地面層店面。
+
 ## 下一步（逐部細化）
 
-1. **屋頂**：瓦頂形狀和顏色；可從已對位衛星圖取色。
-2. **其餘樓宇的顏色**：板樟堂前地東面、新馬路其餘一段、營地街市和大堂仍用中性色。
-3. **店舖招牌和地面層店面**；新馬路的騎樓仍未有足夠照片證據。
-4. **細部**：玫瑰堂和市政署的立面。
-5. **遊戲用途**：碰撞簡化，以及界定可進入的範圍。
+1. **逐棟核對通用色**：新馬路其餘一段、板樟堂前地東面、營地街市和大堂。
+2. **店舖招牌和地面層店面**；新馬路的騎樓仍未有足夠照片證據。
+3. **細部**：大堂鐘樓、市政署的立面細部。
+4. **遊戲用途**：碰撞簡化，以及界定可進入的範圍。

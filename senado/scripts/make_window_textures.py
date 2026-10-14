@@ -2,6 +2,9 @@
 
 louvre.png   one shutter leaf (u 0..1) x 1 m (v 0..1): stiles at both edges, 7 cm louvre slats.
 glazing.png  one casement leaf (u 0..1) x 1 m (v 0..1): light frame bars, 2 x 2 dark glass panes.
+facade_generic.png  one bay (3.0 m, u 0..1) x one storey (3.2 m, v 0..1) of an ordinary Macau block: white wall,
+             a 1.7 x 1.6 m window with a centre mullion and a sill, and a slab band at the top of the storey.
+             Used on the buildings without a facade spec (model.js GRID); multiplied by each building's wall colour.
 
 viewer/model.js gives panes u = leaf count across the opening (two leaves per window) and v = metres from
 the opening's bottom, so both maps tile without stretching. Rows are stored bottom-up (glTF convention, v = 0 on the
@@ -57,9 +60,32 @@ def glazing():
     im.transpose(Image.FLIP_TOP_BOTTOM).convert("RGB").save(OUT / "glazing.png", optimize=True)
 
 
+def facade_generic():
+    S = 128                                      # px per bay and per storey
+    im = Image.new("L", (S, S))
+    px = im.load()
+    for y in range(S):
+        v = (y + 0.5) / S                        # 0 at the floor, 1 at the top of the storey
+        for x in range(S):
+            u = (x + 0.5) / S
+            val = 255
+            if v > 0.94:
+                val = 214                        # slab edge / string course
+            elif 0.28 <= v <= 0.78 and 0.215 <= u <= 0.785:
+                if u < 0.235 or u > 0.765 or v < 0.3 or v > 0.76 or abs(u - 0.5) < 0.012:
+                    val = 176                    # aluminium frame and mullion
+                else:
+                    val = int(58 + 26 * (v - 0.3) / 0.46)   # dark glass, a little lighter towards the head
+            elif 0.255 <= v < 0.28 and 0.19 <= u <= 0.81:
+                val = 228                        # sill
+            px[x, y] = val
+    im.transpose(Image.FLIP_TOP_BOTTOM).convert("RGB").save(OUT / "facade_generic.png", optimize=True)
+
+
 if __name__ == "__main__":
     louvre()
     glazing()
-    for n in ("louvre.png", "glazing.png"):
+    facade_generic()
+    for n in ("louvre.png", "glazing.png", "facade_generic.png"):
         p = OUT / n
         print(p.relative_to(Path.cwd()) if p.is_relative_to(Path.cwd()) else p, p.stat().st_size, "bytes")
