@@ -115,6 +115,13 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
 .pick-empty { margin: 10px 0 0; color: var(--muted); font-size: 12.5px; }
 .pick-name { margin-top: 10px; font: 700 15px/1.35 var(--cjk); }
 .pick-sub { color: var(--muted); font-size: 12px; font-style: italic; }
+.pick-note { margin: 10px 0 0; font-size: 12.5px; }
+#pickFacade { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 2px; }
+.evidence { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.evidence button { padding: 0; border: 1px solid var(--line); border-radius: 3px; background: var(--sunken); cursor: pointer; display: grid; text-align: left; min-width: 0; }
+.evidence img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 2px 2px 0 0; }
+.evidence span { font: 500 10.5px/1.3 var(--mono); color: var(--muted); padding: 3px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evidence button:hover span { color: var(--ink); }
 .pill { display: inline-block; font: 500 11px/1 var(--cjk); padding: 4px 7px; border-radius: 3px; border: 1px solid var(--line); }
 .pill.osm { color: var(--ok); border-color: currentColor; }
 .pill.est { color: var(--warn); border-color: currentColor; }
@@ -139,10 +146,10 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
   <header class="head">
     <div>
       <div class="eyebrow">Macau · Largo do Senado · 22.1937°N 113.5399°E</div>
-      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · massing v1</span></div>
-      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。這一版只有量體，未加入細節。</p>
+      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v2 騎樓與外圍</span></div>
+      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。這一版按 29 張實景照片加入騎樓、樓層腰線、壁柱、簷口和女兒牆；外牆顏色留待下一輪。</p>
     </div>
-    <div class="status"><i></i>量體階段 · 外牆顏色待照片核對</div>
+    <div class="status"><i></i>v2 騎樓及外圍已加入 · 外牆顏色待核對</div>
   </header>
 
   <div class="grid">
@@ -210,6 +217,12 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
             <dt>距廣場</dt><dd id="pickD"></dd>
             <dt>OSM</dt><dd id="pickId"></dd>
           </dl>
+          <div id="pickFacade" hidden>
+            <dl class="kv" id="pickFacadeKv"></dl>
+            <p class="pick-note" id="pickNote"></p>
+            <div class="evidence" id="pickPhotos"></div>
+            <p class="mm-note">點選照片：鏡頭移到拍攝位置並疊上照片。</p>
+          </div>
         </div>
       </div>
       <div class="card">
@@ -221,11 +234,12 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
         <div class="legend">
           <div><span class="sw" style="background:#e9c25a"></span>地標，顏色已知（玫瑰堂黃、市政署及仁慈堂白）</div>
           <div><span class="sw" style="background:#eee5d2"></span>臨街建築及其他地標（顏色待照片核對）</div>
+          <div><span class="sw" style="background:#f6f3ec;box-shadow:inset 0 -4px 0 #d8d2c4"></span>白色線腳：腰線、簷口、女兒牆（已按照片加入）</div>
           <div><span class="sw" style="background:#e0dcd3"></span>核心範圍（170 米內）</div>
           <div><span class="sw" style="background:#c4c7c9"></span>外圍天際線</div>
           <div><span class="sw cal"></span>葡式碎石波浪地磚</div>
           <div><span class="sw" style="background:#ff6a2a"></span>比例人 1.75 米</div>
-          <div><span class="sw" style="background:repeating-linear-gradient(0deg,#8a8478 0 2px,#e0dcd3 2px 9px)"></span>樓層線，每 3.2 米一條</div>
+          <div><span class="sw" style="background:repeating-linear-gradient(0deg,#8a8478 0 2px,#e0dcd3 2px 9px)"></span>樓層線，每 3.2 米一條（只用於未細化的樓宇）</div>
         </div>
       </div>
     </aside>
@@ -233,30 +247,31 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
 
   <div class="notes">
     <div class="card">
-      <h2>為何這版應該較像實景</h2>
+      <h2>本輪：騎樓與樓層外圍</h2>
       <ul>
-        <li><b>廣場是漏斗形，不是長方形。</b>新馬路口約 38 米闊，往東北收窄到兩邊牆面相距約 10 米（地磚範圍約 7 米），再轉入板樟堂前地到玫瑰堂。輪廓直接取自 OSM。</li>
-        <li><b>高度是實測值。</b>1,124 棟建築有 OSM 高度（例如市政署 16.8 米、仁慈堂 16.5 米、玫瑰堂 17.9 米）。廣場四周是 17 至 23 米的一排，背後有 60 至 80 米的高樓。</li>
-        <li><b>地磚方向按衛星圖量度。</b>波浪帶與新馬路平行，每組黑白約 2.25 米，波長約 6 米。</li>
-        <li><b>範圍夠大。</b>地圖約 710 × 680 米，包括新馬路、營地街市、大堂一帶，以及遠處的新葡京作天際線參照。</li>
+        <li><b>按照片判斷，不靠估計。</b>從 Wikimedia Commons 的 197 張議事亭前地照片中選出 29 張，逐棟對照 OSM 輪廓。點選建築可看到所用的照片。</li>
+        <li><b>有騎樓：</b>西面黃色一排（商務旅遊中心、信德堡及南段）、梁族大廈及窄段西面一排、東面的中華商業大廈。</li>
+        <li><b>沒有騎樓：</b>仁慈堂、市政署、郵政局、便民藥房；粉紅角樓地面層是拱形店面，只做淺拱。</li>
+        <li><b>樓層比例是量出來的。</b>在照片 #87 同一條垂直線上量得騎樓 5.3 米、二樓 6.5 米、三樓 5.8 米、女兒牆 1.1 米，合共 18.7 米，與 OSM 高度相同。</li>
+        <li><b>過街樓：</b>OSM 在商務旅遊中心南面有一條橫巷，但照片中立面連續，所以補建了跨巷的樓上部分，橫巷從騎樓下穿過。</li>
       </ul>
     </div>
     <div class="card">
-      <h2>比例與「人物好巨型」的問題</h2>
+      <h2>比例與遊戲</h2>
       <ul>
-        <li>比例人是 1.75 米。用「第三人稱」鏡頭可看到遊戲常用的肩後視角下，廣場和樓宇的真實比例。</li>
-        <li>真實尺寸的窄段牆面之間只有約 10 米，對射擊遊戲來說偏窄。可拖動「環境比例」試 1.2 至 1.4 倍，人物大小保持不變。</li>
-        <li>「只放大平面」只拉闊街道和廣場，樓高不變，適合想保留街道壓迫感的情況。</li>
-        <li>步行模式用 1.5 米／秒步速，按 Shift 用 6 米／秒跑速，可直接感受穿越廣場所需時間。</li>
+        <li>騎樓深約 3 米、高 5.3 米，拱距約 3.9 米。用「騎樓內」鏡頭可看到人物在拱廊下的比例，這也是天然的掩護位。</li>
+        <li>真實尺寸的窄段牆面之間只有約 10 米。可拖動「環境比例」試 1.2 至 1.4 倍，人物大小保持不變。</li>
+        <li>步行模式用 1.5 米／秒步速，按 Shift 用 6 米／秒跑速。</li>
       </ul>
     </div>
     <div class="card">
-      <h2>待核對（下一輪）</h2>
+      <h2>待做（下一輪）</h2>
       <ul>
-        <li><b>外牆顏色：</b>只有玫瑰堂、市政署、仁慈堂是已知顏色，其餘臨街樓宇暫用統一淺色，要對照實景照片。</li>
-        <li><b>862 棟建築沒有 OSM 高度，</b>暫按「同面積已知樓宇的中位數」估算，點選建築時會標明是估算。大部分在外圍。</li>
-        <li><b>未建模：</b>地面層騎樓、屋頂形狀、玫瑰堂立面、噴水池細節（中央渾天儀只是示意）。</li>
-        <li><b>衛星圖</b>只作對位參考，不會放入遊戲資源。</li>
+        <li><b>外牆顏色：</b>照片已經下載，下一輪按照片取色（黃、粉紅、白、淺綠）。</li>
+        <li><b>噴水池外圍的下沉台階：</b>照片和衛星圖都顯示直徑約 13.6 米的台階圈，OSM 只畫了水池。</li>
+        <li><b>窗戶、欄杆和屋頂形狀</b>仍未建模；女兒牆暫時是實心，未做欄杆。</li>
+        <li><b>新馬路的騎樓</b>未有足夠照片證據，暫不加入。</li>
+        <li><b>修正：</b>v1 匯出的 GLB 外牆法線向內，在引擎中會內外反轉。本版已修正，並加入自動測試。</li>
       </ul>
     </div>
   </div>
@@ -264,6 +279,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
   <footer class="foot">
     <div>建築、街道及廣場輪廓：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors，ODbL 授權，經 Overpass API 擷取。</div>
     <div>衛星影像：Esri World Imagery（Esri, Maxar, Earthstar Geographics），只作參考對位，已按噴水池平移校正。</div>
+    <div>實景照片：Wikimedia Commons，作者及授權（CC0、CC BY、CC BY-SA）見每張照片的連結及 <span class="mono">reference/photos/credits.json</span>。照片已縮小，未作其他修改。</div>
     <div id="buildStamp"></div>
   </footer>
 </div>

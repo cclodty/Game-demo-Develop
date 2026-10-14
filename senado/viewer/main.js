@@ -15,11 +15,13 @@ const PRESETS = [
     note: '噴水池西南面，視線沿漏斗收窄方向' },
   { id: 'back', label: '窄段回望', key: '3', pos: [43, 57, EYE], tgt: [-28, -44, 6], fov: 50, eye: true,
     note: '板樟堂前地入口回望新馬路，背後高樓入鏡' },
-  { id: 'tps', label: '第三人稱', key: '4', tps: true, fig: [-14, -19], heading: 52, fov: 58,
+  { id: 'arcade', label: '騎樓內', key: '4', pos: [-3.5, 16.2, EYE], tgt: [18.2, 36.9, 2.4], fov: 62, eye: true,
+    note: '商務旅遊中心騎樓內，望向窄段（騎樓深 3 米、高 5.3 米）' },
+  { id: 'tps', label: '第三人稱', key: '5', tps: true, fig: [-14, -19], heading: 52, fov: 58,
     note: '遊戲肩後鏡頭：鏡頭在人物後 3.4 米、高 1.9 米' },
-  { id: 'oblique', label: '斜上方', key: '5', pos: [-100, -112, 108], tgt: [12, 30, 0], fov: 45,
+  { id: 'oblique', label: '斜上方', key: '6', pos: [-100, -112, 108], tgt: [12, 30, 0], fov: 45,
     note: '西南面斜俯視，看漏斗形廣場和周邊高度' },
-  { id: 'top', label: '俯瞰', key: '6', pos: [10, 24, 330], tgt: [10, 25, 0], fov: 40,
+  { id: 'top', label: '俯瞰', key: '7', pos: [10, 24, 330], tgt: [10, 25, 0], fov: 40,
     note: '正上方，上方為北' },
 ];
 const FIGURES = [[-7, -12, 52], [4, -6, 200], [12, -15, 120], [28, 37, 230], [52, 80, 30], [-31, -38, 60]];
@@ -69,10 +71,12 @@ const loadTex = (url) => new Promise((res, rej) => texLoader.load(url, res, unde
 let world, pickTables = [], figureGroup, labelObjs = [], satMesh = null, highlight = null, floorTex = null;
 
 async function init() {
-  const [data, calcada] = await Promise.all([
+  const [data, calcada, credits] = await Promise.all([
     fetch('data/senado_massing.json').then((r) => { if (!r.ok) throw new Error(`data ${r.status}`); return r.json(); }),
     loadTex('viewer/assets/calcada_waves.png'),
+    fetch('reference/photos/credits.json').then((r) => (r.ok ? r.json() : { photos: {} })).catch(() => ({ photos: {} })),
   ]);
+  state.photos = credits.photos;
   calcada.wrapS = calcada.wrapT = THREE.RepeatWrapping;
   calcada.colorSpace = THREE.SRGBColorSpace;
   calcada.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -120,7 +124,7 @@ async function init() {
   $('buildStamp').textContent = `資料版本：${data.meta.source}`;
   resize();
   renderer.setAnimationLoop(tick);
-  window.senado = { THREE, scene, camera, controls, state, setPreset, world };
+  window.senado = { THREE, scene, camera, controls, state, setPreset, world, showPick, info: null };
 }
 
 // ---------------- scale ----------------
@@ -272,7 +276,7 @@ function pick(e) {
   showPick({ kind: 'building', id: b.id, name: b.name, tier: b.tier, height: b.h, heightSource: b.hSrc, distToSquare: b.dSquare, minHeight: b.minH });
 }
 const TIER = { landmark: '地標', frontage: '廣場臨街', avenue: '新馬路臨街', core: '核心範圍', context: '外圍', part: '建築部件' };
-const SRC = { 'osm:height': ['OSM 實測', 'osm'], 'osm:levels': ['OSM 樓層數推算', 'osm'], default: ['按同面積樓宇中位數估算', 'est'], 'default:small': ['小型構築物，估 3.5 m', 'est'], override: ['人手修正（見 landmarks.json）', 'est'] };
+const SRC = { 'osm:height': ['OSM 實測', 'osm'], 'osm:levels': ['OSM 樓層數推算', 'osm'], default: ['按同面積樓宇中位數估算', 'est'], 'default:small': ['小型構築物，估 3.5 m', 'est'], override: ['人手修正（見 landmarks.json）', 'est'], bridge: ['按相鄰樓宇', 'est'] };
 function showPick(u) {
   if (highlight) { world.remove(highlight); highlight.geometry.dispose(); highlight = null; }
   if (!u) { $('pickBody').hidden = true; $('pickEmpty').hidden = false; $('pickTier').textContent = '—'; return; }
@@ -289,7 +293,10 @@ function showPick(u) {
   $('pickD').textContent = `${u.distToSquare.toFixed(1)} m`;
   const [t, n] = [u.id[0], u.id.slice(1).split('.')[0]];
   const kind = t === 'w' ? 'way' : 'relation';
-  $('pickId').innerHTML = `<a href="https://www.openstreetmap.org/${kind}/${n}" target="_blank" rel="noopener" class="mono">${kind}/${n}</a>`;
+  $('pickId').innerHTML = t === 'x'
+    ? '<span class="mono">按照片補建（非 OSM）</span>'
+    : `<a href="https://www.openstreetmap.org/${kind}/${n}" target="_blank" rel="noopener" class="mono">${kind}/${n}</a>`;
+  showFacade(b);
   if (b) {
     const g = new THREE.EdgesGeometry(prismGeometry(b.outer, b.holes, b.h + 0.05, b.minH), 20);
     highlight = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x1f4f93, depthTest: false, transparent: true, opacity: 0.95 }));
@@ -338,23 +345,72 @@ $('scale').addEventListener('input', (e) => { state.scale = parseFloat(e.target.
 $('planOnly').addEventListener('change', (e) => { state.planOnly = e.target.checked; applyScale(); if (!state.walk) setPreset(state.preset, true); });
 $('fov').addEventListener('input', (e) => { camera.fov = parseFloat(e.target.value); camera.updateProjectionMatrix(); $('fovVal').textContent = `${e.target.value}°`; });
 
-// photo overlay: the viewer's own photo, laid over the viewport for camera matching
+// photo overlay: a reference photo laid over the viewport for camera matching
+function showOverlay(src, name) {
+  const img = $('photoOverlay');
+  if (img.dataset.url) { URL.revokeObjectURL(img.dataset.url); delete img.dataset.url; }
+  img.onload = () => { host.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`; host.style.maxHeight = 'none'; };
+  img.src = src;
+  img.hidden = false;
+  $('photoCtl').hidden = false;
+  $('photoName').textContent = name;
+}
 $('photoBtn').addEventListener('click', () => $('photoFile').click());
 $('photoFile').addEventListener('change', (e) => {
   const f = e.target.files[0];
   if (!f) return;
-  const img = $('photoOverlay');
-  if (img.dataset.url) URL.revokeObjectURL(img.dataset.url);
-  img.dataset.url = URL.createObjectURL(f);
-  img.onload = () => { host.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`; host.style.maxHeight = 'none'; };
-  img.src = img.dataset.url;
-  img.hidden = false;
-  $('photoCtl').hidden = false;
-  $('photoName').textContent = f.name;
+  const url = URL.createObjectURL(f);
+  showOverlay(url, f.name);
+  $('photoOverlay').dataset.url = url;
 });
+
+// facade spec + the Commons photos it was read from
+function showFacade(b) {
+  const F = b && b.facade;
+  $('pickFacade').hidden = !F;
+  if (!F) return;
+  const A = F.arcade && F.arcadeEdges.length ? F.arcade : null;
+  const rows = [
+    ['騎樓', A ? (F.passage ? `過街樓，高 ${A.height} m` : A.depth < 1.5 ? `淺拱店面，深 ${A.depth} m` : `高 ${A.height} m · 深 ${A.depth} m · 拱距約 ${A.bay} m`) : '無'],
+    ['樓層高度', F.floors.map((f) => f.toFixed(1)).join(' / ') + ' m'],
+    ['簷口／女兒牆', `${F.cornice ? F.cornice.h + ' m' : '—'} / ${F.parapet ? F.parapet.h + ' m' : '—'}`],
+  ];
+  $('pickFacadeKv').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  $('pickNote').textContent = F.note || '';
+  $('pickNote').hidden = !F.note;
+  const box = $('pickPhotos');
+  box.innerHTML = '';
+  for (const id of F.evidence) {
+    const ph = state.photos && state.photos[id];
+    if (!ph) continue;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.title = `${id} · ${ph.author} · ${ph.license}\n${ph.file}`;
+    btn.innerHTML = `<img src="${ph.src}" alt="照片 ${id}" loading="lazy"><span>${id} · ${ph.license}</span>`;
+    btn.addEventListener('click', () => viewFromPhoto(id, ph, b));
+    box.append(btn);
+  }
+}
+function viewFromPhoto(id, ph, b) {
+  showOverlay(ph.src, `${id} · ${ph.author} · ${ph.license}`);
+  if (!ph.camera) { $('camInfo').textContent = `照片 ${id} 沒有拍攝位置，請手動對位`; return; }
+  if (state.walk) setWalk(false);
+  let cx = 0, cy = 0;
+  for (const p of b.outer) { cx += p[0]; cy += p[1]; }
+  cx /= b.outer.length; cy /= b.outer.length;
+  const s = state.scale;
+  const pos = new THREE.Vector3(ph.camera[0] * s, 1.6, -ph.camera[1] * s);
+  const tgt = new THREE.Vector3(cx * s, b.h * 0.45 * (state.planOnly ? 1 : s), -cy * s);
+  controls.maxPolarAngle = Math.PI * 0.62;
+  tween = { from: { pos: camera.position.clone(), tgt: controls.target.clone(), fov: camera.fov }, to: { pos, tgt, fov: 50 }, t: 0 };
+  document.querySelectorAll('#presets button').forEach((q) => q.setAttribute('aria-pressed', 'false'));
+  $('camInfo').textContent = `照片 ${id} 的拍攝位置（GPS），FOV 50° 為估計，可再微調`;
+  $('fov').value = 50; $('fovVal').textContent = '50°';
+}
 $('photoOpacity').addEventListener('input', (e) => { $('photoOverlay').style.opacity = e.target.value; });
 $('photoClear').addEventListener('click', () => {
   const img = $('photoOverlay');
+  if (img.dataset.url) { URL.revokeObjectURL(img.dataset.url); delete img.dataset.url; }
   img.hidden = true; img.removeAttribute('src');
   host.style.aspectRatio = ''; host.style.maxHeight = '';
   $('photoCtl').hidden = true; $('photoFile').value = '';

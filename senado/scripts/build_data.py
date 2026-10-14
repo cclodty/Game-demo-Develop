@@ -42,7 +42,8 @@ def r2(v):
 
 
 def ring_area(r):
-    return sum(r[i][0] * r[i - 1][1] - r[i - 1][0] * r[i][1] for i in range(len(r))) / 2
+    """Signed shoelace area: positive for counter-clockwise rings (x east, y north)."""
+    return sum(r[i - 1][0] * r[i][1] - r[i][0] * r[i - 1][1] for i in range(len(r))) / 2
 
 
 def clean_ring(pts, ccw=True):
@@ -268,6 +269,10 @@ def main():
     measures = measure_square(squares[0]["outer"], buildings)
     print("square", measures)
 
+    find_fronts(buildings, squares, roads)
+    attach_facades(buildings, curated)
+    add_bridges(buildings, curated)
+
     data = {
         "meta": {
             "measures": measures,
@@ -349,6 +354,110 @@ def measure_square(ring, buildings):
         "narrowFacades": r2(best[1]),
         "area": round(abs(ring_area(ring))),
     }
+
+
+FRONT_TIERS = ("landmark", "frontage", "avenue")
+FRONT_PROBE = 1.2       # m; sample this far outside each wall to see what it faces
+FRONT_MIN_LEN = 2.0     # m; shorter wall segments are corners and jogs, not facades
+
+
+def find_fronts(buildings, squares, roads):
+    """Mark each wall of the buildings around the square that faces the square or a street.
+
+    b["fronts"] = [{"i": edge index, "len": m, "kind": "square" | "street"}]; edge i runs outer[i] -> outer[i+1].
+    """
+    near = [b for b in buildings if b["tier"] in FRONT_TIERS or b["dSquare"] < 15]
+    others = [(b, bbox(b["outer"])) for b in buildings if b["dSquare"] < 60 or b["tier"] in FRONT_TIERS]
+    sq_rings = [s["outer"] for s in squares]
+
+    def in_building(p, me):
+        for b, (x0, y0, x1, y1) in others:
+            if b is not me and x0 <= p[0] <= x1 and y0 <= p[1] <= y1 and point_in(p, b["outer"]):
+                return True
+        return False
+
+    def near_road(p):
+        for r in roads:
+            if polyline_dist([p], r["pts"]) < r["w"] / 2 + 3.5:
+                return True
+        return False
+
+    for b in near:
+        ring, fronts = b["outer"], []
+        for i in range(len(ring)):
+            a, c = ring[i], ring[(i + 1) % len(ring)]
+            L = math.hypot(c[0] - a[0], c[1] - a[1])
+            if L < FRONT_MIN_LEN:
+                continue
+            nx, ny = (c[1] - a[1]) / L, -(c[0] - a[0]) / L   # outward for a CCW ring
+            votes = {"square": 0, "street": 0}
+            for t in (0.2, 0.5, 0.8):
+                p = (a[0] + (c[0] - a[0]) * t + nx * FRONT_PROBE, a[1] + (c[1] - a[1]) * t + ny * FRONT_PROBE)
+                if in_building(p, b):
+                    continue
+                if any(point_in(p, r) or poly_dist([p], r) < 3.0 for r in sq_rings):
+                    votes["square"] += 1
+                elif near_road(p):
+                    votes["street"] += 1
+            kind = max(votes, key=votes.get)
+            if votes[kind] >= 2:
+                fronts.append({"i": i, "len": r2(L), "kind": kind})
+        b["fronts"] = fronts
+
+
+def attach_facades(buildings, curated):
+    """Copy the photo-based facade spec onto each building and resolve which walls it applies to."""
+    styles = curated.get("facadeStyles", {})
+    by_id = {b["id"]: b for b in buildings}
+    for spec in curated.get("facades", []):
+        b = by_id.get(spec["osm"])
+        if not b:
+            raise SystemExit(f"facade spec for unknown building {spec['osm']}")
+        style = dict(styles[spec["style"]])
+        style.update(spec.get("override", {}))
+        on = spec.get("on", "square")
+        if isinstance(on, list):
+            edges = on
+        else:
+            kinds = on.split("+")
+            edges = [f["i"] for f in b.get("fronts", []) if f["kind"] in kinds]
+        arcade_on = spec.get("arcadeOn", edges if style.get("arcade") else [])
+        if isinstance(arcade_on, str):
+            kinds = arcade_on.split("+")
+            arcade_on = [f["i"] for f in b.get("fronts", []) if f["kind"] in kinds]
+        b["facade"] = {"style": spec["style"], **style, "edges": edges, "arcadeEdges": arcade_on,
+                       "evidence": spec.get("evidence", []), "note": spec.get("note")}
+
+
+def add_bridges(buildings, curated):
+    """Upper floors that span a lane between two OSM buildings (the lane runs under the arcade)."""
+    by_id = {b["id"]: b for b in buildings}
+    styles = curated.get("facadeStyles", {})
+    for br in curated.get("bridges", []):
+        def end(ref):
+            b = by_id[ref[0]]
+            ring, i = b["outer"], ref[1]
+            a, c = ring[i], ring[(i + 1) % len(ring)]
+            L = math.hypot(c[0] - a[0], c[1] - a[1])
+            n = ((c[1] - a[1]) / L, -(c[0] - a[0]) / L)
+            return (c if ref[2] == "end" else a), n
+        (A, nA), (B, nB) = end(br["from"]), end(br["to"])
+        d = br["depth"]
+        ring = clean_ring([A, B, (B[0] - nB[0] * d, B[1] - nB[1] * d), (A[0] - nA[0] * d, A[1] - nA[1] * d)])
+        front = next(i for i in range(len(ring)) if ring[i] == [r2(A[0]), r2(A[1])] and ring[(i + 1) % len(ring)] == [r2(B[0]), r2(B[1])])
+        style = dict(styles[br["style"]])
+        buildings.append({
+            "id": br["id"], "name": br["name"], "h": br["h"], "minH": 0, "hSrc": "bridge", "levels": None,
+            "outer": ring, "holes": [], "tier": "frontage", "dSquare": 0.0,
+            "facade": {"style": br["style"], **style, "edges": [front], "arcadeEdges": [front], "passage": True,
+                       "evidence": br.get("evidence", []), "note": br.get("note")},
+        })
+
+
+def bbox(ring):
+    xs = [p[0] for p in ring]
+    ys = [p[1] for p in ring]
+    return min(xs), min(ys), max(xs), max(ys)
 
 
 def in_rect(p):

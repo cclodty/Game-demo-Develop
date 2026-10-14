@@ -117,6 +117,389 @@
       "osm": "w1279798975",
       "h": 4.0,
       "reason": "23 m² 八角形構築物，位於郵政局旁花園樹蔭下；衛星圖沒有高樓應有的長影子，按單層亭處理"
+    },
+    {
+      "osm": "w780249151",
+      "h": 11.8,
+      "reason": "便民藥房 Farmácia Popular：照片 #132 只有兩層（每層約 5 米）加簷口，OSM 估算的 21.6 米過高"
+    }
+  ],
+  "facadeStyles": {
+    "_note": "Measured by eye from Commons photos using people (≈1.7 m) and doorways as scale. floors = storey heights from the ground up; the last storey absorbs whatever is left under the cornice. colonial_arcade3 was measured on photo #87 along one vertical line (MGTO / Shun Tak junction): arcade 5.3, first floor 6.5, second floor 5.8, parapet 1.1 → 18.7 m, equal to the OSM height.",
+    "colonial_arcade3": {
+      "floors": [
+        5.3,
+        6.5,
+        5.8
+      ],
+      "arcade": {
+        "height": 5.3,
+        "depth": 3.0,
+        "bay": 3.9,
+        "pier": 0.95,
+        "thick": 0.75,
+        "arch": "round",
+        "crownMargin": 0.55,
+        "minSpring": 2.6
+      },
+      "cornice": {
+        "h": 0.7,
+        "proj": 0.45
+      },
+      "parapet": {
+        "h": 1.1,
+        "t": 0.3,
+        "type": "balustrade"
+      },
+      "pilasters": true
+    },
+    "colonial_arcade_narrow": {
+      "floors": [
+        4.8,
+        4.2,
+        4.2
+      ],
+      "arcade": {
+        "height": 4.8,
+        "depth": 2.6,
+        "bay": 3.4,
+        "pier": 0.8,
+        "thick": 0.65,
+        "arch": "round",
+        "crownMargin": 0.6,
+        "minSpring": 3.2
+      },
+      "cornice": {
+        "h": 0.6,
+        "proj": 0.4
+      },
+      "parapet": {
+        "h": 1.0,
+        "t": 0.3,
+        "type": "balustrade"
+      },
+      "pilasters": true
+    },
+    "tall_arcade": {
+      "floors": [
+        6.2,
+        5.4,
+        5.4
+      ],
+      "arcade": {
+        "height": 6.2,
+        "depth": 3.0,
+        "bay": 4.6,
+        "pier": 1.1,
+        "thick": 0.8,
+        "arch": "round",
+        "crownMargin": 0.5,
+        "minSpring": 3.0
+      },
+      "cornice": {
+        "h": 0.8,
+        "proj": 0.5
+      },
+      "parapet": {
+        "h": 1.2,
+        "t": 0.3,
+        "type": "solid"
+      },
+      "pilasters": true
+    },
+    "arched_shopfront3": {
+      "floors": [
+        5.2,
+        4.6,
+        4.6
+      ],
+      "arcade": {
+        "height": 5.2,
+        "depth": 0.8,
+        "bay": 3.6,
+        "pier": 0.9,
+        "thick": 0.5,
+        "arch": "round",
+        "crownMargin": 0.6,
+        "minSpring": 2.8
+      },
+      "cornice": {
+        "h": 0.7,
+        "proj": 0.45
+      },
+      "parapet": {
+        "h": 1.4,
+        "t": 0.3,
+        "type": "balustrade"
+      },
+      "pilasters": true
+    },
+    "civic2": {
+      "floors": [
+        8.0,
+        6.4
+      ],
+      "arcade": null,
+      "cornice": {
+        "h": 0.9,
+        "proj": 0.5
+      },
+      "parapet": {
+        "h": 1.5,
+        "t": 0.35,
+        "type": "balustrade"
+      },
+      "pilasters": true,
+      "bay": 4.4
+    },
+    "civic3": {
+      "floors": [
+        7.0,
+        6.2,
+        6.2
+      ],
+      "arcade": null,
+      "cornice": {
+        "h": 0.9,
+        "proj": 0.55
+      },
+      "parapet": {
+        "h": 1.4,
+        "t": 0.35,
+        "type": "balustrade"
+      },
+      "pilasters": true,
+      "bay": 4.2
+    },
+    "plain2": {
+      "floors": [
+        5.4,
+        5.0
+      ],
+      "arcade": null,
+      "cornice": {
+        "h": 0.6,
+        "proj": 0.35
+      },
+      "parapet": {
+        "h": 0.9,
+        "t": 0.3,
+        "type": "solid"
+      },
+      "pilasters": false
+    }
+  },
+  "facades": [
+    {
+      "osm": "w657879720",
+      "style": "arched_shopfront3",
+      "on": "square+street",
+      "arcadeOn": [
+        2,
+        3,
+        4
+      ],
+      "note": "粉紅角樓：三層皆有拱；地面層店面就在拱內，屬淺拱而非可穿行騎樓",
+      "evidence": [
+        "#42",
+        "#72",
+        "#99",
+        "#105",
+        "#106",
+        "#130"
+      ]
+    },
+    {
+      "osm": "w205784527",
+      "style": "colonial_arcade3",
+      "on": "square+street",
+      "arcadeOn": "square",
+      "note": "西面黃色騎樓一排的南段",
+      "evidence": [
+        "#73",
+        "#87",
+        "#126"
+      ]
+    },
+    {
+      "osm": "w391321516",
+      "style": "colonial_arcade3",
+      "on": "square+street",
+      "arcadeOn": "square",
+      "note": "議事亭前地 9 號（商務旅遊中心），騎樓內可見店舖與天花燈",
+      "evidence": [
+        "#6",
+        "#10",
+        "#49",
+        "#108"
+      ]
+    },
+    {
+      "osm": "w391321519",
+      "style": "colonial_arcade3",
+      "on": "square+street",
+      "arcadeOn": "square",
+      "note": "信德堡，立面有「信德堡」字樣",
+      "evidence": [
+        "#28",
+        "#31",
+        "#131"
+      ]
+    },
+    {
+      "osm": "w761767128",
+      "style": "colonial_arcade_narrow",
+      "on": "square+street",
+      "arcadeOn": "square",
+      "note": "梁族大廈，窄段西北角",
+      "evidence": [
+        "#52",
+        "#57",
+        "#134"
+      ]
+    },
+    {
+      "osm": "w761767129",
+      "style": "colonial_arcade_narrow",
+      "on": "square",
+      "arcadeOn": "square",
+      "note": "窄段西面一排，騎樓連續",
+      "evidence": [
+        "#71",
+        "#134"
+      ]
+    },
+    {
+      "osm": "w761767130",
+      "style": "colonial_arcade_narrow",
+      "on": "square",
+      "arcadeOn": "square",
+      "evidence": [
+        "#71",
+        "#134"
+      ]
+    },
+    {
+      "osm": "w761767131",
+      "style": "colonial_arcade_narrow",
+      "on": "square",
+      "arcadeOn": "square",
+      "evidence": [
+        "#71"
+      ]
+    },
+    {
+      "osm": "w761767132",
+      "style": "colonial_arcade_narrow",
+      "on": "square",
+      "arcadeOn": "square",
+      "evidence": [
+        "#71"
+      ]
+    },
+    {
+      "osm": "w761767134",
+      "style": "colonial_arcade_narrow",
+      "on": "square",
+      "arcadeOn": "square",
+      "evidence": [
+        "#71"
+      ]
+    },
+    {
+      "osm": "w761767135",
+      "style": "colonial_arcade_narrow",
+      "on": "square",
+      "arcadeOn": "square",
+      "evidence": [
+        "#71"
+      ]
+    },
+    {
+      "osm": "w330368254",
+      "style": "tall_arcade",
+      "on": "square",
+      "arcadeOn": "square",
+      "note": "中華商業大廈，東面窄段，大拱騎樓",
+      "evidence": [
+        "#36",
+        "#133",
+        "#135"
+      ]
+    },
+    {
+      "osm": "w780249151",
+      "style": "plain2",
+      "on": "square+street",
+      "note": "便民藥房：兩層、藍色帆布簷篷、無騎樓",
+      "evidence": [
+        "#36",
+        "#132"
+      ]
+    },
+    {
+      "osm": "w265433529",
+      "style": "civic2",
+      "on": "square+street",
+      "override": {
+        "floors": [
+          7.6,
+          6.6
+        ],
+        "bay": 3.6
+      },
+      "note": "仁慈堂：兩層，巨柱式壁柱，無騎樓（地面層是拱門與窗）",
+      "evidence": [
+        "#0",
+        "#26",
+        "#28",
+        "#40"
+      ]
+    },
+    {
+      "osm": "w192573674",
+      "style": "civic2",
+      "on": "street",
+      "note": "市政署：兩層加山花，無騎樓",
+      "evidence": [
+        "#28",
+        "#31",
+        "#127"
+      ]
+    },
+    {
+      "osm": "w205784429",
+      "style": "civic3",
+      "on": "street",
+      "note": "郵政局：三層石材色立面，欄杆女兒牆",
+      "evidence": [
+        "#47"
+      ]
+    }
+  ],
+  "bridges": [
+    {
+      "id": "x_bridge_rua_sul",
+      "name": "商務旅遊中心南段（跨越公局新市南街）",
+      "from": [
+        "w205784527",
+        5,
+        "end"
+      ],
+      "to": [
+        "w391321516",
+        0,
+        "start"
+      ],
+      "depth": 8.0,
+      "h": 18.1,
+      "style": "colonial_arcade3",
+      "note": "OSM 在 205784527 與商務旅遊中心之間有一條約 9 米的橫巷，但照片中立面連續、拱距不斷，所以樓上部分跨過橫巷，橫巷從騎樓下穿過。進深 8 米為估計。",
+      "evidence": [
+        "#10",
+        "#87",
+        "#126"
+      ]
     }
   ]
 }

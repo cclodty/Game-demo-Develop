@@ -3,6 +3,7 @@
 //
 // Units: 1 = 1 metre. Three.js axes: X = east, Y = up, Z = south (data y = north becomes -Z).
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const PALETTE = {
   ground: 0xd6d3cb,
@@ -16,6 +17,7 @@ export const PALETTE = {
   context: 0xc4c7c9,
   contextRoof: 0xb3b6b9,
   frontage: 0xeee5d2,
+  trim: 0xf6f3ec,      // white mouldings: seen on every colonial facade around the square
   figure: 0xff6a2a,
   calcadaLight: 0xede7d9,
   calcadaDark: 0x3b3b39,
@@ -43,7 +45,9 @@ function upward(verts, base, t) {
 }
 
 // ---------- prism (walls + flat roof) with UVs: walls u = perimeter m, v = height m ----------
-export function prismGeometry(outer, holes, h, minH = 0) {
+// opts.bottom adds a downward face at minH (arcade ceilings); opts.roof = false drops the top face.
+// Groups: 0 = walls (+ bottom), 1 = roof.
+export function prismGeometry(outer, holes, h, minH = 0, opts = {}) {
   const pos = [], nor = [], uv = [], idx = [];
   const walls = (ring) => {
     let run = 0;
@@ -65,18 +69,29 @@ export function prismGeometry(outer, holes, h, minH = 0) {
   };
   walls(outer);
   holes.forEach(walls);
-  const wallCount = idx.length;
   const contour = outer.map((p) => new THREE.Vector2(p[0], p[1]));
   const holeV = holes.map((r) => r.map((p) => new THREE.Vector2(p[0], p[1])));
   const tris = THREE.ShapeUtils.triangulateShape(contour, holeV);
   const all = contour.concat(...holeV);
-  const base = pos.length / 3;
-  for (const p of all) {
-    pos.push(p.x, h, -p.y);
-    nor.push(0, 1, 0);
-    uv.push(p.x, p.y);
+  if (opts.bottom) {
+    const base = pos.length / 3;
+    for (const p of all) {
+      pos.push(p.x, minH, -p.y);
+      nor.push(0, -1, 0);
+      uv.push(p.x, p.y);
+    }
+    for (const t of tris) { const [a, b, c] = upward(all, base, t); idx.push(a, c, b); }
   }
-  for (const t of tris) idx.push(...upward(all, base, t));
+  const wallCount = idx.length;
+  if (opts.roof !== false) {
+    const base = pos.length / 3;
+    for (const p of all) {
+      pos.push(p.x, h, -p.y);
+      nor.push(0, 1, 0);
+      uv.push(p.x, p.y);
+    }
+    for (const t of tris) idx.push(...upward(all, base, t));
+  }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
@@ -154,7 +169,7 @@ function stripGeometry(lines, y) {
   return g;
 }
 
-function mergeGeometries(geoms) {
+function mergePrisms(geoms) {
   // minimal merge keeping groups: all inputs share the same attribute layout and two groups (walls, roof)
   const attrs = ['position', 'normal', 'uv'];
   const out = { position: [], normal: [], uv: [] };
@@ -184,6 +199,186 @@ function mergeGeometries(geoms) {
     triOwner.fill(i, (wallIdx.length + r.rStart) / 3, (wallIdx.length + r.rStart + r.rCount) / 3);
   });
   return { geometry: g, triOwner };
+}
+
+// ---------- facade periphery: arcades (騎樓), entablature, string courses, pilasters, cornice, parapet ----------
+// Everything here is driven by b.facade, which build_data.py copies from the photo-based specs in landmarks.json.
+
+function edgeFrame(ring, i) {
+  const a = ring[i], b = ring[(i + 1) % ring.length];
+  const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const u = [(b[0] - a[0]) / L, (b[1] - a[1]) / L];
+  return { a, b, L, u, n: [u[1], -u[0]] };   // n = outward normal of a counter-clockwise ring
+}
+
+// Move selected edges of a counter-clockwise ring inward by depth[i]; corners are re-intersected.
+export function offsetEdges(ring, depth) {
+  const n = ring.length;
+  const line = (i) => {
+    const { a, u, n: nv } = edgeFrame(ring, i);
+    const d = depth.get(i) || 0;
+    return { p: [a[0] - nv[0] * d, a[1] - nv[1] * d], u };
+  };
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const prev = (i - 1 + n) % n;
+    const dp = depth.get(prev) || 0, dc = depth.get(i) || 0;
+    if (!dp && !dc) { out.push(ring[i]); continue; }
+    const l1 = line(prev), l2 = line(i);
+    const cross = l1.u[0] * l2.u[1] - l1.u[1] * l2.u[0];
+    if (Math.abs(cross) < 0.08) {
+      // nearly straight corner: step between the two depths instead of a far-away intersection
+      const v = ring[i];
+      const n1 = edgeFrame(ring, prev).n, n2 = edgeFrame(ring, i).n;
+      out.push([v[0] - n1[0] * dp, v[1] - n1[1] * dp], [v[0] - n2[0] * dc, v[1] - n2[1] * dc]);
+      continue;
+    }
+    const t = ((l2.p[0] - l1.p[0]) * l2.u[1] - (l2.p[1] - l1.p[1]) * l2.u[0]) / cross;
+    out.push([l1.p[0] + l1.u[0] * t, l1.p[1] + l1.u[1] * t]);
+  }
+  return out;
+}
+
+// Local frame for one wall: X along the wall, Y up, Z outward (right-handed, so windings survive).
+function edgeMatrix(f, outShift = 0) {
+  const u3 = new THREE.Vector3(f.u[0], 0, -f.u[1]);
+  const o3 = new THREE.Vector3(f.n[0], 0, -f.n[1]);
+  const m = new THREE.Matrix4().makeBasis(u3, new THREE.Vector3(0, 1, 0), o3);
+  m.setPosition(f.a[0] + f.n[0] * outShift, 0, -(f.a[1] + f.n[1] * outShift));
+  return m;
+}
+
+// Box along a wall: s0..s1 along it, z0..z1 high, from `inn` behind the wall line to `out` in front of it.
+function wallBox(f, s0, s1, z0, z1, out, inn) {
+  const g = new THREE.BoxGeometry(s1 - s0, z1 - z0, out + inn);
+  g.translate((s0 + s1) / 2, (z0 + z1) / 2, (out - inn) / 2);
+  return g.applyMatrix4(edgeMatrix(f));
+}
+
+// Bay layout shared by the arcade and the pilasters above it: end piers of width `pier`, n equal bays between.
+export function bayLayout(L, bay, pier) {
+  const n = Math.max(1, Math.round((L - pier) / bay));
+  const step = (L - pier) / n;
+  return { n, step, piers: Array.from({ length: n + 1 }, (_, k) => pier / 2 + k * step), opening: step - pier };
+}
+
+// The arcade front: one wall with n arched openings, cut as a single comb-shaped outline (no holes),
+// extruded `thick` m behind the facade line.
+export function arcadeScreenGeometry(f, arc) {
+  const { piers, opening: w } = bayLayout(f.L, arc.bay, arc.pier);
+  const H = arc.height, crown = H - arc.crownMargin;
+  const rise = arc.arch === 'flat' ? 0 : Math.min(w / 2, Math.max(0.3, crown - arc.minSpring));
+  const spring = crown - rise;
+  const s = new THREE.Shape();
+  s.moveTo(0, 0);
+  for (let k = 0; k < piers.length - 1; k++) {
+    const l = piers[k] + arc.pier / 2, r = l + w;
+    s.lineTo(l, 0);
+    s.lineTo(l, spring);
+    if (rise > 0) s.absellipse((l + r) / 2, spring, w / 2, rise, Math.PI, 0, true);
+    else s.lineTo(r, spring);
+    s.lineTo(r, 0);
+  }
+  s.lineTo(f.L, 0);
+  s.lineTo(f.L, H);
+  s.lineTo(0, H);
+  s.closePath();
+  const g = new THREE.ExtrudeGeometry(s, { depth: arc.thick, bevelEnabled: false, curveSegments: 10 });
+  return g.applyMatrix4(edgeMatrix(f, -arc.thick));
+}
+
+const toFlat = (g) => (g.index ? g.toNonIndexed() : g);
+function mergeFlat(geoms) {
+  const list = geoms.filter(Boolean).map((g) => {
+    const h = toFlat(g);
+    for (const k of Object.keys(h.attributes)) if (!['position', 'normal', 'uv'].includes(k)) h.deleteAttribute(k);
+    h.clearGroups();
+    return h;
+  });
+  return list.length ? mergeGeometries(list, false) : null;
+}
+
+// Returns { walls, roof, trim, screens } geometries for one building with a facade spec.
+export function facadeGeometries(b) {
+  const F = b.facade;
+  const ring = b.outer;
+  const parapetH = F.parapet ? F.parapet.h : 0;
+  const roofH = b.h - parapetH;
+  const arcade = F.arcade && F.arcadeEdges.length ? F.arcade : null;
+  const aH = arcade ? arcade.height : 0;
+  const arcadeEdges = arcade ? F.arcadeEdges.filter((i) => edgeFrame(ring, i).L >= 2.5) : [];
+
+  const out = { walls: [], roof: [], trim: [], screens: [] };
+  if (arcadeEdges.length) {
+    if (!F.passage) {                                          // a passage (lane under the building) has no ground floor
+      const depth = new Map(arcadeEdges.map((i) => [i, arcade.depth]));
+      const recessed = offsetEdges(ring, depth);
+      out.walls.push(prismGeometry(recessed, b.holes, aH, 0, { roof: false }));
+    }
+    const upper = prismGeometry(ring, b.holes, roofH, aH, { bottom: true });
+    out.walls.push(upper);
+    for (const i of arcadeEdges) out.screens.push(arcadeScreenGeometry(edgeFrame(ring, i), arcade));
+  } else {
+    out.walls.push(prismGeometry(ring, b.holes, roofH, 0));
+  }
+
+  // floor lines: cumulative heights of the floors listed in the spec, entablature above the arcade
+  const lines = [];
+  let z = 0;
+  for (const fh of F.floors.slice(0, -1)) { z += fh; lines.push(z); }
+  const corniceZ = roofH - (F.cornice ? F.cornice.h : 0);
+  // taller buildings in the same style get extra storeys at the top storey height
+  const top = F.floors[F.floors.length - 1];
+  while (z + top < corniceZ - top * 0.6) { z += top; lines.push(z); }
+  for (const i of F.edges) {
+    const f = edgeFrame(ring, i);
+    if (f.L < 1.5) continue;
+    const ext = 0.25;                                          // run past the corner so bands meet
+    lines.forEach((lz, k) => {
+      const main = k === 0 && arcadeEdges.length;
+      const hBand = main ? 0.6 : 0.28, proj = main ? 0.2 : 0.12;
+      if (lz + hBand < corniceZ) out.trim.push(wallBox(f, -ext, f.L + ext, lz, lz + hBand, proj, 0.05));
+    });
+    if (F.cornice) out.trim.push(wallBox(f, -ext - F.cornice.proj, f.L + ext + F.cornice.proj, corniceZ, roofH, F.cornice.proj, 0.05));
+    if (F.pilasters) {
+      const { piers } = bayLayout(f.L, F.arcade ? F.arcade.bay : F.bay || 3.8, F.arcade ? F.arcade.pier : 0.9);
+      const z0 = lines.length ? lines[0] + (arcadeEdges.length ? 0.6 : 0.28) : 0;
+      for (const p of piers) out.trim.push(wallBox(f, p - 0.28, p + 0.28, z0, corniceZ, 0.1, 0.05));
+    }
+  }
+  if (F.parapet) {
+    const inner = offsetEdges(ring, new Map(ring.map((_, i) => [i, F.parapet.t])));
+    out.trim.push(prismGeometry(ring, [inner.slice().reverse()], b.h, roofH));
+    for (let i = 0; i < ring.length; i++) {
+      const f = edgeFrame(ring, i);
+      if (f.L > 0.5) out.trim.push(wallBox(f, -0.05, f.L + 0.05, b.h - 0.14, b.h, 0.06, F.parapet.t));   // coping
+    }
+  }
+  return {
+    walls: mergeFlatGrouped(out.walls),
+    trim: mergeFlat(out.trim),
+    screens: mergeFlat(out.screens),
+  };
+}
+
+// Merge prisms but keep the wall/roof split as two material groups.
+function mergeFlatGrouped(geoms) {
+  const walls = [], roofs = [];
+  for (const g of geoms) {
+    const [gw, gr] = g.groups;
+    const take = (grp) => {
+      if (!grp || !grp.count) return null;
+      const h = new THREE.BufferGeometry();
+      for (const k of ['position', 'normal', 'uv']) h.setAttribute(k, g.attributes[k]);
+      h.setIndex(Array.from(g.index.array.slice(grp.start, grp.start + grp.count)));
+      return h.toNonIndexed();
+    };
+    walls.push(take(gw));
+    roofs.push(take(gr));
+  }
+  const w = mergeFlat(walls), r = mergeFlat(roofs);
+  const merged = mergeGeometries([w, r].filter(Boolean), true);
+  return merged;
 }
 
 // ---------- fountain (approximate: basin + pedestal + armillary sphere) ----------
@@ -334,12 +529,39 @@ export function buildSenado(data, opts = {}) {
   const all = data.buildings.concat(data.parts);
   const tiers = ['landmark', 'frontage', 'avenue', 'core', 'part', 'context'];
   const pickTables = [];
+  const trimMat = named(std(PALETTE.trim), 'Trim');
   for (const tier of tiers) {
-    const list = all.filter((b) => b.tier === tier);
-    if (!list.length) continue;
+    const tierList = all.filter((b) => b.tier === tier);
+    if (!tierList.length) continue;
     const tg = new THREE.Group();
     tg.name = `Buildings_${tier}`;
     buildingsGroup.add(tg);
+    // buildings with a photo-based facade spec get arcades, bands, cornice and parapet
+    for (const b of tierList.filter((q) => q.facade)) {
+      const [wc, rc] = tierColor(b);
+      const label = tier === 'landmark' ? b.key : tier;
+      const wallMat = colorMat(wc, `Wall_${label}`);
+      const g = facadeGeometries(b);
+      const grp = new THREE.Group();
+      grp.name = `B_${b.id}${b.key ? '_' + b.key : ''}`;
+      grp.userData = { ...info(b), facadeStyle: b.facade.style, evidence: b.facade.evidence };
+      const parts = [
+        ['body', g.walls, [wallMat, colorMat(rc, `Roof_${label}`)]],
+        ['arcade', g.screens, wallMat],
+        ['trim', g.trim, trimMat],
+      ];
+      for (const [part, geo, mat] of parts) {
+        if (!geo) continue;
+        const m = new THREE.Mesh(geo, mat);
+        m.name = `${grp.name}_${part}`;
+        m.userData = { ...info(b), facadeStyle: b.facade.style };
+        m.castShadow = m.receiveShadow = true;
+        grp.add(m);
+      }
+      tg.add(grp);
+    }
+    const list = tierList.filter((q) => !q.facade);
+    if (!list.length) continue;
     const individual = mode === 'export' ? tier !== 'context' : tier === 'landmark' || tier === 'frontage' || tier === 'avenue';
     if (individual) {
       for (const b of list) {
@@ -355,7 +577,7 @@ export function buildSenado(data, opts = {}) {
       }
     } else {
       const [wc, rc] = tierColor(list[0]);
-      const { geometry, triOwner } = mergeGeometries(list.map((b) => prismGeometry(b.outer, b.holes, b.h, b.minH)));
+      const { geometry, triOwner } = mergePrisms(list.map((b) => prismGeometry(b.outer, b.holes, b.h, b.minH)));
       const mesh = new THREE.Mesh(geometry, [colorMat(wc, `Facade_${tier}`), colorMat(rc, `Roof_${tier}`)]);
       mesh.name = `Buildings_${tier}_merged`;
       mesh.castShadow = mesh.receiveShadow = true;

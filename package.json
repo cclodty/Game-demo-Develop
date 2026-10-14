@@ -5,7 +5,8 @@
   "scripts": {
     "senado:data": "python3 senado/scripts/build_data.py",
     "senado:glb": "node senado/scripts/export_glb.mjs",
-    "senado:serve": "python3 -m http.server 8000 --directory senado"
+    "senado:serve": "python3 -m http.server 8000 --directory senado",
+    "test": "node --test senado/tests/*.test.mjs"
   },
   "dependencies": {
     "three": "0.160.0"
