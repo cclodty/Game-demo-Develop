@@ -18,6 +18,8 @@ export const PALETTE = {
   contextRoof: 0xb3b6b9,
   frontage: 0xeee5d2,
   trim: 0xf6f3ec,      // white mouldings: seen on every colonial facade around the square
+  awning: 0xf3f0e8,    // canvas hoods over the MGTO windows (photos #10, #87)
+  glass: 0x2e3539,
   granite: 0xbfa194,   // fountain steps (photos #87, #126)
   poolGranite: 0xa97563, // pink granite pool wall
   figure: 0xff6a2a,
@@ -47,16 +49,18 @@ function upward(verts, base, t) {
 }
 
 // ---------- prism (walls + flat roof) with UVs: walls u = perimeter m, v = height m ----------
-// opts.bottom adds a downward face at minH (arcade ceilings); opts.roof = false drops the top face.
+// opts.bottom adds a downward face at minH (arcade ceilings); opts.roof = false drops the top face;
+// opts.skip (Set of outer-ring edge indices) leaves those wall faces out so a wall with window openings can replace them.
 // Groups: 0 = walls (+ bottom), 1 = roof.
 export function prismGeometry(outer, holes, h, minH = 0, opts = {}) {
   const pos = [], nor = [], uv = [], idx = [];
-  const walls = (ring) => {
+  const walls = (ring, skip) => {
     let run = 0;
     for (let i = 0; i < ring.length; i++) {
       const a = ring[i], b = ring[(i + 1) % ring.length];
       const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
       if (len < 1e-3) continue;
+      if (skip && skip.has(i)) { run += len; continue; }
       // outward normal for CCW outer rings (holes are CW, so this flips correctly)
       const nx = (b[1] - a[1]) / len, ny = -(b[0] - a[0]) / len;
       const base = pos.length / 3;
@@ -69,8 +73,8 @@ export function prismGeometry(outer, holes, h, minH = 0, opts = {}) {
       run += len;
     }
   };
-  walls(outer);
-  holes.forEach(walls);
+  walls(outer, opts.skip);
+  holes.forEach((r) => walls(r));
   const contour = outer.map((p) => new THREE.Vector2(p[0], p[1]));
   const holeV = holes.map((r) => r.map((p) => new THREE.Vector2(p[0], p[1])));
   const tris = THREE.ShapeUtils.triangulateShape(contour, holeV);
@@ -300,7 +304,189 @@ function mergeFlat(geoms) {
   return list.length ? mergeGeometries(list, false) : null;
 }
 
-// Returns { walls, roof, trim, screens } geometries for one building with a facade spec.
+// ---------- windows: openings cut into the facade walls, recessed panes, white dressings ----------
+// Wall-local coordinates: s along the wall from its start corner, z up, o outward (negative = into the wall).
+// Pane UVs: u counts shutter leaves (two per window), v is metres from the opening's bottom; the louvre and
+// glazing textures tile on those.
+export const WINDOW_DEFAULTS = { depth: 0.25, surround: 0.18, sill: 0.6 };
+
+// Opening outline, counter-clockwise: flat bottom at z0, total height h, head given by shape.
+export function windowOutline(c, z0, w, h, shape, seg = 8, rise = headRise(w, h, shape)) {
+  const l = c - w / 2, r = c + w / 2;
+  const spring = z0 + h - rise;
+  const pts = [[l, z0], [r, z0], [r, spring]];
+  if (rise > 0) {
+    const R = (rise * rise + (w / 2) ** 2) / (2 * rise), cz = z0 + h - R;
+    const a0 = Math.atan2(spring - cz, w / 2), a1 = Math.PI - a0;
+    for (let k = 1; k < seg; k++) {
+      const a = a0 + ((a1 - a0) * k) / seg;
+      pts.push([c + R * Math.cos(a), cz + R * Math.sin(a)]);
+    }
+  }
+  pts.push([l, spring]);
+  return pts;
+}
+const headRise = (w, h, shape) => (shape === 'round' ? w / 2 : shape === 'segment' ? Math.min(w * 0.2, h * 0.2) : 0);
+
+// Triangles of a counter-clockwise outline in (s, z), optionally with holes, wound to face +o.
+function planarFace(contour, holes, o, uvFn, sink) {
+  const V = (p) => new THREE.Vector2(p[0], p[1]);
+  const all = contour.concat(...holes);
+  const tris = THREE.ShapeUtils.triangulateShape(contour.map(V), holes.map((h) => h.map(V)));
+  const base = sink.pos.length / 3;
+  for (const p of all) {
+    sink.pos.push(p[0], p[1], o);
+    sink.nor.push(0, 0, 1);
+    sink.uv.push(...uvFn(p[0], p[1]));
+  }
+  for (const t of tris) {
+    const [a, b, c] = t.map((i) => all[i]);
+    const ccw = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) > 0;
+    sink.idx.push(base + t[0], base + (ccw ? t[1] : t[2]), base + (ccw ? t[2] : t[1]));
+  }
+}
+
+const newSink = () => ({ pos: [], nor: [], uv: [], idx: [] });
+function sinkGeometry(s, m) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(s.pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(s.nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(s.uv, 2));
+  g.setIndex(s.idx);
+  return m ? g.applyMatrix4(m) : g;
+}
+
+// One facade wall from z0 to z1 with its window openings: the wall face plus the reveals (jambs, sill, head)
+// running `depth` into the wall. Returned with the prism's two groups (walls, empty roof) so it merges with the body.
+function holedWall(f, z0, z1, openings) {
+  const s = newSink();
+  planarFace([[0, z0], [f.L, z0], [f.L, z1], [0, z1]], openings.map((w) => w.pts), 0, (x, z) => [x, z], s);
+  for (const w of openings) {
+    const P = w.pts, d = w.depth;
+    for (let i = 0; i < P.length; i++) {
+      const a = P[i], b = P[(i + 1) % P.length];
+      const ds = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(ds, dz);
+      if (len < 1e-4) continue;
+      const nx = -dz / len, nz = ds / len;                  // faces into the opening
+      const base = s.pos.length / 3;
+      for (const [p, o] of [[a, 0], [b, 0], [b, -d], [a, -d]]) {
+        s.pos.push(p[0], p[1], o);
+        s.nor.push(nx, nz, 0);
+        s.uv.push(p[0] + p[1], o);
+      }
+      s.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    }
+  }
+  const g = sinkGeometry(s, edgeMatrix(f));
+  g.addGroup(0, s.idx.length, 0);
+  g.addGroup(s.idx.length, 0, 1);
+  return g;
+}
+
+// Panes at the back of an opening: an optional lower panel (lattice or balcony leaf), then the fill. Shutters cover
+// the rectangular part only; an arched head above them is glazed (fanlight), as in the photos.
+function windowPanes(f, w, add) {
+  const m = edgeMatrix(f);
+  const { c, z0, wd, h, shape, depth } = w;
+  const l = c - wd / 2;
+  const uvFn = (x, z) => [((x - l) / wd) * 2, z - z0];
+  const part = (key, pts) => {
+    const s = newSink();
+    planarFace(pts, [], -depth, uvFn, s);
+    add(key, sinkGeometry(s, m));
+  };
+  const rect = (za, zb) => [[l, za], [l + wd, za], [l + wd, zb], [l, zb]];
+  let zb = z0;
+  if (w.panel && w.panel.h < h - 0.5) {
+    part(w.panel.color, rect(z0, z0 + w.panel.h));
+    zb = z0 + w.panel.h;
+  }
+  const rise = headRise(wd, h, shape), spring = z0 + h - rise;
+  if (w.fill.startsWith('shutter') && rise > 0 && spring - zb > 0.3) {
+    part(w.fill, rect(zb, spring));
+    part('glass', windowOutline(c, spring, wd, rise, shape, 8, rise));
+  } else {
+    part(w.fill, windowOutline(c, zb, wd, z0 + h - zb, shape, 8, rise));
+  }
+}
+
+// White dressings: surround (architrave), sill, keystone, hood or pediment, balustrade panel; awnings separately.
+function windowDressing(f, w, trim, awnings, railings) {
+  const m = edgeMatrix(f);
+  const { c, z0, wd, h, shape } = w;
+  const sw = w.surround;
+  const l = c - wd / 2, r = c + wd / 2, topZ = z0 + h;
+  if (sw > 0) {
+    // inverted-U band around the opening, standing 7 cm proud of the wall
+    const rise = headRise(wd, h, shape);
+    const inner = windowOutline(c, z0, wd, h, shape, 8, rise).slice(1).reverse();          // up the left jamb, over, down to (r, z0)
+    const outer = windowOutline(c, z0, wd + 2 * sw, h + sw, shape, 8, rise && rise + sw).slice(2);   // up the right side, back over
+    const pts = [[l - sw, z0], [l, z0], ...inner, [r + sw, z0], ...outer];
+    const shapeObj = new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, z)));
+    trim.push(new THREE.ExtrudeGeometry(shapeObj, { depth: 0.07, bevelEnabled: false }).applyMatrix4(m));
+  }
+  if (z0 > 0.3) trim.push(wallBox(f, l - sw - 0.08, r + sw + 0.08, z0 - 0.12, z0, 0.14, 0.02));    // sill (doors have none)
+  if (w.keystone && shape !== 'rect') trim.push(wallBox(f, c - 0.17, c + 0.17, topZ - 0.15, topZ + sw + 0.2, 0.12, 0.02));
+  const hoodZ = topZ + sw;
+  if (w.hood === 'flat') trim.push(wallBox(f, l - sw - 0.15, r + sw + 0.15, hoodZ, hoodZ + 0.18, 0.18, 0.02));
+  if (w.hood === 'pediment') {
+    const half = wd / 2 + sw + 0.2;
+    const tri = new THREE.Shape([new THREE.Vector2(c - half, hoodZ), new THREE.Vector2(c + half, hoodZ), new THREE.Vector2(c, hoodZ + 0.45)]);
+    trim.push(new THREE.ExtrudeGeometry(tri, { depth: 0.16, bevelEnabled: false }).applyMatrix4(m));
+  }
+  if (w.balustrade) {
+    const bh = w.balustrade.h;
+    if (w.balustrade.railing) {
+      // iron balconette: thin dark railing on a shallow slab
+      trim.push(wallBox(f, l - sw - 0.1, r + sw + 0.1, z0 - 0.14, z0, 0.42, 0.02));
+      railings.push(wallBox(f, l - sw - 0.05, r + sw + 0.05, z0, z0 + bh, 0.4, -0.36));
+    } else {
+      trim.push(wallBox(f, l - 0.04, r + 0.04, z0, z0 + bh, 0.1, 0.12));
+    }
+  }
+  if (w.awning && shape === 'round') {
+    // scalloped canvas hood over the arched head, ~0.6 m deep (photos #10, #87)
+    const R = wd / 2 + 0.06;
+    const g = new THREE.SphereGeometry(R, 12, 4, 0, Math.PI, 0, Math.PI / 2);
+    g.scale(1, 1.05, 0.65);
+    g.translate(c, topZ - wd / 2 - 0.2, 0.02);
+    awnings.push(g.applyMatrix4(m));
+  }
+}
+
+// Window openings for one wall, one per bay and storey. Returns [] when the wall is too short or has no windows.
+export function windowLayout(f, W, storeys, bays, kind) {
+  const spec = kind === 'street' && W.onStreet ? { ...W, ...W.onStreet } : W;
+  const out = [];
+  const { piers, step } = bays;
+  for (const st of storeys) {
+    const ws = st.k === 0 ? spec.ground : { ...spec, h: spec.h[Math.min(st.k - 1, spec.h.length - 1)] };
+    if (!ws || st.skip) continue;
+    const ground = st.k === 0;
+    const full = ground ? { ...spec, ...ws, hood: ws.hood, balustrade: ws.balustrade, awning: false, panel: ws.panel } : ws;
+    const sw = full.surround ?? WINDOW_DEFAULTS.surround;
+    const z0 = st.floor + Math.max(0.05, full.sill ?? WINDOW_DEFAULTS.sill);
+    const room = st.ceil - z0 - sw - (full.hood ? 0.65 : 0.2);
+    let h = Math.min(full.h, room);
+    let shape = full.shape;
+    const wd = Math.min(full.w, step - 0.56 - 2 * sw - 0.15);
+    if (wd < 0.7 || h < 1.2) continue;
+    if (shape === 'round' && h < wd / 2 + 0.6) shape = 'segment';
+    const depth = full.depth ?? WINDOW_DEFAULTS.depth;
+    for (let k = 0; k < piers.length - 1; k++) {
+      const c = (piers[k] + piers[k + 1]) / 2;
+      out.push({
+        c, z0, wd, h, shape, depth, surround: sw, storey: st.k,
+        fill: full.fill || 'glass', panel: full.panel || null, keystone: !!full.keystone, hood: full.hood || null,
+        balustrade: full.balustrade || null, awning: !!full.awning,
+        pts: windowOutline(c, z0, wd, h, shape),
+      });
+    }
+  }
+  return out;
+}
+
+// Returns { walls, trim, screens, panes, awnings, railings } geometries for one building with a facade spec.
 export function facadeGeometries(b) {
   const F = b.facade;
   const ring = b.outer;
@@ -310,20 +496,6 @@ export function facadeGeometries(b) {
   const aH = arcade ? arcade.height : 0;
   const arcadeEdges = arcade ? F.arcadeEdges.filter((i) => edgeFrame(ring, i).L >= 2.5) : [];
 
-  const out = { walls: [], roof: [], trim: [], screens: [] };
-  if (arcadeEdges.length) {
-    if (!F.passage) {                                          // a passage (lane under the building) has no ground floor
-      const depth = new Map(arcadeEdges.map((i) => [i, arcade.depth]));
-      const recessed = offsetEdges(ring, depth);
-      out.walls.push(prismGeometry(recessed, b.holes, aH, 0, { roof: false }));
-    }
-    const upper = prismGeometry(ring, b.holes, roofH, aH, { bottom: true });
-    out.walls.push(upper);
-    for (const i of arcadeEdges) out.screens.push(arcadeScreenGeometry(edgeFrame(ring, i), arcade));
-  } else {
-    out.walls.push(prismGeometry(ring, b.holes, roofH, 0));
-  }
-
   // floor lines: cumulative heights of the floors listed in the spec, entablature above the arcade
   const lines = [];
   let z = 0;
@@ -332,6 +504,46 @@ export function facadeGeometries(b) {
   // taller buildings in the same style get extra storeys at the top storey height
   const top = F.floors[F.floors.length - 1];
   while (z + top < corniceZ - top * 0.6) { z += top; lines.push(z); }
+  const bandH = (k) => (k === 0 && arcadeEdges.length ? 0.6 : 0.28);
+  const storeyTops = lines.filter((lz) => lz < corniceZ - 1).concat([corniceZ]);
+  const storeys = storeyTops.map((ceil, k) => ({ k, floor: k ? storeyTops[k - 1] + bandH(k - 1) : 0, ceil, skip: k === 0 && arcadeEdges.length > 0 }));
+  const bays = (f) => bayLayout(f.L, F.arcade ? F.arcade.bay : F.bay || 3.8, F.arcade ? F.arcade.pier : 0.9);
+
+  // which walls get windows, and their openings
+  const W = F.windows && F.windows.shape ? F.windows : null;
+  const windowed = new Map();
+  if (W) {
+    for (const i of F.edges) {
+      const f = edgeFrame(ring, i);
+      if (f.L < 2.5) continue;
+      const ws = windowLayout(f, W, storeys, bays(f), (F.edgeKinds || {})[i]);
+      if (ws.length) windowed.set(i, { f, ws });
+    }
+  }
+  const skip = new Set(windowed.keys());
+
+  const out = { walls: [], trim: [], screens: [], panes: new Map(), awnings: [], railings: [] };
+  const addPane = (key, g) => { if (!out.panes.has(key)) out.panes.set(key, []); out.panes.get(key).push(g); };
+  if (arcadeEdges.length) {
+    if (!F.passage) {                                          // a passage (lane under the building) has no ground floor
+      const depth = new Map(arcadeEdges.map((i) => [i, arcade.depth]));
+      const recessed = offsetEdges(ring, depth);
+      out.walls.push(prismGeometry(recessed, b.holes, aH, 0, { roof: false }));
+    }
+    const upper = prismGeometry(ring, b.holes, roofH, aH, { bottom: true, skip });
+    out.walls.push(upper);
+    for (const i of arcadeEdges) out.screens.push(arcadeScreenGeometry(edgeFrame(ring, i), arcade));
+  } else {
+    out.walls.push(prismGeometry(ring, b.holes, roofH, 0, { skip }));
+  }
+  for (const { f, ws } of windowed.values()) {
+    out.walls.push(holedWall(f, arcadeEdges.length ? aH : 0, roofH, ws));
+    for (const w of ws) {
+      windowPanes(f, w, addPane);
+      windowDressing(f, w, out.trim, out.awnings, out.railings);
+    }
+  }
+
   for (const i of F.edges) {
     const f = edgeFrame(ring, i);
     if (f.L < 1.5) continue;
@@ -356,10 +568,15 @@ export function facadeGeometries(b) {
       if (f.L > 0.5) out.trim.push(wallBox(f, -0.05, f.L + 0.05, b.h - 0.14, b.h, 0.06, F.parapet.t));   // coping
     }
   }
+  const paneKeys = [...out.panes.keys()];
   return {
     walls: mergeFlatGrouped(out.walls),
     trim: mergeFlat(out.trim),
     screens: mergeFlat(out.screens),
+    panes: paneKeys.length ? { keys: paneKeys, geometry: mergeGeometries(paneKeys.map((k) => mergeFlat(out.panes.get(k))), true) } : null,
+    awnings: mergeFlat(out.awnings),
+    railings: mergeFlat(out.railings),
+    windowCount: [...windowed.values()].reduce((n, e) => n + e.ws.length, 0),
   };
 }
 
@@ -630,6 +847,22 @@ export function buildSenado(data, opts = {}) {
   const tiers = ['landmark', 'frontage', 'avenue', 'core', 'part', 'context'];
   const pickTables = [];
   const trimMat = named(std(PALETTE.trim), 'Trim');
+  const awningMat = named(std(PALETTE.awning, { side: THREE.DoubleSide }), 'Awning');
+  const paneMats = new Map();
+  const paneMat = (key) => {
+    if (!paneMats.has(key)) {
+      const wc = (data.windowColors || {})[key] || {};
+      const shutter = key.startsWith('shutter');
+      const glazed = key === 'glass' || key.startsWith('glaze');
+      const map = (shutter ? opts.louvreTexture : glazed ? opts.glazingTexture : null) || null;
+      // with the glazing map the colour is the bar colour and the map darkens the panes; without it, the mean colour
+      const color = glazed && (map || opts.mode === 'export') && wc.frame ? wc.frame : wc.hex || PALETTE.glass;
+      const m = std(color, { roughness: glazed ? 0.3 : 0.85, map });
+      m.userData.detailMap = shutter ? 'louvre' : glazed ? 'glazing' : null;
+      paneMats.set(key, named(m, `Window_${key}`));
+    }
+    return paneMats.get(key);
+  };
   for (const tier of tiers) {
     const tierList = all.filter((b) => b.tier === tier);
     if (!tierList.length) continue;
@@ -640,7 +873,9 @@ export function buildSenado(data, opts = {}) {
     for (const b of tierList.filter((q) => q.facade)) {
       const [wc, rc] = tierColor(b);
       const label = tier === 'landmark' ? b.key : tier;
-      const wallMat = colorMat(wc, `Wall_${label}`);
+      const wcol = b.facade.wallColor;
+      const wallMat = colorMat(wc, `Wall_${wcol ? wcol.key : label}`);
+      const trim = wcol && wcol.trim ? colorMat(new THREE.Color(wcol.trim).getHex(), `Trim_${wcol.key}`) : trimMat;
       const g = facadeGeometries(b);
       const grp = new THREE.Group();
       grp.name = `B_${b.id}${b.key ? '_' + b.key : ''}`;
@@ -648,7 +883,10 @@ export function buildSenado(data, opts = {}) {
       const parts = [
         ['body', g.walls, [wallMat, colorMat(rc, `Roof_${label}`)]],
         ['arcade', g.screens, wallMat],
-        ['trim', g.trim, trimMat],
+        ['trim', g.trim, trim],
+        ['windows', g.panes && g.panes.geometry, g.panes && g.panes.keys.map(paneMat)],
+        ['awnings', g.awnings, awningMat],
+        ['railings', g.railings, paneMat('lattice')],
       ];
       for (const [part, geo, mat] of parts) {
         if (!geo) continue;

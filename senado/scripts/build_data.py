@@ -285,6 +285,10 @@ def main():
             "source": "© OpenStreetMap contributors (ODbL), Overpass API extract " + json.loads(RAW.read_text())["osm3s"]["timestamp_osm_base"],
         },
         "landmarks": landmarks,
+        "wallColors": {k: {"hex": v["hex"], "label": v["label"], **({"trim": v["trim"]["hex"]} if "trim" in v else {})}
+                       for k, v in curated.get("wallColors", {}).items() if not k.startswith("_")},
+        "windowColors": {k: {f: v[f] for f in ("hex", "frame", "label") if f in v}
+                         for k, v in curated.get("windowColors", {}).items() if not k.startswith("_")},
         "squares": squares,
         "buildings": buildings,
         "parts": parts,
@@ -413,8 +417,7 @@ def attach_facades(buildings, curated):
         b = by_id.get(spec["osm"])
         if not b:
             raise SystemExit(f"facade spec for unknown building {spec['osm']}")
-        style = dict(styles[spec["style"]])
-        style.update(spec.get("override", {}))
+        style = facade_style(styles, spec)
         on = spec.get("on", "square")
         if isinstance(on, list):
             edges = on
@@ -425,18 +428,32 @@ def attach_facades(buildings, curated):
         if isinstance(arcade_on, str):
             kinds = arcade_on.split("+")
             arcade_on = [f["i"] for f in b.get("fronts", []) if f["kind"] in kinds]
+        kinds = {f["i"]: f["kind"] for f in b.get("fronts", [])}
         b["facade"] = {"style": spec["style"], **style, "edges": edges, "arcadeEdges": arcade_on,
+                       "edgeKinds": {str(i): kinds.get(i, "square") for i in edges},
                        "evidence": spec.get("evidence", []), "note": spec.get("note"),
                        "wallColor": wall_color(curated, spec)}
 
 
+def facade_style(styles, spec):
+    """Style dict with the spec's overrides; a spec's windows entry is merged key by key over the style's."""
+    style = dict(styles[spec["style"]])
+    style.update(spec.get("override", {}))
+    if "windows" in spec:
+        style["windows"] = {**style.get("windows", {}), **spec["windows"]}
+    return style
+
+
 def wall_color(curated, spec):
-    """{hex, label, samples} for a facade spec's photo-sampled wall colour, or None while unchecked."""
+    """{key, hex, label, photos[, trim]} for a facade spec's photo-sampled wall colour, or None while unchecked."""
     key = spec.get("wall")
     if not key:
         return None
     c = curated["wallColors"][key]
-    return {"key": key, "hex": c["hex"], "label": c["label"], "photos": sorted({x["photo"] for x in c["samples"]})}
+    out = {"key": key, "hex": c["hex"], "label": c["label"], "photos": sorted({x["photo"] for x in c["samples"]})}
+    if "trim" in c:                                   # mouldings that are not the usual white
+        out["trim"] = c["trim"]["hex"]
+    return out
 
 
 def add_bridges(buildings, curated):
@@ -455,11 +472,12 @@ def add_bridges(buildings, curated):
         d = br["depth"]
         ring = clean_ring([A, B, (B[0] - nB[0] * d, B[1] - nB[1] * d), (A[0] - nA[0] * d, A[1] - nA[1] * d)])
         front = next(i for i in range(len(ring)) if ring[i] == [r2(A[0]), r2(A[1])] and ring[(i + 1) % len(ring)] == [r2(B[0]), r2(B[1])])
-        style = dict(styles[br["style"]])
+        style = facade_style(styles, br)
         buildings.append({
             "id": br["id"], "name": br["name"], "h": br["h"], "minH": 0, "hSrc": "bridge", "levels": None,
             "outer": ring, "holes": [], "tier": "frontage", "dSquare": 0.0,
             "facade": {"style": br["style"], **style, "edges": [front], "arcadeEdges": [front], "passage": True,
+                       "edgeKinds": {str(front): "square"},
                        "evidence": br.get("evidence", []), "note": br.get("note"), "wallColor": wall_color(curated, br)},
         })
 

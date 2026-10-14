@@ -151,13 +151,42 @@
         "t": 0.3,
         "type": "balustrade"
       },
-      "pilasters": true
+      "pilasters": true,
+      "windows": {
+        "shape": "round",
+        "w": 1.8,
+        "h": [
+          4.2,
+          3.8
+        ],
+        "sill": 0.35,
+        "depth": 0.3,
+        "fill": "glass",
+        "panel": {
+          "h": 1.1,
+          "color": "lattice"
+        },
+        "awning": true,
+        "surround": 0.2,
+        "keystone": true,
+        "onStreet": {
+          "awning": false,
+          "fill": "shutter_maroon",
+          "panel": null
+        },
+        "evidence": [
+          "#10",
+          "#87",
+          "#126",
+          "#130"
+        ]
+      }
     },
     "colonial_arcade_narrow": {
       "floors": [
         4.8,
-        4.2,
-        4.2
+        4.6,
+        4.6
       ],
       "arcade": {
         "height": 4.8,
@@ -178,7 +207,25 @@
         "t": 0.3,
         "type": "balustrade"
       },
-      "pilasters": true
+      "pilasters": true,
+      "windows": {
+        "shape": "segment",
+        "w": 1.5,
+        "h": [
+          3.0
+        ],
+        "sill": 0.15,
+        "depth": 0.25,
+        "fill": "shutter_brown",
+        "balustrade": {
+          "h": 0.9
+        },
+        "surround": 0.18,
+        "evidence": [
+          "#57",
+          "#134"
+        ]
+      }
     },
     "tall_arcade": {
       "floors": [
@@ -205,7 +252,23 @@
         "t": 0.3,
         "type": "solid"
       },
-      "pilasters": true
+      "pilasters": true,
+      "windows": {
+        "shape": "round",
+        "w": 2.4,
+        "h": [
+          3.9
+        ],
+        "sill": 0.5,
+        "depth": 0.3,
+        "fill": "glass",
+        "surround": 0.25,
+        "keystone": true,
+        "evidence": [
+          "#133",
+          "#135"
+        ]
+      }
     },
     "arched_shopfront3": {
       "floors": [
@@ -232,7 +295,26 @@
         "t": 0.3,
         "type": "balustrade"
       },
-      "pilasters": true
+      "pilasters": true,
+      "windows": {
+        "shape": "round",
+        "w": 1.6,
+        "h": [
+          3.0
+        ],
+        "sill": 0.6,
+        "depth": 0.25,
+        "fill": "glass",
+        "panel": {
+          "h": 1.0,
+          "color": "shutter_maroon"
+        },
+        "surround": 0.18,
+        "evidence": [
+          "#106",
+          "#130"
+        ]
+      }
     },
     "civic2": {
       "floors": [
@@ -250,7 +332,34 @@
         "type": "balustrade"
       },
       "pilasters": true,
-      "bay": 4.4
+      "bay": 4.4,
+      "windows": {
+        "shape": "rect",
+        "w": 1.4,
+        "h": [
+          2.7
+        ],
+        "sill": 0.7,
+        "depth": 0.25,
+        "fill": "glass",
+        "surround": 0.2,
+        "hood": "pediment",
+        "balustrade": {
+          "h": 0.9,
+          "railing": true
+        },
+        "ground": {
+          "shape": "rect",
+          "w": 1.3,
+          "h": 2.5,
+          "sill": 1.1,
+          "fill": "glass"
+        },
+        "evidence": [
+          "#28",
+          "#127"
+        ]
+      }
     },
     "civic3": {
       "floors": [
@@ -269,7 +378,30 @@
         "type": "balustrade"
       },
       "pilasters": true,
-      "bay": 4.2
+      "bay": 4.2,
+      "windows": {
+        "shape": "rect",
+        "w": 1.5,
+        "h": [
+          2.8,
+          2.6
+        ],
+        "sill": 0.9,
+        "depth": 0.25,
+        "fill": "glass",
+        "surround": 0.22,
+        "hood": "flat",
+        "ground": {
+          "shape": "round",
+          "w": 1.6,
+          "h": 3.4,
+          "sill": 0.8,
+          "fill": "glass"
+        },
+        "evidence": [
+          "#47"
+        ]
+      }
     },
     "plain2": {
       "floors": [
@@ -286,8 +418,71 @@
         "t": 0.3,
         "type": "solid"
       },
-      "pilasters": false
-    }
+      "pilasters": false,
+      "bay": 3.0,
+      "windows": {
+        "shape": "rect",
+        "w": 1.25,
+        "h": [
+          2.5
+        ],
+        "sill": 0.9,
+        "depth": 0.2,
+        "fill": "shutter_grey",
+        "surround": 0.2,
+        "hood": "flat",
+        "ground": {
+          "shape": "rect",
+          "w": 1.3,
+          "h": 2.4,
+          "sill": 0.8,
+          "fill": "shutter_grey"
+        },
+        "evidence": [
+          "#132"
+        ]
+      }
+    },
+    "deco_avenue": {
+      "floors": [
+        5.0,
+        4.0
+      ],
+      "arcade": null,
+      "cornice": {
+        "h": 0.4,
+        "proj": 0.2
+      },
+      "parapet": {
+        "h": 1.0,
+        "t": 0.25,
+        "type": "solid"
+      },
+      "pilasters": false,
+      "bay": 3.2,
+      "windows": {
+        "shape": "rect",
+        "w": 2.6,
+        "h": [
+          2.6
+        ],
+        "sill": 0.6,
+        "depth": 0.15,
+        "fill": "glass",
+        "surround": 0.12,
+        "ground": {
+          "shape": "rect",
+          "w": 2.8,
+          "h": 3.6,
+          "sill": 0.2,
+          "fill": "glass"
+        },
+        "evidence": [
+          "#263"
+        ]
+      }
+    },
+    "_windowsNote": "windows: one opening per bay, centred between the pilaster/arcade piers. h lists the opening height per upper storey (the last value repeats); sill is measured from the floor band; ground applies to buildings without an arcade. shape: round = semicircular head, segment = shallow arch, rect = flat lintel. fill/panel name windowColors. Openings are clamped to fit under the next band. onStreet overrides apply to walls facing a street rather than the square. Measured by eye with storey heights as scale."
   },
   "facades": [
     {
@@ -348,7 +543,11 @@
         "#31",
         "#131"
       ],
-      "wall": "shun_tak"
+      "wall": "shun_tak",
+      "windows": {
+        "fill": "glaze_teal",
+        "awning": false
+      }
     },
     {
       "osm": "w761767128",
@@ -368,13 +567,17 @@
       "style": "colonial_arcade_narrow",
       "on": "square",
       "arcadeOn": "square",
-      "note": "窄段西面一排，騎樓連續",
+      "note": "黃枝記（議事亭前地 17 號）：一樓長方窗、白色窗框，百葉向外打開",
       "evidence": [
+        "#136",
         "#52",
-        "#57",
-        "#134"
+        "#57"
       ],
-      "wall": "leung_chok"
+      "wall": "wong_chi_kei",
+      "windows": {
+        "shape": "rect",
+        "fill": "glass"
+      }
     },
     {
       "osm": "w761767130",
@@ -382,11 +585,14 @@
       "on": "square",
       "arcadeOn": "square",
       "evidence": [
-        "#52",
-        "#57",
-        "#134"
+        "#136"
       ],
-      "wall": "leung_chok"
+      "wall": "wong_chi_kei",
+      "windows": {
+        "shape": "segment",
+        "fill": "shutter_maroon"
+      },
+      "note": "黃枝記北鄰：弧頂窗、栗紅百葉、白欄杆"
     },
     {
       "osm": "w761767131",
@@ -394,11 +600,15 @@
       "on": "square",
       "arcadeOn": "square",
       "evidence": [
-        "#52",
-        "#57",
-        "#134"
+        "#136",
+        "#175"
       ],
-      "wall": "leung_chok"
+      "wall": "row_yellow",
+      "windows": {
+        "shape": "round",
+        "fill": "shutter_green"
+      },
+      "note": "檸檬黃、圓拱窗配墨綠百葉"
     },
     {
       "osm": "w761767132",
@@ -406,11 +616,15 @@
       "on": "square",
       "arcadeOn": "square",
       "evidence": [
-        "#52",
-        "#57",
-        "#134"
+        "#136",
+        "#175"
       ],
-      "wall": "leung_chok"
+      "wall": "row_yellow",
+      "windows": {
+        "shape": "round",
+        "fill": "shutter_green"
+      },
+      "note": "檸檬黃、圓拱窗配墨綠百葉"
     },
     {
       "osm": "w761767134",
@@ -418,11 +632,15 @@
       "on": "square",
       "arcadeOn": "square",
       "evidence": [
-        "#52",
-        "#57",
-        "#134"
+        "#174",
+        "#175"
       ],
-      "wall": "leung_chok"
+      "wall": "starbucks_pink",
+      "windows": {
+        "shape": "round",
+        "fill": "shutter_green"
+      },
+      "note": "粉紅樓（星巴克）：圓拱窗、墨綠百葉、白欄杆"
     },
     {
       "osm": "w761767135",
@@ -430,11 +648,15 @@
       "on": "square",
       "arcadeOn": "square",
       "evidence": [
-        "#52",
-        "#57",
-        "#134"
+        "#174",
+        "#175"
       ],
-      "wall": "leung_chok"
+      "wall": "starbucks_pink",
+      "windows": {
+        "shape": "round",
+        "fill": "shutter_green"
+      },
+      "note": "粉紅樓（星巴克）：圓拱窗、墨綠百葉、白欄杆"
     },
     {
       "osm": "w330368254",
@@ -479,7 +701,49 @@
         "#28",
         "#40"
       ],
-      "wall": "santa_casa"
+      "wall": "santa_casa",
+      "windows": {
+        "shape": "round",
+        "w": 1.6,
+        "h": [
+          3.6
+        ],
+        "sill": 0.5,
+        "depth": 0.6,
+        "fill": "glass",
+        "hood": null,
+        "balustrade": null,
+        "ground": {
+          "shape": "round",
+          "w": 1.6,
+          "h": 4.0,
+          "sill": 0.0,
+          "fill": "glass",
+          "depth": 0.6
+        },
+        "onStreet": {
+          "shape": "rect",
+          "w": 1.3,
+          "h": [
+            2.8
+          ],
+          "sill": 0.9,
+          "depth": 0.25,
+          "fill": "shutter_green",
+          "hood": "pediment",
+          "ground": {
+            "shape": "rect",
+            "w": 1.3,
+            "h": 2.6,
+            "sill": 0.9,
+            "fill": "shutter_green"
+          }
+        },
+        "evidence": [
+          "#87",
+          "#153"
+        ]
+      }
     },
     {
       "osm": "w192573674",
@@ -502,6 +766,164 @@
         "#47"
       ],
       "wall": "correios"
+    },
+    {
+      "osm": "w330368255",
+      "style": "colonial_arcade3",
+      "on": "square",
+      "arcadeOn": "square",
+      "note": "力騰商業中心（Swatch）：白框淡黃，兩層高大圓拱窗",
+      "evidence": [
+        "#174",
+        "#188"
+      ],
+      "wall": "lek_tang",
+      "windows": {
+        "w": 2.2,
+        "h": [
+          4.4,
+          4.0
+        ],
+        "awning": false,
+        "panel": null
+      }
+    },
+    {
+      "osm": "w818462126",
+      "style": "colonial_arcade3",
+      "on": "square",
+      "arcadeOn": "square",
+      "note": "力騰北鄰：黃牆、深色木格長窗、白欄杆",
+      "evidence": [
+        "#174",
+        "#188"
+      ],
+      "wall": "yellow_lattice",
+      "windows": {
+        "shape": "rect",
+        "w": 2.4,
+        "h": [
+          3.4
+        ],
+        "sill": 0.9,
+        "fill": "glaze_wood",
+        "awning": false,
+        "panel": null,
+        "keystone": false,
+        "balustrade": {
+          "h": 0.9
+        }
+      }
+    },
+    {
+      "osm": "w818462127",
+      "style": "colonial_arcade_narrow",
+      "on": "square",
+      "arcadeOn": "square",
+      "override": {
+        "pilasters": false
+      },
+      "note": "北端米白一排：拱窗、深啡線腳",
+      "evidence": [
+        "#188"
+      ],
+      "wall": "north_cream",
+      "windows": {
+        "shape": "round",
+        "w": 1.6,
+        "fill": "glaze_wood",
+        "balustrade": null
+      }
+    },
+    {
+      "osm": "w818462128",
+      "style": "colonial_arcade_narrow",
+      "on": "square",
+      "arcadeOn": "square",
+      "override": {
+        "pilasters": false
+      },
+      "note": "明仁商業中心：同上",
+      "evidence": [
+        "#188"
+      ],
+      "wall": "north_cream",
+      "windows": {
+        "shape": "round",
+        "w": 1.6,
+        "fill": "glaze_wood",
+        "balustrade": null
+      }
+    },
+    {
+      "osm": "w818462129",
+      "style": "colonial_arcade_narrow",
+      "on": "square",
+      "arcadeOn": "square",
+      "override": {
+        "pilasters": false
+      },
+      "note": "北端盡頭（Swarovski）：米白牆、深啡橫線、兩層圓拱窗",
+      "evidence": [
+        "#188"
+      ],
+      "wall": "north_cream",
+      "windows": {
+        "shape": "round",
+        "w": 2.0,
+        "fill": "glaze_wood",
+        "balustrade": null
+      }
+    },
+    {
+      "osm": "w818390021",
+      "style": "deco_avenue",
+      "on": [
+        2
+      ],
+      "note": "新馬路南面（TSL／周大福）：裝飾藝術風格，橫向長窗",
+      "evidence": [
+        "#263"
+      ],
+      "wall": "apollo_mint"
+    },
+    {
+      "osm": "w733334692",
+      "style": "deco_avenue",
+      "on": [
+        0
+      ],
+      "override": {
+        "bay": 2.6
+      },
+      "note": "APOLLO 字樣的窄樓，緊鄰市政署",
+      "evidence": [
+        "#263"
+      ],
+      "wall": "apollo_mint",
+      "windows": {
+        "w": 1.1,
+        "h": [
+          2.4
+        ]
+      }
+    },
+    {
+      "osm": "w761767121",
+      "style": "deco_avenue",
+      "on": "square",
+      "note": "北端西面的現代樓：米白、橫向長窗與露台",
+      "evidence": [
+        "#188"
+      ],
+      "wall": "modern_cream",
+      "windows": {
+        "w": 2.8,
+        "h": [
+          2.4
+        ],
+        "surround": 0.08
+      }
     }
   ],
   "bridges": [
@@ -531,7 +953,7 @@
     }
   ],
   "wallColors": {
-    "_note": "hue and saturation are the circular mean / median of the brightest 40 % of wall-coloured pixels inside hand-picked boxes (scripts: see README); value is set per material because photo exposures differ (sunny shots clip, overcast shots run dark).",
+    "_note": "hue and saturation are the circular mean / median of the brightest 40 % of wall-coloured pixels inside hand-picked boxes (scripts: see README); value is set per material because photo exposures differ (sunny shots clip, overcast shots run dark). trim (optional): colour of the mouldings when they are not the usual white.",
     "mgto_yellow": {
       "hex": "#e0c99d",
       "hsv": [
@@ -645,7 +1067,7 @@
         0.3,
         0.86
       ],
-      "label": "梁族大廈及窄段西面一排，偏檸檬黃",
+      "label": "梁族大廈，偏檸檬黃",
       "samples": [
         {
           "photo": "#134",
@@ -957,6 +1379,769 @@
             42.9,
             0.411,
             0.729
+          ]
+        }
+      ]
+    },
+    "wong_chi_kei": {
+      "hex": "#e0cfaf",
+      "hsv": [
+        39,
+        0.22,
+        0.88
+      ],
+      "label": "黃枝記及其北鄰（窄段西面），陰天下的淡黃",
+      "samples": [
+        {
+          "photo": "#136",
+          "box": [
+            0,
+            170,
+            960,
+            380
+          ],
+          "hsv": [
+            38.2,
+            0.222,
+            0.886
+          ]
+        },
+        {
+          "photo": "#136",
+          "box": [
+            470,
+            0,
+            720,
+            170
+          ],
+          "hsv": [
+            39.6,
+            0.225,
+            0.871
+          ]
+        }
+      ]
+    },
+    "row_yellow": {
+      "hex": "#e0d390",
+      "hsv": [
+        50,
+        0.36,
+        0.88
+      ],
+      "label": "窄段西面綠窗一排，檸檬黃",
+      "samples": [
+        {
+          "photo": "#175",
+          "box": [
+            0,
+            90,
+            320,
+            350
+          ],
+          "hsv": [
+            50.6,
+            0.339,
+            0.882
+          ]
+        },
+        {
+          "photo": "#175",
+          "box": [
+            0,
+            380,
+            320,
+            470
+          ],
+          "hsv": [
+            50.1,
+            0.382,
+            0.894
+          ]
+        }
+      ]
+    },
+    "starbucks_pink": {
+      "hex": "#e6cbb8",
+      "hsv": [
+        26,
+        0.2,
+        0.9
+      ],
+      "label": "窄段西北的粉紅樓（星巴克），偏桃色",
+      "samples": [
+        {
+          "photo": "#175",
+          "box": [
+            330,
+            110,
+            620,
+            340
+          ],
+          "hsv": [
+            24.5,
+            0.183,
+            0.918
+          ]
+        },
+        {
+          "photo": "#175",
+          "box": [
+            630,
+            330,
+            950,
+            460
+          ],
+          "hsv": [
+            24.6,
+            0.224,
+            0.898
+          ]
+        },
+        {
+          "photo": "#175",
+          "box": [
+            440,
+            130,
+            490,
+            330
+          ],
+          "hsv": [
+            30.0,
+            0.209,
+            0.918
+          ]
+        },
+        {
+          "photo": "#175",
+          "box": [
+            610,
+            130,
+            660,
+            330
+          ],
+          "hsv": [
+            30.2,
+            0.168,
+            0.922
+          ]
+        }
+      ]
+    },
+    "lek_tang": {
+      "hex": "#e6d2ac",
+      "hsv": [
+        40,
+        0.25,
+        0.9
+      ],
+      "label": "力騰商業中心（Swatch），白框淡黃",
+      "samples": [
+        {
+          "photo": "#174",
+          "box": [
+            130,
+            0,
+            370,
+            480
+          ],
+          "hsv": [
+            43.2,
+            0.263,
+            0.682
+          ]
+        },
+        {
+          "photo": "#188",
+          "box": [
+            780,
+            180,
+            960,
+            520
+          ],
+          "hsv": [
+            36.1,
+            0.254,
+            0.91
+          ]
+        }
+      ]
+    },
+    "yellow_lattice": {
+      "hex": "#dbc39a",
+      "hsv": [
+        38,
+        0.3,
+        0.86
+      ],
+      "label": "力騰北鄰，深色木格窗的黃樓",
+      "samples": [
+        {
+          "photo": "#174",
+          "box": [
+            0,
+            0,
+            150,
+            400
+          ],
+          "hsv": [
+            38.3,
+            0.343,
+            0.612
+          ]
+        },
+        {
+          "photo": "#188",
+          "box": [
+            610,
+            0,
+            800,
+            300
+          ],
+          "hsv": [
+            38.6,
+            0.266,
+            0.792
+          ]
+        }
+      ]
+    },
+    "north_cream": {
+      "hex": "#f2e9de",
+      "hsv": [
+        34,
+        0.085,
+        0.95
+      ],
+      "label": "北端米白一排（Swarovski 一帶），深啡線腳",
+      "samples": [
+        {
+          "photo": "#188",
+          "box": [
+            195,
+            170,
+            450,
+            470
+          ],
+          "hsv": [
+            34.3,
+            0.081,
+            0.965
+          ]
+        },
+        {
+          "photo": "#188",
+          "box": [
+            450,
+            60,
+            610,
+            480
+          ],
+          "hsv": [
+            34.5,
+            0.087,
+            0.937
+          ]
+        }
+      ],
+      "trim": {
+        "hex": "#60524e",
+        "label": "深啡線腳與簷口",
+        "samples": [
+          {
+            "photo": "#188",
+            "box": [
+              200,
+              283,
+              450,
+              292
+            ],
+            "rgb": [
+              84,
+              68,
+              70
+            ]
+          },
+          {
+            "photo": "#188",
+            "box": [
+              470,
+              280,
+              600,
+              420
+            ],
+            "rgb": [
+              109,
+              95,
+              86
+            ]
+          }
+        ]
+      }
+    },
+    "apollo_mint": {
+      "hex": "#9fc6cc",
+      "hsv": [
+        188,
+        0.22,
+        0.8
+      ],
+      "label": "新馬路南面 APOLLO 大樓，淺水綠（陰天）",
+      "samples": [
+        {
+          "photo": "#263",
+          "box": [
+            440,
+            40,
+            590,
+            400
+          ],
+          "hsv": [
+            192.0,
+            0.138,
+            0.741
+          ]
+        },
+        {
+          "photo": "#263",
+          "box": [
+            0,
+            0,
+            430,
+            380
+          ],
+          "hsv": [
+            192.0,
+            0.238,
+            0.773
+          ]
+        }
+      ]
+    },
+    "modern_cream": {
+      "hex": "#ebe1d1",
+      "hsv": [
+        37,
+        0.11,
+        0.92
+      ],
+      "label": "北端西面的現代樓，米白（橫向露台）",
+      "samples": [
+        {
+          "photo": "#188",
+          "box": [
+            0,
+            0,
+            200,
+            260
+          ],
+          "hsv": [
+            36.2,
+            0.132,
+            0.902
+          ]
+        },
+        {
+          "photo": "#188",
+          "box": [
+            0,
+            0,
+            200,
+            260
+          ],
+          "hsv": [
+            37.9,
+            0.09,
+            0.965
+          ]
+        }
+      ]
+    }
+  },
+  "windowColors": {
+    "_note": "Median colour of the part inside tight photo boxes (pixels filtered by hue/value so wall and sky are left out). glass is not sampled: reflections vary, so it is a neutral dark grey. frame: colour of the glazing bars, used when the glazing detail map is applied (panes come out about a quarter of it).",
+    "glass": {
+      "hex": "#2e3539",
+      "frame": "#d8d2c5",
+      "label": "玻璃（未取樣，中性深灰）",
+      "samples": []
+    },
+    "shutter_brown": {
+      "hex": "#503c35",
+      "label": "啡色百葉（梁族大廈）",
+      "samples": [
+        {
+          "photo": "#134",
+          "box": [
+            462,
+            70,
+            512,
+            150
+          ],
+          "rgb": [
+            80,
+            55,
+            53
+          ]
+        },
+        {
+          "photo": "#134",
+          "box": [
+            455,
+            268,
+            508,
+            368
+          ],
+          "rgb": [
+            79,
+            56,
+            50
+          ]
+        },
+        {
+          "photo": "#57",
+          "box": [
+            448,
+            238,
+            522,
+            330
+          ],
+          "rgb": [
+            91,
+            72,
+            61
+          ]
+        },
+        {
+          "photo": "#57",
+          "box": [
+            436,
+            458,
+            520,
+            578
+          ],
+          "rgb": [
+            72,
+            56,
+            49
+          ]
+        }
+      ]
+    },
+    "shutter_maroon": {
+      "hex": "#8a5b54",
+      "label": "栗紅百葉（商務旅遊中心南端、黃枝記一帶）",
+      "samples": [
+        {
+          "photo": "#10",
+          "box": [
+            224,
+            236,
+            260,
+            364
+          ],
+          "rgb": [
+            135,
+            92,
+            92
+          ]
+        },
+        {
+          "photo": "#10",
+          "box": [
+            226,
+            442,
+            258,
+            588
+          ],
+          "rgb": [
+            136,
+            91,
+            89
+          ]
+        },
+        {
+          "photo": "#87",
+          "box": [
+            104,
+            196,
+            124,
+            278
+          ],
+          "rgb": [
+            144,
+            90,
+            70
+          ]
+        },
+        {
+          "photo": "#136",
+          "box": [
+            545,
+            40,
+            640,
+            160
+          ],
+          "rgb": [
+            154,
+            121,
+            128
+          ]
+        },
+        {
+          "photo": "#136",
+          "box": [
+            715,
+            60,
+            805,
+            180
+          ],
+          "rgb": [
+            154,
+            124,
+            132
+          ]
+        }
+      ]
+    },
+    "shutter_green": {
+      "hex": "#1a4c4e",
+      "label": "墨綠百葉（窄段西面綠窗一排、星巴克、玫瑰堂）",
+      "samples": [
+        {
+          "photo": "#175",
+          "box": [
+            652,
+            212,
+            752,
+            288
+          ],
+          "rgb": [
+            28,
+            91,
+            93
+          ]
+        },
+        {
+          "photo": "#175",
+          "box": [
+            800,
+            214,
+            905,
+            290
+          ],
+          "rgb": [
+            22,
+            79,
+            80
+          ]
+        },
+        {
+          "photo": "#175",
+          "box": [
+            40,
+            0,
+            135,
+            66
+          ],
+          "rgb": [
+            14,
+            71,
+            75
+          ]
+        },
+        {
+          "photo": "#23",
+          "box": [
+            740,
+            440,
+            815,
+            535
+          ],
+          "rgb": [
+            42,
+            65,
+            64
+          ]
+        }
+      ]
+    },
+    "shutter_grey": {
+      "hex": "#7e7e87",
+      "label": "灰色百葉（便民藥房）",
+      "samples": [
+        {
+          "photo": "#132",
+          "box": [
+            330,
+            138,
+            384,
+            300
+          ],
+          "rgb": [
+            141,
+            139,
+            150
+          ]
+        },
+        {
+          "photo": "#132",
+          "box": [
+            580,
+            132,
+            628,
+            300
+          ],
+          "rgb": [
+            123,
+            122,
+            131
+          ]
+        },
+        {
+          "photo": "#132",
+          "box": [
+            690,
+            190,
+            712,
+            330
+          ],
+          "rgb": [
+            114,
+            116,
+            124
+          ]
+        }
+      ]
+    },
+    "lattice": {
+      "hex": "#2c2a2d",
+      "label": "深色鐵花欄板（商務旅遊中心、信德堡）",
+      "samples": [
+        {
+          "photo": "#10",
+          "box": [
+            470,
+            296,
+            528,
+            338
+          ],
+          "rgb": [
+            45,
+            41,
+            44
+          ]
+        },
+        {
+          "photo": "#10",
+          "box": [
+            580,
+            310,
+            628,
+            350
+          ],
+          "rgb": [
+            41,
+            37,
+            41
+          ]
+        },
+        {
+          "photo": "#131",
+          "box": [
+            150,
+            340,
+            220,
+            378
+          ],
+          "rgb": [
+            47,
+            48,
+            51
+          ]
+        }
+      ]
+    },
+    "glaze_teal": {
+      "hex": "#245b6b",
+      "frame": "#3f8c9e",
+      "label": "藍綠窗框玻璃（信德堡）",
+      "samples": [
+        {
+          "photo": "#131",
+          "box": [
+            20,
+            230,
+            108,
+            312
+          ],
+          "rgb": [
+            32,
+            86,
+            100
+          ]
+        },
+        {
+          "photo": "#131",
+          "box": [
+            148,
+            260,
+            222,
+            335
+          ],
+          "rgb": [
+            22,
+            83,
+            98
+          ]
+        },
+        {
+          "photo": "#131",
+          "box": [
+            165,
+            75,
+            232,
+            150
+          ],
+          "rgb": [
+            53,
+            104,
+            122
+          ]
+        }
+      ]
+    },
+    "glaze_wood": {
+      "hex": "#3a2e24",
+      "frame": "#745e46",
+      "label": "深色木格窗（北端黃樓）",
+      "samples": [
+        {
+          "photo": "#188",
+          "box": [
+            640,
+            20,
+            750,
+            200
+          ],
+          "rgb": [
+            117,
+            96,
+            78
+          ]
+        },
+        {
+          "photo": "#174",
+          "box": [
+            0,
+            60,
+            110,
+            250
+          ],
+          "rgb": [
+            115,
+            92,
+            61
           ]
         }
       ]

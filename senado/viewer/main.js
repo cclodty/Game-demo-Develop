@@ -75,17 +75,23 @@ const loadTex = (url) => new Promise((res, rej) => texLoader.load(url, res, unde
 let world, pickTables = [], figureGroup, labelObjs = [], satMesh = null, highlight = null, floorTex = null;
 
 async function init() {
-  const [data, calcada, credits] = await Promise.all([
+  const [data, calcada, louvre, glazing, credits] = await Promise.all([
     fetch('data/senado_massing.json').then((r) => { if (!r.ok) throw new Error(`data ${r.status}`); return r.json(); }),
     loadTex('viewer/assets/calcada_waves.png'),
+    loadTex('viewer/assets/louvre.png'),
+    loadTex('viewer/assets/glazing.png'),
     fetch('reference/photos/credits.json').then((r) => (r.ok ? r.json() : { photos: {} })).catch(() => ({ photos: {} })),
   ]);
   state.photos = credits.photos;
-  calcada.wrapS = calcada.wrapT = THREE.RepeatWrapping;
-  calcada.colorSpace = THREE.SRGBColorSpace;
-  calcada.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  for (const t of [calcada, louvre, glazing]) {
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  }
+  // window detail maps are stored bottom-up (glTF convention), see scripts/make_window_textures.py
+  louvre.flipY = glazing.flipY = false;
   state.data = data;
-  const built = buildSenado(data, { mode: 'viewer', calcadaTexture: calcada });
+  const built = buildSenado(data, { mode: 'viewer', calcadaTexture: calcada, louvreTexture: louvre, glazingTexture: glazing });
   world = built.root;
   pickTables = built.pickTables;
   scene.add(world);
@@ -120,6 +126,7 @@ async function init() {
   floorTex = makeFloorTexture();
   setFloorLines(true);
   buildDims();
+  buildLegend();
   buildMinimap();
   buildPresetButtons();
   applyScale();
@@ -385,6 +392,16 @@ function showFacade(b) {
     ['樓層高度', F.floors.map((f) => f.toFixed(1)).join(' / ') + ' m'],
     ['簷口／女兒牆', `${F.cornice ? F.cornice.h + ' m' : '—'} / ${F.parapet ? F.parapet.h + ' m' : '—'}`],
   ];
+  const W = F.windows && F.windows.shape ? F.windows : null;
+  if (W) {
+    const wc = state.data.windowColors || {};
+    const fill = (w) => shortLabel((wc[w.fill] || {}).label || w.fill);
+    let text = `${WINDOW_SHAPES[W.shape] || W.shape} 約 ${W.w} × ${W.h[0]} m · ${fill(W)}`;
+    const kinds = Object.values(F.edgeKinds || {});
+    const st = W.onStreet && kinds.includes('street') ? { ...W, ...W.onStreet } : null;
+    if (st && st.fill !== W.fill) text += `；街面 ${fill(st)}`;
+    rows.push(['窗戶', text]);
+  }
   $('pickFacadeKv').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
   $('pickNote').textContent = F.note || '';
   $('pickNote').hidden = !F.note;
@@ -444,6 +461,21 @@ function makeFloorTexture() {
 let dimsBase = null;
 function buildDims() {
   dimsBase = state.data.meta.measures;
+}
+
+// legend swatches from the photo-sampled colours in the data
+const WINDOW_SHAPES = { round: '圓拱窗', segment: '弧頂窗', rect: '長方窗' };
+const shortLabel = (s) => (s || '').replace(/（.*）$/, '');
+function buildLegend() {
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+  const row = (bg, text, extra = '') => `<div><span class="sw" style="background:${bg}${extra}"></span>${esc(text)}</div>`;
+  const walls = Object.values(state.data.wallColors || {});
+  $('legendWalls').innerHTML = walls.map((c) => row(c.hex, c.label, c.trim ? `;box-shadow:inset 0 -4px 0 ${c.trim}` : '')).join('');
+  const wins = Object.entries(state.data.windowColors || {}).map(([k, c]) => (k.startsWith('shutter')
+    ? row(`repeating-linear-gradient(180deg,${c.hex} 0 2px,color-mix(in srgb,${c.hex} 70%,#000) 2px 3px)`, c.label)
+    : row(c.frame ? `linear-gradient(90deg,${c.frame} 0 2px,${c.hex} 2px 6px,${c.frame} 6px 7px,${c.hex} 7px 11px,${c.frame} 11px)` : c.hex, c.label)));
+  wins.push(row('#f3f0e8', '白色帆布篷（商務旅遊中心一排向廣場的窗）'));
+  $('legendWindows').innerHTML = wins.join('');
 }
 function updateDims() {
   if (!dimsBase) return;

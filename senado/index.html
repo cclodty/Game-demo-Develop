@@ -129,6 +129,8 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
 .legend { display: grid; gap: 6px; margin-top: 10px; font-size: 12.5px; }
 .legend div { display: flex; align-items: center; gap: 8px; }
 .sw { width: 14px; height: 14px; border-radius: 2px; border: 1px solid rgba(0,0,0,.15); flex: none; }
+.lg-h { margin: 14px 0 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+.lg-h:first-of-type { margin-top: 10px; }
 .sw.cal { background: repeating-linear-gradient(135deg, #3b3b39 0 3px, #ede7d9 3px 7px); }
 
 /* notes */
@@ -147,10 +149,10 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
   <header class="head">
     <div>
       <div class="eyebrow">Macau · Largo do Senado · 22.1937°N 113.5399°E</div>
-      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v3 噴水池與外牆顏色</span></div>
-      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。按 29 張實景照片加入騎樓及樓層外圍（v2），再補上噴水池的下沉台階，並從照片取得外牆顏色（v3）。</p>
+      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v4 窗戶與更多外牆顏色</span></div>
+      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。按 36 張實景照片加入騎樓及樓層外圍（v2），補上噴水池的下沉台階並從照片取得外牆顏色（v3），再為臨街立面開出凹入的窗洞，配上百葉、玻璃、窗框、欄杆和帆布篷（v4）。</p>
     </div>
-    <div class="status"><i></i>v3 外牆顏色取自照片 · 窗戶未建模</div>
+    <div class="status"><i></i>v4 441 個凹入窗戶 · 26 棟按照片上色 · 屋頂未細化</div>
   </header>
 
   <div class="grid">
@@ -233,19 +235,14 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
       </div>
       <div class="card">
         <h2>圖例</h2>
+        <h3 class="lg-h">外牆（照片取色）</h3>
+        <div class="legend" id="legendWalls"></div>
+        <h3 class="lg-h">窗戶</h3>
+        <div class="legend" id="legendWindows"></div>
+        <h3 class="lg-h">其他</h3>
         <div class="legend">
-          <div><span class="sw" style="background:#e0c99d"></span>商務旅遊中心一排的淡黃</div>
-          <div><span class="sw" style="background:#d9c498"></span>信德堡，略深的黃</div>
-          <div><span class="sw" style="background:#dbca9a"></span>梁族大廈及窄段西面一排，偏檸檬黃</div>
-          <div><span class="sw" style="background:#d6ad6b"></span>便民藥房，赭黃</div>
-          <div><span class="sw" style="background:#e0c47b"></span>玫瑰堂，黃</div>
-          <div><span class="sw" style="background:#e0afab"></span>粉紅角樓</div>
-          <div><span class="sw" style="background:#97c7c1"></span>新中央酒店，薄荷綠</div>
-          <div><span class="sw" style="background:#e6ddc3"></span>中華商業大廈，米白</div>
-          <div><span class="sw" style="background:#d1c1a5"></span>郵政局，米色石材</div>
-          <div><span class="sw" style="background:#f2efeb"></span>仁慈堂，白</div>
           <div><span class="sw" style="background:#eee5d2"></span>未有照片證據的臨街建築（中性色）</div>
-          <div><span class="sw" style="background:#f6f3ec;box-shadow:inset 0 -4px 0 #d8d2c4"></span>白色線腳：腰線、簷口、女兒牆（已按照片加入）</div>
+          <div><span class="sw" style="background:#f6f3ec;box-shadow:inset 0 -4px 0 #d8d2c4"></span>白色線腳：腰線、簷口、窗框、女兒牆（北端米白一排為深啡）</div>
           <div><span class="sw" style="background:#e0dcd3"></span>核心範圍（170 米內）</div>
           <div><span class="sw" style="background:#c4c7c9"></span>外圍天際線</div>
           <div><span class="sw cal"></span>葡式碎石波浪地磚</div>
@@ -258,30 +255,45 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
 
   <div class="notes">
     <div class="card">
+      <h2>v4：窗戶</h2>
+      <ul>
+        <li><b>真正的窗洞：</b>牆身按窗戶開洞，窗扇退入牆內 20–60 厘米，洞口四邊有內牆面，所以窗戶會有陰影和厚度，遊戲中亦可作掩護參考。</li>
+        <li><b>按開間排列：</b>每個開間一個窗，置於壁柱或騎樓柱之間；有騎樓的樓宇地面層不開窗。窗形（圓拱、弧頂、長方）、尺寸和窗台高度按照片中的人和門口估算，寫在 <span class="mono">landmarks.json</span> 的 <span class="mono">facadeStyles.*.windows</span>。</li>
+        <li><b>窗扇：</b>百葉和玻璃用兩張小型灰階細節貼圖（<span class="mono">louvre.png</span>、<span class="mono">glazing.png</span>），乘上照片取得的顏色；圓拱窗的拱頂部分是玻璃扇形窗。</li>
+        <li><b>裝飾：</b>白色窗框、窗台、拱心石、平頂或三角楣、欄杆或鐵欄，以及商務旅遊中心一排向廣場的白色帆布篷。全圖約 12.9 萬個三角形，仍適合直接放入遊戲。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v4：更多外牆顏色</h2>
+      <ul>
+        <li><b>窄段西面：</b>按照片 #136、#175 重新分辨：黃枝記（長方窗、白窗框）、其北鄰（栗紅百葉）、檸檬黃綠窗一排、粉紅樓（星巴克，偏桃色）。</li>
+        <li><b>北端：</b>力騰商業中心（Swatch，白框淡黃）、深色木格窗的黃樓，以及盡頭 Swarovski 一帶的米白樓：深啡線腳由新加的 <span class="mono">trim</span> 顏色表達。</li>
+        <li><b>新馬路南面：</b>市政署旁的 APOLLO 大樓（淺水綠，裝飾藝術風格的橫向長窗）。</li>
+        <li>點選建築可看到窗形、百葉顏色和證據照片；圖例由資料自動生成。</li>
+      </ul>
+    </div>
+    <div class="card">
       <h2>v3：噴水池下沉台階</h2>
       <ul>
         <li><b>結構：</b>廣場向下三級花崗岩台階（每級約 16 厘米），到一圈下沉約 0.5 米的環形通道；然後是粉紅花崗岩外池、深色內池和渾天儀。</li>
-        <li><b>尺寸來源：</b>半徑來自已對位衛星圖的徑向亮度剖面（台階外緣 7.1 米、外池 4.5 米、內池 2.9 米），高度按照片 #87、#126 中的人估算。OSM 的環形行人路（半徑約 5.7 米）正好落在下沉通道上。</li>
-        <li><b>渾天儀：</b>直徑約 1.7 米，極軸按澳門緯度 22° 傾斜；v1 放得太高，已改正。</li>
+        <li><b>尺寸來源：</b>半徑來自已對位衛星圖的徑向亮度剖面（台階外緣 7.1 米、外池 4.5 米、內池 2.9 米），高度按照片 #87、#126 中的人估算。</li>
         <li>下沉台階在遊戲中是天然掩護位，GLB 內有完整幾何，可以直接做碰撞。</li>
       </ul>
     </div>
     <div class="card">
-      <h2>v3：外牆顏色</h2>
+      <h2>取色方法（v3 起）</h2>
       <ul>
-        <li><b>取色方法：</b>在照片中圈出牆身，只取有牆身顏色的像素中最亮的 40%（即向光的牆，排除陰影、窗玻璃和百葉窗），計算色相和飽和度。每棟盡量用兩張以上照片交叉核對。</li>
-        <li><b>明度另行設定：</b>晴天照片會過曝，陰天照片偏暗，所以明度按材質統一設定（淡色牆約 0.85、白牆約 0.93）。</li>
-        <li><b>燈光同步調整：</b>太陽改為東南方（與照片 #87 的上午光線一致），加強地面反射光，否則背光的淡黃牆會變成卡其色。</li>
-        <li>點選建築可看到顏色和取色所用的照片；資料在 <span class="mono">landmarks.json</span> 的 <span class="mono">wallColors</span>。</li>
+        <li><b>取色：</b>在照片中圈出牆身，只取有牆身顏色的像素中最亮的 40%（即向光的牆，排除陰影、窗玻璃和百葉窗），計算色相和飽和度；每棟盡量用兩張以上照片交叉核對。</li>
+        <li><b>明度另行設定：</b>晴天照片會過曝，陰天照片偏暗，所以明度按材質統一設定（淡色牆約 0.85–0.9、白牆約 0.93）。</li>
+        <li>資料在 <span class="mono">landmarks.json</span> 的 <span class="mono">wallColors</span> 和 <span class="mono">windowColors</span>，每個顏色都附取色照片和框選範圍。</li>
       </ul>
     </div>
     <div class="card">
       <h2>下一步</h2>
       <ul>
-        <li><b>窗戶、百葉窗和帆布篷：</b>照片中鮮明的觀感很大程度來自深色窗戶、啡紅或綠色百葉窗和白色帆布篷的對比。未建模之前，牆身看起來會比照片淡。</li>
-        <li><b>屋頂：</b>暫用中性暖灰，瓦頂形狀和顏色未做。</li>
-        <li><b>未有照片證據的樓宇</b>（板樟堂前地東面、新馬路一段）仍用中性色。</li>
-        <li><b>新馬路的騎樓</b>仍未有足夠證據。</li>
+        <li><b>屋頂：</b>暫用中性暖灰，瓦頂形狀和顏色未做；可從已對位衛星圖取色。</li>
+        <li><b>未有照片證據的樓宇</b>（板樟堂前地東面、新馬路其餘一段、營地街市、大堂）仍用中性色。</li>
+        <li><b>店舖招牌和地面層店面</b>未建模；新馬路的騎樓仍未有足夠證據。</li>
       </ul>
     </div>
   </div>

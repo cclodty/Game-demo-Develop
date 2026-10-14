@@ -34,6 +34,18 @@
     -5.6
    ]
   },
+  "#23": {
+   "src": "reference/photos/p023.jpg",
+   "file": "Largo do Senado 04-02-2023(6).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_04-02-2023(6).jpg",
+   "author": "LN9267",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": [
+    49.6,
+    49.0
+   ]
+  },
   "#26": {
    "src": "reference/photos/p026.jpg",
    "file": "Largo do Senado 04-07-2024(1).jpg",
@@ -326,6 +338,72 @@
    "camera": [
     28.0,
     34.9
+   ]
+  },
+  "#136": {
+   "src": "reference/photos/p136.jpg",
+   "file": "MC Macau Peninsula 1327pm old zone 議事前地 Largo do Senado November 2023 R12S 24.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:MC_Macau_Peninsula_1327pm_old_zone_%E8%AD%B0%E4%BA%8B%E5%89%8D%E5%9C%B0_Largo_do_Senado_November_2023_R12S_24.jpg",
+   "author": "Kamfutiam Georgez",
+   "license": "CC0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0",
+   "camera": [
+    27.9,
+    34.8
+   ]
+  },
+  "#153": {
+   "src": "reference/photos/p153.jpg",
+   "file": "Senado Macao.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Senado_Macao.jpg",
+   "author": "Georgio",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "camera": null
+  },
+  "#174": {
+   "src": "reference/photos/p174.jpg",
+   "file": "St. Anthony's Parish, Macau - panoramio.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:St._Anthony%27s_Parish,_Macau_-_panoramio.jpg",
+   "author": "luchangjiang~鲁昌江",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "camera": null
+  },
+  "#175": {
+   "src": "reference/photos/p175.jpg",
+   "file": "Starbucks Senado Square Store 星巴克議事亭前地門市 - panoramio (1).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Starbucks_Senado_Square_Store_%E6%98%9F%E5%B7%B4%E5%85%8B%E8%AD%B0%E4%BA%8B%E4%BA%AD%E5%89%8D%E5%9C%B0%E9%96%80%E5%B8%82_-_panoramio_(1).jpg",
+   "author": "lienyuan lee",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "camera": [
+    47.4,
+    54.5
+   ]
+  },
+  "#188": {
+   "src": "reference/photos/p188.jpg",
+   "file": "澳门议事亭前地 - panoramio (1).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:%E6%BE%B3%E9%97%A8%E8%AE%AE%E4%BA%8B%E4%BA%AD%E5%89%8D%E5%9C%B0_-_panoramio_(1).jpg",
+   "author": "gdczjkk",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "camera": [
+    32.5,
+    38.0
+   ]
+  },
+  "#263": {
+   "src": "reference/photos/p263.jpg",
+   "file": "MC Macau Peninsula 1316pm old zone 亞美打利庇盧大馬路 Avenida de Almeida Ribeiro November 2023 R12S 18.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:MC_Macau_Peninsula_1316pm_old_zone_%E4%BA%9E%E7%BE%8E%E6%89%93%E5%88%A9%E5%BA%87%E7%9B%A7%E5%A4%A7%E9%A6%AC%E8%B7%AF_Avenida_de_Almeida_Ribeiro_November_2023_R12S_18.jpg",
+   "author": "Kamfutiam Georgez",
+   "license": "CC0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0",
+   "camera": [
+    21.2,
+    -70.1
    ]
   }
  }

@@ -34,7 +34,13 @@ model.updateMatrixWorld(true);
 
 const exporter = new GLTFExporter();
 const glb = await exporter.parseAsync(model, { binary: true, onlyVisible: true });
-const out = injectTexture(Buffer.from(glb), 'Calcada', fs.readFileSync(path.join(root, 'viewer/assets/calcada_waves.png')));
+const asset = (n) => fs.readFileSync(path.join(root, 'viewer/assets', n));
+const out = injectTextures(Buffer.from(glb), [
+  { name: 'calcada_waves', png: asset('calcada_waves.png'), materials: (m) => m === 'Calcada', tint: false },
+  // detail maps multiply the window colour, so those materials keep their baseColorFactor
+  { name: 'louvre', png: asset('louvre.png'), materials: (m) => m.startsWith('Window_shutter'), tint: true },
+  { name: 'glazing', png: asset('glazing.png'), materials: (m) => m === 'Window_glass' || m.startsWith('Window_glaze'), tint: true },
+]);
 
 const suffix = scale !== 1 ? `_x${scale}` : plan !== 1 ? `_plan${plan}` : '';
 const file = path.join(root, 'export', `senado_massing${suffix}.glb`);
@@ -44,24 +50,30 @@ let meshes = 0;
 model.traverse((o) => { if (o.isMesh) meshes++; });
 console.log(`wrote ${path.relative(process.cwd(), file)}  ${(out.length / 1048576).toFixed(2)} MB  meshes=${meshes}  scale h=${sx} v=${sy}`);
 
-// Embed the calçada PNG as baseColorTexture of the named material (the exporter cannot encode images without a DOM canvas).
-function injectTexture(buf, materialName, png) {
+// Embed PNGs as baseColorTexture of the matching materials (the exporter cannot encode images without a DOM canvas).
+// tint keeps the material's baseColorFactor, so a greyscale detail map is multiplied by the material colour.
+function injectTextures(buf, list) {
   const jsonLen = buf.readUInt32LE(12);
   const json = JSON.parse(buf.subarray(20, 20 + jsonLen).toString('utf8').trim());
   const binStart = 20 + jsonLen;
   const binLen = buf.readUInt32LE(binStart);
   let bin = buf.subarray(binStart + 8, binStart + 8 + binLen);
-  const offset = bin.length;
   const pad = (n) => (4 - (n % 4)) % 4;
-  bin = Buffer.concat([bin, png, Buffer.alloc(pad(png.length))]);
+  for (const { name, png, materials, tint } of list) {
+    const targets = json.materials.filter((m) => materials(m.name || ''));
+    if (!targets.length) throw new Error(`no material for ${name}`);
+    const offset = bin.length;
+    bin = Buffer.concat([bin, png, Buffer.alloc(pad(png.length))]);
+    json.bufferViews.push({ buffer: 0, byteOffset: offset, byteLength: png.length });
+    (json.images ??= []).push({ bufferView: json.bufferViews.length - 1, mimeType: 'image/png', name });
+    (json.samplers ??= []).push({ magFilter: 9729, minFilter: 9987, wrapS: 10497, wrapT: 10497 });
+    (json.textures ??= []).push({ sampler: json.samplers.length - 1, source: json.images.length - 1 });
+    for (const mat of targets) {
+      const pbr = mat.pbrMetallicRoughness || {};
+      mat.pbrMetallicRoughness = { ...pbr, baseColorFactor: tint ? pbr.baseColorFactor || [1, 1, 1, 1] : [1, 1, 1, 1], baseColorTexture: { index: json.textures.length - 1 } };
+    }
+  }
   json.buffers[0].byteLength = bin.length;
-  json.bufferViews.push({ buffer: 0, byteOffset: offset, byteLength: png.length });
-  (json.images ??= []).push({ bufferView: json.bufferViews.length - 1, mimeType: 'image/png', name: 'calcada_waves' });
-  (json.samplers ??= []).push({ magFilter: 9729, minFilter: 9987, wrapS: 10497, wrapT: 10497 });
-  (json.textures ??= []).push({ sampler: json.samplers.length - 1, source: json.images.length - 1 });
-  const mat = json.materials.find((m) => m.name === materialName);
-  if (!mat) throw new Error(`material ${materialName} not found`);
-  mat.pbrMetallicRoughness = { ...(mat.pbrMetallicRoughness || {}), baseColorFactor: [1, 1, 1, 1], baseColorTexture: { index: json.textures.length - 1 } };
   let js = Buffer.from(JSON.stringify(json), 'utf8');
   js = Buffer.concat([js, Buffer.alloc(pad(js.length), 0x20)]);
   const header = Buffer.alloc(12);
