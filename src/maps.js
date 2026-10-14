@@ -3,6 +3,7 @@
 // spawn points. `decorate` adds the non-colliding scenery and animations.
 
 import * as THREE from 'three';
+import { Pigeons } from './ambient.js';
 import { CALCADA, FACADE, GLAZING, LOUVRE } from './senado/assets.js';
 import SENADO_DATA from './senado/data.js';
 import { buildSenado, FOUNTAIN } from './senado/model.js';
@@ -504,41 +505,6 @@ const docks = {
 
 // ------------------------------------------------------------- Largo do Senado
 
-/**
- * Hide whatever stands between the camera and the player: fragments inside a
- * cylinder around the camera -> player line are discarded (with a dithered
- * edge). Shadows still use the full buildings.
- */
-function addCutaway(mat, U) {
-  if (mat.userData.cutaway) return;
-  mat.userData.cutaway = true;
-  mat.onBeforeCompile = (shader) => {
-    shader.uniforms.uCutA = U.uCutA;
-    shader.uniforms.uCutB = U.uCutB;
-    shader.uniforms.uCutR = U.uCutR;
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vCutWorld;')
-      .replace('#include <project_vertex>', '#include <project_vertex>\nvCutWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vCutWorld;\nuniform vec3 uCutA;\nuniform vec3 uCutB;\nuniform float uCutR;')
-      .replace(
-        '#include <clipping_planes_fragment>',
-        `#include <clipping_planes_fragment>
-        if (uCutR > 0.0 && vCutWorld.y > 0.45) {
-          vec3 ab = uCutB - uCutA;
-          float t = clamp(dot(vCutWorld - uCutA, ab) / dot(ab, ab), 0.0, 1.0);
-          float edge = uCutR - length(vCutWorld - (uCutA + ab * t));
-          if (t < 0.97 && edge > 0.0) {
-            float n = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
-            if (edge > 1.2 || n < edge / 1.2) discard;
-          }
-        }`,
-      );
-  };
-  mat.customProgramCacheKey = () => 'cutaway';
-  mat.needsUpdate = true;
-}
-
 // Decode the Senado textures as soon as the page loads, so the map never
 // shows a frame of untextured paving when it is picked.
 const SENADO_IMAGES =
@@ -561,7 +527,7 @@ const senado = {
   credit: '地圖資料 © OpenStreetMap contributors（ODbL）',
   size: [SENADO.halfW, SENADO.halfD],
   start: [2, 54],
-  camera: { y: 24, z: 7.5, fov: 30 },
+  camera: { dist: 31, pitch: 72, fov: 30 },
   cutaway: true,
   theme: {
     bg: 0x9cc4e8,
@@ -605,10 +571,23 @@ const senado = {
     [14, 68, 4.2, 1.8, 1.45, 'car'],
     [1.5, -28, 1.2, 1.2, 1.1, 'crate'],
     [3, -50, 1.4, 1, 1, 'crate'],
+    // borrowed from the other stages: delivery crates, police barriers, a news kiosk, a utility box
+    [-17, 57, 1.4, 1.4, 1.2, 'crate'],
+    [-15.6, 57.7, 1, 1, 0.8, 'crate'],
+    [-3, 61, 4, 0.6, 1, 'concrete'],
+    [6, 61.5, 3, 0.6, 1, 'concrete'],
+    [-13.5, 47.5, 1.8, 1.4, 2.3, 'kiosk'],
+    [-2.5, -8, 1.2, 1.2, 1.1, 'crate'],
+    [4, -16, 1, 1, 0.9, 'crate'],
+    [-3, -55, 1.2, 0.8, 1.3, 'unit'],
   ],
-  glass: [[10, 63.2, 3.6, 0.2, 2.1]],
-  barrels: [[-9.9, 51.6, 'lpg'], [9, 52.4, 'lpg'], [-4.1, 20.8, 'lpg'], [7.7, 13.3, 'lpg'], [-12, -64.5, 'lpg'], [20, 48, 'gas']],
-  pans: [[-12, 49.8], [11, 49.8], [-5.8, 17.9], [6, 9.9], [-14, -63.5], [1, -12]],
+  glass: [
+    [10, 63.2, 3.6, 0.2, 2.1],
+    [9, 36, 0.2, 3.2, 1.9],
+    [-2, -2, 3, 0.2, 1.9],
+  ],
+  barrels: [[-9.9, 51.6, 'lpg'], [9, 52.4, 'lpg'], [-4.1, 20.8, 'lpg'], [7.7, 13.3, 'lpg'], [-12, -64.5, 'lpg'], [20, 48, 'gas'], [16.2, 46.2], [-11, 35.5], [-21, -68, 'gas']],
+  pans: [[-12, 49.8], [11, 49.8], [-5.8, 17.9], [6, 9.9], [-14, -63.5], [1, -12], [8, 40], [-8, -60]],
   pads: [[-4, 48], [1, -34], [-10, -62]],
   spawns: [
     { x: -24.5, z: 68, ex: -17, ez: 64, kind: 'gate' },
@@ -648,7 +627,6 @@ const senado = {
       L.own(o.geometry);
       for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
         L.own(m);
-        if (L.map.cutaway) addCutaway(m, L.cut);
         if (m.name === 'Calcada') {
           // soften the black-and-white waves so characters stay readable on top of them
           m.color.setRGB(0.8, 0.78, 0.74);
@@ -706,6 +684,19 @@ const senado = {
       L.deco(x, 0, z, w, 1.0, d, barrier, true);
       L.deco(x, 0.62, z, w + 0.02, 0.16, d + 0.02, stripe);
     }
+
+    // the square's pigeons: they scatter at gunfire and drift back later
+    L.ambient.push(
+      new Pigeons(
+        L,
+        [
+          [-14, 40, 12, 60],
+          [-8, 12, 8, 28],
+          [-20, -70, 2, -58],
+        ],
+        28,
+      ),
+    );
 
     // A bus shelter roof over the glass panel on the avenue
     L.deco(10, 2.25, 62.6, 3.8, 0.08, 1.6, L.mat.darkMetal, true);

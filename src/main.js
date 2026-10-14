@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
-import { CAMERA, FOCUS, GUN_Y, PLAYER } from './config.js';
+import { CAMERA, FOCUS, GUN_Y, PLAYER, VIEWS } from './config.js';
 import { Enemies } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
@@ -17,6 +17,7 @@ import { Waves } from './waves.js';
 import { Grenades } from './weapons.js';
 
 const MAP_KEY = 'bullet-ballet.map';
+const VIEW_KEY = 'bullet-ballet.view';
 
 const $ = (id) => document.getElementById(id);
 
@@ -33,6 +34,14 @@ class Game {
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(CAMERA.fov, innerWidth / innerHeight, 0.5, 400);
+    this.view = 0;
+    try {
+      this.view = Math.min(VIEWS.length - 1, Math.max(0, Number(localStorage.getItem(VIEW_KEY)) || 0));
+    } catch {
+      this.view = 0;
+    }
+    this.camPitch = 1;
+    this.camYaw = 0;
 
     this.input = new Input();
     this.audio = new AudioSys();
@@ -127,6 +136,8 @@ class Game {
       if (e.code === 'Escape' || e.code === 'KeyP') {
         if (this.state === 'playing') this.setPaused(true);
         else if (this.state === 'paused') this.setPaused(false);
+      } else if (e.code === 'KeyV' && this.state !== 'paused') {
+        this.cycleView();
       } else if (e.code === 'KeyM') {
         const on = this.audio.toggleMusic();
         if (this.state === 'playing') this.hud.feed(on ? 'MUSIC ON' : 'MUSIC OFF', 0, 'dim');
@@ -198,6 +209,18 @@ class Game {
     this.last = performance.now();
   }
 
+  cycleView() {
+    this.view = (this.view + 1) % VIEWS.length;
+    try {
+      localStorage.setItem(VIEW_KEY, String(this.view));
+    } catch {
+      /* storage unavailable */
+    }
+    const v = VIEWS[this.view];
+    if (this.state === 'playing') this.hud.toast(`鏡頭：${v.name} <small>${v.en} · V</small>`);
+    $('view-name').textContent = v.name;
+  }
+
   /** Camera lens, exposure and bloom can differ per map (the daylight Senado map needs its own). */
   applyMapView() {
     const view = this.level.map.camera;
@@ -206,6 +229,7 @@ class Game {
     this.renderer.toneMappingExposure = this.level.exposure;
     this.post.bloom.threshold = this.level.bloom.threshold;
     $('map-credit').textContent = this.level.map.credit || '';
+    $('view-name').textContent = VIEWS[this.view].name;
   }
 
   get stageMap() {
@@ -407,6 +431,7 @@ class Game {
     const p = this.player;
     this.fx.explosion(x, z, r);
     this.audio.explosion(this.panFor(x));
+    this.level.noise(x, z, 20);
     const dp = Math.hypot(p.x - x, p.z - z);
     this.shake(clamp(1.1 - dp / 25, 0.3, 0.9));
     this.flashFx = Math.max(this.flashFx, clamp(0.16 - dp / 120, 0, 0.16));
@@ -604,21 +629,29 @@ class Game {
     const sx = s * (Math.sin(t * 1.13) + 0.5 * Math.sin(t * 2.71));
     const sz = s * (Math.cos(t * 0.97) + 0.5 * Math.sin(t * 2.33));
     const c = this.camTarget;
-    const view = this.level.map.camera;
-    const offY = view?.y ?? CAMERA.offsetY;
-    const offZ = view?.z ?? CAMERA.offsetZ;
-    this.camera.position.set(c.x + sx, offY * this.zoom, c.z + offZ * this.zoom + sz);
+    const lens = this.level.map.camera || {};
+    const view = VIEWS[this.view];
+    const deg = Math.PI / 180;
+    const pitch = (view.pitch ?? lens.pitch ?? CAMERA.pitch) * deg;
+    const yaw = (view.yaw ?? 0) * deg;
+    // ease between views so pressing V swings the camera rather than cutting
+    this.camPitch = snap ? pitch : damp(this.camPitch, pitch, 6, realDt);
+    this.camYaw = snap ? yaw : damp(this.camYaw, yaw, 6, realDt);
+    const dist = (lens.dist ?? CAMERA.dist) * this.zoom;
+    const hor = Math.cos(this.camPitch) * dist;
+    this.camera.position.set(c.x + Math.sin(this.camYaw) * hor + sx, Math.sin(this.camPitch) * dist, c.z + Math.cos(this.camYaw) * hor + sz);
     this.camera.lookAt(c.x + sx * 0.4, 0, c.z + sz * 0.4);
 
-    // Maps with tall buildings cut a hole between the camera and the player.
+    // Cut a hole through whatever stands between the camera and the player:
+    // always on the Senado map (17-25 m buildings), on every map once the camera tilts.
     const cut = this.level.cut;
-    if (this.level.map.cutaway) {
+    const tilted = view.pitch !== undefined;
+    const radius = this.level.map.cutaway ? (tilted ? 5.5 : 4.2) : tilted ? 2.2 : 0;
+    cut.uCutR.value = radius;
+    if (radius > 0) {
       this.camera.updateMatrixWorld();
       cut.uCutA.value.copy(this.camera.position);
       cut.uCutB.value.set(p.x, this.level.groundY(p.x, p.z) + 1.2, p.z);
-      cut.uCutR.value = 4.2;
-    } else {
-      cut.uCutR.value = 0;
     }
   }
 

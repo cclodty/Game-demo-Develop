@@ -352,6 +352,7 @@ class Enemy {
     g.fx.muzzle(m.x, GUN_Y, m.z, Math.sin(this.aimAngle), Math.cos(this.aimAngle), [8, 2.2, 0.8]);
     g.fx.flash(m.x, GUN_Y + 0.4, m.z, 0xff6040, 14, 0.08, 8);
     g.audio.shot(w.sound, g.panFor(this.x));
+    g.level.noise(this.x, this.z, 9);
   }
 
   update(dt) {

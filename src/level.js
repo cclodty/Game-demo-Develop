@@ -3,6 +3,7 @@
 // pads, spawn points and the map's own decoration and lighting.
 
 import * as THREE from 'three';
+import { addCutaway } from './cutaway.js';
 import { MAPS } from './maps.js';
 import { NavGrid } from './nav.js';
 import { clamp, rand, resolveCircleAABB, resolveCirclePoly, segAABB, segCircle, segPoly, TAU } from './utils.js';
@@ -291,6 +292,8 @@ export class Level {
       forklift: std({ color: 0xe0b020, roughness: 0.5, metalness: 0.3 }),
       // street furniture (Largo do Senado)
       stall: std({ color: 0x8a5a36, roughness: 0.7 }),
+      kiosk: std({ color: 0x24513a, roughness: 0.6, metalness: 0.2 }),
+      magazines: std({ color: 0xd9c27a, roughness: 0.8 }),
       canopyA: std({ color: 0xc8302a, roughness: 0.8, side: THREE.DoubleSide }),
       canopyB: std({ color: 0xf2efe6, roughness: 0.8, side: THREE.DoubleSide }),
       planter: std({ color: 0xb9b2a4, roughness: 0.9 }),
@@ -362,6 +365,7 @@ export class Level {
     this.props = [];
     this.pads = [];
     this.animators = [];
+    this.ambient = [];
     this.groundFn = null;
 
     this.applyTheme(map.theme);
@@ -375,6 +379,14 @@ export class Level {
     for (const [x, z] of map.pads || []) this.addPad(x, z);
     this.buildSpawns(map.spawns);
     if (map.decorate) map.decorate(this);
+    // Everything lit in the map can be cut away when it hides the player
+    // (tall Senado buildings in any view, low walls once the camera tilts).
+    this.root.traverse((o) => {
+      if (!o.isMesh) return;
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+        if (m && m.isMeshStandardMaterial) addCutaway(m, this.cut);
+      }
+    });
 
     this.nav = new NavGrid(-halfW, -halfD, halfW, halfD, 0.5);
     this.rebuildNav();
@@ -487,6 +499,10 @@ export class Level {
         }
         break;
       }
+      case 'kiosk':
+        this.deco(x, h, z, w + 0.5, 0.1, d + 0.5, M.kiosk, true);
+        this.deco(x, 0.9, z + d / 2 + 0.01, w * 0.85, 0.7, 0.04, M.magazines);
+        break;
       case 'planter': {
         const bush = new THREE.Mesh(this.own(new THREE.IcosahedronGeometry(Math.min(w, d) * 0.45, 0)), M.bush);
         bush.position.set(x, h + 0.25, z);
@@ -671,6 +687,11 @@ export class Level {
     return segPoly(x0, z0, x1, z1, s.poly, out);
   }
 
+  /** A loud event at (x, z): ambient life within r reacts (pigeons take off). */
+  noise(x, z, r) {
+    for (const a of this.ambient) if (a.scare) a.scare(x, z, r);
+  }
+
   /** Height of the ground (the Senado fountain sits in a sunken ring). */
   groundY(x, z) {
     return this.groundFn ? this.groundFn(x, z) : 0;
@@ -742,6 +763,7 @@ export class Level {
       fx.shards(s.x + (along ? o : 0), rand(0.4, s.h), s.z + (along ? 0 : o), dx, dz, 5);
     }
     this.game.audio.glass(this.game.panFor(s.x));
+    this.noise(s.x, s.z, 8);
     this.game.score.style('GLASS', 10, false);
     this.nav.buildRect(this.solids, 0.5, s.minX - 1, s.minZ - 1, s.maxX + 1, s.maxZ + 1);
   }
@@ -830,6 +852,7 @@ export class Level {
     // a beat clock that follows the (time-stretched) music
     this.beat += (realDt * this.game.audio.musicRate * 124) / 60;
     for (const fn of this.animators) fn(realDt, worldDt);
+    for (const a of this.ambient) a.update(worldDt);
     for (const sp of this.spawns) {
       sp.heat = Math.max(0, sp.heat - realDt * 0.8);
       const pulse = sp.heat > 0 ? 0.6 + 0.4 * Math.sin(performance.now() * 0.02) : 0;

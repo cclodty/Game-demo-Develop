@@ -45,10 +45,21 @@ export const BULLET = {
 export const COMBO_WINDOW = 3.2;
 
 export const CAMERA = {
-  offsetY: 19.5,
-  offsetZ: 11.6,
+  dist: 22.7, // camera distance from the point it looks at
+  pitch: 59.25, // degrees above the horizon (maps can override both)
   fov: 40,
   lookAhead: 0.24,
   lookAheadMax: 5.5,
   focusZoom: 0.86,
 };
+
+/**
+ * Camera views, cycled with V. `top` keeps each map's own pitch; the two
+ * 45-degree views tilt the camera down to 45 degrees, and the "side" one
+ * also swings it round to look in from the south-west corner.
+ */
+export const VIEWS = [
+  { id: 'top', name: '俯視', en: 'TOP-DOWN' },
+  { id: 'tilt', name: '45° 俯視', en: '45° TILT', pitch: 45, yaw: 0 },
+  { id: 'iso', name: '45° 側俯視', en: '45° SIDE', pitch: 45, yaw: -45 },
+];

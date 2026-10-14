@@ -378,6 +378,15 @@ export class AudioSys {
     this.noise({ type: 'bandpass', freq: 2500, q: 3, dur: 0.05, vol: 0.12 });
   }
 
+  /** Pigeons taking off: a burst of soft wing claps. */
+  flutter(n, pan = 0) {
+    if (!this.ready || !this.limit('flutter', 400)) return;
+    const p = this.pitch;
+    for (let i = 0; i < Math.min(10, n * 2); i++) {
+      this.noise({ type: 'bandpass', freq: rand(500, 1100) * p, q: 1.2, dur: 0.07 / p, vol: 0.07, delay: (i * rand(0.03, 0.07)) / p, pan });
+    }
+  }
+
   weaponSwitch() {
     if (!this.ready || !this.limit('switch', 80)) return;
     this.noise({ type: 'bandpass', freq: 1800, q: 4, dur: 0.04, vol: 0.14 });

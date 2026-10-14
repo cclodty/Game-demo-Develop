@@ -175,6 +175,15 @@ export class Player {
     if (il > 0) {
       ix /= il;
       iz /= il;
+      // W always means "up the screen", whichever way the camera faces
+      const yaw = g.camYaw;
+      if (yaw) {
+        const c = Math.cos(yaw);
+        const s = Math.sin(yaw);
+        const rx = ix * c + iz * s;
+        iz = -ix * s + iz * c;
+        ix = rx;
+      }
     }
 
     if (input.hit('Space') && this.spinCd <= 0 && this.spinT <= 0) {
@@ -388,6 +397,7 @@ export class Player {
       }
     }
     if (!fired) return;
+    g.level.noise(this.x, this.z, 11);
     g.audio.shot(w.sound, g.panFor(this.x));
     g.shake(w.shake);
     this.fireCd = w.interval;
