@@ -1,8 +1,12 @@
 // Blocky low-poly humanoids. Read well from a top-down camera: glowing
 // shoulder pads + visor carry each faction's colour. Weapons are swappable
-// models so the player (and pickups) can show what is being held.
+// models so the player (and pickups) can show what is being held. When a
+// rigged model has been made for a character (see src/models.js) it is worn
+// over the block rig, which keeps driving the aim, weapons and moves.
 
 import * as THREE from 'three';
+import { characterTemplate } from './models.js';
+import { createSkin, deathSkin, disposeSkin, flashSkin, poseSkin } from './skin.js';
 
 const geoCache = new Map();
 function box(w, h, d, tx = 0, ty = 0, tz = 0) {
@@ -78,6 +82,10 @@ export const MODELS = {
       [0.12, 0.1, 0.26, 0, -0.04, 0.64, 'wood'],
       [0.1, 0.16, 0.36, 0, -0.02, -0.12, 'wood'],
     ],
+    grips: [
+      [0, -0.07, 0.08],
+      [0, -0.06, 0.52],
+    ],
   },
   rifle: {
     hold: 'anchor',
@@ -87,6 +95,10 @@ export const MODELS = {
       [0.05, 0.05, 0.45, 0, 0.05, 0.86, 'gun'],
       [0.07, 0.24, 0.1, 0, -0.14, 0.36, 'gun'],
       [0.11, 0.03, 0.32, 0, 0.11, 0.3, 'accent'],
+    ],
+    grips: [
+      [0, -0.1, 0.3],
+      [0, -0.02, 0.62],
     ],
   },
   sniper: {
@@ -115,8 +127,24 @@ export const MODELS = {
       [0.3, 0.3, 1.15, 0, 0, 0.55, 'gun'],
       [0.34, 0.08, 0.1, 0, 0, 1.1, 'accent'],
     ],
+    grips: [
+      [-0.16, -0.1, 0.15],
+      [0.16, 0, 0.45],
+    ],
   },
   blade: { hold: 'right', end: 1.15, parts: [[0.05, 0.04, 0.55, 0, 0, 0.9, 'accent']] },
+};
+
+/** Where a skinned model's right and left hands go on a two-handed gun, in the gun's space. */
+const GRIPS = {
+  anchor: [
+    [0, -0.08, 0.15],
+    [0, -0.05, 0.5],
+  ],
+  center: [
+    [-0.16, -0.1, 0.15],
+    [0.16, 0, 0.45],
+  ],
 };
 
 const POSES = {
@@ -184,6 +212,7 @@ export function attachWeapon(rig, model) {
   rig.armR.rotation.set(pose.rx, pose.ry, 0);
   rig.model = model;
   rig.hold = def.hold;
+  rig.grips = def.grips || GRIPS[def.hold];
 }
 
 export function buildCharacter(options) {
@@ -198,6 +227,7 @@ export function buildCharacter(options) {
     scale: 1,
     glow: 2.2,
     ring: 0.5,
+    model: null, // asset id of a rigged model to wear, if one has been made
     ...options,
   };
   const std = (color, extra = {}) =>
@@ -271,12 +301,27 @@ export function buildCharacter(options) {
   root.add(ring);
 
   const rig = { root, inner, legL, legR, torso, head, armL, armR, anchor, center, mats, ring, scale: o.scale, weaponParts: [], muzzles: [], gripZ: 0 };
+  rig.anim = { phase: 0, moveAmt: 0, moveDir: undefined, swing: 0 };
+  const tpl = o.model && characterTemplate(o.model);
+  if (tpl) {
+    // wear the model; the block body hides but its arms keep holding the weapons
+    rig.skin = createSkin(tpl);
+    inner.add(rig.skin.root);
+    for (const part of [legL, legR, torso, head]) part.visible = false;
+    for (const a of [armL, armR]) for (const m of a.children) m.visible = false;
+  }
   attachWeapon(rig, o.weapon);
   return rig;
 }
 
-export function animateRig(rig, phase, moveAmt) {
+/** moveDir: world angle the character is moving in (lets a model's legs run sideways or backwards). */
+export function animateRig(rig, phase, moveAmt, moveDir) {
   const swing = Math.sin(phase) * 0.75 * moveAmt;
+  const an = rig.anim;
+  an.phase = phase;
+  an.moveAmt = moveAmt;
+  an.moveDir = moveDir;
+  an.swing = swing;
   const bob = Math.abs(Math.cos(phase)) * 0.04 * moveAmt;
   rig.legL.rotation.x = swing;
   rig.legR.rotation.x = -swing;
@@ -284,7 +329,18 @@ export function animateRig(rig, phase, moveAmt) {
   rig.head.position.y = BODY.headY + bob;
 }
 
+/** Call once the block rig is fully posed for the frame; poses the worn model, if any. */
+export function finishRig(rig, time) {
+  if (rig.skin) poseSkin(rig, time);
+}
+
+/** Pose a worn model's death clip; false if there is none (then tip the rig over instead). */
+export function deathPose(rig, t) {
+  return deathSkin(rig, t);
+}
+
 export function setFlash(rig, v) {
+  if (rig.skin) flashSkin(rig.skin, v);
   rig.mats.body.emissiveIntensity = v;
   rig.mats.pants.emissiveIntensity = v;
   rig.mats.skin.emissiveIntensity = v;
@@ -292,6 +348,7 @@ export function setFlash(rig, v) {
 }
 
 export function disposeRig(rig) {
+  if (rig.skin) disposeSkin(rig.skin);
   for (const m of Object.values(rig.mats)) m.dispose();
   rig.ring.material.dispose();
 }

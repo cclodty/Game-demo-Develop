@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import { GUN_Y } from './config.js';
-import { animateRig, buildCharacter, disposeRig, setFlash } from './characters.js';
+import { animateRig, buildCharacter, deathPose, disposeRig, finishRig, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { DROPS } from './weapons.js';
 import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowards } from './utils.js';
@@ -96,7 +96,8 @@ class Enemy {
     this.type = type;
     this.cfg = TYPES[type];
     const cfg = this.cfg;
-    this.rig = buildCharacter({ ...cfg.look, ring: 0.35 });
+    this.rig = buildCharacter({ ...cfg.look, ring: 0.35, model: type });
+    this.idleOffset = rand(0, 10);
     this.game.scene.add(this.rig.root);
     const lc = LASER_COLOR[cfg.weapon] || LASER_COLOR.pistol;
     this.laser = new Laser(this.game.scene, new THREE.Color(lc[0], lc[1], lc[2]));
@@ -612,13 +613,14 @@ class Enemy {
     const r = this.rig;
     r.root.position.set(this.x, this.y + this.game.level.groundY(this.x, this.z), this.z);
     r.root.rotation.y = this.facing;
-    animateRig(r, this.phase, this.moveAmt);
+    animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
     setFlash(r, this.flash * 2.5);
     if (this.cfg.weapon === 'blade') {
       const raise = this.state === 'windup' ? -1.6 : this.state === 'strike' ? 0.9 : 0.5;
       r.armR.rotation.x = damp(r.armR.rotation.x, raise, 25, 1 / 60);
     }
     r.ring.material.color.setRGB(this.aiming ? 1.6 : 0.35, 0.05, 0.08);
+    finishRig(r, this.game.worldTime + this.idleOffset);
   }
 
   updateLaser() {
@@ -654,11 +656,15 @@ class Enemy {
     const r = this.rig;
     r.root.rotation.y += this.corpseSpin * dt * clamp(Math.hypot(this.vx, this.vz) / 5, 0, 1);
     const k = clamp(this.corpseT / 0.4, 0, 1);
-    r.inner.rotation.x = -Math.PI / 2 * (1 - (1 - k) * (1 - k));
-    r.inner.position.y = 0.12 * this.rig.scale * k;
+    const clip = deathPose(r, this.corpseT);
+    if (!clip) {
+      r.inner.rotation.x = -Math.PI / 2 * (1 - (1 - k) * (1 - k));
+      r.inner.position.y = 0.12 * this.rig.scale * k;
+    }
     r.root.position.set(this.x, this.y + this.game.level.groundY(this.x, this.z), this.z);
     setFlash(r, Math.max(0, 1 - this.corpseT * 4) * 2);
     animateRig(r, 0, 0);
+    if (!clip) finishRig(r, this.idleOffset);
     if (!this.pooled && this.corpseT > 0.7) {
       this.pooled = true;
       // resting bodies stop casting shadows: halves their draw calls

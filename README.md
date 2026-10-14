@@ -106,6 +106,15 @@ node scripts/senado-extract.mjs <senado 資料夾的路徑>
 
 每張地圖有兩個**金色武器台**，每一波開始時會刷出一把武器。
 
+### 3D 模型
+
+主角、敵人和道具都可以換成用 Meshy、Tripo 或 Blender 做的 3D 模型。沒有模型的繼續用方塊版，所以可以逐件替換。
+做法、規格和整份清單（尺寸、數量、優先次序、提示詞）見 [`assets/README.md`](assets/README.md)。
+
+- 把 GLB 放進 `assets/raw/`，執行 `npm run assets`，遊戲就會用上。
+- 人物只需要 idle 和 run 動作：瞄準、側行、後退、踢、翻滾仍由遊戲控制，雙手用 IK 握住遊戲自己的槍。
+- 網址加 `?models=off` 可看回方塊版，加 `?use=hero-tripo` 可切換同一物件的不同版本。
+
 ### 武器
 
 雙槍彈藥無限（30 發彈匣，要換彈）。其他武器都是撿來的，彈藥用完就自動切回雙槍；
@@ -157,8 +166,14 @@ src/
   waves.js        波次編排與出生預告
   score.js        分數、連擊、最高分（localStorage）
   characters.js   方塊風人物模型、可替換的武器模型與動畫
+  asset-manifest.js  可替換成 3D 模型的人物和道具清單（尺寸、面數、提示詞）
+  models.js       載入 assets/models/ 的模型，按碰撞盒縮放擺放道具
+  skin.js         讓有骨架的人物模型跟隨方塊骨架：播動作、轉身、雙手 IK 握槍
+  models-index.js 由 scripts/assets.mjs 生成：已處理好的模型列表
   textures.js     程序生成的貼圖（地板、木箱、貨櫃、圍欄、窗戶、霓虹招牌）
-vendor/three/     Three.js r186（MIT）及所需的 postprocessing addons
+vendor/three/     Three.js r186（MIT）及所需的 addons（postprocessing、GLTFLoader、SkeletonUtils、meshopt）
+assets/           3D 模型：raw/ 放原檔，models/ 是處理後給遊戲用的版本
+scripts/assets.mjs  把原檔減面、縮貼圖、壓縮，並合併分開存放的動作
 ```
 
 想調手感，先看 `src/config.js`；玩家武器在 `src/weapons.js`；敵人數值在 `src/enemies.js`

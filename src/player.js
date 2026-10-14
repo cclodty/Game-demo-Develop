@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GUN_Y, PLAYER } from './config.js';
-import { animateRig, attachWeapon, buildCharacter, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
+import { animateRig, attachWeapon, buildCharacter, deathPose, finishRig, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { angleTo, clamp, damp, rand, wrapAngle } from './utils.js';
 import { PLAYER_WEAPONS } from './weapons.js';
@@ -18,6 +18,7 @@ export class Player {
       weapon: 'dualPistol',
       glow: 2.6,
       ring: 0.9,
+      model: 'hero',
     });
     this.anchorZ = this.rig.anchor.position.z;
     this.centerZ = this.rig.center.position.z;
@@ -494,8 +495,10 @@ export class Player {
     this.game.level.collideCircle(this, PLAYER.radius);
     const k = clamp(this.deathT / 0.45, 0, 1);
     const r = this.rig;
-    r.inner.rotation.x = (-Math.PI / 2) * (1 - (1 - k) * (1 - k));
-    r.inner.position.y = 0.12 * k;
+    if (!deathPose(r, this.deathT)) {
+      r.inner.rotation.x = (-Math.PI / 2) * (1 - (1 - k) * (1 - k));
+      r.inner.position.y = 0.12 * k;
+    }
     r.root.position.set(this.x, this.game.level.groundY(this.x, this.z), this.z);
     setFlash(r, 0);
   }
@@ -504,7 +507,7 @@ export class Player {
     const r = this.rig;
     r.root.position.set(this.x, this.game.level.groundY(this.x, this.z), this.z);
     r.root.rotation.y = this.facing;
-    animateRig(r, this.phase, this.moveAmt);
+    animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
 
     if (this.spinT > 0) {
       const k = 1 - this.spinT / PLAYER.spinDuration;
@@ -540,6 +543,7 @@ export class Player {
     setFlash(r, this.hurtFlash * 2.5);
     const ringBoost = this.spinT > 0 ? 3 : 1;
     r.ring.material.color.setRGB(0.25 * ringBoost, 0.85 * ringBoost, 1.0 * ringBoost);
+    finishRig(r, this.game.worldTime);
   }
 
   updateLasers() {

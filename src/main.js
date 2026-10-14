@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
+import { buildCharacter, disposeRig } from './characters.js';
 import { CAMERA, FOCUS, GUN_Y, PLAYER, VIEWS } from './config.js';
 import { Enemies } from './enemies.js';
 import { FX } from './fx.js';
@@ -8,6 +9,7 @@ import { HUD } from './hud.js';
 import { Input } from './input.js';
 import { Level } from './level.js';
 import { MAPS } from './maps.js';
+import { loadedCharacters, loadModels } from './models.js';
 import { Pickups } from './pickups.js';
 import { Player } from './player.js';
 import { PostFX } from './postfx.js';
@@ -104,9 +106,25 @@ class Game {
     this.last = performance.now();
 
     addEventListener('resize', () => this.resize());
+    this.warmCharacters();
     this.bindUI();
     this.updateCamera(1, true);
     requestAnimationFrame((t) => this.frame(t));
+  }
+
+  /** Compile every worn character model's shaders now, so the first enemy of a kind doesn't stutter. */
+  warmCharacters() {
+    const rigs = loadedCharacters().map((model) => buildCharacter({ model }));
+    if (!rigs.length) return;
+    for (const r of rigs) {
+      r.root.position.set(0, -50, 0);
+      this.scene.add(r.root);
+    }
+    this.renderer.compile(this.scene, this.camera);
+    for (const r of rigs) {
+      this.scene.remove(r.root);
+      disposeRig(r);
+    }
   }
 
   // ------------------------------------------------------------ flow
@@ -715,4 +733,7 @@ class Game {
   }
 }
 
-window.game = new Game();
+// optional models first (none is fine), then the game
+loadModels().then(() => {
+  window.game = new Game();
+});

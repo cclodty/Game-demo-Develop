@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { addCutaway } from './cutaway.js';
 import { MAPS } from './maps.js';
+import { propModel } from './models.js';
 import { NavGrid } from './nav.js';
 import { clamp, rand, resolveCircleAABB, resolveCirclePoly, segAABB, segCircle, segPoly, TAU } from './utils.js';
 import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenceTexture, floorTexture } from './textures.js';
@@ -25,7 +26,14 @@ class Barrel {
     const g = new THREE.Group();
     const G = level.geo;
     const M = level.mat;
-    if (lpg) {
+    const model = propModel(variant, level.map.id);
+    if (model) {
+      // a made model; the wrapper takes the fuse wobble without touching its fitted scale
+      const body = new THREE.Group();
+      body.add(model);
+      g.add(body);
+      this.body = body;
+    } else if (lpg) {
       // the LPG cylinders that sit beside every street-food stall
       const body = new THREE.Mesh(G.lpg, M.lpg);
       body.position.y = 0.52;
@@ -108,15 +116,20 @@ class Pan {
     const g = new THREE.Group();
     const tilt = new THREE.Group();
     const tray = variant === 'tray';
-    const disk = new THREE.Mesh(level.geo.pan, tray ? level.mat.tray : level.mat.pan);
-    const rim = new THREE.Mesh(level.geo.panRim, level.mat.panRim);
-    rim.rotation.x = Math.PI / 2;
-    rim.position.y = 0.03;
-    tilt.add(disk, rim);
-    if (!tray) {
-      const handle = new THREE.Mesh(level.geo.panHandle, level.mat.pan);
-      handle.position.set(0, 0.03, 0.62);
-      tilt.add(handle);
+    const model = propModel(tray ? 'tray' : 'pan', level.map.id);
+    if (model) {
+      tilt.add(model);
+    } else {
+      const disk = new THREE.Mesh(level.geo.pan, tray ? level.mat.tray : level.mat.pan);
+      const rim = new THREE.Mesh(level.geo.panRim, level.mat.panRim);
+      rim.rotation.x = Math.PI / 2;
+      rim.position.y = 0.03;
+      tilt.add(disk, rim);
+      if (!tray) {
+        const handle = new THREE.Mesh(level.geo.panHandle, level.mat.pan);
+        handle.position.set(0, 0.03, 0.62);
+        tilt.add(handle);
+      }
     }
     tilt.traverse((m) => {
       if (m.isMesh) m.castShadow = true;
@@ -461,6 +474,14 @@ export class Level {
   addSolid(x, z, w, d, h, matKey) {
     const M = this.mat;
     const s = this.addBox(x, z, w, d, h, M[matKey], matKey === 'crate' ? 'crate' : 'wall');
+    const model = propModel(matKey, this.map.id, w, d, h);
+    if (model) {
+      // a made model replaces the block look; the box stays for collision
+      s.mesh.visible = false;
+      model.position.set(x, 0, z);
+      this.add(model);
+      return s;
+    }
     switch (matKey) {
       case 'pillar':
         this.deco(x, h, z, w + 0.06, 0.08, d + 0.06, M.neonCap);
