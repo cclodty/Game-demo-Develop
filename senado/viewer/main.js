@@ -315,6 +315,11 @@ function showPick(u) {
   $('pickRoof').innerHTML = roof
     ? `${chip(roof.hex)}<small>${roof.label}${shape ? ` · 雙坡頂，屋脊高 ${(shape.eave + shape.rise).toFixed(1)} m` : ''}</small>`
     : '<small>—</small>';
+  // v7 shop signs (showcase): what the photos show, and which photos
+  const sh = b && b.shops;
+  $('pickShops').innerHTML = sh && sh.note
+    ? `${sh.note} <small>${sh.evidence.join(' ')} · 展示用</small>`
+    : b && b.facade ? '<small>通用招牌（按店舖類型）或無</small>' : '<small>—</small>';
   if (b) {
     const g = new THREE.EdgesGeometry(prismGeometry(b.outer, b.holes, b.h + 0.05, b.minH), 20);
     highlight = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x1f4f93, depthTest: false, transparent: true, opacity: 0.95 }));
@@ -332,6 +337,8 @@ bindToggle('tLabels', (on) => labelObjs.forEach((o) => { o.visible = on; o.eleme
 bindToggle('tFigs', (on) => { figureGroup.visible = on; figureGroup.traverse((o) => { if (o.isCSS2DObject) o.element.hidden = !on; }); });
 bindToggle('tContext', (on) => { const g = world.getObjectByName('Buildings_context'); if (g) g.visible = on; });
 bindToggle('tHQ', (on) => lighting.setQuality(on));
+// shop signs, roof sign frames and sign awnings (v7 showcase): off hides every trade name and logo
+bindToggle('tSigns', (on) => world.traverse((o) => { if (o.isMesh && /_(signs|roofSigns|signBoards|signAwnings\d*)$/.test(o.name)) o.visible = on; }));
 bindToggle('tStreet', (on) => { for (const n of ['StreetFurniture', 'Railings']) { const o = world.getObjectByName(n); if (o) o.visible = on; } });
 // generic window grid on the buildings without a facade spec (Facade_generic)
 bindToggle('tGrid', (on) => {

@@ -287,8 +287,9 @@ test('shop signs on the arcade bands stand just proud of the band', () => {
   assert.ok(onBand >= 4);
 });
 
-// Recessed windows (v4) roughly add 40k triangles and the v6 street detail (kerbs, markings, furniture, wall lanterns)
-// about 25k; 200k is still light for a game level of this size.
+// Recessed windows (v4) roughly add 40k triangles, the v6 street detail (kerbs, markings, furniture, wall lanterns)
+// about 25k and the v7 shopfronts and signs about 3k (signs are flat quads); 200k is still light for a game level
+// of this size.
 test('triangle budget: the whole map stays under 200k triangles', () => {
   const { root } = buildSenado(data, { mode: 'export' });
   let tris = 0;

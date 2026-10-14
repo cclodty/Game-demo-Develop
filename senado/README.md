@@ -1,4 +1,4 @@
-# 議事亭前地 Largo do Senado：量體研究 v6
+# 議事亭前地 Largo do Senado：量體研究 v7
 
 子彈時間射擊遊戲地圖：按實景比例建立的議事亭前地模型。
 
@@ -8,6 +8,9 @@
 - **v4**：凹入牆身的窗戶（百葉、玻璃、窗框、欄杆、帆布篷）；再按照片為 12 棟樓宇上色。
 - **v5**：屋頂按衛星圖分類上色；雙坡頂、天台樓梯屋和水缸；玫瑰堂立面（山花牆、門窗）；其餘樓宇用通用色和窗格貼圖。
 - **v6**：街道細節：車路降低 15 厘米並加花崗岩路緣石；石屎、瀝青、石仔三種路面和行人路地磚；行車線和斑馬線；燈柱、交通燈、欄杆、巴士站、路樁、花盆、長椅和牆燈；廣場地磚鋪到牆邊和路緣。
+- **v7**（展示版）：檢視器光影（天空、陽光陰影、環境光遮蔽、色調映射）；騎樓內和地面層的店面；照片中的店舖招牌；牆身灰泥質感。
+
+> **版本錨定**：`senado-v6` 是遊戲引擎用的基準版本，沒有任何商標。v7 起加入照片中的真實店名和商標（新中央酒店、屈臣氏、莎莎、周大福、Swatch、Starbucks 等），只作展示用途，讓模型看起來像實景。遊戲版本應以 `senado-v6` 為準，或把 `data/shops.json` 的招牌換成自己的設計後重建。
 
 - **單位**：1 單位 = 1 米。glTF 為 Y 軸向上。
 - **原點**：噴水池中心（OSM node 5692359322，22.1936819°N, 113.5398859°E）。
@@ -20,21 +23,27 @@
 | --- | --- |
 | `index.html` + `viewer/` | 瀏覽器檢視器，包括鏡頭預設、步行模式、比例人、環境比例滑桿和照片疊圖 |
 | `viewer/model.js` | 由資料建模的程式，檢視器和 GLB 匯出共用，所以看到的就是匯出的 |
-| `export/senado_massing.glb` | 遊戲用模型，15.4 MB，約 17 萬個三角面，65 種材質，已通過 glTF Validator（0 錯誤、0 警告） |
+| `viewer/lighting.js` | 檢視器燈光（v7）：天空、跟隨鏡頭的陽光陰影、天空環境光、GTAO 環境光遮蔽、PBR Neutral 色調映射。只用於檢視器，不進入 GLB |
+| `viewer/materials.js` | 檢視器灰泥牆（v7）：在牆身和線腳的材質加上色塊、污漬、牆腳污跡和細紋凹凸，按世界座標計算，不需要 UV。只用於檢視器，不進入 GLB |
+| `export/senado_massing.glb` | 模型，17.3 MB，約 17.3 萬個三角面，70 種材質，已通過 glTF Validator（0 錯誤、0 警告）。v7 的 GLB 含真實商標，只作展示 |
 | `data/osm_raw.json` | Overpass 原始擷取（© OpenStreetMap contributors，ODbL） |
 | `data/landmarks.json` | 人手整理：地標名稱、已知外牆顏色、高度修正、立面樣式（`facadeStyles`）、每棟樓的立面規格與照片證據（`facades`）、過街樓（`bridges`）、照片取色（`wallColors`、`windowColors`）、通用色（`genericWalls`）、屋頂顏色（`roofPalette`）和坡頂（`roofShapes`） |
 | `data/roof_classes.json` | 每棟樓的屋頂類別（`classify_roofs.py` 由衛星圖分類，只存類別名稱） |
 | `data/osm_street.json` | 街道傢俬的 Overpass 擷取：交通燈、過路處、巴士站、路樁、郵筒等（© OpenStreetMap contributors，ODbL） |
 | `data/streets.json` | `build_streets.py` 的結果：車路（按路面分）、行人路地磚、路緣石、廣場地磚範圍、行車線和斑馬線、街道傢俬位置；`build_data.py` 會併入 `senado_massing.json` 的 `streets` |
+| `data/shops.json` | 人手整理（v7，只作展示）：招牌設計（文字、顏色、尺寸）、每棟樓的店舖類型、招牌位置和照片證據 |
+| `data/sign_atlas.json` | `make_shop_textures.py` 的輸出：每個招牌在 `signs.png` 中的範圍和尺寸；`build_data.py` 會核對並併入 `senado_massing.json` 的 `shopSigns` |
 | `data/senado_massing.json` | 處理後的本地米制資料 |
 | `viewer/assets/calcada_waves.png` | 可平鋪的葡式碎石波浪貼圖，每格 6.0 × 2.25 米 |
 | `viewer/assets/louvre.png`、`glazing.png` | 窗扇的灰階細節貼圖（百葉、玻璃窗格），每格一扇 × 1 米，乘上窗戶材質的顏色 |
 | `viewer/assets/facade_generic.png` | 通用窗格貼圖，每格一個開間（3.0 米）× 一層（3.2 米），乘上牆身的頂點顏色 |
 | `viewer/assets/asphalt.png`、`paving.png`、`setts.png` | 路面灰階細節貼圖：車路（每格 4 米）、0.4 米方磚（每格 2 米）、碎石（每格 1.5 米），乘上材質顏色 |
 | `viewer/assets/railing.png` | 路邊欄杆，每格 2 米 × 1 米，欄杆條在 alpha 通道（GLB 為 `alphaMode: MASK`） |
+| `viewer/assets/shops.png` | 店內貼圖，4 × 2 格：美妝、藥房、金行、餅家、時裝、咖啡、肉乾、鞋店；同時用作自發光，店內看起來亮着燈 |
+| `viewer/assets/signs.png` | 招牌圖集，2048 × 2048 RGBA，字在透明底上（GLB 為 `alphaMode: MASK`）；每米 160 像素 |
 | `reference/*.jpg` | Esri 衛星參考圖，已對位。不入 git，只作對位參考 |
 | `reference/photos/` | 36 張 Wikimedia Commons 照片（640 px），用作立面證據；作者與授權見 `credits.json` |
-| `tests/` | `npm test`：外牆法線向外、輪廓逆時針、騎樓內縮面積、立面幾何無 NaN、噴水池台階朝向、雙坡頂朝向和面積、天台物件在屋頂上、車路低一級且路緣石面向車路、標線在車路上、街道傢俬在地面且不在樓宇內、牆燈、全圖三角面少於 20 萬 |
+| `tests/` | `npm test`：外牆法線向外、輪廓逆時針、騎樓內縮面積、立面幾何無 NaN、噴水池台階朝向、雙坡頂朝向和面積、天台物件在屋頂上、車路低一級且路緣石面向車路、標線在車路上、街道傢俬在地面且不在樓宇內、牆燈、招牌全部放得下且 UV 在圖集範圍內、騎樓招牌貼在橫線前、全圖三角面少於 20 萬 |
 
 ## GLB 結構
 
@@ -51,7 +60,9 @@ LargoDoSenado
 │  ├─ Buildings_landmark   每棟一個節點：B_<osm id>_<key>，例如 B_w192573688_sao_domingos
 │  │                       有立面規格的樓宇是一個群組：_body（牆身＋屋頂）、_arcade（拱廊）、_trim（線腳、窗框）、
 │  │                       _windows（窗扇，每種顏色一個子網格）、_awnings（帆布篷）、_railings（鐵欄）、
-│  │                       _lanterns、_lanternGlass（面向廣場的牆燈）
+│  │                       _lanterns、_lanternGlass（面向廣場的牆燈）；v7 加：_shops（店面）、_shopFrames（店面框）、
+│  │                       _fascias（騎樓內招牌板）、_signs（招牌）、_signBoards（招牌底板和鐵架）、_roofSigns、
+│  │                       _signAwnings（便民藥房的藍色簷篷）；新中央酒店的天台字架是 B_w397915628_roofSigns
 │  ├─ Buildings_frontage   廣場臨街
 │  ├─ Buildings_avenue     新馬路臨街
 │  ├─ Buildings_core       噴水池 170 米內
@@ -71,6 +82,8 @@ LargoDoSenado
 材質名稱：牆身 `Wall_<wallColors key>`（例如 `Wall_mgto_yellow`）、屋頂 `Roof_<屋頂類別>`、線腳 `Trim` 或 `Trim_<key>`、窗扇 `Window_<windowColors key>`。`Window_shutter_*` 帶百葉貼圖，`Window_glass` 和 `Window_glaze_*` 帶玻璃窗格貼圖，貼圖是灰階，與 `baseColorFactor` 相乘。窗扇的 UV：u = 窗扇數（每個窗兩扇），v = 由窗洞底部起的米數。
 
 沒有立面規格的樓宇共用三種材質，顏色存在頂點顏色（`COLOR_0`）：`Facade_generic`（牆身，帶 `facade_generic` 窗格貼圖）、`Facade_plain`（大堂，不加窗格）和 `Roof`（屋頂）；天台物件用 `Rooftop`。這些牆身的 UV 不是米：u = 開間數（每面牆取整數個 3 米開間，短於 1.5 米的牆只顯示牆身），v = 層數（每 3.2 米一層，由屋頂下 0.4 米往下數）。
+
+店面材質（v7）：`Shopfront`（`shops` 貼圖，同時作自發光貼圖）、`Shop_frame`（深色金屬框）、`Shop_fascia`（騎樓內的招牌板）、`Shop_sign`（`signs` 貼圖，alpha 遮罩，略帶自發光）、`Awning_<顏色>`（雙面帆布）。招牌是貼在牆前 2 厘米的平面，UV 指向圖集中該招牌的範圍。
 
 街道材質：`Paving`（`paving` 貼圖）、`Road_asphalt` 和 `Road_concrete`（`asphalt` 貼圖）、`Road_setts` 和 `Footway`（`setts` 貼圖）、`Kerb`、`Road_marking`、`Railing`（雙面，alpha 遮罩）。路面 UV 以米為單位除以貼圖尺寸；地磚和碎石的 UV 沿新馬路方向（與波浪地磚相同的 −50°），瀝青不分方向。
 
@@ -95,7 +108,8 @@ node senado/scripts/export_glb.mjs --plan 1.25    # 只拉闊平面，樓高不�
 ```bash
 npm install
 bash senado/scripts/fetch_osm.sh            # 重新擷取 OSM（可略過，repo 已附）
-python3 senado/scripts/build_data.py        # osm_raw.json → senado_massing.json
+python3 senado/scripts/make_shop_textures.py   # 店內貼圖和招牌圖集 → shops.png、signs.png、sign_atlas.json
+python3 senado/scripts/build_data.py        # osm_raw.json → senado_massing.json（會核對招牌圖集）
 python3 senado/scripts/make_calcada.py      # 地磚貼圖
 python3 senado/scripts/make_window_textures.py  # 百葉、玻璃窗格、通用窗格貼圖
 python3 senado/scripts/fetch_imagery.py     # 衛星參考圖（不入 git）
@@ -151,7 +165,7 @@ npm run senado:serve                        # 檢視器：http://localhost:8000
 - **資料**：每種顏色連同取樣照片、範圍和量得的 HSV，記錄在 `landmarks.json` 的 `wallColors`。
 - **已上色**：西面黃色一排、信德堡、梁族大廈、中華商業大廈（米白）、便民藥房（赭黃）、粉紅角樓、新中央酒店（薄荷綠）、市政署及仁慈堂（白）、郵政局（米色石材）、玫瑰堂（黃）。v4 再加 12 棟，見下文。
 - **未有照片證據**：其餘樓宇在 v5 改用通用色，見下文。
-- **燈光**：太陽改為東南方（照片 #87 的上午光線），並加強地面反射光。AgX 和 ACES 色調映射都試過，會把淡色牆洗白，所以輸出用 sRGB、不做色調映射。遊戲引擎內需要按引擎自身的燈光重新調整。
+- **燈光**：太陽改為東南方（照片 #87 的上午光線），並加強地面反射光。AgX 和 ACES 色調映射都試過，會把淡色牆洗白，所以輸出用 sRGB、不做色調映射（v7 改用 PBR Neutral，見下文）。遊戲引擎內需要按引擎自身的燈光重新調整。
 
 ### 窗戶（v4）
 
@@ -215,10 +229,60 @@ npm run senado:serve                        # 檢視器：http://localhost:8000
 
 燈柱、欄杆、花盆和長椅的位置是按規則擺放，不是逐支實測；節慶燈籠、花牌等臨時裝飾沒有加入。街道傢俬約 2.7 萬個三角面，可在檢視器用「街道傢俬」按鈕隱藏。
 
+### 光影（v7）
+
+全部在 `viewer/lighting.js`，只用於檢視器。GLB 只有幾何和材質，遊戲引擎要用自己的燈光。
+
+- **太陽**：方位 125°、仰角 50°，即照片 #87 的上午光線，照亮西面一排。
+- **陰影**：一張 4096² 陰影圖，每格畫面按鏡頭所見範圍重新擬合（步行高度時是前方 150 米）。範圍的中心對齊陰影圖的像素，轉動鏡頭時陰影邊不會閃動。
+- **環境光**：由天空生成，但先把天空的藍色白平衡，像相機所見的一樣，所以陰影處接近中性灰，不會變藍。亮度比例按照片 #87、#40 量度：向光地磚約是陰影地磚的 3.2 倍（線性）。
+- **環境光遮蔽**：GTAO，半徑 2 米。騎樓天花、窗洞和牆腳因此變暗。欄杆和招牌不計入，否則 alpha 遮罩的部分會當作實心板遮光。
+- **色調映射**：Khronos PBR Neutral。0.76 以下的顏色幾乎不變，所以照片取得的淡色保持原值，向光的白牆則平滑壓縮，不會一片死白。
+- **畫質**：「高畫質」開啟時用 4× 多重取樣的 HDR 畫面，再做 GTAO 和色調映射；關閉時直接輸出到畫面，較慢的電腦可用。
+
+### 店面（v7）
+
+- **騎樓內**：每個開間一間店，共 45 間。店面玻璃退在騎樓後牆前，有深色金屬框，上方是招牌板。
+- **地面層**：沒有騎樓的樓宇，`windows.ground` 的 `fill` 為 `shop` 時，地面層窗洞改為店面，共 24 個：便民藥房、新馬路南面的 APOLLO 大樓一排，以及北端西面的現代樓。
+- **店內**：`shops.png` 有八種店（美妝、藥房、金行、餅家、時裝、咖啡、肉乾、鞋店），同一張圖亦用作自發光，所以店內看起來亮着燈。店舖類型按照片指定（`shops.json` 的 `kinds`），沒有證據的開間按編號固定分配。
+
+### 招牌（v7，只作展示）
+
+- **證據**：每個招牌都按 Commons 照片放置，照片編號在 `shops.json` 的 `evidence`：
+
+  | 樓宇 | 招牌 | 照片 |
+  | --- | --- | --- |
+  | 澳門商務旅遊中心 | 騎樓上方橫線的深色字 | #10、#108、#126 |
+  | 信德堡 | 二樓窗內紫色大字；騎樓內屈臣氏 | #131 |
+  | 粉紅角樓 | 橫線上「鉅記手信」紅字圓牌、白字 mannings；拱內店招 | #72、#105、#106 |
+  | 中華商業大廈 | 兩層拱窗掛莎莎（粉紅）和 TFS（深灰）布幔；橫線中文名 | #132、#133、#135 |
+  | 力騰商業中心 | 兩層大拱窗內藍底手錶畫；swatch | #174、#188 |
+  | 窄段西面一排 | PANDORA、黃枝記（一樓欄杆紅字）、JOY&PEACE、STARBUCKS COFFEE | #134、#136、#175 |
+  | 北端盡頭 | 頂部 SWAROVSKI；兩層拱窗紫色布幔 | #188 |
+  | 便民藥房 | 地面層藍色帆布簷篷、白底藍字小招牌 | #36、#132 |
+  | 新馬路南面 | 周大福、TSL 謝瑞麟店招；上層深藍 TSL 大招牌 | #263 |
+  | 新中央酒店 | 天台紅色「新中央 HOTEL CENTRAL」字架，兩面 | #99、#132 |
+
+- **其餘店舖**：騎樓內沒有照片證據的招牌板，以及地面層店面上方有空位的地方，掛中葡雙語的通用招牌（例如「餅家 PASTELARIA」、「大藥房 FARMÁCIA」），按店舖類型和編號固定選取。
+- **製作**：`make_shop_textures.py` 按 `shops.json` 的設計畫出全部 49 個招牌：文字招牌用 Inter、Liberation Serif 和文泉驛正黑，以兩倍解析度畫出後縮小；Swatch、莎莎、TFS 等是程式畫的近似圖案，不是原本的標誌檔案。招牌按實際尺寸（一般每米 160 像素）排入圖集，字以外的地方透明。
+- **位置**：`at` 決定掛在哪裏：`band`（地面層上的橫線）、`window`（某層某幾個窗洞內）、`fascia`（騎樓內招牌板）、`lintel`（地面層店面上方）、`wall`（牆上指定位置）、`roof`（天台字架，有鐵柱和橫杆）、`awning`（帆布簷篷）。通用招牌會避開已放的招牌和簷篷，放不下就不放。
+- **限制**：字款和圖案是近似，招牌位置按照片目測，不是量度。節日裝飾、臨時橫額和流動攤檔沒有加入。
+- 檢視器的「店舖招牌」按鈕可隱藏全部招牌、天台字架和簷篷；點選建築時顯示該樓的招牌和證據照片。
+
+### 灰泥牆（v7）
+
+`viewer/materials.js` 在檢視器編譯著色器時，修改牆身（`Wall_*`、`Facade_*`）和線腳（`Trim*`，效果減半）的材質，令牆面不是一片平塗的顏色：
+
+- **色塊**：幾米大小的明暗斑塊，最多 ±8%，像翻油和風化的痕跡。
+- **污漬**：2 米以上的垂直深色條紋，較疏落，最深約 14%。
+- **牆腳污跡**：由 1.5 米往下漸深，牆腳平均暗約 24%，像雨水濺起和人手摩擦。
+- **細紋**：約 1.5 厘米起伏的凹凸，斜陽下見到抹灰的表面；70 米外逐漸淡出，避免閃爍。
+- 全部按世界座標計算，不需要 UV，也不改變 GLB。色塊、污漬和污跡只用於垂直的牆面，窗台和簷口頂面保持原色。遊戲引擎內可用自己的灰泥材質取代。
+
 ## 下一步（逐部細化）
 
 1. **逐棟核對通用色**：新馬路其餘一段、板樟堂前地東面、營地街市和大堂。
 2. **街道傢俬實測**：用街景照片核對燈柱、花盆和長椅的位置；路牌和指示牌。
-3. **店舖招牌和地面層店面**；新馬路的騎樓仍未有足夠照片證據。
+3. **新馬路的騎樓和招牌**：仍未有足夠照片證據；其餘店舖的招牌按街景照片逐間核對。
 4. **細部**：大堂鐘樓、市政署的立面細部。
 5. **遊戲用途**：碰撞簡化，以及界定可進入的範圍。

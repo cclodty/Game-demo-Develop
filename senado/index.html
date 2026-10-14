@@ -149,10 +149,10 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
   <header class="head">
     <div>
       <div class="eyebrow">Macau · Largo do Senado · 22.1937°N 113.5399°E</div>
-      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v6 街道細節</span></div>
-      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。按 36 張實景照片加入騎樓及樓層外圍（v2），補上噴水池的下沉台階並從照片取得外牆顏色（v3），再為臨街立面開出凹入的窗洞，配上百葉、玻璃、窗框、欄杆和帆布篷（v4）。v5 按衛星圖為每個屋頂分類上色，加上雙坡頂、天台樓梯屋和水缸，玫瑰堂立面補上山花牆，其餘樓宇用通用色和窗格。v6 把車路降低一級路緣石，加上行車線、斑馬線、地磚和石仔路質感，以及燈柱、交通燈、欄杆、花盆和長椅。</p>
+      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v7 展示版</span></div>
+      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。按 36 張實景照片加入騎樓及樓層外圍（v2），補上噴水池的下沉台階並從照片取得外牆顏色（v3），再為臨街立面開出凹入的窗洞，配上百葉、玻璃、窗框、欄杆和帆布篷（v4）。v5 按衛星圖為每個屋頂分類上色，加上雙坡頂、天台樓梯屋和水缸，玫瑰堂立面補上山花牆，其餘樓宇用通用色和窗格。v6 把車路降低一級路緣石，加上行車線、斑馬線、地磚和石仔路質感，以及燈柱、交通燈、欄杆、花盆和長椅。v7 是展示版：陽光陰影、環境光遮蔽和色調映射，騎樓內和地面層的店面，照片中的真實店舖招牌，以及灰泥牆質感。</p>
     </div>
-    <div class="status"><i></i>v6 15 厘米路緣石 · 48 條斑馬線 · 50 支燈柱 · 110 支交通燈 · 490 米欄杆</div>
+    <div class="status"><i></i>v7 69 間店面 · 49 款招牌 · 13 棟按照片掛招牌 · 陽光陰影 · 灰泥牆</div>
   </header>
 
   <div class="grid">
@@ -196,6 +196,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
           <button class="chip" id="tGrid" aria-pressed="true">窗格</button>
           <button class="chip" id="tContext" aria-pressed="true">外圍建築</button>
           <button class="chip" id="tStreet" aria-pressed="true">街道傢俬</button>
+          <button class="chip" id="tSigns" aria-pressed="true" title="關掉即不顯示任何店名和商標">店舖招牌</button>
           <button class="chip" id="tHQ" aria-pressed="true">高畫質</button>
         </div>
       </div>
@@ -223,6 +224,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
             <dt>OSM</dt><dd id="pickId"></dd>
             <dt>外牆顏色</dt><dd id="pickColor"></dd>
             <dt>屋頂</dt><dd id="pickRoof"></dd>
+            <dt>店舖招牌</dt><dd id="pickShops"></dd>
           </dl>
           <div id="pickFacade" hidden>
             <dl class="kv" id="pickFacadeKv"></dl>
@@ -263,6 +265,8 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
           <div><span class="sw" style="background:#f6f3ec;box-shadow:inset 0 -4px 0 #d8d2c4"></span>白色線腳：腰線、簷口、窗框、女兒牆（北端米白一排為深啡）</div>
           <div><span class="sw" style="background:linear-gradient(#b8bec3,#b8bec3) 20% 60% / 30% 50% no-repeat,linear-gradient(#4a78b0,#4a78b0) 75% 60% / 30% 50% no-repeat,#a3a39e"></span>天台樓梯屋、水缸（隨機位置，按編號固定）</div>
           <div><span class="sw cal"></span>葡式碎石波浪地磚</div>
+          <div><span class="sw" style="background:linear-gradient(#2e2826,#2e2826) 50% 15% / 100% 28% no-repeat,linear-gradient(#e9e2d4,#e9e2d4) 50% 85% / 80% 60% no-repeat,#3a3029"></span>店面（v7）：店內貼圖亮着燈，深色框，上方招牌板</div>
+          <div><span class="sw" style="background:#d8231f"></span>店舖招牌（v7，只作展示）：照片中的店名和商標，其餘為中葡雙語通用招牌</div>
           <div><span class="sw" style="background:#ff6a2a"></span>比例人 1.75 米</div>
           <div><span class="sw" style="background:linear-gradient(#3b3f42,#3b3f42) 50% 55% / 40% 45% no-repeat,#e8e5de"></span>窗格：每 3 米一窗、每 3.2 米一層（只用於未細化的樓宇，不是實測窗位）</div>
         </div>
@@ -271,6 +275,31 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
   </div>
 
   <div class="notes">
+    <div class="card">
+      <h2>v7：光影</h2>
+      <ul>
+        <li><b>陽光和陰影：</b>上午東南方的陽光（照片 #87），一張 4096² 陰影圖按鏡頭所見範圍重新擬合，步行時陰影清晰，轉動鏡頭時陰影邊不會閃動。</li>
+        <li><b>環境光：</b>由天空生成，但先白平衡，所以陰影處接近中性灰；向光與陰影地磚的亮度比約 3.2 倍，按照片 #87、#40 量度。</li>
+        <li><b>環境光遮蔽和色調映射：</b>GTAO 令騎樓天花、窗洞和牆腳變暗；PBR Neutral 色調映射保持照片取得的淡色，只壓縮向光的白牆。</li>
+        <li>燈光只在檢視器，GLB 只有幾何和材質。較慢的電腦可關掉「高畫質」。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v7：店面與招牌（只作展示）</h2>
+      <ul>
+        <li><b>版本錨定：</b>遊戲引擎用的基準版本是 <span class="mono">senado-v6</span>，不含任何商標。v7 的店名和商標只為重現實景，關掉「店舖招牌」即不顯示任何店名和商標。</li>
+        <li><b>店面：</b>騎樓內每個開間一間店（45 間），沒有騎樓的樓宇地面層窗洞改為店面（24 個）；店內貼圖分美妝、藥房、金行、餅家、時裝、咖啡、肉乾、鞋店八種，亮着燈。</li>
+        <li><b>招牌按照片放置：</b>新中央酒店天台字架、信德堡窗內紫色大字、莎莎和 TFS 布幔、Swatch 手錶畫、鉅記手信圓牌、便民藥房藍色簷篷、周大福和 TSL 等，共 13 棟。點選建築可看到證據照片編號。</li>
+        <li><b>其餘店舖</b>掛中葡雙語的通用招牌，按店舖類型固定選取。字款和圖案是近似，不是原本的標誌檔案。招牌是平面，全圖只多約 3 千個三角形（共約 17.3 萬），GLB 約 17.3 MB。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v7：灰泥牆</h2>
+      <ul>
+        <li><b>不再平塗：</b>牆身和線腳加上幾米大小的明暗色塊、疏落的垂直污漬、牆腳 1.5 米內的污跡，以及約 1.5 厘米的抹灰細紋，斜陽下可以看到。</li>
+        <li>按世界座標在著色器內計算，不需要 UV，也不改變 GLB；遊戲引擎可用自己的灰泥材質取代。</li>
+      </ul>
+    </div>
     <div class="card">
       <h2>v6：街道</h2>
       <ul>
@@ -286,7 +315,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
         <li><b>來自 OSM：</b>交通燈（車輛燈在停車線兩旁路緣，行人燈在過路處兩端）、巴士站、路樁、郵筒。</li>
         <li><b>按規則擺放（不是逐支實測）：</b>新馬路兩旁每 25 米一支雙燈鑄鐵燈柱、路緣內 0.3 米的墨綠欄杆，廣場出口不設欄杆（#263、#047）；廣場沿牆每 18 米一支單燈燈柱（#087），每 9 米一個修剪灌木大花盆，花盆之間放長椅和垃圾桶（#105、#031）。</li>
         <li><b>牆燈：</b>面向廣場的立面，在地面層線以上每隔一個壁柱掛一盞黑色支架燈（#049、#105）。</li>
-        <li>街道傢俬可用「街道傢俬」按鈕隱藏。全圖約 17 萬個三角形，GLB 約 15.4 MB。</li>
+        <li>街道傢俬可用「街道傢俬」按鈕隱藏。v6 全圖約 17 萬個三角形，GLB 約 15.4 MB。</li>
       </ul>
     </div>
     <div class="card">
@@ -338,7 +367,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
       <ul>
         <li><b>按照片逐棟核對通用色：</b>先做新馬路其餘一段、板樟堂前地東面、營地街市和大堂（現為暫定色）。</li>
         <li><b>街道傢俬實測：</b>用街景照片核對燈柱、花盆和長椅的實際位置；加入路牌、指示牌和節慶裝飾（現時刻意不加）。</li>
-        <li><b>店舖招牌和地面層店面</b>未建模；<b>大堂鐘樓</b>和市政署的細部；遊戲用的碰撞簡化。</li>
+        <li><b>新馬路的騎樓和招牌</b>仍欠照片證據；<b>大堂鐘樓</b>和市政署的細部；遊戲用的碰撞簡化。</li>
       </ul>
     </div>
   </div>
@@ -347,6 +376,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
     <div>建築、街道及廣場輪廓：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors，ODbL 授權，經 Overpass API 擷取。</div>
     <div>衛星影像：Esri World Imagery（Esri, Maxar, Earthstar Geographics），只作參考對位，已按噴水池平移校正。</div>
     <div>實景照片：Wikimedia Commons，作者及授權（CC0、CC BY、CC BY-SA）見每張照片的連結及 <span class="mono">reference/photos/credits.json</span>。照片已縮小，未作其他修改。</div>
+    <div>店名和商標屬各自擁有者，只為重現實景而加入（v7 展示版）；遊戲用的基準版本 senado-v6 不含商標。</div>
     <div id="buildStamp"></div>
   </footer>
 </div>

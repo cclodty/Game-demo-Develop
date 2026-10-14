@@ -7,11 +7,11 @@
 import * as THREE from 'three';
 
 export const PLASTER = {
-  tone: 0.1,           // tone patches a few metres across, ± share of the colour
-  streaks: 0.08,       // vertical weathering streaks
-  grime: 0.22,         // darkening at the foot of the walls
+  tone: 0.08,          // tone patches a few metres across, ± share of the colour at the extremes
+  streaks: 0.14,       // darkest vertical weathering streaks, share of the colour
+  grime: 0.24,         // darkening at the foot of the walls
   grimeHeight: 1.5,    // m
-  bump: 0.5,           // grain strength on the normal
+  bump: 0.7,           // grain strength on the normal (1 = about two centimetres of relief)
   trim: 0.5,           // mouldings get this share of the above
 };
 
@@ -54,8 +54,10 @@ function patch(material, strength) {
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
           float wall = 1.0 - smoothstep(0.6, 0.9, abs(plNrm.y));          // roofs and sills keep their colour
-          float tone = (plFbm(plPos * vec3(0.3, 0.45, 0.3)) - 0.5) * 2.0 * plTone;
-          float streak = (plFbm(plPos * vec3(2.2, 0.15, 2.2)) - 0.5) * 2.0 * plStreaks * smoothstep(2.0, 6.0, plPos.y);
+          // the fbm sits around 0.47 with a spread of about 0.11: rescale it to roughly -1..1
+          float tone = clamp((plFbm(plPos * vec3(0.3, 0.45, 0.3)) - 0.47) / 0.18, -1.0, 1.0) * plTone;
+          // streaks only darken, and only the upper fifth of the noise: sparse runs washed down the wall
+          float streak = -smoothstep(0.55, 0.75, plFbm(plPos * vec3(2.2, 0.15, 2.2))) * plStreaks * smoothstep(2.0, 6.0, plPos.y);
           float grime = (1.0 - smoothstep(0.0, plGrimeH, plPos.y)) * plGrime * (0.7 + 0.6 * plNoise(plPos * 1.7));
           diffuseColor.rgb *= 1.0 + wall * plStrength * (tone + streak - grime);
         }`)
