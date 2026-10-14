@@ -1,0 +1,410 @@
+{
+ "note": "Wikimedia Commons photos used as evidence for facade specs (landmarks.json). Resized to 640 px; credit as listed. camera = local metres (x east, y north) from the photo geotag, when present.",
+ "photos": {
+  "#0": {
+   "src": "reference/photos/p000.jpg",
+   "file": "Centre of Makau.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Centre_of_Makau.jpg",
+   "author": "Сура at ru.wikipedia",
+   "license": "CC BY 2.5",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.5",
+   "camera": null
+  },
+  "#6": {
+   "src": "reference/photos/p006.jpg",
+   "file": "9-13 Largo do Senado, Macau - panoramio - jetsun.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:9-13_Largo_do_Senado,_Macau_-_panoramio_-_jetsun.jpg",
+   "author": "jetsun",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "camera": [
+    14.9,
+    37.2
+   ]
+  },
+  "#10": {
+   "src": "reference/photos/p010.jpg",
+   "file": "Centro de Turismo de Negócios de Macau - panoramio.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Centro_de_Turismo_de_Neg%C3%B3cios_de_Macau_-_panoramio.jpg",
+   "author": "Bohao Zhao",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "camera": [
+    -32.2,
+    -5.6
+   ]
+  },
+  "#23": {
+   "src": "reference/photos/p023.jpg",
+   "file": "Largo do Senado 04-02-2023(6).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_04-02-2023(6).jpg",
+   "author": "LN9267",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": [
+    49.6,
+    49.0
+   ]
+  },
+  "#26": {
+   "src": "reference/photos/p026.jpg",
+   "file": "Largo do Senado 04-07-2024(1).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_04-07-2024(1).jpg",
+   "author": "LN9267",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": [
+    -9.5,
+    -8.7
+   ]
+  },
+  "#28": {
+   "src": "reference/photos/p028.jpg",
+   "file": "Largo do Senado 05-07-2024.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_05-07-2024.jpg",
+   "author": "LN9267",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": [
+    43.4,
+    54.0
+   ]
+  },
+  "#31": {
+   "src": "reference/photos/p031.jpg",
+   "file": "Largo do Senado 08-07-2024.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_08-07-2024.jpg",
+   "author": "LN9267",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": [
+    22.9,
+    24.5
+   ]
+  },
+  "#36": {
+   "src": "reference/photos/p036.jpg",
+   "file": "Largo do Senado 11-12-2025(2).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_11-12-2025(2).jpg",
+   "author": "LN9267",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": [
+    -0.8,
+    1.3
+   ]
+  },
+  "#40": {
+   "src": "reference/photos/p040.jpg",
+   "file": "Largo do Senado 1110301.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_1110301.jpg",
+   "author": "K.Y.K.Z.K.",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": [
+    8.7,
+    -0.4
+   ]
+  },
+  "#42": {
+   "src": "reference/photos/p042.jpg",
+   "file": "Largo do Senado 12-10-2023(1).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_12-10-2023(1).jpg",
+   "author": "LN9267",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": [
+    -21.2,
+    -11.2
+   ]
+  },
+  "#47": {
+   "src": "reference/photos/p047.jpg",
+   "file": "Largo do Senado 148 (35732924351).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_148_(35732924351).jpg",
+   "author": "Jota from Porto, Portugal",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "camera": null
+  },
+  "#49": {
+   "src": "reference/photos/p049.jpg",
+   "file": "Largo do Senado 152 (35732932851).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_152_(35732932851).jpg",
+   "author": "Jota from Porto, Portugal",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "camera": [
+    -2.3,
+    -8.4
+   ]
+  },
+  "#52": {
+   "src": "reference/photos/p052.jpg",
+   "file": "Largo do Senado 16-08-2023(3).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_16-08-2023(3).jpg",
+   "author": "LN9267",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": [
+    19.8,
+    30.9
+   ]
+  },
+  "#57": {
+   "src": "reference/photos/p057.jpg",
+   "file": "Largo do Senado 19-02-2023(3).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_19-02-2023(3).jpg",
+   "author": "LN9267",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": [
+    29.2,
+    35.9
+   ]
+  },
+  "#71": {
+   "src": "reference/photos/p071.jpg",
+   "file": "Largo do Senado Exhibition.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_Exhibition.jpg",
+   "author": "WiNG",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "camera": null
+  },
+  "#72": {
+   "src": "reference/photos/p072.jpg",
+   "file": "Largo do Senado IMG 5358.JPG",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_IMG_5358.JPG",
+   "author": "deror_avi",
+   "license": "Attribution (Commons)",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "camera": null
+  },
+  "#73": {
+   "src": "reference/photos/p073.jpg",
+   "file": "Largo do Senado IMG 5359.JPG",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado_IMG_5359.JPG",
+   "author": "deror_avi",
+   "license": "Attribution (Commons)",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "camera": null
+  },
+  "#87": {
+   "src": "reference/photos/p087.jpg",
+   "file": "Largo do Senado, 2023 (01).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Largo_do_Senado,_2023_(01).jpg",
+   "author": "Bahnfrend",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": [
+    0.3,
+    -17.0
+   ]
+  },
+  "#99": {
+   "src": "reference/photos/p099.jpg",
+   "file": "Macao, Part III - Macau8688.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Macao,_Part_III_-_Macau8688.jpg",
+   "author": "lumoplank",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "camera": [
+    -190.0,
+    -414.0
+   ]
+  },
+  "#105": {
+   "src": "reference/photos/p105.jpg",
+   "file": "Macau 5 (14504412197).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Macau_5_(14504412197).jpg",
+   "author": "Mike W. from Vancouver, Canada",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "camera": null
+  },
+  "#106": {
+   "src": "reference/photos/p106.jpg",
+   "file": "Macau 6 (14504203019).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Macau_6_(14504203019).jpg",
+   "author": "Mike W. from Vancouver, Canada",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "camera": null
+  },
+  "#108": {
+   "src": "reference/photos/p108.jpg",
+   "file": "Macau Government Tourist Office 澳門政府旅遊局 - panoramio.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Macau_Government_Tourist_Office_%E6%BE%B3%E9%96%80%E6%94%BF%E5%BA%9C%E6%97%85%E9%81%8A%E5%B1%80_-_panoramio.jpg",
+   "author": "lienyuan lee",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "camera": [
+    23.9,
+    24.7
+   ]
+  },
+  "#126": {
+   "src": "reference/photos/p126.jpg",
+   "file": "MC Macau Peninsula 1327pm old zone 議事前地 Largo do Senado November 2023 R12S 13.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:MC_Macau_Peninsula_1327pm_old_zone_%E8%AD%B0%E4%BA%8B%E5%89%8D%E5%9C%B0_Largo_do_Senado_November_2023_R12S_13.jpg",
+   "author": "Kamfutiam Georgez",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "camera": [
+    0.1,
+    10.9
+   ]
+  },
+  "#127": {
+   "src": "reference/photos/p127.jpg",
+   "file": "MC Macau Peninsula 1327pm old zone 議事前地 Largo do Senado November 2023 R12S 14.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:MC_Macau_Peninsula_1327pm_old_zone_%E8%AD%B0%E4%BA%8B%E5%89%8D%E5%9C%B0_Largo_do_Senado_November_2023_R12S_14.jpg",
+   "author": "Kamfutiam Georgez",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "camera": [
+    -5.2,
+    9.5
+   ]
+  },
+  "#130": {
+   "src": "reference/photos/p130.jpg",
+   "file": "MC Macau Peninsula 1327pm old zone 議事前地 Largo do Senado November 2023 R12S 17.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:MC_Macau_Peninsula_1327pm_old_zone_%E8%AD%B0%E4%BA%8B%E5%89%8D%E5%9C%B0_Largo_do_Senado_November_2023_R12S_17.jpg",
+   "author": "Kamfutiam Georgez",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "camera": [
+    7.4,
+    -4.9
+   ]
+  },
+  "#131": {
+   "src": "reference/photos/p131.jpg",
+   "file": "MC Macau Peninsula 1327pm old zone 議事前地 Largo do Senado November 2023 R12S 18.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:MC_Macau_Peninsula_1327pm_old_zone_%E8%AD%B0%E4%BA%8B%E5%89%8D%E5%9C%B0_Largo_do_Senado_November_2023_R12S_18.jpg",
+   "author": "Kamfutiam Georgez",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "camera": [
+    17.8,
+    19.8
+   ]
+  },
+  "#132": {
+   "src": "reference/photos/p132.jpg",
+   "file": "MC Macau Peninsula 1327pm old zone 議事前地 Largo do Senado November 2023 R12S 20.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:MC_Macau_Peninsula_1327pm_old_zone_%E8%AD%B0%E4%BA%8B%E5%89%8D%E5%9C%B0_Largo_do_Senado_November_2023_R12S_20.jpg",
+   "author": "Kamfutiam Georgez",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "camera": [
+    17.8,
+    19.8
+   ]
+  },
+  "#133": {
+   "src": "reference/photos/p133.jpg",
+   "file": "MC Macau Peninsula 1327pm old zone 議事前地 Largo do Senado November 2023 R12S 21.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:MC_Macau_Peninsula_1327pm_old_zone_%E8%AD%B0%E4%BA%8B%E5%89%8D%E5%9C%B0_Largo_do_Senado_November_2023_R12S_21.jpg",
+   "author": "Kamfutiam Georgez",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "camera": [
+    23.1,
+    27.7
+   ]
+  },
+  "#134": {
+   "src": "reference/photos/p134.jpg",
+   "file": "MC Macau Peninsula 1327pm old zone 議事前地 Largo do Senado November 2023 R12S 22.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:MC_Macau_Peninsula_1327pm_old_zone_%E8%AD%B0%E4%BA%8B%E5%89%8D%E5%9C%B0_Largo_do_Senado_November_2023_R12S_22.jpg",
+   "author": "Kamfutiam Georgez",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "camera": [
+    23.1,
+    27.7
+   ]
+  },
+  "#135": {
+   "src": "reference/photos/p135.jpg",
+   "file": "MC Macau Peninsula 1327pm old zone 議事前地 Largo do Senado November 2023 R12S 23.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:MC_Macau_Peninsula_1327pm_old_zone_%E8%AD%B0%E4%BA%8B%E5%89%8D%E5%9C%B0_Largo_do_Senado_November_2023_R12S_23.jpg",
+   "author": "Kamfutiam Georgez",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "camera": [
+    28.0,
+    34.9
+   ]
+  },
+  "#136": {
+   "src": "reference/photos/p136.jpg",
+   "file": "MC Macau Peninsula 1327pm old zone 議事前地 Largo do Senado November 2023 R12S 24.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:MC_Macau_Peninsula_1327pm_old_zone_%E8%AD%B0%E4%BA%8B%E5%89%8D%E5%9C%B0_Largo_do_Senado_November_2023_R12S_24.jpg",
+   "author": "Kamfutiam Georgez",
+   "license": "CC0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0",
+   "camera": [
+    27.9,
+    34.8
+   ]
+  },
+  "#153": {
+   "src": "reference/photos/p153.jpg",
+   "file": "Senado Macao.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Senado_Macao.jpg",
+   "author": "Georgio",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "camera": null
+  },
+  "#174": {
+   "src": "reference/photos/p174.jpg",
+   "file": "St. Anthony's Parish, Macau - panoramio.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:St._Anthony%27s_Parish,_Macau_-_panoramio.jpg",
+   "author": "luchangjiang~鲁昌江",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "camera": null
+  },
+  "#175": {
+   "src": "reference/photos/p175.jpg",
+   "file": "Starbucks Senado Square Store 星巴克議事亭前地門市 - panoramio (1).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Starbucks_Senado_Square_Store_%E6%98%9F%E5%B7%B4%E5%85%8B%E8%AD%B0%E4%BA%8B%E4%BA%AD%E5%89%8D%E5%9C%B0%E9%96%80%E5%B8%82_-_panoramio_(1).jpg",
+   "author": "lienyuan lee",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "camera": [
+    47.4,
+    54.5
+   ]
+  },
+  "#188": {
+   "src": "reference/photos/p188.jpg",
+   "file": "澳门议事亭前地 - panoramio (1).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:%E6%BE%B3%E9%97%A8%E8%AE%AE%E4%BA%8B%E4%BA%AD%E5%89%8D%E5%9C%B0_-_panoramio_(1).jpg",
+   "author": "gdczjkk",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "camera": [
+    32.5,
+    38.0
+   ]
+  },
+  "#263": {
+   "src": "reference/photos/p263.jpg",
+   "file": "MC Macau Peninsula 1316pm old zone 亞美打利庇盧大馬路 Avenida de Almeida Ribeiro November 2023 R12S 18.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:MC_Macau_Peninsula_1316pm_old_zone_%E4%BA%9E%E7%BE%8E%E6%89%93%E5%88%A9%E5%BA%87%E7%9B%A7%E5%A4%A7%E9%A6%AC%E8%B7%AF_Avenida_de_Almeida_Ribeiro_November_2023_R12S_18.jpg",
+   "author": "Kamfutiam Georgez",
+   "license": "CC0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0",
+   "camera": [
+    21.2,
+    -70.1
+   ]
+  }
+ }
+}
