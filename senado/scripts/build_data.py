@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "osm_raw.json"
 LANDMARKS = ROOT / "data" / "landmarks.json"
 ROOF_CLASSES = ROOT / "data" / "roof_classes.json"   # written by classify_roofs.py
+STREETS = ROOT / "data" / "streets.json"             # written by build_streets.py
 OUT = ROOT / "data" / "senado_massing.json"
 
 ORIGIN_NODE = 5692359322            # 噴水池 San Ma Lou (historic=memorial node at the fountain)
@@ -242,11 +243,15 @@ def main():
         if width is None and num(t.get("lanes")):
             width = num(t["lanes"]) * 3.2
         for k, part in enumerate(clip_polyline([xy(p) for p in e["geometry"]])):
-            roads.append({
+            road = {
                 "id": f"w{e['id']}" + (f".{k}" if k else ""), "name": t.get("name"), "hw": hw,
                 "w": r2(width or ROAD_WIDTH[hw]), "car": hw in VEHICLE,
                 "pts": [[r2(x), r2(y)] for x, y in part],
-            })
+            }
+            if hw in VEHICLE:   # for build_streets.py: lane markings and road surface
+                road.update({k: v for k, v in (("lanes", int(num(t.get("lanes")) or 0)), ("oneway", t.get("oneway") == "yes"),
+                                                ("surface", t.get("surface"))) if v})
+            roads.append(road)
 
     green, fountain, trees = [], None, []
     for e in els:
@@ -303,6 +308,8 @@ def main():
         "fountain": fountain,
         "trees": trees,
     }
+    if STREETS.exists():   # kerbs, markings and furniture from build_streets.py (run it after this script, then rerun)
+        data["streets"] = json.loads(STREETS.read_text())
     OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
     tiers = {}
     for b in buildings:

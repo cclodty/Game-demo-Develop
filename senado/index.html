@@ -149,10 +149,10 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
   <header class="head">
     <div>
       <div class="eyebrow">Macau · Largo do Senado · 22.1937°N 113.5399°E</div>
-      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v5 屋頂與全區上色</span></div>
-      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。按 36 張實景照片加入騎樓及樓層外圍（v2），補上噴水池的下沉台階並從照片取得外牆顏色（v3），再為臨街立面開出凹入的窗洞，配上百葉、玻璃、窗框、欄杆和帆布篷（v4）。v5 按衛星圖為每個屋頂分類上色，加上雙坡頂、天台樓梯屋和水缸，玫瑰堂立面補上山花牆，其餘樓宇用通用色和窗格。</p>
+      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v6 街道細節</span></div>
+      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。按 36 張實景照片加入騎樓及樓層外圍（v2），補上噴水池的下沉台階並從照片取得外牆顏色（v3），再為臨街立面開出凹入的窗洞，配上百葉、玻璃、窗框、欄杆和帆布篷（v4）。v5 按衛星圖為每個屋頂分類上色，加上雙坡頂、天台樓梯屋和水缸，玫瑰堂立面補上山花牆，其餘樓宇用通用色和窗格。v6 把車路降低一級路緣石，加上行車線、斑馬線、地磚和石仔路質感，以及燈柱、交通燈、欄杆、花盆和長椅。</p>
     </div>
-    <div class="status"><i></i>v5 1,930 個屋頂按衛星圖分類 · 玫瑰堂山花牆 · 1,963 棟通用色</div>
+    <div class="status"><i></i>v6 15 厘米路緣石 · 48 條斑馬線 · 50 支燈柱 · 110 支交通燈 · 490 米欄杆</div>
   </header>
 
   <div class="grid">
@@ -195,6 +195,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
           <button class="chip" id="tFigs" aria-pressed="true">比例人</button>
           <button class="chip" id="tGrid" aria-pressed="true">窗格</button>
           <button class="chip" id="tContext" aria-pressed="true">外圍建築</button>
+          <button class="chip" id="tStreet" aria-pressed="true">街道傢俬</button>
         </div>
       </div>
     </section>
@@ -244,6 +245,18 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
         <div class="legend" id="legendGeneric"></div>
         <h3 class="lg-h">屋頂（衛星圖分類）</h3>
         <div class="legend" id="legendRoofs"></div>
+        <h3 class="lg-h">街道（v6，顏色乘上細節貼圖）</h3>
+        <div class="legend">
+          <div><span class="sw" style="background:#9d9c97"></span>石屎車路（OSM surface=concrete，如新馬路）</div>
+          <div><span class="sw" style="background:#5e6061"></span>瀝青車路（OSM 未註明時亦用瀝青）</div>
+          <div><span class="sw" style="background:repeating-linear-gradient(0deg,#6f6a62 0 1px,#8f897f 1px 4px)"></span>石仔車路（paving_stones、sett）</div>
+          <div><span class="sw" style="background:#d3cfc6;box-shadow:inset 0 -5px 0 #b9b4aa"></span>花崗岩路緣石，高 15 厘米</div>
+          <div><span class="sw" style="background:repeating-linear-gradient(90deg,#a8a49c 0 1px,#cbc7bf 1px 6px)"></span>行人路地磚 0.4 米方磚</div>
+          <div><span class="sw" style="background:repeating-linear-gradient(90deg,#9f998d 0 1px,#d2cbbd 1px 3px)"></span>巷內碎石路</div>
+          <div><span class="sw" style="background:repeating-linear-gradient(90deg,#2d4a37 0 2px,transparent 2px 5px),#e8e5de"></span>墨綠路邊欄杆（新馬路）</div>
+          <div><span class="sw" style="background:linear-gradient(#fff4dc,#fff4dc) 50% 25% / 50% 35% no-repeat,#1d201f"></span>黑色鑄鐵燈柱、交通燈、路樁、牆燈</div>
+          <div><span class="sw" style="background:radial-gradient(circle at 50% 35%,#4c7637 0 40%,transparent 42%),linear-gradient(#9d7458,#9d7458) 50% 100% / 60% 40% no-repeat"></span>大花盆修剪球形灌木</div>
+        </div>
         <h3 class="lg-h">其他</h3>
         <div class="legend">
           <div><span class="sw" style="background:#f6f3ec;box-shadow:inset 0 -4px 0 #d8d2c4"></span>白色線腳：腰線、簷口、窗框、女兒牆（北端米白一排為深啡）</div>
@@ -257,6 +270,24 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
   </div>
 
   <div class="notes">
+    <div class="card">
+      <h2>v6：街道</h2>
+      <ul>
+        <li><b>路緣石：</b>車路按 OSM 的路寬（或車道數 × 3.2 米）劃出，扣除廣場和樓宇，整體降低 15 厘米（照片 #047），邊緣有花崗岩路緣石的立面和 25 厘米頂面。</li>
+        <li><b>路面：</b>按 OSM 的 <span class="mono">surface</span> 分石屎、瀝青、石仔三種；路口重疊處由等級較高的道路決定，所以新馬路的石屎路面不會被橫街切開。行人路用 0.4 米方磚，橫巷用碎石，紋理方向沿新馬路。</li>
+        <li><b>行車線和斑馬線：</b>有車道數的道路畫白色虛線（3 米線、4 米空），路口內不畫；斑馬線來自 OSM 的過路處，每條 0.5 米、間距 0.5 米。</li>
+        <li><b>廣場地磚延伸：</b>OSM 的廣場邊線離牆身 1–4 米、離新馬路路緣約 4 米，但照片 #047、#105 見到波浪地磚一直鋪到牆邊和路緣，所以把 10 米以內的空隙補上地磚（草地除外）。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v6：街道傢俬</h2>
+      <ul>
+        <li><b>來自 OSM：</b>交通燈（車輛燈在停車線兩旁路緣，行人燈在過路處兩端）、巴士站、路樁、郵筒。</li>
+        <li><b>按規則擺放（不是逐支實測）：</b>新馬路兩旁每 25 米一支雙燈鑄鐵燈柱、路緣內 0.3 米的墨綠欄杆，廣場出口不設欄杆（#263、#047）；廣場沿牆每 18 米一支單燈燈柱（#087），每 9 米一個修剪灌木大花盆，花盆之間放長椅和垃圾桶（#105、#031）。</li>
+        <li><b>牆燈：</b>面向廣場的立面，在地面層線以上每隔一個壁柱掛一盞黑色支架燈（#049、#105）。</li>
+        <li>街道傢俬可用「街道傢俬」按鈕隱藏。全圖約 17 萬個三角形，GLB 約 15.4 MB。</li>
+      </ul>
+    </div>
     <div class="card">
       <h2>v5：屋頂</h2>
       <ul>
@@ -305,8 +336,8 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
       <h2>下一步</h2>
       <ul>
         <li><b>按照片逐棟核對通用色：</b>先做新馬路其餘一段、板樟堂前地東面、營地街市和大堂（現為暫定色）。</li>
-        <li><b>店舖招牌和地面層店面</b>未建模；新馬路的騎樓仍未有足夠證據。</li>
-        <li><b>大堂鐘樓</b>和市政署的細部；遊戲用的碰撞簡化。</li>
+        <li><b>街道傢俬實測：</b>用街景照片核對燈柱、花盆和長椅的實際位置；加入路牌、指示牌和節慶裝飾（現時刻意不加）。</li>
+        <li><b>店舖招牌和地面層店面</b>未建模；<b>大堂鐘樓</b>和市政署的細部；遊戲用的碰撞簡化。</li>
       </ul>
     </div>
   </div>

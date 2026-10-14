@@ -1,4 +1,4 @@
-# 議事亭前地 Largo do Senado：量體研究 v5
+# 議事亭前地 Largo do Senado：量體研究 v6
 
 子彈時間射擊遊戲地圖：按實景比例建立的議事亭前地模型。
 
@@ -7,6 +7,7 @@
 - **v3**：噴水池的下沉台階；外牆顏色從照片取得；燈光按照片調整。
 - **v4**：凹入牆身的窗戶（百葉、玻璃、窗框、欄杆、帆布篷）；再按照片為 12 棟樓宇上色。
 - **v5**：屋頂按衛星圖分類上色；雙坡頂、天台樓梯屋和水缸；玫瑰堂立面（山花牆、門窗）；其餘樓宇用通用色和窗格貼圖。
+- **v6**：街道細節：車路降低 15 厘米並加花崗岩路緣石；石屎、瀝青、石仔三種路面和行人路地磚；行車線和斑馬線；燈柱、交通燈、欄杆、巴士站、路樁、花盆、長椅和牆燈；廣場地磚鋪到牆邊和路緣。
 
 - **單位**：1 單位 = 1 米。glTF 為 Y 軸向上。
 - **原點**：噴水池中心（OSM node 5692359322，22.1936819°N, 113.5398859°E）。
@@ -19,28 +20,38 @@
 | --- | --- |
 | `index.html` + `viewer/` | 瀏覽器檢視器，包括鏡頭預設、步行模式、比例人、環境比例滑桿和照片疊圖 |
 | `viewer/model.js` | 由資料建模的程式，檢視器和 GLB 匯出共用，所以看到的就是匯出的 |
-| `export/senado_massing.glb` | 遊戲用模型，11.9 MB，約 14.5 萬個三角面，49 種材質，已通過 glTF Validator（0 錯誤、0 警告） |
+| `export/senado_massing.glb` | 遊戲用模型，15.4 MB，約 17 萬個三角面，65 種材質，已通過 glTF Validator（0 錯誤、0 警告） |
 | `data/osm_raw.json` | Overpass 原始擷取（© OpenStreetMap contributors，ODbL） |
 | `data/landmarks.json` | 人手整理：地標名稱、已知外牆顏色、高度修正、立面樣式（`facadeStyles`）、每棟樓的立面規格與照片證據（`facades`）、過街樓（`bridges`）、照片取色（`wallColors`、`windowColors`）、通用色（`genericWalls`）、屋頂顏色（`roofPalette`）和坡頂（`roofShapes`） |
 | `data/roof_classes.json` | 每棟樓的屋頂類別（`classify_roofs.py` 由衛星圖分類，只存類別名稱） |
+| `data/osm_street.json` | 街道傢俬的 Overpass 擷取：交通燈、過路處、巴士站、路樁、郵筒等（© OpenStreetMap contributors，ODbL） |
+| `data/streets.json` | `build_streets.py` 的結果：車路（按路面分）、行人路地磚、路緣石、廣場地磚範圍、行車線和斑馬線、街道傢俬位置；`build_data.py` 會併入 `senado_massing.json` 的 `streets` |
 | `data/senado_massing.json` | 處理後的本地米制資料 |
 | `viewer/assets/calcada_waves.png` | 可平鋪的葡式碎石波浪貼圖，每格 6.0 × 2.25 米 |
 | `viewer/assets/louvre.png`、`glazing.png` | 窗扇的灰階細節貼圖（百葉、玻璃窗格），每格一扇 × 1 米，乘上窗戶材質的顏色 |
 | `viewer/assets/facade_generic.png` | 通用窗格貼圖，每格一個開間（3.0 米）× 一層（3.2 米），乘上牆身的頂點顏色 |
+| `viewer/assets/asphalt.png`、`paving.png`、`setts.png` | 路面灰階細節貼圖：車路（每格 4 米）、0.4 米方磚（每格 2 米）、碎石（每格 1.5 米），乘上材質顏色 |
+| `viewer/assets/railing.png` | 路邊欄杆，每格 2 米 × 1 米，欄杆條在 alpha 通道（GLB 為 `alphaMode: MASK`） |
 | `reference/*.jpg` | Esri 衛星參考圖，已對位。不入 git，只作對位參考 |
 | `reference/photos/` | 36 張 Wikimedia Commons 照片（640 px），用作立面證據；作者與授權見 `credits.json` |
-| `tests/` | `npm test`：外牆法線向外、輪廓逆時針、騎樓內縮面積、立面幾何無 NaN、噴水池台階朝向、雙坡頂朝向和面積、天台物件在屋頂上、全圖三角面少於 15 萬 |
+| `tests/` | `npm test`：外牆法線向外、輪廓逆時針、騎樓內縮面積、立面幾何無 NaN、噴水池台階朝向、雙坡頂朝向和面積、天台物件在屋頂上、車路低一級且路緣石面向車路、標線在車路上、街道傢俬在地面且不在樓宇內、牆燈、全圖三角面少於 20 萬 |
 
 ## GLB 結構
 
 ```
 LargoDoSenado
-├─ Ground, Streets (Streets_Vehicle / Streets_Pedestrian), Grass
-├─ Calcada_Squares         議事亭前地 + 板樟堂前地，材質 Calcada 帶波浪貼圖
+├─ Ground                  行人路和街區地面（高度 0），材質 Paving 帶方磚貼圖
+├─ Streets                 Carriageway_asphalt / _concrete / _setts（高度 −0.15）、Kerbs（路緣石立面和頂面）、
+│                          Footways（巷內碎石路）、Road_Markings（行車線、斑馬線）、Railings（路邊欄杆）
+├─ StreetFurniture         每種材質一個合併網格：Furniture_iron（燈柱、交通燈桿、路樁、長椅腳）、_glass（燈罩）、
+│                          _lights（交通燈，unlit）、_planter、_topiary、_wood、_metal、_sign、_post、_bin、_stone
+├─ Grass
+├─ Calcada_Squares         議事亭前地 + 板樟堂前地（鋪到牆邊和路緣），材質 Calcada 帶波浪貼圖
 ├─ Buildings
 │  ├─ Buildings_landmark   每棟一個節點：B_<osm id>_<key>，例如 B_w192573688_sao_domingos
 │  │                       有立面規格的樓宇是一個群組：_body（牆身＋屋頂）、_arcade（拱廊）、_trim（線腳、窗框）、
-│  │                       _windows（窗扇，每種顏色一個子網格）、_awnings（帆布篷）、_railings（鐵欄）
+│  │                       _windows（窗扇，每種顏色一個子網格）、_awnings（帆布篷）、_railings（鐵欄）、
+│  │                       _lanterns、_lanternGlass（面向廣場的牆燈）
 │  ├─ Buildings_frontage   廣場臨街
 │  ├─ Buildings_avenue     新馬路臨街
 │  ├─ Buildings_core       噴水池 170 米內
@@ -61,12 +72,14 @@ LargoDoSenado
 
 沒有立面規格的樓宇共用三種材質，顏色存在頂點顏色（`COLOR_0`）：`Facade_generic`（牆身，帶 `facade_generic` 窗格貼圖）、`Facade_plain`（大堂，不加窗格）和 `Roof`（屋頂）；天台物件用 `Rooftop`。這些牆身的 UV 不是米：u = 開間數（每面牆取整數個 3 米開間，短於 1.5 米的牆只顯示牆身），v = 層數（每 3.2 米一層，由屋頂下 0.4 米往下數）。
 
+街道材質：`Paving`（`paving` 貼圖）、`Road_asphalt` 和 `Road_concrete`（`asphalt` 貼圖）、`Road_setts` 和 `Footway`（`setts` 貼圖）、`Kerb`、`Road_marking`、`Railing`（雙面，alpha 遮罩）。路面 UV 以米為單位除以貼圖尺寸；地磚和碎石的 UV 沿新馬路方向（與波浪地磚相同的 −50°），瀝青不分方向。
+
 ## 比例
 
 人物看起來巨大，通常是以下其中一個原因：
 
 1. **鏡頭太近或 FOV 太窄。** 檢視器的「第三人稱」鏡頭設在人物後 3.4 米、高 1.9 米，FOV 58°，可作為起點。
-2. **地圖本身太細。** 實景的窄段牆面之間只有約 10 米（地磚範圍約 7 米），對射擊遊戲偏窄。
+2. **地圖本身太細。** 實景的窄段牆面之間只有約 10 米（OSM 廣場邊線之間約 7 米），對射擊遊戲偏窄。
 
 匯出時可以放大：
 
@@ -88,6 +101,11 @@ python3 senado/scripts/make_window_textures.py  # 百葉、玻璃窗格、通用
 python3 senado/scripts/fetch_imagery.py     # 衛星參考圖（不入 git）
 python3 senado/scripts/classify_roofs.py    # 屋頂類別 → roof_classes.json（需要衛星參考圖；repo 已附結果）
 python3 senado/scripts/build_data.py        # 再跑一次，把屋頂類別寫入 senado_massing.json
+bash senado/scripts/fetch_osm_street.sh     # 街道傢俬的 OSM 擷取（可略過，repo 已附）
+pip install shapely                         # build_streets.py 需要 shapely 2；其餘 Python 腳本只用標準庫和 Pillow
+python3 senado/scripts/build_streets.py     # 車路、路緣石、標線、街道傢俬 → streets.json
+python3 senado/scripts/build_data.py        # 再跑一次，把 streets.json 併入 senado_massing.json
+python3 senado/scripts/make_street_textures.py  # 路面和欄杆貼圖
 node senado/scripts/export_glb.mjs          # → export/senado_massing.glb
 npm run senado:serve                        # 檢視器：http://localhost:8000
 ```
@@ -171,9 +189,36 @@ npm run senado:serve                        # 檢視器：http://localhost:8000
 - 未核對的地標（營地街市、大堂）用 `landmarks.json` 內的暫定色。
 - 窗格貼圖每 3 米一窗、每 3.2 米一層，由屋頂往下數，所以頂層不會切開半個窗；牆底剩下的部分就像較高的地面層店面。
 
+### 街道（v6）
+
+- **車路**：`build_streets.py` 把 OSM 每條車路按路寬（`width`，或車道數 × 3.2 米，否則按道路等級）向兩邊擴闊，合併後扣除廣場、樓宇輪廓和噴水池，整體降低 15 厘米（照片 #047 的路緣石高度）。車路邊緣有路緣石立面和 25 厘米闊的花崗岩頂面。扣除樓宇輪廓，所以車路不會伸入樓底，路緣石立面也封住了牆腳。
+- **路面**：OSM `surface` 為 concrete 的用淺灰石屎（#047、#263 的新馬路），paving_stones、sett、cobblestone 用石仔，其餘（包括未註明）用瀝青。路口重疊處由等級較高的道路決定。
+- **廣場地磚範圍**：OSM 廣場邊線離牆身 1–4 米、在廣場出口離新馬路路緣約 4 米，但照片 #047、#105、#031 見到波浪地磚一直鋪到牆邊和路緣，所以把廣場與樓宇或路緣之間窄於 10 米的空隙補上（草地除外）。廣場面積和尺寸仍按 OSM 邊線量度。
+- **標線**：有 `lanes` 的道路在車道之間畫白色虛線（闊 12 厘米，3 米線、4 米空），路口和過路處內不畫。斑馬線來自 OSM 的過路處節點（`highway=crossing`，`crossing=unmarked` 除外）和 `footway=crossing` 路線，每條 0.5 米、間距 0.5 米，長 3 米（主要道路和有燈過路處 4 米），共 48 條。
+- **行人路**：其餘地面鋪 0.4 米方磚；OSM 的行人路和巷（`pedestrian`、`footway`、`steps`）鋪碎石。
+
+### 街道傢俬（v6）
+
+| 物件 | 來源 | 數量 | 外形 |
+| --- | --- | --- | --- |
+| 雙燈鑄鐵燈柱 | 新馬路兩旁路緣後 0.75 米，每 25 米一支（按規則） | 30 | 高約 5 米，兩盞燈沿路緣左右分開（#263、#047） |
+| 單燈燈柱 | 廣場沿牆 1.8 米，每 18 米一支（按規則） | 20 | 高約 4.6 米（#087、#049） |
+| 交通燈 | OSM `highway=traffic_signals`，停車線兩旁路緣各一支 | 55 | 黑色燈桿 3.3 米，燈箱面向來車，紅燈亮（#047）；雙向道路兩面有燈 |
+| 行人燈 | OSM 有燈過路處兩端 | 55 | 燈桿 2.65 米，面向對面路緣 |
+| 路邊欄杆 | 新馬路路緣後 0.3 米，路口、過路處和廣場出口留空 | 490 米 | 墨綠，高 1 米（#263） |
+| 巴士站 | OSM `highway=bus_stop`，移到最近路緣 | 11 | 站牌桿和路線牌 |
+| 路樁、石墩 | OSM `barrier=bollard`、`block` | 18、2 | 黑色鐵樁 0.9 米；石墩 |
+| 郵筒 | OSM `amenity=post_box` | 2 | 紅色 |
+| 花盆 | 廣場沿牆 1.2 米，每 9 米一個（按規則） | 16 | 大陶盆加兩層修剪球形灌木，高約 2.3 米（#105、#028、#031） |
+| 長椅、垃圾桶 | 花盆之間（按規則） | 4、3 | 木椅鐵腳（#105）；藍色垃圾桶（#031） |
+| 牆燈 | 面向廣場的立面，地面層線以上每隔一個壁柱 | 13 棟 | 黑色支架燈（#049、#105） |
+
+燈柱、欄杆、花盆和長椅的位置是按規則擺放，不是逐支實測；節慶燈籠、花牌等臨時裝飾沒有加入。街道傢俬約 2.7 萬個三角面，可在檢視器用「街道傢俬」按鈕隱藏。
+
 ## 下一步（逐部細化）
 
 1. **逐棟核對通用色**：新馬路其餘一段、板樟堂前地東面、營地街市和大堂。
-2. **店舖招牌和地面層店面**；新馬路的騎樓仍未有足夠照片證據。
-3. **細部**：大堂鐘樓、市政署的立面細部。
-4. **遊戲用途**：碰撞簡化，以及界定可進入的範圍。
+2. **街道傢俬實測**：用街景照片核對燈柱、花盆和長椅的位置；路牌和指示牌。
+3. **店舖招牌和地面層店面**；新馬路的騎樓仍未有足夠照片證據。
+4. **細部**：大堂鐘樓、市政署的立面細部。
+5. **遊戲用途**：碰撞簡化，以及界定可進入的範圍。

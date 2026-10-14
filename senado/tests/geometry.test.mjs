@@ -164,8 +164,95 @@ test('rooftop housings and tanks sit on their roofs', () => {
   }
 });
 
-// Recessed windows (v4) roughly add 40k triangles; 150k is still light for a game level of this size.
-test('triangle budget: the whole map stays under 150k triangles', () => {
+// ---------- streets (v6) ----------
+const pointInRing = (p, ring) => {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+};
+const inPolys = (p, polys) => polys.some((q) => pointInRing(p, q.outer) && !(q.holes || []).some((h) => pointInRing(p, h)));
+const carriageway = Object.values(data.streets.carriageway).flat();
+
+test('streets: the carriageway sits a kerb below the pavements and the kerb faces look into the road', () => {
+  const { root } = buildSenado(data, { mode: 'export' });
+  const drop = data.streets.kerb.drop;
+  const roads = [];
+  root.traverse((o) => { if (o.isMesh && o.name.startsWith('Carriageway_')) roads.push(o); });
+  assert.ok(roads.length >= 2);
+  for (const m of roads) {
+    m.geometry.computeBoundingBox();
+    const bb = m.geometry.boundingBox;
+    assert.ok(Math.abs(bb.min.y + drop) < 1e-6 && Math.abs(bb.max.y + drop) < 1e-6, m.name);
+  }
+  const g = root.getObjectByName('Kerbs').geometry;
+  const pos = g.attributes.position;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  let faces = 0, intoRoad = 0;
+  for (let i = 0; i < pos.count; i += 3) {
+    a.fromBufferAttribute(pos, i); b.fromBufferAttribute(pos, i + 1); c.fromBufferAttribute(pos, i + 2);
+    const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
+    if (n.lengthSq() < 1e-10 || Math.abs(n.normalize().y) > 0.1) continue;
+    faces++;
+    const mid = a.clone().add(b).add(c).divideScalar(3);
+    if (inPolys([mid.x + n.x * 0.05, -(mid.z + n.z * 0.05)], carriageway)) intoRoad++;
+  }
+  assert.ok(faces > 1000);
+  assert.ok(intoRoad / faces > 0.97, `${intoRoad} of ${faces} kerb faces look into the carriageway`);
+});
+
+test('streets: markings lie on the carriageway, just above it', () => {
+  const { root } = buildSenado(data, { mode: 'export' });
+  const m = root.getObjectByName('Road_Markings');
+  m.geometry.computeBoundingBox();
+  assert.ok(m.geometry.boundingBox.min.y > -data.streets.kerb.drop && m.geometry.boundingBox.max.y < -data.streets.kerb.drop + 0.02);
+  let off = 0;
+  for (const r of data.streets.markings) {
+    const cx = r.reduce((s, p) => s + p[0], 0) / r.length, cy = r.reduce((s, p) => s + p[1], 0) / r.length;
+    if (!inPolys([cx, cy], carriageway)) off++;
+  }
+  assert.ok(data.streets.markings.length > 100);
+  assert.ok(off / data.streets.markings.length < 0.02, `${off} markings off the carriageway`);
+});
+
+test('street furniture stands on the ground, outside the buildings', () => {
+  const { root } = buildSenado(data, { mode: 'export' });
+  const group = root.getObjectByName('StreetFurniture');
+  assert.ok(group.children.length >= 8);
+  for (const m of group.children) {
+    m.geometry.computeBoundingBox();
+    assert.ok(m.geometry.boundingBox.min.y > -1e-3 && m.geometry.boundingBox.max.y < 6, m.name);
+    for (const v of m.geometry.attributes.position.array) assert.ok(Number.isFinite(v), m.name);
+  }
+  const boxes = data.buildings.map((b) => {
+    const xs = b.outer.map((p) => p[0]), ys = b.outer.map((p) => p[1]);
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys), b];
+  });
+  const F = data.streets.furniture;
+  const items = ['lampDouble', 'lamp', 'signal', 'pedSignal', 'busStop', 'pot', 'bench', 'bin'].flatMap((k) => F[k].map((p) => [k, p]));
+  assert.ok(F.lampDouble.length >= 10 && F.lamp.length >= 10 && F.pot.length >= 8 && F.signal.length >= 10);
+  for (const [k, [x, y]] of items) {
+    const inside = boxes.find(([x0, y0, x1, y1, b]) => x >= x0 && x <= x1 && y >= y0 && y <= y1 && pointInRing([x, y], b.outer));
+    assert.ok(!inside, `${k} at ${x}, ${y} inside ${inside && inside[4].id}`);
+  }
+});
+
+test('wall lanterns hang on the facades facing the square', () => {
+  const { root } = buildSenado(data, { mode: 'export' });
+  const lit = [];
+  root.traverse((o) => { if (o.isMesh && o.name.endsWith('_lanterns')) lit.push(o); });
+  assert.ok(lit.length >= 6, `${lit.length} facades with lanterns`);
+  for (const m of lit) {
+    m.geometry.computeBoundingBox();
+    assert.ok(m.geometry.boundingBox.min.y > 3, m.name);           // above the ground floor
+  }
+});
+
+// Recessed windows (v4) roughly add 40k triangles and the v6 street detail (kerbs, markings, furniture, wall lanterns)
+// about 25k; 200k is still light for a game level of this size.
+test('triangle budget: the whole map stays under 200k triangles', () => {
   const { root } = buildSenado(data, { mode: 'export' });
   let tris = 0;
   root.traverse((o) => {
@@ -173,5 +260,5 @@ test('triangle budget: the whole map stays under 150k triangles', () => {
     const g = o.geometry;
     tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
   });
-  assert.ok(tris < 150000, `${Math.round(tris)} triangles`);
+  assert.ok(tris < 200000, `${Math.round(tris)} triangles`);
 });

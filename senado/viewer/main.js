@@ -75,25 +75,30 @@ const loadTex = (url) => new Promise((res, rej) => texLoader.load(url, res, unde
 let world, pickTables = [], figureGroup, labelObjs = [], satMesh = null, highlight = null, gridTex = null;
 
 async function init() {
-  const [data, calcada, louvre, glazing, facade, credits] = await Promise.all([
+  const [data, calcada, louvre, glazing, facade, asphalt, paving, setts, railing, credits] = await Promise.all([
     fetch('data/senado_massing.json').then((r) => { if (!r.ok) throw new Error(`data ${r.status}`); return r.json(); }),
     loadTex('viewer/assets/calcada_waves.png'),
     loadTex('viewer/assets/louvre.png'),
     loadTex('viewer/assets/glazing.png'),
     loadTex('viewer/assets/facade_generic.png'),
+    loadTex('viewer/assets/asphalt.png'),
+    loadTex('viewer/assets/paving.png'),
+    loadTex('viewer/assets/setts.png'),
+    loadTex('viewer/assets/railing.png'),
     fetch('reference/photos/credits.json').then((r) => (r.ok ? r.json() : { photos: {} })).catch(() => ({ photos: {} })),
   ]);
   state.photos = credits.photos;
-  for (const t of [calcada, louvre, glazing, facade]) {
+  const streetTextures = { asphalt, paving, setts, railing };
+  for (const t of [calcada, louvre, glazing, facade, asphalt, paving, setts, railing]) {
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = renderer.capabilities.getMaxAnisotropy();
   }
-  // window detail maps are stored bottom-up (glTF convention), see scripts/make_window_textures.py
-  louvre.flipY = glazing.flipY = facade.flipY = false;
+  // detail maps are stored bottom-up (glTF convention), see scripts/make_window_textures.py, make_street_textures.py
+  for (const t of [louvre, glazing, facade, asphalt, paving, setts, railing]) t.flipY = false;
   gridTex = facade;
   state.data = data;
-  const built = buildSenado(data, { mode: 'viewer', calcadaTexture: calcada, louvreTexture: louvre, glazingTexture: glazing, facadeTexture: facade });
+  const built = buildSenado(data, { mode: 'viewer', calcadaTexture: calcada, louvreTexture: louvre, glazingTexture: glazing, facadeTexture: facade, streetTextures });
   world = built.root;
   pickTables = built.pickTables;
   scene.add(world);
@@ -337,6 +342,7 @@ function bindToggle(id, fn) {
 bindToggle('tLabels', (on) => labelObjs.forEach((o) => { o.visible = on; o.element.hidden = !on; }));
 bindToggle('tFigs', (on) => { figureGroup.visible = on; figureGroup.traverse((o) => { if (o.isCSS2DObject) o.element.hidden = !on; }); });
 bindToggle('tContext', (on) => { const g = world.getObjectByName('Buildings_context'); if (g) g.visible = on; });
+bindToggle('tStreet', (on) => { for (const n of ['StreetFurniture', 'Railings']) { const o = world.getObjectByName(n); if (o) o.visible = on; } });
 // generic window grid on the buildings without a facade spec (Facade_generic)
 bindToggle('tGrid', (on) => {
   const seen = new Set();
@@ -480,7 +486,7 @@ function updateDims() {
   const f = (v) => `${(v * s).toFixed(1)} m`;
   const rows = [
     ['新馬路口闊度', f(dimsBase.mouthWidth)],
-    ['最窄處（地磚範圍）', f(dimsBase.narrowPaving)],
+    ['最窄處（OSM 廣場邊線）', f(dimsBase.narrowPaving)],
     ['最窄處（牆面之間）', f(dimsBase.narrowFacades)],
     ['廣場長度（口至窄段盡頭）', f(dimsBase.length)],
     ['口至玫瑰堂門前', f(dimsBase.toChurch)],

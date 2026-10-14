@@ -42,6 +42,12 @@ const out = injectTextures(Buffer.from(glb), [
   { name: 'glazing', png: asset('glazing.png'), materials: (m) => m === 'Window_glass' || m.startsWith('Window_glaze'), tint: true },
   // generic window grid on the buildings without a facade spec; their colours are vertex colours (COLOR_0)
   { name: 'facade_generic', png: asset('facade_generic.png'), materials: (m) => m === 'Facade_generic', tint: true },
+  // street surfaces (scripts/make_street_textures.py): greyscale maps multiplied by each surface colour
+  { name: 'paving', png: asset('paving.png'), materials: (m) => m === 'Paving', tint: true },
+  { name: 'asphalt', png: asset('asphalt.png'), materials: (m) => m === 'Road_asphalt' || m === 'Road_concrete', tint: true },
+  { name: 'setts', png: asset('setts.png'), materials: (m) => m === 'Road_setts' || m === 'Footway', tint: true },
+  // kerbside railing bars live in the alpha channel; the material is exported with alphaMode MASK
+  { name: 'railing', png: asset('railing.png'), materials: (m) => m === 'Railing', tint: true },
 ]);
 
 const suffix = scale !== 1 ? `_x${scale}` : plan !== 1 ? `_plan${plan}` : '';

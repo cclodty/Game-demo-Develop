@@ -746,7 +746,7 @@ export function facadeGeometries(b) {
   }
   const skip = new Set(windowed.keys());
 
-  const out = { walls: [], trim: [], screens: [], panes: new Map(), awnings: [], railings: [] };
+  const out = { walls: [], trim: [], screens: [], panes: new Map(), awnings: [], railings: [], iron: [], glass: [] };
   const addPane = (key, g) => { if (!out.panes.has(key)) out.panes.set(key, []); out.panes.get(key).push(g); };
   if (arcadeEdges.length) {
     if (!F.passage) {                                          // a passage (lane under the building) has no ground floor
@@ -799,6 +799,13 @@ export function facadeGeometries(b) {
       }
     }
   }
+  // bracket lanterns on the walls facing the square, above the ground-floor line
+  if (lines.length) {
+    for (const i of F.edges) {
+      const f = edgeFrame(ring, i);
+      if ((F.edgeKinds || {})[i] === 'square' && f.L >= 5) wallLanterns(f, bays(f).piers, lines[0] + bandH(0) + 0.9, out);
+    }
+  }
   if (F.frontispiece) frontispiece(F, edgeFrame(ring, F.edges[0]), roofH, out);
   if (F.parapet) {
     const inner = offsetEdges(ring, new Map(ring.map((_, i) => [i, F.parapet.t])));
@@ -816,6 +823,8 @@ export function facadeGeometries(b) {
     panes: paneKeys.length ? { keys: paneKeys, geometry: mergeGeometries(paneKeys.map((k) => mergeFlat(out.panes.get(k))), true) } : null,
     awnings: mergeFlat(out.awnings),
     railings: mergeFlat(out.railings),
+    lanterns: mergeFlat(out.iron),
+    lanternGlass: mergeFlat(out.glass),
     windowCount: [...windowed.values()].reduce((n, e) => n + e.ws.length, 0),
   };
 }
@@ -1015,6 +1024,228 @@ export function buildFigure(color = PALETTE.figure) {
   return g;
 }
 
+// ---------- streets (scripts/build_streets.py): lowered carriageways, granite kerbs, markings, furniture ----------
+// Surface colours are multiplied by the greyscale detail maps (scripts/make_street_textures.py); tile sizes in metres.
+export const STREET = {
+  road: { asphalt: 0x6f7273, concrete: 0xbab9b3, setts: 0xa39d93 },   // concrete: the light roadway in #047, #263
+  paving: 0xf0ece3,     // pavements: 0.4 m slabs
+  footway: 0xf6efe0,    // side streets: plain calçada setts
+  kerb: 0xd3cfc6,       // granite kerb (#047)
+  marking: 0xf1f0ea,
+  iron: 0x1d201f,       // cast-iron lamp posts, signal poles, bollards (#263, #047)
+  railing: 0x2d4a37,    // dark green kerbside railings (#263)
+  tile: { asphalt: 4, paving: 2, setts: 1.5, railing: 2 },
+  markingLift: 0.01,
+  kerbTop: 0.02,
+};
+
+// Pavement UVs follow the calçada band direction (Av. de Almeida Ribeiro), so slab joints run with the street.
+const alignedUV = (tile) => {
+  const a = (CALCADA.bandAngleDeg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
+  return (x, y) => [(x * c + y * s) / tile, (-x * s + y * c) / tile];
+};
+const worldUV = (tile) => (x, y) => [x / tile, y / tile];
+
+// Vertical kerb faces along rings that keep the carriageway on their left, from the roadway up to the kerb top.
+function kerbFaceGeometry(rings, y0, y1) {
+  const pos = [], nor = [], uv = [], idx = [];
+  for (const ring of rings) {
+    let s = 0;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i], b = ring[(i + 1) % ring.length];
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (L < 1e-3) continue;
+      const nx = -(b[1] - a[1]) / L, ny = (b[0] - a[0]) / L;   // left of a -> b, into the carriageway
+      const base = pos.length / 3;
+      for (const [p, y, u] of [[a, y0, s], [b, y0, s + L], [b, y1, s + L], [a, y1, s]]) {
+        pos.push(p[0], y, -p[1]);
+        nor.push(nx, 0, -ny);
+        uv.push(u, y - y0);
+      }
+      idx.push(base, base + 2, base + 1, base, base + 3, base + 2);
+      s += L;
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  return g;
+}
+
+// Railing panels along polylines, `h` high, u = metres / tile so the alpha-masked bars keep their spacing.
+function railingGeometry(lines, h, tile) {
+  const pos = [], nor = [], uv = [], idx = [];
+  for (const line of lines) {
+    let s = 0;
+    for (let i = 0; i < line.length - 1; i++) {
+      const a = line[i], b = line[i + 1];
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (L < 1e-3) continue;
+      const nx = (b[1] - a[1]) / L, ny = -(b[0] - a[0]) / L;
+      const base = pos.length / 3;
+      for (const [p, y, u] of [[a, 0, s], [b, 0, s + L], [b, h, s + L], [a, h, s]]) {
+        pos.push(p[0], y, -p[1]);
+        nor.push(nx, 0, -ny);
+        uv.push(u / tile, y / h);
+      }
+      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      s += L;
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  return g;
+}
+
+// ---------- street furniture: low-poly kit, built facing +X (the item's front) and placed by heading ----------
+// heading: radians from east, counter-clockwise in data axes; makeRotationY(h) turns +X to (cos h, -sin h) in three.js,
+// which is data (cos h, sin h).
+const cyl = (rTop, rBot, h, y0, seg = 8, x = 0, z = 0) => new THREE.CylinderGeometry(rTop, rBot, h, seg).translate(x, y0 + h / 2, z);
+const boxAt = (dx, dy, dz, x, y0, z) => new THREE.BoxGeometry(dx, dy, dz).translate(x, y0 + dy / 2, z);
+const disc = (r, x, y, z) => new THREE.CircleGeometry(r, 10).rotateY(Math.PI / 2).translate(x, y, z);
+const placeAt = (g, x, y, heading = 0) => g.applyMatrix4(new THREE.Matrix4().makeRotationY(heading).setPosition(x, 0, -y));
+const tintGeo = (g, hex) => {
+  const c = new THREE.Color(hex), n = g.attributes.position.count;
+  g.setAttribute('color', new THREE.Float32BufferAttribute(Array.from({ length: n * 3 }, (_, i) => [c.r, c.g, c.b][i % 3]), 3));
+  return g;
+};
+
+// Lantern on a post or bracket (#263, #087): tapered square glass body, pyramid cap, finial; `y0` is its foot.
+function lantern(y0, x = 0, z = 0, scale = 1) {
+  const k = scale;
+  return {
+    iron: [cyl(0.13 * k, 0.05 * k, 0.1 * k, y0, 4, x, z), cyl(0.02 * k, 0.24 * k, 0.2 * k, y0 + 0.54 * k, 4, x, z), cyl(0.02 * k, 0.035 * k, 0.16 * k, y0 + 0.74 * k, 6, x, z)],
+    glass: [cyl(0.19 * k, 0.14 * k, 0.44 * k, y0 + 0.1 * k, 4, x, z)],
+  };
+}
+
+export const FURNITURE = {
+  // double-lantern cast-iron post of Av. de Almeida Ribeiro (#263, #047): lanterns either side along the kerb
+  lampDouble() {
+    const iron = [cyl(0.2, 0.25, 0.5, 0), cyl(0.12, 0.16, 0.3, 0.5), cyl(0.065, 0.09, 3.55, 0.8), cyl(0.04, 0.07, 0.35, 4.35, 6),
+      boxAt(0.07, 0.07, 1.2, 0, 4.05, 0), cyl(0.03, 0.03, 0.28, 3.85, 6, 0, 0.55), cyl(0.03, 0.03, 0.28, 3.85, 6, 0, -0.55)];
+    const glass = [];
+    for (const z of [0.55, -0.55]) { const l = lantern(4.12, 0, z); iron.push(...l.iron); glass.push(...l.glass); }
+    return { iron, glass };
+  },
+  // single-lantern post at the edge of the square (#087, #049)
+  lamp() {
+    const l = lantern(3.6, 0, 0, 1.1);
+    return { iron: [cyl(0.17, 0.21, 0.45, 0), cyl(0.06, 0.085, 3.15, 0.45), ...l.iron], glass: l.glass };
+  },
+  // vehicle signal: black pole, head facing the oncoming traffic, red lit (#047); `faces` 2 adds a head facing back
+  signal(faces = 1) {
+    const iron = [cyl(0.06, 0.075, 3.3, 0)], lights = [];
+    for (const sgn of faces === 2 ? [1, -1] : [1]) {
+      iron.push(boxAt(0.24, 0.95, 0.34, 0.16 * sgn, 2.3, 0));
+      const head = [disc(0.1, 0.285, 3.0, 0), disc(0.1, 0.285, 2.75, 0), disc(0.1, 0.285, 2.5, 0)];
+      [0xff3b2f, 0x4a3a12, 0x173a22].forEach((c, i) => { tintGeo(head[i], c); if (sgn < 0) head[i].rotateY(Math.PI); });
+      lights.push(...head);
+    }
+    return { iron, lights };
+  },
+  // pedestrian signal at a signalled crossing, facing across the road
+  pedSignal() {
+    const lights = [tintGeo(disc(0.09, 0.2, 2.42, 0), 0xff3b2f), tintGeo(disc(0.09, 0.2, 2.18, 0), 0x173a22)];
+    return { iron: [cyl(0.05, 0.065, 2.65, 0), boxAt(0.2, 0.55, 0.3, 0.11, 2.02, 0)], lights };
+  },
+  // bus stop pole with a route board standing out over the kerb (OSM bus_stop nodes)
+  busStop() {
+    return { metal: [cyl(0.04, 0.045, 2.9, 0)], sign: [boxAt(0.48, 0.62, 0.04, 0.26, 2.2, 0), boxAt(0.04, 0.55, 0.32, 0.06, 1.15, 0)] };
+  },
+  bollard() { return { iron: [cyl(0.09, 0.11, 0.82, 0), cyl(0.03, 0.1, 0.1, 0.82)] }; },
+  block() { return { stone: [boxAt(0.5, 0.6, 0.5, 0, 0, 0)] }; },
+  postBox() { return { post: [cyl(0.22, 0.22, 1.05, 0, 12), cyl(0.12, 0.25, 0.16, 1.05, 12)] }; },
+  // large urn with a two-tier clipped shrub (#105, #028, #031)
+  pot() {
+    const prof = [[0, 0], [0.28, 0], [0.31, 0.08], [0.26, 0.16], [0.4, 0.55], [0.46, 0.62], [0.44, 0.7], [0, 0.7]].map(([r, h]) => new THREE.Vector2(r, h));
+    return {
+      planter: [new THREE.LatheGeometry(prof, 10)],
+      topiary: [cyl(0.04, 0.05, 1.3, 0.7, 6), new THREE.IcosahedronGeometry(0.55, 1).translate(0, 1.25, 0), new THREE.IcosahedronGeometry(0.38, 1).translate(0, 1.98, 0)],
+    };
+  },
+  // wooden bench with black iron ends, facing +X (#105)
+  bench() {
+    return {
+      wood: [boxAt(0.44, 0.05, 1.8, 0, 0.42, 0), boxAt(0.05, 0.36, 1.8, -0.21, 0.52, 0)],
+      iron: [boxAt(0.5, 0.86, 0.06, -0.02, 0, 0.84), boxAt(0.5, 0.86, 0.06, -0.02, 0, -0.84)],
+    };
+  },
+  bin() { return { bin: [cyl(0.24, 0.21, 0.88, 0, 10), cyl(0.255, 0.255, 0.07, 0.88, 10)] }; },
+};
+
+// Bracket lanterns on the square facades (#049, #105, #031): on every other pier above the ground-floor line.
+function wallLanterns(f, piers, z, out) {
+  for (let k = 1; k < piers.length - 1; k += 2) {
+    const m = edgeMatrix(f);
+    const s = piers[k];
+    out.iron.push(boxAt(0.05, 0.05, 0.6, s, z + 0.55, 0.3).applyMatrix4(m), boxAt(0.04, 0.4, 0.04, s, z + 0.2, 0.02).applyMatrix4(m));
+    const l = lantern(z - 0.25, s, 0.6, 0.85);
+    out.iron.push(cyl(0.015, 0.015, 0.2, z + 0.4, 4, s, 0.6).applyMatrix4(m), ...l.iron.map((g) => g.applyMatrix4(m)));
+    out.glass.push(...l.glass.map((g) => g.applyMatrix4(m)));
+  }
+}
+
+function buildStreets(data, mats) {
+  const st = data.streets;
+  const drop = -st.kerb.drop;
+  const group = new THREE.Group();
+  group.name = 'Streets';
+  const add = (geo, mat, name, userData = {}) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.name = name;
+    m.receiveShadow = true;
+    m.userData = { kind: 'street', ...userData };
+    group.add(m);
+    return m;
+  };
+  for (const [surface, polys] of Object.entries(st.carriageway)) {
+    if (!polys.length) continue;
+    const uvFn = surface === 'setts' ? alignedUV(STREET.tile.setts) : worldUV(STREET.tile.asphalt);
+    add(flatGeometry(polys, drop, uvFn), mats[`road_${surface}`], `Carriageway_${surface}`, { name: `車路（${surface}）` });
+  }
+  const kerb = mergeFlat([kerbFaceGeometry(st.kerbs, drop, STREET.kerbTop), flatGeometry(st.kerbBand, STREET.kerbTop, alignedUV(STREET.tile.paving))]);
+  add(kerb, mats.kerb, 'Kerbs', { name: '花崗岩路緣石' }).castShadow = true;
+  add(flatGeometry(st.footways, 0.012, alignedUV(STREET.tile.setts)), mats.footway, 'Footways', { name: '行人路' });
+  add(flatGeometry(st.markings.map((r) => ({ outer: r })), drop + STREET.markingLift), mats.marking, 'Road_Markings', { name: '行車線及斑馬線' });
+  add(railingGeometry(st.furniture.railing, 1.0, STREET.tile.railing), mats.railing, 'Railings', { name: '路邊欄杆' }).castShadow = true;
+
+  // furniture: one merged mesh per material
+  const F = st.furniture;
+  const buckets = {};
+  const put = (parts, x, y, h) => {
+    for (const [k, list] of Object.entries(parts)) for (const g of list) (buckets[k] ??= []).push(placeAt(toFlat(g), x, y, h));
+  };
+  for (const [x, y, h] of F.lampDouble) put(FURNITURE.lampDouble(), x, y, h);
+  for (const [x, y] of F.lamp) put(FURNITURE.lamp(), x, y, 0);
+  for (const [x, y, h, faces] of F.signal) put(FURNITURE.signal(faces), x, y, h);
+  for (const [x, y, h] of F.pedSignal) put(FURNITURE.pedSignal(), x, y, h);
+  for (const [x, y, h] of F.busStop) put(FURNITURE.busStop(), x, y, h);
+  for (const [x, y] of F.bollard) put(FURNITURE.bollard(), x, y, 0);
+  for (const [x, y] of F.block) put(FURNITURE.block(), x, y, 0);
+  for (const [x, y, h] of F.postBox) put(FURNITURE.postBox(), x, y, h);
+  for (const [x, y] of F.pot) put(FURNITURE.pot(), x, y, hash01(`${x},${y}`) * Math.PI);
+  for (const [x, y, h] of F.bench) put(FURNITURE.bench(), x, y, h);
+  for (const [x, y] of F.bin) put(FURNITURE.bin(), x, y, 0);
+  const furniture = new THREE.Group();
+  furniture.name = 'StreetFurniture';
+  for (const [k, list] of Object.entries(buckets)) {
+    const geo = k === 'lights' ? mergeGeometries(list.map((g) => { g.clearGroups(); return g; }), false) : mergeFlat(list);
+    const m = new THREE.Mesh(geo, mats[`f_${k}`]);
+    m.name = `Furniture_${k}`;
+    m.castShadow = k !== 'lights' && k !== 'glass';
+    m.receiveShadow = true;
+    m.userData = { kind: 'furniture', part: k };
+    furniture.add(m);
+  }
+  return { group, furniture };
+}
+
 // ---------- main ----------
 // opts.mode: 'viewer' (merged meshes + picking tables) | 'export' (one node per building near the square)
 // opts.calcadaTexture: THREE.Texture for the square paving (viewer); export injects it afterwards
@@ -1029,7 +1260,6 @@ export function buildSenado(data, opts = {}) {
   const mats = {
     ground: named(std(PALETTE.ground), 'Ground'),
     road: named(std(PALETTE.road), 'Road'),
-    footway: named(std(PALETTE.footway), 'Footway'),
     green: named(std(PALETTE.green), 'Grass'),
     water: named(std(PALETTE.water, { roughness: 0.2 }), 'Water'),
     stone: named(std(PALETTE.stone), 'Stone'),
@@ -1040,6 +1270,30 @@ export function buildSenado(data, opts = {}) {
     leaf: named(std(0x5f7a4c), 'Foliage'),
     calcada: named(std(0xffffff, { map: opts.calcadaTexture || null, color: opts.calcadaTexture ? 0xffffff : PALETTE.calcadaLight }), 'Calcada'),
   };
+  // streets and furniture; the detail maps (opts.streetTextures) are injected by the GLB exporter
+  const T = opts.streetTextures || {};
+  Object.assign(mats, {
+    paving: named(std(STREET.paving, { map: T.paving || null }), 'Paving'),
+    road_asphalt: named(std(STREET.road.asphalt, { map: T.asphalt || null }), 'Road_asphalt'),
+    road_concrete: named(std(STREET.road.concrete, { map: T.asphalt || null }), 'Road_concrete'),
+    road_setts: named(std(STREET.road.setts, { map: T.setts || null }), 'Road_setts'),
+    footway: named(std(STREET.footway, { map: T.setts || null }), 'Footway'),
+    kerb: named(std(STREET.kerb), 'Kerb'),
+    marking: named(std(STREET.marking, { roughness: 0.7 }), 'Road_marking'),
+    // alpha-masked bars; the low cutoff keeps them visible in the far mip levels
+    railing: named(std(STREET.railing, { map: T.railing || null, alphaTest: 0.3, alphaToCoverage: true, side: THREE.DoubleSide, roughness: 0.6 }), 'Railing'),
+    f_iron: named(std(STREET.iron, { roughness: 0.55, metalness: 0.3 }), 'Iron'),
+    f_glass: named(std(0xfff4dc, { emissive: new THREE.Color(0xffe2a8).multiplyScalar(0.25), roughness: 0.3 }), 'Lamp_glass'),   // faint glow, baked into the colour
+    f_lights: named(new THREE.MeshBasicMaterial({ vertexColors: true }), 'Signal_lights'),
+    f_metal: named(std(0x8c9196, { roughness: 0.5, metalness: 0.4 }), 'Metal'),
+    f_sign: named(std(0xe9e6dc), 'Sign'),
+    f_stone: named(std(STREET.kerb), 'Concrete_block'),
+    f_post: named(std(0xb3302b, { roughness: 0.6 }), 'Post_box'),
+    f_planter: named(std(0x9d7458), 'Planter'),
+    f_topiary: named(std(0x4c7637), 'Topiary'),
+    f_wood: named(std(0x8a6847), 'Bench_wood'),
+    f_bin: named(std(0x2f5f9a, { roughness: 0.6 }), 'Bin'),
+  });
   const matCache = new Map();
   const colorMat = (hex, name) => {
     const key = `${name}:${hex}`;
@@ -1052,35 +1306,46 @@ export function buildSenado(data, opts = {}) {
   const sunk = fc ? [circleRing(fc.x, fc.y, FOUNTAIN.stepsOuter, 72, true)] : [];
   const [x0, y0, x1, y1] = data.meta.bounds;
   const pad = 30;
-  const ground = new THREE.Mesh(
-    flatGeometry([{ outer: [[x0 - pad, y0 - pad], [x1 + pad, y0 - pad], [x1 + pad, y1 + pad], [x0 - pad, y1 + pad]], holes: sunk }], 0),
-    mats.ground,
-  );
+  const st = data.streets;
+  // the fountain hole goes into whichever polygon contains the fountain
+  const withSunk = (list) => {
+    if (!fc) return list;
+    const k = list.findIndex((q) => pointIn([fc.x, fc.y], q.outer) && !(q.holes || []).some((h) => pointIn([fc.x, fc.y], h)));
+    return list.map((q, i) => (i === k ? { ...q, holes: [...(q.holes || []), ...sunk] } : q));
+  };
+  const ground = st
+    ? new THREE.Mesh(flatGeometry(withSunk(st.ground), 0, alignedUV(STREET.tile.paving)), mats.paving)
+    : new THREE.Mesh(
+      flatGeometry([{ outer: [[x0 - pad, y0 - pad], [x1 + pad, y0 - pad], [x1 + pad, y1 + pad], [x0 - pad, y1 + pad]], holes: sunk }], 0),
+      mats.ground,
+    );
   ground.name = 'Ground';
   ground.receiveShadow = true;
   root.add(ground);
 
-  // streets
-  const roadsKept = fc ? clipAroundFountain(data.roads, fc, FOUNTAIN.stepsOuter) : data.roads;
-  const car = roadsKept.filter((r) => r.car);
-  const foot = roadsKept.filter((r) => !r.car);
-  const roads = new THREE.Group();
-  roads.name = 'Streets';
-  const carMesh = new THREE.Mesh(stripGeometry(car, 0.02), mats.road);
-  carMesh.name = 'Streets_Vehicle';
-  const footMesh = new THREE.Mesh(stripGeometry(foot, 0.012), mats.footway);
-  footMesh.name = 'Streets_Pedestrian';
-  for (const m of [carMesh, footMesh]) { m.receiveShadow = true; roads.add(m); }
-  root.add(roads);
+  // streets: lowered carriageways, kerbs, markings and furniture (build_streets.py); plain strips without that data
+  if (st) {
+    const { group, furniture } = buildStreets(data, mats);
+    root.add(group, furniture);
+  } else {
+    const roadsKept = fc ? clipAroundFountain(data.roads, fc, FOUNTAIN.stepsOuter) : data.roads;
+    const roads = new THREE.Group();
+    roads.name = 'Streets';
+    const carMesh = new THREE.Mesh(stripGeometry(roadsKept.filter((r) => r.car), 0.02), mats.road);
+    carMesh.name = 'Streets_Vehicle';
+    const footMesh = new THREE.Mesh(stripGeometry(roadsKept.filter((r) => !r.car), 0.012), named(std(PALETTE.footway), 'Footway'));
+    footMesh.name = 'Streets_Pedestrian';
+    for (const m of [carMesh, footMesh]) { m.receiveShadow = true; roads.add(m); }
+    root.add(roads);
+  }
 
   const green = new THREE.Mesh(flatGeometry(data.green, 0.03), mats.green);
   green.name = 'Grass';
   green.receiveShadow = true;
   root.add(green);
 
-  // squares (calçada)
-  // the fountain hole goes into whichever square contains the fountain
-  const squares = data.squares.map((s, i) => (i === 0 && fc ? { ...s, holes: [...(s.holes || []), ...sunk] } : s));
+  // squares (calçada); with street data the paving runs on to the facades and the avenue kerb
+  const squares = withSunk(st && st.plaza ? st.plaza : data.squares);
   const sq = new THREE.Mesh(flatGeometry(squares, 0.04, calcadaUV), mats.calcada);
   sq.name = 'Calcada_Squares';
   sq.receiveShadow = true;
@@ -1162,6 +1427,8 @@ export function buildSenado(data, opts = {}) {
         ['windows', g.panes && g.panes.geometry, g.panes && g.panes.keys.map(paneMat)],
         ['awnings', g.awnings, awningMat],
         ['railings', g.railings, paneMat('lattice')],
+        ['lanterns', g.lanterns, mats.f_iron],
+        ['lanternGlass', g.lanternGlass, mats.f_glass],
       ];
       for (const [part, geo, mat] of parts) {
         if (!geo) continue;
