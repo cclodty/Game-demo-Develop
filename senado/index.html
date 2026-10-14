@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>議事亭前地量體研究</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one working viewport dominates; a narrow instrument rail on the right carries map, readouts and the picked building. */
+:root {
+  --bg: #eceee9;          /* limestone setts */
+  --surface: #f8f9f6;
+  --sunken: #e3e6e0;
+  --ink: #1e2120;         /* basalt */
+  --muted: #5d635e;
+  --line: #d0d4cd;
+  --accent: #1f4f93;      /* azulejo cobalt */
+  --accent-ink: #ffffff;
+  --ochre: #d6a21f;       /* São Domingos */
+  --warn: #a8532a;
+  --ok: #3d7a4f;
+  --sans: "IBM Plex Sans", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --cjk: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141615; --surface: #1c1f1d; --sunken: #232724; --ink: #e8eae5; --muted: #a0a7a0; --line: #343a35;
+    --accent: #86a9e4; --accent-ink: #0f1a2c; --ochre: #e6b94a; --warn: #e08a5e; --ok: #7cc08f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141615; --surface: #1c1f1d; --sunken: #232724; --ink: #e8eae5; --muted: #a0a7a0; --line: #343a35;
+  --accent: #86a9e4; --accent-ink: #0f1a2c; --ochre: #e6b94a; --warn: #e08a5e; --ok: #7cc08f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1440px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 36px); padding-block: 22px 40px; display: grid; gap: 18px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; font-family: var(--cjk); }
+.num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* header */
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.eyebrow { font: 500 11px/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.title { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
+.title h1 { font-size: clamp(24px, 3.2vw, 34px); font-weight: 700; letter-spacing: .02em; }
+.title .pt { font: 400 15px/1.3 var(--sans); color: var(--muted); font-style: italic; }
+.lede { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+.status { display: inline-flex; align-items: center; gap: 8px; font: 500 12px/1 var(--cjk); padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.status i { width: 8px; height: 8px; border-radius: 50%; background: var(--ochre); }
+
+/* main grid */
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+@media (max-width: 1040px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* viewport */
+.stage { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; min-width: 0; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button, .chip, .btn { font: 500 12.5px/1 var(--cjk); color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 8px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.seg button:hover, .chip:hover, .btn:hover { background: var(--sunken); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button .k { font: 500 10px/1 var(--mono); opacity: .6; }
+.chip { border-color: var(--line); }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn { border-color: var(--line); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--ochre); outline-offset: 2px; }
+.canvas-box { position: relative; aspect-ratio: 16 / 10; min-height: 360px; max-height: 76vh; width: 100%; background: #cfd8de; touch-action: none; }
+.canvas-box canvas { display: block; width: 100%; height: 100%; }
+.canvas-box .labels { position: absolute; inset: 0; pointer-events: none; }
+.tag { pointer-events: none; font: 500 11.5px/1.2 var(--cjk); color: #1e2120; background: rgba(250, 250, 247, .92); border: 1px solid rgba(30, 33, 32, .18); border-radius: 3px; padding: 4px 6px; white-space: nowrap; transform: translateY(-6px); }
+.tag small { display: block; font: 400 10px/1.2 var(--sans); color: #5d635e; font-style: italic; }
+.tag.fig { background: #ff6a2a; color: #fff; border-color: #ff6a2a; font: 500 10px/1 var(--mono); padding: 3px 5px; }
+.overlay { position: absolute; display: flex; gap: 6px; align-items: center; font: 500 11px/1.3 var(--mono); color: #1e2120; }
+.ov-tl { top: 10px; left: 10px; background: rgba(250, 250, 247, .9); padding: 6px 8px; border-radius: 4px; max-width: calc(100% - 20px); }
+.ov-br { right: 10px; bottom: 10px; background: rgba(250, 250, 247, .9); padding: 6px 8px; border-radius: 4px; }
+.ov-bl { left: 10px; bottom: 10px; flex-direction: column; align-items: flex-start; gap: 4px; }
+.scalebar { background: rgba(250, 250, 247, .9); padding: 6px 8px; border-radius: 4px; }
+.scalebar .rule { height: 6px; border: 1.5px solid #1e2120; border-top: 0; margin-top: 3px; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; font: 500 13px/1.4 var(--cjk); color: #1e2120; background: #cfd8de; }
+.photo-ov { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; opacity: .5; pointer-events: none; }
+.photo-ctl { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--sunken); font-size: 12.5px; }
+.photo-ctl label { display: inline-flex; gap: 8px; align-items: center; }
+.photo-ctl #photoName { max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.walkpad { position: absolute; right: 10px; bottom: 54px; display: grid; grid-template-columns: repeat(3, 40px); gap: 4px; }
+.walkpad button { width: 40px; height: 40px; border-radius: 6px; border: 1px solid rgba(30,33,32,.2); background: rgba(250,250,247,.92); font: 600 14px/1 var(--mono); color: #1e2120; touch-action: none; }
+.walkpad .sp { visibility: hidden; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; padding: 12px; border-top: 1px solid var(--line); }
+.controls label { display: inline-flex; align-items: center; gap: 8px; font: 500 12.5px/1.2 var(--cjk); }
+.controls input[type="range"] { width: 180px; accent-color: var(--accent); }
+.controls .val { font: 500 13px/1 var(--mono); min-width: 4ch; }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.hint { color: var(--muted); font-size: 12px; }
+
+/* rail */
+.rail { display: grid; gap: 14px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; min-width: 0; }
+.card h2 { font-size: 13px; font-weight: 700; letter-spacing: .04em; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card h2 span { font: 500 10.5px/1 var(--mono); color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.minimap { position: relative; margin-top: 10px; border-radius: 4px; overflow: hidden; background: var(--sunken); }
+.minimap img { display: block; width: 100%; height: auto; }
+.minimap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mm-note { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+dl.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 10px 0 0; }
+dl.kv dt { color: var(--muted); font-size: 12.5px; }
+dl.kv dd { margin: 0; text-align: right; font: 500 13px/1.4 var(--mono); font-variant-numeric: tabular-nums; }
+dl.kv dd small { color: var(--muted); font-weight: 400; }
+.pick-empty { margin: 10px 0 0; color: var(--muted); font-size: 12.5px; }
+.pick-name { margin-top: 10px; font: 700 15px/1.35 var(--cjk); }
+.pick-sub { color: var(--muted); font-size: 12px; font-style: italic; }
+.pick-note { margin: 10px 0 0; font-size: 12.5px; }
+#pickFacade { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 2px; }
+.evidence { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.evidence button { padding: 0; border: 1px solid var(--line); border-radius: 3px; background: var(--sunken); cursor: pointer; display: grid; text-align: left; min-width: 0; }
+.evidence img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 2px 2px 0 0; }
+.evidence span { font: 500 10.5px/1.3 var(--mono); color: var(--muted); padding: 3px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evidence button:hover span { color: var(--ink); }
+.chipcol { display: inline-block; width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0,0,0,.2); vertical-align: -1px; margin-right: 6px; }
+.pill { display: inline-block; font: 500 11px/1 var(--cjk); padding: 4px 7px; border-radius: 3px; border: 1px solid var(--line); }
+.pill.osm { color: var(--ok); border-color: currentColor; }
+.pill.est { color: var(--warn); border-color: currentColor; }
+.legend { display: grid; gap: 6px; margin-top: 10px; font-size: 12.5px; }
+.legend div { display: flex; align-items: center; gap: 8px; }
+.sw { width: 14px; height: 14px; border-radius: 2px; border: 1px solid rgba(0,0,0,.15); flex: none; }
+.lg-h { margin: 14px 0 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+.lg-h:first-of-type { margin-top: 10px; }
+.sw.cal { background: repeating-linear-gradient(135deg, #3b3b39 0 3px, #ede7d9 3px 7px); }
+
+/* notes */
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.notes .card h2 { font-size: 14px; }
+.notes ul { margin: 10px 0 0; padding-left: 1.1em; display: grid; gap: 6px; }
+.notes li { max-width: 62ch; }
+.notes li b { font-weight: 600; }
+.foot { color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; }
+.foot a { color: inherit; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div>
+      <div class="eyebrow">Macau · Largo do Senado · 22.1937°N 113.5399°E</div>
+      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v7 展示版</span></div>
+      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。按 36 張實景照片加入騎樓及樓層外圍（v2），補上噴水池的下沉台階並從照片取得外牆顏色（v3），再為臨街立面開出凹入的窗洞，配上百葉、玻璃、窗框、欄杆和帆布篷（v4）。v5 按衛星圖為每個屋頂分類上色，加上雙坡頂、天台樓梯屋和水缸，玫瑰堂立面補上山花牆，其餘樓宇用通用色和窗格。v6 把車路降低一級路緣石，加上行車線、斑馬線、地磚和石仔路質感，以及燈柱、交通燈、欄杆、花盆和長椅。v7 是展示版：陽光陰影、環境光遮蔽和色調映射，騎樓內和地面層的店面，照片中的真實店舖招牌，以及灰泥牆質感。</p>
+    </div>
+    <div class="status"><i></i>v7 69 間店面 · 49 款招牌 · 13 棟按照片掛招牌 · 陽光陰影 · 灰泥牆</div>
+  </header>
+
+  <div class="grid">
+    <section class="stage" aria-label="3D 量體">
+      <div class="bar">
+        <div class="seg" id="presets" role="group" aria-label="鏡頭"></div>
+        <div class="seg">
+          <button class="btn" id="photoBtn" type="button" title="選一張實景照片，半透明疊在 3D 畫面上對位">疊上實景照片</button>
+          <input type="file" id="photoFile" accept="image/*" hidden>
+          <button class="btn" id="walkBtn" type="button" aria-pressed="false" title="WASD／方向鍵移動，拖曳轉向，Shift 跑步">步行模式</button>
+        </div>
+      </div>
+      <div class="photo-ctl" id="photoCtl" hidden>
+        <span class="mono" id="photoName"></span>
+        <label for="photoOpacity">透明度 <input type="range" id="photoOpacity" min="0" max="1" step="0.05" value="0.5"></label>
+        <span class="hint">畫面已改為照片長寬比。調 FOV 和拖曳鏡頭，直至樓宇邊線重疊。</span>
+        <button class="btn" id="photoClear" type="button">移除照片</button>
+      </div>
+      <div class="canvas-box" id="view">
+        <div class="loading" id="loading">載入量體資料…</div>
+        <img class="photo-ov" id="photoOverlay" alt="疊圖用實景照片" hidden>
+        <div class="labels" id="labels"></div>
+        <div class="overlay ov-tl" id="camInfo"></div>
+        <div class="overlay ov-bl">
+          <div class="scalebar"><span id="sbLabel">10 m</span><div class="rule" id="sbRule" style="width:60px"></div></div>
+        </div>
+        <div class="overlay ov-br" id="hintBox">拖曳旋轉 · 右鍵平移 · 滾輪縮放 · 點選建築</div>
+        <div class="walkpad" id="walkpad" hidden>
+          <span class="sp"></span><button data-k="f" aria-label="前進">▲</button><span class="sp"></span>
+          <button data-k="l" aria-label="左移">◀</button><button data-k="b" aria-label="後退">▼</button><button data-k="r" aria-label="右移">▶</button>
+        </div>
+      </div>
+      <div class="controls">
+        <label for="scale">環境比例 <input type="range" id="scale" min="1" max="1.6" step="0.05" value="1"> <span class="val" id="scaleVal">1.00×</span></label>
+        <label for="planOnly"><input type="checkbox" id="planOnly"> 只放大平面（樓高不變）</label>
+        <label for="fov">FOV <input type="range" id="fov" min="25" max="95" step="1" value="60"> <span class="val" id="fovVal">60°</span></label>
+        <div class="toggles" role="group" aria-label="圖層">
+          <button class="chip" id="tSat" aria-pressed="false">衛星底圖</button>
+          <button class="chip" id="tLabels" aria-pressed="true">地標名稱</button>
+          <button class="chip" id="tFigs" aria-pressed="true">比例人</button>
+          <button class="chip" id="tGrid" aria-pressed="true">窗格</button>
+          <button class="chip" id="tContext" aria-pressed="true">外圍建築</button>
+          <button class="chip" id="tStreet" aria-pressed="true">街道傢俬</button>
+          <button class="chip" id="tSigns" aria-pressed="true" title="關掉即不顯示任何店名和商標">店舖招牌</button>
+          <button class="chip" id="tHQ" aria-pressed="true">高畫質</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="rail">
+      <div class="card">
+        <h2>位置圖 <span>衛星 · 已對位</span></h2>
+        <div class="minimap" id="minimap">
+          <img id="mmImg" src="reference/sat_core.jpg" alt="議事亭前地衛星俯瞰，已按 OSM 校正" width="880" height="1000">
+          <svg id="mmSvg" viewBox="0 0 880 1000" aria-hidden="true"></svg>
+        </div>
+        <p class="mm-note">橙點是鏡頭位置，點選圓點可切換視角。衛星圖已按噴水池平移約 7.6 米，與 OSM 對齊。</p>
+      </div>
+      <div class="card" id="pickCard">
+        <h2>所選建築 <span id="pickTier">—</span></h2>
+        <p class="pick-empty" id="pickEmpty">在 3D 量體中點選任何建築，查看名稱、高度和資料來源。</p>
+        <div id="pickBody" hidden>
+          <div class="pick-name" id="pickName"></div>
+          <div class="pick-sub" id="pickSub"></div>
+          <dl class="kv">
+            <dt>高度</dt><dd id="pickH"></dd>
+            <dt>高度來源</dt><dd id="pickSrc"></dd>
+            <dt>距廣場</dt><dd id="pickD"></dd>
+            <dt>OSM</dt><dd id="pickId"></dd>
+            <dt>外牆顏色</dt><dd id="pickColor"></dd>
+            <dt>屋頂</dt><dd id="pickRoof"></dd>
+            <dt>店舖招牌</dt><dd id="pickShops"></dd>
+          </dl>
+          <div id="pickFacade" hidden>
+            <dl class="kv" id="pickFacadeKv"></dl>
+            <p class="pick-note" id="pickNote"></p>
+            <div class="evidence" id="pickPhotos"></div>
+            <p class="mm-note">點選照片：鏡頭移到拍攝位置並疊上照片。</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>廣場尺寸 <span id="dimScale">實際比例</span></h2>
+        <dl class="kv" id="dims"></dl>
+      </div>
+      <div class="card">
+        <h2>圖例</h2>
+        <h3 class="lg-h">外牆（照片取色）</h3>
+        <div class="legend" id="legendWalls"></div>
+        <h3 class="lg-h">窗戶</h3>
+        <div class="legend" id="legendWindows"></div>
+        <h3 class="lg-h">外牆通用色（無照片證據，按編號固定分配）</h3>
+        <div class="legend" id="legendGeneric"></div>
+        <h3 class="lg-h">屋頂（衛星圖分類）</h3>
+        <div class="legend" id="legendRoofs"></div>
+        <h3 class="lg-h">街道（v6，顏色乘上細節貼圖）</h3>
+        <div class="legend">
+          <div><span class="sw" style="background:#9d9c97"></span>石屎車路（OSM surface=concrete，如新馬路）</div>
+          <div><span class="sw" style="background:#5e6061"></span>瀝青車路（OSM 未註明時亦用瀝青）</div>
+          <div><span class="sw" style="background:repeating-linear-gradient(0deg,#6f6a62 0 1px,#8f897f 1px 4px)"></span>石仔車路（paving_stones、sett）</div>
+          <div><span class="sw" style="background:#d3cfc6;box-shadow:inset 0 -5px 0 #b9b4aa"></span>花崗岩路緣石，高 15 厘米</div>
+          <div><span class="sw" style="background:repeating-linear-gradient(90deg,#a8a49c 0 1px,#cbc7bf 1px 6px)"></span>行人路地磚 0.4 米方磚</div>
+          <div><span class="sw" style="background:repeating-linear-gradient(90deg,#9f998d 0 1px,#d2cbbd 1px 3px)"></span>巷內碎石路</div>
+          <div><span class="sw" style="background:repeating-linear-gradient(90deg,#2d4a37 0 2px,transparent 2px 5px),#e8e5de"></span>墨綠路邊欄杆（新馬路）</div>
+          <div><span class="sw" style="background:linear-gradient(#fff4dc,#fff4dc) 50% 25% / 50% 35% no-repeat,#1d201f"></span>黑色鑄鐵燈柱、交通燈、路樁、牆燈</div>
+          <div><span class="sw" style="background:radial-gradient(circle at 50% 35%,#4c7637 0 40%,transparent 42%),linear-gradient(#9d7458,#9d7458) 50% 100% / 60% 40% no-repeat"></span>大花盆修剪球形灌木</div>
+        </div>
+        <h3 class="lg-h">其他</h3>
+        <div class="legend">
+          <div><span class="sw" style="background:#f6f3ec;box-shadow:inset 0 -4px 0 #d8d2c4"></span>白色線腳：腰線、簷口、窗框、女兒牆（北端米白一排為深啡）</div>
+          <div><span class="sw" style="background:linear-gradient(#b8bec3,#b8bec3) 20% 60% / 30% 50% no-repeat,linear-gradient(#4a78b0,#4a78b0) 75% 60% / 30% 50% no-repeat,#a3a39e"></span>天台樓梯屋、水缸（隨機位置，按編號固定）</div>
+          <div><span class="sw cal"></span>葡式碎石波浪地磚</div>
+          <div><span class="sw" style="background:linear-gradient(#2e2826,#2e2826) 50% 15% / 100% 28% no-repeat,linear-gradient(#e9e2d4,#e9e2d4) 50% 85% / 80% 60% no-repeat,#3a3029"></span>店面（v7）：店內貼圖亮着燈，深色框，上方招牌板</div>
+          <div><span class="sw" style="background:#d8231f"></span>店舖招牌（v7，只作展示）：照片中的店名和商標，其餘為中葡雙語通用招牌</div>
+          <div><span class="sw" style="background:#ff6a2a"></span>比例人 1.75 米</div>
+          <div><span class="sw" style="background:linear-gradient(#3b3f42,#3b3f42) 50% 55% / 40% 45% no-repeat,#e8e5de"></span>窗格：每 3 米一窗、每 3.2 米一層（只用於未細化的樓宇，不是實測窗位）</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="notes">
+    <div class="card">
+      <h2>v7：光影</h2>
+      <ul>
+        <li><b>陽光和陰影：</b>上午東南方的陽光（照片 #87），一張 4096² 陰影圖按鏡頭所見範圍重新擬合，步行時陰影清晰，轉動鏡頭時陰影邊不會閃動。</li>
+        <li><b>環境光：</b>由天空生成，但先白平衡，所以陰影處接近中性灰；向光與陰影地磚的亮度比約 3.2 倍，按照片 #87、#40 量度。</li>
+        <li><b>環境光遮蔽和色調映射：</b>GTAO 令騎樓天花、窗洞和牆腳變暗；PBR Neutral 色調映射保持照片取得的淡色，只壓縮向光的白牆。</li>
+        <li>燈光只在檢視器，GLB 只有幾何和材質。較慢的電腦可關掉「高畫質」。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v7：店面與招牌（只作展示）</h2>
+      <ul>
+        <li><b>版本錨定：</b>遊戲引擎用的基準版本是 <span class="mono">senado-v6</span>，不含任何商標。v7 的店名和商標只為重現實景，關掉「店舖招牌」即不顯示任何店名和商標。</li>
+        <li><b>店面：</b>騎樓內每個開間一間店（45 間），沒有騎樓的樓宇地面層窗洞改為店面（24 個）；店內貼圖分美妝、藥房、金行、餅家、時裝、咖啡、肉乾、鞋店八種，亮着燈。</li>
+        <li><b>招牌按照片放置：</b>新中央酒店天台字架、信德堡窗內紫色大字、莎莎和 TFS 布幔、Swatch 手錶畫、鉅記手信圓牌、便民藥房藍色簷篷、周大福和 TSL 等，共 13 棟。點選建築可看到證據照片編號。</li>
+        <li><b>其餘店舖</b>掛中葡雙語的通用招牌，按店舖類型固定選取。字款和圖案是近似，不是原本的標誌檔案。招牌是平面，全圖只多約 3 千個三角形（共約 17.3 萬），GLB 約 17.3 MB。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v7：灰泥牆</h2>
+      <ul>
+        <li><b>不再平塗：</b>牆身和線腳加上幾米大小的明暗色塊、疏落的垂直污漬、牆腳 1.5 米內的污跡，以及約 1.5 厘米的抹灰細紋，斜陽下可以看到。</li>
+        <li>按世界座標在著色器內計算，不需要 UV，也不改變 GLB；遊戲引擎可用自己的灰泥材質取代。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v6：街道</h2>
+      <ul>
+        <li><b>路緣石：</b>車路按 OSM 的路寬（或車道數 × 3.2 米）劃出，扣除廣場和樓宇，整體降低 15 厘米（照片 #047），邊緣有花崗岩路緣石的立面和 25 厘米頂面。</li>
+        <li><b>路面：</b>按 OSM 的 <span class="mono">surface</span> 分石屎、瀝青、石仔三種；路口重疊處由等級較高的道路決定，所以新馬路的石屎路面不會被橫街切開。行人路用 0.4 米方磚，橫巷用碎石，紋理方向沿新馬路。</li>
+        <li><b>行車線和斑馬線：</b>有車道數的道路畫白色虛線（3 米線、4 米空），路口內不畫；斑馬線來自 OSM 的過路處，每條 0.5 米、間距 0.5 米。</li>
+        <li><b>廣場地磚延伸：</b>OSM 的廣場邊線離牆身 1–4 米、離新馬路路緣約 4 米，但照片 #047、#105 見到波浪地磚一直鋪到牆邊和路緣，所以把 10 米以內的空隙補上地磚（草地除外）。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v6：街道傢俬</h2>
+      <ul>
+        <li><b>來自 OSM：</b>交通燈（車輛燈在停車線兩旁路緣，行人燈在過路處兩端）、巴士站、路樁、郵筒。</li>
+        <li><b>按規則擺放（不是逐支實測）：</b>新馬路兩旁每 25 米一支雙燈鑄鐵燈柱、路緣內 0.3 米的墨綠欄杆，廣場出口不設欄杆（#263、#047）；廣場沿牆每 18 米一支單燈燈柱（#087），每 9 米一個修剪灌木大花盆，花盆之間放長椅和垃圾桶（#105、#031）。</li>
+        <li><b>牆燈：</b>面向廣場的立面，在地面層線以上每隔一個壁柱掛一盞黑色支架燈（#049、#105）。</li>
+        <li>街道傢俬可用「街道傢俬」按鈕隱藏。v6 全圖約 17 萬個三角形，GLB 約 15.4 MB。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v5：屋頂</h2>
+      <ul>
+        <li><b>顏色按衛星圖分類：</b>每個屋頂在已對位衛星圖上取牆內約 1 米的像素，按色相和明度分成淺色、灰、深灰、啡灰、米黃、紅瓦、綠、藍八類，取多數。只存類別名稱，不存影像。</li>
+        <li><b>各類的顏色：</b>取該類所有屋頂像素的中位色，保留色相，把明度提到晴天屋頂的水平（衛星圖含陰影和霧）。</li>
+        <li><b>雙坡頂：</b>玫瑰堂和大堂的中殿，以及 9 棟近似長方形、屋頂是紅瓦的低矮樓宇（坡度 25°）。</li>
+        <li><b>天台：</b>平頂上加樓梯屋和一至三個水缸（不鏽鋼、藍色、白色），位置隨機但按 OSM 編號固定，與屋邊最少留 0.3 米；外圍只加樓梯屋。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v5：全區上色與玫瑰堂</h2>
+      <ul>
+        <li><b>玫瑰堂立面</b>（照片 #23）：兩層壁柱、三道墨綠門、三個百葉窗，簷口上是較窄的山花牆，有橢圓飾框、三角楣和十字架。由廣場北端一看就認得。</li>
+        <li><b>其餘 1,963 棟</b>從八種通用色中按 OSM 編號固定分配（灰白、淺灰、米色、淡黃、淡粉紅、淡藍灰、淡綠、灰色紙皮石），亮度再錯開幾個百分點。這些是澳門舊區常見的配色，不是逐棟核對，點選時會標明「通用色」。</li>
+        <li><b>窗格：</b>通用色樓宇貼上每 3 米一窗、每 3.2 米一層的窗格貼圖，由屋頂往下數，所以頂層窗不會被切開；不是實測窗位，可用「窗格」按鈕關掉。</li>
+        <li>全圖約 14.5 萬個三角形，GLB 約 11.9 MB。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v4：窗戶</h2>
+      <ul>
+        <li><b>真正的窗洞：</b>牆身按窗戶開洞，窗扇退入牆內 20–60 厘米，洞口四邊有內牆面，所以窗戶會有陰影和厚度，遊戲中亦可作掩護參考。</li>
+        <li><b>按開間排列：</b>每個開間一個窗，置於壁柱或騎樓柱之間；有騎樓的樓宇地面層不開窗。窗形（圓拱、弧頂、長方）、尺寸和窗台高度按照片中的人和門口估算，寫在 <span class="mono">landmarks.json</span> 的 <span class="mono">facadeStyles.*.windows</span>。</li>
+        <li><b>窗扇：</b>百葉和玻璃用兩張小型灰階細節貼圖（<span class="mono">louvre.png</span>、<span class="mono">glazing.png</span>），乘上照片取得的顏色；圓拱窗的拱頂部分是玻璃扇形窗。</li>
+        <li><b>裝飾：</b>白色窗框、窗台、拱心石、平頂或三角楣、欄杆或鐵欄，以及商務旅遊中心一排向廣場的白色帆布篷。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v4：更多外牆顏色</h2>
+      <ul>
+        <li><b>窄段西面：</b>按照片 #136、#175 重新分辨：黃枝記（長方窗、白窗框）、其北鄰（栗紅百葉）、檸檬黃綠窗一排、粉紅樓（星巴克，偏桃色）。</li>
+        <li><b>北端：</b>力騰商業中心（Swatch，白框淡黃）、深色木格窗的黃樓，以及盡頭 Swarovski 一帶的米白樓：深啡線腳由新加的 <span class="mono">trim</span> 顏色表達。</li>
+        <li><b>新馬路南面：</b>市政署旁的 APOLLO 大樓（淺水綠，裝飾藝術風格的橫向長窗）。</li>
+        <li>點選建築可看到窗形、百葉顏色和證據照片；圖例由資料自動生成。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>取色方法（v3 起）</h2>
+      <ul>
+        <li><b>取色：</b>在照片中圈出牆身，只取有牆身顏色的像素中最亮的 40%（即向光的牆，排除陰影、窗玻璃和百葉窗），計算色相和飽和度；每棟盡量用兩張以上照片交叉核對。</li>
+        <li><b>明度另行設定：</b>晴天照片會過曝，陰天照片偏暗，所以明度按材質統一設定（淡色牆約 0.85–0.9、白牆約 0.93）。</li>
+        <li>資料在 <span class="mono">landmarks.json</span> 的 <span class="mono">wallColors</span> 和 <span class="mono">windowColors</span>，每個顏色都附取色照片和框選範圍。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>下一步</h2>
+      <ul>
+        <li><b>按照片逐棟核對通用色：</b>先做新馬路其餘一段、板樟堂前地東面、營地街市和大堂（現為暫定色）。</li>
+        <li><b>街道傢俬實測：</b>用街景照片核對燈柱、花盆和長椅的實際位置；加入路牌、指示牌和節慶裝飾（現時刻意不加）。</li>
+        <li><b>新馬路的騎樓和招牌</b>仍欠照片證據；<b>大堂鐘樓</b>和市政署的細部；遊戲用的碰撞簡化。</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <div>建築、街道及廣場輪廓：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors，ODbL 授權，經 Overpass API 擷取。</div>
+    <div>衛星影像：Esri World Imagery（Esri, Maxar, Earthstar Geographics），只作參考對位，已按噴水池平移校正。</div>
+    <div>實景照片：Wikimedia Commons，作者及授權（CC0、CC BY、CC BY-SA）見每張照片的連結及 <span class="mono">reference/photos/credits.json</span>。照片已縮小，未作其他修改。</div>
+    <div>店名和商標屬各自擁有者，只為重現實景而加入（v7 展示版）；遊戲用的基準版本 senado-v6 不含商標。</div>
+    <div id="buildStamp"></div>
+  </footer>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module" src="viewer/main.js"></script>
+</body>
+</html>
