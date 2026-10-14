@@ -539,6 +539,19 @@ function addCutaway(mat, U) {
   mat.needsUpdate = true;
 }
 
+// Decode the Senado textures as soon as the page loads, so the map never
+// shows a frame of untextured paving when it is picked.
+const SENADO_IMAGES =
+  typeof Image === 'undefined'
+    ? {}
+    : Object.fromEntries(
+        Object.entries({ CALCADA, LOUVRE, GLAZING, FACADE }).map(([key, uri]) => {
+          const img = new Image();
+          img.src = uri;
+          return [key, img];
+        }),
+      );
+
 const senado = {
   id: 'senado',
   name: '議事亭前地',
@@ -608,20 +621,22 @@ const senado = {
     { x: -6, z: -73, ex: -6, ez: -67, kind: 'gate' },
   ],
   decorate(L) {
-    const loader = new THREE.TextureLoader();
-    const tex = (uri) => {
-      const t = L.own(loader.load(uri));
+    const tex = (key) => {
+      const img = SENADO_IMAGES[key];
+      const t = L.own(new THREE.Texture(img));
       t.wrapS = t.wrapT = THREE.RepeatWrapping;
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = 8;
+      if (img.complete && img.naturalWidth) t.needsUpdate = true;
+      else img.addEventListener('load', () => (t.needsUpdate = true), { once: true });
       return t;
     };
     const { root } = buildSenado(SENADO_DATA, {
       mode: 'viewer',
-      calcadaTexture: tex(CALCADA),
-      louvreTexture: tex(LOUVRE),
-      glazingTexture: tex(GLAZING),
-      facadeTexture: tex(FACADE),
+      calcadaTexture: tex('CALCADA'),
+      louvreTexture: tex('LOUVRE'),
+      glazingTexture: tex('GLAZING'),
+      facadeTexture: tex('FACADE'),
     });
     const wrap = new THREE.Group();
     wrap.rotation.y = (SENADO.rotDeg * Math.PI) / 180;
