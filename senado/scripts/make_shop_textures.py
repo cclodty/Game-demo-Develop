@@ -10,6 +10,7 @@ signs.png  RGBA atlas of the shop signs in data/shops.json, each drawn at its si
            and shelf-packed; letters stand on a transparent ground (alpha-masked in the viewer and the GLB).
            data/sign_atlas.json gives each sign's rectangle as [u0, v0, u1, v1] plus its size; build_data.py merges
            it into senado_massing.json. The brand signs are for the showcase only (see the note in shops.json).
+           The lettering on the landmark fronts (landmarks.json "inscriptions", v8) goes into the same atlas.
 
 Cells are drawn at twice the size and downsampled. Rows are stored bottom-up (glTF convention, v = 0 on the
 first row) like the other detail maps; the viewer loads them with flipY = false. Run from the repo root, then
@@ -439,8 +440,10 @@ def bleed(im):
 
 def signs():
     data = json.loads((ROOT / "data" / "shops.json").read_text())
+    lettering = json.loads((ROOT / "data" / "landmarks.json").read_text()).get("inscriptions", {})
+    specs = {**data["signs"], **{k: v for k, v in lettering.items() if not k.startswith("_")}}
     items = []
-    for sid, spec in data["signs"].items():
+    for sid, spec in specs.items():
         ppm = spec.get("ppm", PPM)
         W, H = max(8, round(spec["w"] * ppm)), max(8, round(spec["h"] * ppm))
         if W > ATLAS_W - 2 * GUTTER:
@@ -470,7 +473,7 @@ def signs():
             ext.putalpha(0)
         ext.paste(im, (GUTTER, GUTTER))
         atlas.paste(ext, (px - GUTTER, py - GUTTER))
-        spec = data["signs"][sid]
+        spec = specs[sid]
         # stored bottom-up: an image row y lands at v = 1 - y / AH
         rects[sid] = {"uv": [round(px / ATLAS_W, 6), round(1 - (py + h) / AH, 6), round((px + w) / ATLAS_W, 6), round(1 - py / AH, 6)],
                       "w": spec["w"], "h": spec["h"], **({"fill": spec["fill"]} if "fill" in spec else {})}

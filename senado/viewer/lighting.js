@@ -1,11 +1,13 @@
 // Viewer lighting (v7): sky dome, image-based ambient light from that sky, a sun whose shadow map follows the
-// view, screen-space ambient occlusion and Khronos PBR Neutral tone mapping. All of it lives in the viewer;
+// view, screen-space ambient occlusion and Khronos PBR Neutral tone mapping. v8 adds the night set (sky, ambient,
+// moon, bloom; see night.js for the lamps and lit windows). All of it lives in the viewer;
 // the GLB carries geometry and materials only, and a game engine lights them its own way.
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 export const LIGHT = {
   // morning sun from the south-east, as in photo #87 where it lights the west row
@@ -20,6 +22,16 @@ export const LIGHT = {
   // shadow map: one 4096² map fitted each frame around what the camera sees (eye level: the first 150 m)
   shadow: { size: 4096, far: 150, bias: -0.0001, normalBias: 0.025 },
   ao: { radius: 2.0, intensity: 0.9 },
+  // night (v8, photo #S3): navy sky with an orange-brown city glow low down, clouds lit from below, a small moon
+  // where the sun was; ambient a little warm from the lit square; lanterns and lit windows bloom
+  night: {
+    sky: { zenith: 0x0a1222, horizon: 0x3a3134, ground: 0x121212 },
+    ambient: { zenith: 0x1e2536, horizon: 0x2a282b, ground: 0x3a2e24 },
+    cloudTint: [0.12, 0.095, 0.08], clouds: 0.6,
+    moonColor: 0x9fb2d8, moonIntensity: 0.12,
+    ao: 0.6, exposure: 1.1,
+    bloom: { strength: 0.6, radius: 0.45, threshold: 1.0 },
+  },
 };
 
 // Khronos PBR Neutral (three r162+ ships it as NeutralToneMapping; r160 takes it as the custom curve). Colours
@@ -63,6 +75,8 @@ function skyMaterial(sunDir, colours, clouds) {
       sunColor: { value: new THREE.Color(LIGHT.sunColor) },
       sunDir: { value: sunDir },
       clouds: { value: clouds },
+      cloudTint: { value: new THREE.Color(1, 1, 1) },
+      moon: { value: 0 },
     },
     vertexShader: /* glsl */ `
       varying vec3 vDir;
@@ -71,8 +85,8 @@ function skyMaterial(sunDir, colours, clouds) {
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }`,
     fragmentShader: /* glsl */ `
-      uniform vec3 zenith, horizon, ground, sunColor, sunDir;
-      uniform float clouds;
+      uniform vec3 zenith, horizon, ground, sunColor, sunDir, cloudTint;
+      uniform float clouds, moon;
       varying vec3 vDir;
       float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
       float noise(vec2 p) {
@@ -90,11 +104,12 @@ function skyMaterial(sunDir, colours, clouds) {
         vec3 sky = mix(horizon, zenith, pow(clamp(h, 0.0, 1.0), 0.5));
         float mu = max(dot(d, sunDir), 0.0);
         sky += sunColor * (0.08 * pow(mu, 6.0) + 0.2 * pow(mu, 64.0));
+        sky += moon * sunColor * smoothstep(0.99992, 0.99996, mu);
         if (clouds > 0.0) {
           vec2 uv = d.xz / (h + 0.12) * 1.4;
           float n = fbm(uv + vec2(4.7, 1.3));
           float c = smoothstep(0.55, 0.8, n) * smoothstep(0.02, 0.3, h);
-          vec3 cloud = mix(vec3(0.58, 0.62, 0.68), vec3(0.95), smoothstep(0.55, 0.85, n + 0.2 * mu));
+          vec3 cloud = mix(vec3(0.58, 0.62, 0.68), vec3(0.95), smoothstep(0.55, 0.85, n + 0.2 * mu)) * cloudTint;
           sky = mix(sky, cloud, c * 0.8 * clouds);
         }
         gl_FragColor = vec4(mix(sky, ground, smoothstep(0.0, -0.08, h)), 1.0);
@@ -137,7 +152,10 @@ export function createLighting(renderer, scene, camera) {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envScene = new THREE.Scene();
   envScene.add(new THREE.Mesh(new THREE.SphereGeometry(10, 64, 32), skyMaterial(sunDir, LIGHT.ambient, 0)));
-  scene.environment = pmrem.fromScene(envScene, 0, 0.1, 100).texture;
+  const dayEnv = pmrem.fromScene(envScene, 0, 0.1, 100).texture;
+  envScene.children[0].material = skyMaterial(sunDir, LIGHT.night.ambient, 0);
+  const nightEnv = pmrem.fromScene(envScene, 0, 0.1, 100).texture;
+  scene.environment = dayEnv;
   pmrem.dispose();
 
   const sun = new THREE.DirectionalLight(LIGHT.sunColor, LIGHT.sunIntensity);
@@ -200,7 +218,34 @@ export function createLighting(renderer, scene, camera) {
     scene.traverse((o) => { if (o.userData.noAO) o.visible = false; });
   };
   composer.addPass(gtao);
-  composer.addPass(new ShaderPass(OutputShader));
+  const N = LIGHT.night;
+  const bloom = new UnrealBloomPass(size, N.bloom.strength, N.bloom.radius, N.bloom.threshold);
+  bloom.enabled = false;
+  composer.addPass(bloom);
+  const output = new ShaderPass(OutputShader);
+  composer.addPass(output);
+
+  // night: sky, ambient, moon, fog, AO and bloom; the lamps, floodlights and windows are in night.js
+  const day = { fog: scene.fog.color.clone() };
+  function setNight(on) {
+    const u = sky.material.uniforms, c = on ? N.sky : LIGHT.sky;
+    u.zenith.value.set(c.zenith);
+    u.horizon.value.set(c.horizon);
+    u.ground.value.set(c.ground);
+    // the moon's halo is a quarter of the sun's glow; its disc is drawn at full moon colour
+    u.sunColor.value.set(on ? N.moonColor : LIGHT.sunColor);
+    if (on) u.sunColor.value.multiplyScalar(0.25);
+    u.cloudTint.value.setRGB(...(on ? N.cloudTint : [1, 1, 1]));
+    u.clouds.value = on ? N.clouds : 1;
+    u.moon.value = on ? 4 : 0;
+    scene.environment = on ? nightEnv : dayEnv;
+    sun.color.set(on ? N.moonColor : LIGHT.sunColor);
+    sun.intensity = on ? N.moonIntensity : LIGHT.sunIntensity;
+    scene.fog.color.copy(on ? new THREE.Color(N.sky.horizon) : day.fog);
+    gtao.blendIntensity = on ? N.ao : LIGHT.ao.intensity;
+    bloom.enabled = on;
+    renderer.toneMappingExposure = output.uniforms.toneMappingExposure.value = on ? N.exposure : 1;
+  }
 
   let hq = true;
   return {
@@ -210,6 +255,7 @@ export function createLighting(renderer, scene, camera) {
     gtao,
     get hq() { return hq; },
     setQuality(on) { hq = on; },
+    setNight,
     setSize(w, h) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); },
     render(orbitTarget) {
       sky.position.copy(camera.position);

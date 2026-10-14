@@ -95,8 +95,8 @@
       "zh": "主教座堂",
       "pt": "Sé Catedral",
       "en": "Cathedral",
-      "facade": "#e6e1d6",
-      "colorSrc": "pending",
+      "facade": "#d9d3c8",
+      "colorSrc": "photo",
       "role": "Up the hill east of the square",
       "short": "主教座堂",
       "windowGrid": false
@@ -496,12 +496,6 @@
       "parapet": null,
       "pilasters": true,
       "bay": 6.6,
-      "frontispiece": {
-        "w": 13.4,
-        "h": 4.0,
-        "pediment": 3.4,
-        "t": 0.6
-      },
       "windows": {
         "shape": "rect",
         "w": 2.4,
@@ -525,7 +519,21 @@
         ]
       }
     },
-    "_windowsNote": "windows: one opening per bay, centred between the pilaster/arcade piers. h lists the opening height per upper storey (the last value repeats); sill is measured from the floor band; ground applies to buildings without an arcade. shape: round = semicircular head, segment = shallow arch, rect = flat lintel. fill/panel name windowColors. Openings are clamped to fit under the next band. onStreet overrides apply to walls facing a street rather than the square. Measured by eye with storey heights as scale."
+    "_windowsNote": "windows: one opening per bay, centred between the pilaster/arcade piers. h lists the opening height per upper storey (the last value repeats); sill is measured from the floor band; ground applies to buildings without an arcade. shape: round = semicircular head, segment = shallow arch, rect = flat lintel. fill/panel name windowColors. Openings are clamped to fit under the next band. onStreet overrides apply to walls facing a street rather than the square. Measured by eye with storey heights as scale.",
+    "cathedral": {
+      "floors": [
+        7.9,
+        7.1
+      ],
+      "arcade": null,
+      "cornice": null,
+      "parapet": null,
+      "pilasters": false,
+      "lanterns": false,
+      "bay": 5.0,
+      "windows": {},
+      "note": "主教座堂：門窗逐個列出（openings），兩座鐘樓、中段壁柱和山花見 detail"
+    }
   },
   "facades": [
     {
@@ -726,7 +734,13 @@
       ],
       "wall": "farmacia",
       "windows": {
-        "ground": { "shape": "rect", "w": 1.6, "h": 2.6, "sill": 0.15, "fill": "shop" }
+        "ground": {
+          "shape": "rect",
+          "w": 1.6,
+          "h": 2.6,
+          "sill": 0.15,
+          "fill": "shop"
+        }
       }
     },
     {
@@ -738,14 +752,28 @@
           7.6,
           6.6
         ],
-        "bay": 3.6
+        "bay": 3.6,
+        "plinth": {
+          "h": 0.8,
+          "proj": 0.08
+        },
+        "stone": [
+          "plinth"
+        ],
+        "parapet": {
+          "h": 1.5,
+          "t": 0.35,
+          "type": "balustrade",
+          "turned": true
+        }
       },
-      "note": "仁慈堂：兩層，巨柱式壁柱，無騎樓（地面層是拱門與窗）",
+      "note": "仁慈堂：兩層，廣場面每層成對圓柱、拱窗配花槽小露台，南段頂上女兒牆連山花（SANTA CASA DA MISERICÓRDIA，旗杆），欄杆式女兒牆上立瓶飾",
       "evidence": [
         "#0",
         "#26",
         "#28",
-        "#40"
+        "#40",
+        "#87"
       ],
       "wall": "santa_casa",
       "windows": {
@@ -758,7 +786,11 @@
         "depth": 0.6,
         "fill": "glass",
         "hood": null,
-        "balustrade": null,
+        "balustrade": {
+          "h": 0.9,
+          "railing": true,
+          "flowers": true
+        },
         "ground": {
           "shape": "round",
           "w": 1.6,
@@ -783,25 +815,157 @@
             "h": 2.6,
             "sill": 0.9,
             "fill": "shutter_green"
-          }
+          },
+          "balustrade": null
         },
         "evidence": [
           "#87",
           "#153"
         ]
-      }
+      },
+      "detail": [
+        {
+          "type": "columns",
+          "edges": [
+            0,
+            1
+          ],
+          "pair": 0.6,
+          "r": 0.21,
+          "evidence": [
+            "#0",
+            "#87"
+          ]
+        },
+        {
+          "type": "pediment",
+          "edge": 1,
+          "s": [
+            0.6,
+            11.2
+          ],
+          "attic": 2.4,
+          "rise": 2.4,
+          "t": 0.6,
+          "sign": "scm_title",
+          "emblem": {
+            "kind": "disc",
+            "r": 0.7
+          },
+          "flag": 6.0,
+          "evidence": [
+            "#0",
+            "#26",
+            "#40"
+          ]
+        },
+        {
+          "type": "urns",
+          "edges": [
+            0,
+            3,
+            7
+          ],
+          "at": "piers",
+          "z": "top",
+          "evidence": [
+            "#0",
+            "#26"
+          ]
+        },
+        {
+          "type": "urns",
+          "edge": 1,
+          "at": [
+            0.3,
+            11.5
+          ],
+          "z": "top"
+        }
+      ]
     },
     {
       "osm": "w192573674",
       "style": "civic2",
       "on": "street",
-      "note": "市政署：兩層加山花，無騎樓",
+      "note": "市政署：兩層，灰麻石壁柱（只在轉角和中段兩側）、腰線和簷口；中段三開間，二樓連續鐵欄露台，頂上山花（圓形徽章），簷下橫額「市政署」；兩翼各四開間",
       "evidence": [
         "#28",
         "#31",
         "#127"
       ],
-      "wall": "leal_senado"
+      "wall": "leal_senado",
+      "override": {
+        "parapet": {
+          "h": 1.5,
+          "t": 0.35,
+          "type": "solid"
+        },
+        "pilasters": "ends",
+        "stone": [
+          "courses",
+          "cornice",
+          "pilasters",
+          "coping",
+          "pediment",
+          "balcony"
+        ]
+      },
+      "bayCounts": {
+        "31": 4,
+        "33": 3,
+        "35": 4
+      },
+      "openingPatch": [
+        {
+          "edge": 33,
+          "storey": 0,
+          "bay": 1,
+          "w": 2.0,
+          "h": 4.2,
+          "sill": 0,
+          "shape": "rect",
+          "fill": "glaze_wood",
+          "hood": "flat",
+          "surround": 0.3,
+          "stone": true
+        }
+      ],
+      "detail": [
+        {
+          "type": "balcony",
+          "edge": 33,
+          "storey": 1,
+          "depth": 0.85,
+          "h": 1.0,
+          "evidence": [
+            "#127"
+          ]
+        },
+        {
+          "type": "pediment",
+          "edge": 33,
+          "z": "top",
+          "rise": 3.0,
+          "t": 0.5,
+          "emblem": {
+            "kind": "disc",
+            "r": 0.45
+          },
+          "evidence": [
+            "#127"
+          ]
+        },
+        {
+          "type": "inscription",
+          "edge": 33,
+          "sign": "iam_title",
+          "z": 16.05,
+          "evidence": [
+            "#127"
+          ]
+        }
+      ]
     },
     {
       "osm": "w205784429",
@@ -981,7 +1145,302 @@
       "evidence": [
         "#23"
       ],
-      "note": "玫瑰堂正立面：兩層壁柱、三門三窗（墨綠門窗），頂上山花牆連三角楣；山花牆按照片 #23 約 13 m 寬、高出簷口約 7 m"
+      "note": "玫瑰堂正立面：兩層成對圓柱、三門三窗（墨綠門窗），頂上山花牆（橢圓徽框、兩側渦卷）連三角楣和十字架，簷口兩端各一對瓶飾（照片 #23）",
+      "detail": [
+        {
+          "type": "columns",
+          "edges": [
+            7
+          ],
+          "pair": 0.7,
+          "r": 0.24,
+          "evidence": [
+            "#23"
+          ]
+        },
+        {
+          "type": "pediment",
+          "edge": 7,
+          "s": [
+            3.25,
+            16.65
+          ],
+          "attic": 4.0,
+          "rise": 3.4,
+          "t": 0.6,
+          "atticEmblem": {
+            "kind": "oval",
+            "r": 1.25,
+            "rz": 1.7
+          },
+          "emblem": {
+            "kind": "disc",
+            "r": 0.55,
+            "face": "trim"
+          },
+          "cross": 1.4,
+          "volutes": {
+            "w": 2.0,
+            "h": 2.6
+          },
+          "evidence": [
+            "#23"
+          ]
+        },
+        {
+          "type": "urns",
+          "edge": 7,
+          "at": [
+            0.85,
+            1.9,
+            18.0,
+            19.05
+          ],
+          "z": "roof",
+          "pedestal": 0.7,
+          "evidence": [
+            "#23"
+          ]
+        }
+      ]
+    },
+    {
+      "osm": "w330368426",
+      "style": "cathedral",
+      "on": [
+        0
+      ],
+      "wall": "se",
+      "evidence": [
+        "#S1",
+        "#S2",
+        "#S3"
+      ],
+      "note": "主教座堂正立面：兩座鐘樓夾著中段。中段兩層方壁柱、三拱門、三扇綠百葉窗、三角楣連圓窗和十字架；鐘樓頂層四面拱洞掛鐘，簷上欄杆和角飾，西鐘樓正面和側面有鐘（照片 #S1、#S2）",
+      "wallSpans": {
+        "0": [
+          {
+            "s": [
+              0,
+              8.3
+            ],
+            "top": 18.1
+          },
+          {
+            "s": [
+              8.3,
+              21.7
+            ]
+          },
+          {
+            "s": [
+              21.7,
+              30.0
+            ],
+            "top": 18.1
+          }
+        ]
+      },
+      "openings": {
+        "0": [
+          {
+            "s": [
+              4.15,
+              25.85
+            ],
+            "z": 0.5,
+            "w": 1.8,
+            "h": 3.3,
+            "fill": "shutter_green",
+            "surround": 0.22,
+            "hood": "flat"
+          },
+          {
+            "s": [
+              4.15,
+              25.85
+            ],
+            "z": 5.6,
+            "w": 1.7,
+            "h": 0.95,
+            "shape": "round",
+            "fill": "shutter_green",
+            "surround": 0.2
+          },
+          {
+            "s": [
+              4.15,
+              25.85
+            ],
+            "z": 8.9,
+            "w": 1.8,
+            "h": 3.2,
+            "shape": "round",
+            "fill": "shutter_green",
+            "surround": 0.2,
+            "keystone": true
+          },
+          {
+            "s": 4.15,
+            "z": 14.35,
+            "w": 1.3,
+            "shape": "oculus",
+            "fill": "shutter_green",
+            "surround": 0.25
+          },
+          {
+            "s": [
+              10.7,
+              19.3
+            ],
+            "z": 0.6,
+            "w": 2.2,
+            "h": 5.2,
+            "shape": "round",
+            "fill": "shutter_green",
+            "surround": 0.3,
+            "keystone": true
+          },
+          {
+            "s": 15.0,
+            "z": 0.6,
+            "w": 2.4,
+            "h": 5.4,
+            "shape": "round",
+            "fill": "shutter_green",
+            "surround": 0.3,
+            "keystone": true
+          },
+          {
+            "s": [
+              10.7,
+              15.0,
+              19.3
+            ],
+            "z": 9.3,
+            "w": 1.8,
+            "h": 3.0,
+            "fill": "shutter_green",
+            "surround": 0.15,
+            "hood": "flat"
+          }
+        ]
+      },
+      "detail": [
+        {
+          "type": "band",
+          "edge": 0,
+          "s": [
+            8.3,
+            21.7
+          ],
+          "z": [
+            7.25,
+            7.9
+          ],
+          "proj": 0.45,
+          "lip": 0.15
+        },
+        {
+          "type": "band",
+          "edge": 0,
+          "s": [
+            8.3,
+            21.7
+          ],
+          "z": [
+            14.1,
+            15.0
+          ],
+          "proj": 0.5,
+          "lip": 0.2
+        },
+        {
+          "type": "columns",
+          "edges": [
+            0
+          ],
+          "at": [
+            8.75,
+            12.85,
+            17.15,
+            21.25
+          ],
+          "r": 0.38,
+          "square": true,
+          "storeys": [
+            [
+              0.6,
+              7.25
+            ],
+            [
+              8.18,
+              14.1
+            ]
+          ]
+        },
+        {
+          "type": "pediment",
+          "edge": 0,
+          "s": [
+            8.3,
+            21.7
+          ],
+          "rise": 3.8,
+          "t": 0.5,
+          "emblem": {
+            "kind": "oculus",
+            "r": 0.85,
+            "at": 0.42
+          },
+          "cross": 1.2
+        },
+        {
+          "type": "tower",
+          "edge": 0,
+          "s": [
+            0,
+            8.3
+          ],
+          "depth": 8.3,
+          "body": 18.1,
+          "belfry": 23.4,
+          "top": 24.8,
+          "opening": {
+            "w": 2.0,
+            "h": 3.3,
+            "z": 0.75
+          },
+          "bell": 1.1
+        },
+        {
+          "type": "tower",
+          "edge": 0,
+          "s": [
+            21.7,
+            30.0
+          ],
+          "depth": 8.3,
+          "body": 18.1,
+          "belfry": 23.4,
+          "top": 24.8,
+          "opening": {
+            "w": 2.0,
+            "h": 3.3,
+            "z": 0.75
+          },
+          "bell": 1.1,
+          "frontFill": "shutter_green",
+          "clock": {
+            "r": 1.15,
+            "z": 14.9,
+            "faces": [
+              0,
+              1
+            ]
+          }
+        }
+      ]
     }
   ],
   "bridges": [
@@ -1350,7 +1809,42 @@
             0.749
           ]
         }
-      ]
+      ],
+      "stone": {
+        "hex": "#8f8b85",
+        "label": "市政署，灰麻石（壁柱、腰線、簷口、山花）",
+        "samples": [
+          {
+            "photo": "#127",
+            "box": [
+              338,
+              220,
+              346,
+              300
+            ],
+            "hsv": [
+              26.7,
+              0.123,
+              0.286
+            ]
+          },
+          {
+            "photo": "#127",
+            "box": [
+              528,
+              220,
+              538,
+              300
+            ],
+            "hsv": [
+              330.0,
+              0.023,
+              0.337
+            ]
+          }
+        ],
+        "note": "照片取樣在陰天背光處偏暗（V 約 0.3），按牆身同一曝光比例提亮"
+      }
     },
     "santa_casa": {
       "hex": "#f2efeb",
@@ -1389,7 +1883,27 @@
             0.933
           ]
         }
-      ]
+      ],
+      "stone": {
+        "hex": "#9a958d",
+        "label": "仁慈堂，灰麻石勒腳",
+        "samples": [
+          {
+            "photo": "#26",
+            "box": [
+              470,
+              300,
+              500,
+              316
+            ],
+            "hsv": [
+              41.5,
+              0.065,
+              0.78
+            ]
+          }
+        ]
+      }
     },
     "correios": {
       "hex": "#d1c1a5",
@@ -1814,6 +2328,49 @@
           ]
         }
       ]
+    },
+    "se": {
+      "hex": "#d9d3c8",
+      "hsv": [
+        39,
+        0.08,
+        0.85
+      ],
+      "label": "主教座堂，淺灰石",
+      "samples": [
+        {
+          "photo": "#S1",
+          "box": [
+            553,
+            333,
+            586,
+            373
+          ],
+          "hsv": [
+            30.0,
+            0.105,
+            0.749
+          ]
+        },
+        {
+          "photo": "#S2",
+          "box": [
+            40,
+            200,
+            90,
+            260
+          ],
+          "hsv": [
+            50.0,
+            0.031,
+            0.761
+          ]
+        }
+      ],
+      "trim": {
+        "hex": "#e6e1d8",
+        "label": "線腳略淺"
+      }
     }
   },
   "windowColors": {
@@ -2305,8 +2862,62 @@
     },
     "w330368426": {
       "type": "gable",
-      "rise": 5.5,
-      "note": "大堂（主教座堂）：中殿雙坡頂，鐘樓未建模"
+      "front": 0,
+      "eave": 15.0,
+      "rise": 4.3,
+      "halfWidth": 6.7,
+      "note": "大堂（主教座堂）：中殿雙坡頂，簷口約 15 m、屋脊約 19.3 m（山花頂，照片 #S1、#S2）；只在中殿 13.4 m 寬內起坡，兩側平頂；鐘樓見 facades"
+    }
+  },
+  "inscriptions": {
+    "_note": "Lettering on the landmark fronts (v8), drawn into the sign atlas by scripts/make_shop_textures.py with the same keys as the shop signs in shops.json (w x h metres). Building names, not trademarks: the 店舖招牌 toggle leaves them on.",
+    "scm_title": {
+      "w": 7.0,
+      "h": 1.5,
+      "draw": "text",
+      "fg": "#2c2f2b",
+      "lines": [
+        {
+          "t": "SANTA CASA",
+          "font": "serif-bold",
+          "size": 0.4,
+          "track": 0.12
+        },
+        {
+          "t": "DA MISERICÓRDIA",
+          "font": "serif-bold",
+          "size": 0.4,
+          "track": 0.06
+        }
+      ],
+      "evidence": [
+        "#0",
+        "#40"
+      ]
+    },
+    "iam_title": {
+      "w": 8.6,
+      "h": 1.0,
+      "draw": "text",
+      "fg": "#2c2c2c",
+      "lines": [
+        {
+          "t": "市 政 署",
+          "font": "cjk",
+          "size": 0.5,
+          "track": 0.25,
+          "stroke": 0.02
+        },
+        {
+          "t": "INSTITUTO PARA OS ASSUNTOS MUNICIPAIS",
+          "font": "serif-bold",
+          "size": 0.27,
+          "track": 0.04
+        }
+      ],
+      "evidence": [
+        "#127"
+      ]
     }
   }
 }

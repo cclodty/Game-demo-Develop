@@ -5,7 +5,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import * as THREE from 'three';
-import { prismGeometry, buildSenado, gableGeometry, massGeometry, facadeGeometries, edgeFrame } from '../viewer/model.js';
+import { prismGeometry, buildSenado, gableGeometry, massGeometry, facadeGeometries, facadeLayout, edgeFrame } from '../viewer/model.js';
+import { tagWindows } from '../viewer/night.js';
 
 const data = JSON.parse(fs.readFileSync(new URL('../data/senado_massing.json', import.meta.url), 'utf8'));
 
@@ -72,7 +73,7 @@ test('arcade recess removes exactly length x depth from a rectangle', async () =
 });
 
 test('facade buildings build finite arcades, bands and parapets', async () => {
-  const { facadeGeometries } = await import('../viewer/model.js');
+  const { facadeGeometries, facadeTop } = await import('../viewer/model.js');
   const withFacade = data.buildings.filter((b) => b.facade);
   assert.ok(withFacade.length >= 15);
   for (const b of withFacade) {
@@ -82,11 +83,13 @@ test('facade buildings build finite arcades, bands and parapets', async () => {
     for (const geo of [g.walls, g.trim, g.screens].filter(Boolean)) {
       for (const v of geo.attributes.position.array) assert.ok(Number.isFinite(v), b.id);
     }
-    // mouldings and parapets stay between the ground and the building height (a church front may rise above it)
-    const fr = b.facade.frontispiece;
-    const top = fr ? b.roof.shape.eave + fr.h + 0.5 + fr.pediment + 1.7 : b.h;
-    g.trim.computeBoundingBox();
-    assert.ok(g.trim.boundingBox.max.y <= top + 1e-3 && g.trim.boundingBox.min.y >= -1e-3, b.id);
+    // mouldings and parapets stay between the ground and the building height; a landmark's pediment, urns or
+    // tower finials may rise above it, up to the top worked out from its detail spec
+    const top = facadeTop(b);
+    for (const geo of [g.trim, g.stone].filter(Boolean)) {
+      geo.computeBoundingBox();
+      assert.ok(geo.boundingBox.max.y <= top + 1e-3 && geo.boundingBox.min.y >= -1e-3, `${b.id} ${geo.boundingBox.max.y} > ${top}`);
+    }
   }
 });
 
@@ -299,4 +302,19 @@ test('triangle budget: the whole map stays under 200k triangles', () => {
     tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
   });
   assert.ok(tris < 200000, `${Math.round(tris)} triangles`);
+});
+
+// Night mode (viewer/night.js) lights a share of the upper windows, chosen per window from where its panes start:
+// the shutters and the glazed fanlight of one opening must get the same tag, and doors and shops none.
+test('night: each upper window gets one light tag, shared by all its panes', () => {
+  for (const key of ['santa_casa', 'leal_senado']) {
+    const b = data.buildings.find((q) => q.key === key);
+    const mesh = new THREE.Mesh(facadeGeometries(b, data.shopSigns).panes.geometry);
+    tagWindows(mesh);
+    const tags = new Set([...mesh.geometry.attributes.ntLit.array].filter((v) => v > 0));
+    let upper = 0;
+    for (const { ws } of facadeLayout(b).windowed.values()) upper += ws.filter((w) => w.z0 >= 2.5 && w.fill !== 'shop').length;
+    assert.ok(upper > 10, `${key}: ${upper} upper windows`);
+    assert.equal(tags.size, upper, key);
+  }
 });

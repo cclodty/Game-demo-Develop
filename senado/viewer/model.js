@@ -19,6 +19,7 @@ export const PALETTE = {
   awning: 0xf3f0e8,    // canvas hoods over the MGTO windows (photos #10, #87)
   glass: 0x2e3539,
   granite: 0xbfa194,   // fountain steps (photos #87, #126)
+  stoneGrey: 0x9a968f, // grey granite dressings where a facade spec names no stone colour
   poolGranite: 0xa97563, // pink granite pool wall
   figure: 0xff6a2a,
   calcadaLight: 0xede7d9,
@@ -484,9 +485,10 @@ function wallBox(f, s0, s1, z0, z1, out, inn) {
   return g.applyMatrix4(edgeMatrix(f));
 }
 
-// Bay layout shared by the arcade and the pilasters above it: end piers of width `pier`, n equal bays between.
-export function bayLayout(L, bay, pier) {
-  const n = Math.max(1, Math.round((L - pier) / bay));
+// Bay layout shared by the arcade and the pilasters above it: end piers of width `pier`, n equal bays between
+// (n from the bay width, or `count` when the photos give it).
+export function bayLayout(L, bay, pier, count = 0) {
+  const n = count || Math.max(1, Math.round((L - pier) / bay));
   const step = (L - pier) / n;
   return { n, step, piers: Array.from({ length: n + 1 }, (_, k) => pier / 2 + k * step), opening: step - pier };
 }
@@ -533,8 +535,15 @@ function mergeFlat(geoms) {
 // glazing textures tile on those.
 export const WINDOW_DEFAULTS = { depth: 0.25, surround: 0.18, sill: 0.6 };
 
-// Opening outline, counter-clockwise: flat bottom at z0, total height h, head given by shape.
+// Opening outline, counter-clockwise: flat bottom at z0, total height h, head given by shape. An oculus is a
+// circle of diameter w centred at z0 + h / 2.
 export function windowOutline(c, z0, w, h, shape, seg = 8, rise = headRise(w, h, shape)) {
+  if (shape === 'oculus') {
+    return Array.from({ length: 20 }, (_, k) => {
+      const a = (k / 20) * Math.PI * 2 - Math.PI / 2;
+      return [c + (w / 2) * Math.cos(a), z0 + h / 2 + (w / 2) * Math.sin(a)];
+    });
+  }
   const l = c - w / 2, r = c + w / 2;
   const spring = z0 + h - rise;
   const pts = [[l, z0], [r, z0], [r, spring]];
@@ -579,11 +588,12 @@ function sinkGeometry(s, m) {
   return m ? g.applyMatrix4(m) : g;
 }
 
-// One facade wall from z0 to z1 with its window openings: the wall face plus the reveals (jambs, sill, head)
-// running `depth` into the wall. Returned with the prism's two groups (walls, empty roof) so it merges with the body.
-function holedWall(f, z0, z1, openings) {
+// One facade wall from z0 to z1 (s0 to s1 along it) with its window openings: the wall face plus the reveals
+// (jambs, sill, head) running `depth` into the wall. Returned with the prism's two groups (walls, empty roof) so it
+// merges with the body.
+function holedWall(f, z0, z1, openings, s0 = 0, s1 = f.L) {
   const s = newSink();
-  planarFace([[0, z0], [f.L, z0], [f.L, z1], [0, z1]], openings.map((w) => w.pts), 0, (x, z) => [x, z], s);
+  planarFace([[s0, z0], [s1, z0], [s1, z1], [s0, z1]], openings.map((w) => w.pts), 0, (x, z) => [x, z], s);
   for (const w of openings) {
     const P = w.pts, d = w.depth;
     for (let i = 0; i < P.length; i++) {
@@ -640,11 +650,21 @@ function windowPanes(f, w, add) {
 }
 
 // White dressings: surround (architrave), sill, keystone, hood or pediment, balustrade panel; awnings separately.
-function windowDressing(f, w, trim, awnings, railings) {
+// A balconette may carry a flower box (仁慈堂, photo #87); an opening marked stone gets granite dressings.
+function windowDressing(f, w, out) {
   const m = edgeMatrix(f);
   const { c, z0, wd, h, shape } = w;
+  const trim = w.stone ? out.stone : out.trim, { awnings, railings } = out;
   const sw = w.surround;
   const l = c - wd / 2, r = c + wd / 2, topZ = z0 + h;
+  if (shape === 'oculus') {
+    if (sw > 0) {
+      const ring = new THREE.Shape().absarc(c, z0 + h / 2, wd / 2 + sw, 0, Math.PI * 2);
+      ring.holes.push(new THREE.Path().absarc(c, z0 + h / 2, wd / 2, 0, Math.PI * 2, true));
+      trim.push(new THREE.ExtrudeGeometry(ring, { depth: 0.07, bevelEnabled: false, curveSegments: 20 }).applyMatrix4(m));
+    }
+    return;
+  }
   if (sw > 0) {
     // inverted-U band around the opening, standing 7 cm proud of the wall
     const rise = headRise(wd, h, shape);
@@ -666,9 +686,19 @@ function windowDressing(f, w, trim, awnings, railings) {
   if (w.balustrade) {
     const bh = w.balustrade.h;
     if (w.balustrade.railing) {
-      // iron balconette: thin dark railing on a shallow slab
+      // iron balconette: rails and bars on a shallow slab
       trim.push(wallBox(f, l - sw - 0.1, r + sw + 0.1, z0 - 0.14, z0, 0.42, 0.02));
-      railings.push(wallBox(f, l - sw - 0.05, r + sw + 0.05, z0, z0 + bh, 0.4, -0.36));
+      ironRailing(f, l - sw - 0.05, r + sw + 0.05, z0, bh, 0.4, railings);
+      if (w.balustrade.flowers) {
+        // terracotta trough behind the railing, clipped greenery and a row of red blooms on top
+        out.planters.push(wallBox(f, l - sw + 0.05, r + sw - 0.05, z0, z0 + 0.26, 0.34, -0.12));
+        out.leaves.push(wallBox(f, l - sw + 0.1, r + sw - 0.1, z0 + 0.26, z0 + 0.5, 0.32, -0.14));
+        const n = Math.max(2, Math.round((r - l + 2 * sw) / 0.35));
+        for (let k = 0; k < n; k++) {
+          const x = l - sw + 0.2 + ((r - l + 2 * sw - 0.4) * k) / (n - 1);
+          out.blooms.push(wallBox(f, x - 0.08, x + 0.08, z0 + 0.46, z0 + 0.6, 0.31, -0.2));
+        }
+      }
     } else {
       trim.push(wallBox(f, l - 0.04, r + 0.04, z0, z0 + bh, 0.1, 0.12));
     }
@@ -705,7 +735,7 @@ export function windowLayout(f, W, storeys, bays, kind) {
     for (let k = 0; k < piers.length - 1; k++) {
       const c = (piers[k] + piers[k + 1]) / 2;
       out.push({
-        c, z0, wd, h, shape, depth, surround: sw, storey: st.k, bay: k,
+        c, z0, wd, h, shape, depth, surround: sw, storey: st.k, bay: k, floor: st.floor,
         fill: full.fill || 'glass', panel: full.panel || null, keystone: !!full.keystone, hood: full.hood || null,
         balustrade: full.balustrade || null, awning: !!full.awning,
         pts: windowOutline(c, z0, wd, h, shape),
@@ -967,29 +997,61 @@ export function facadeLayout(b) {
   const bandH = (k) => (k === 0 && arcadeEdges.length ? 0.6 : 0.28);
   const storeyTops = lines.filter((lz) => lz < corniceZ - 1).concat([corniceZ]);
   const storeys = storeyTops.map((ceil, k) => ({ k, floor: k ? storeyTops[k - 1] + bandH(k - 1) : 0, ceil, skip: k === 0 && arcadeEdges.length > 0 }));
-  const bays = (f) => bayLayout(f.L, F.arcade ? F.arcade.bay : F.bay || 3.8, F.arcade ? F.arcade.pier : 0.9);
+  // bays of one wall; F.bayCounts fixes the count where the photos show it (市政署: four-bay wings, three-bay centre)
+  const baysOf = (i) => bayLayout(edgeFrame(ring, i).L, F.arcade ? F.arcade.bay : F.bay || 3.8, F.arcade ? F.arcade.pier : 0.9,
+    (F.bayCounts || {})[i] || 0);
+  const detail = F.detail || [];
 
-  // which walls get windows, and their openings
+  // which walls get windows, and their openings: one per bay and storey, or listed one by one (F.openings, the Sé
+  // front) where the bays are not regular; F.openingPatch then changes single openings (a door in a window row)
   const W = F.windows && F.windows.shape ? F.windows : null;
   const windowed = new Map();
-  if (W) {
-    for (const i of F.edges) {
-      const f = edgeFrame(ring, i);
-      if (f.L < 2.5) continue;
-      const ws = windowLayout(f, W, storeys, bays(f), (F.edgeKinds || {})[i]);
-      if (ws.length) windowed.set(i, { f, ws });
+  for (const i of F.edges) {
+    const f = edgeFrame(ring, i);
+    if (f.L < 2.5) continue;
+    let ws = [];
+    const listed = (F.openings || {})[i];
+    if (listed) ws = listed.flatMap((o, k) => [].concat(o.s).map((c) => openingAt(o, c, k, lines)));
+    else if (W) ws = windowLayout(f, W, storeys, baysOf(i), (F.edgeKinds || {})[i]);
+    for (const p of (F.openingPatch || []).filter((q) => q.edge === i)) {
+      const w = ws.find((q) => q.storey === p.storey && q.bay === p.bay);
+      if (!w) continue;
+      Object.assign(w, { ...p, wd: p.w ?? w.wd, h: p.h ?? w.h, z0: p.sill != null ? w.floor + p.sill : w.z0 });
+      w.pts = windowOutline(w.c, w.z0, w.wd, w.h, w.shape);
     }
+    // a continuous balcony replaces the balconettes of the windows it serves
+    for (const d of detail.filter((q) => q.type === 'balcony' && q.edge === i)) {
+      for (const w of ws) if (w.storey === (d.storey ?? 1)) w.balustrade = null;
+    }
+    if (ws.length) windowed.set(i, { f, ws });
   }
-  return { F, ring, pitched, roofH, arcade, aH, arcadeEdges, lines, corniceZ, bandH, storeys, bays, windowed };
+  // mouldings of the kinds listed in F.stone are granite (市政署: courses, cornice, pilasters, pediment)
+  const mould = (kind, out) => ((F.stone || []).includes(kind) ? out.stone : out.trim);
+  return { F, ring, pitched, roofH, arcade, aH, arcadeEdges, lines, corniceZ, bandH, storeys, baysOf, windowed, detail, mould };
+}
+
+// One opening listed in F.openings: s is its centre along the wall, z its sill height.
+function openingAt(o, c, k, lines) {
+  const shape = o.shape || 'rect', wd = o.w, h = shape === 'oculus' ? o.w : o.h;
+  return {
+    c, z0: o.z, wd, h, shape, depth: o.depth ?? 0.3, surround: o.surround ?? WINDOW_DEFAULTS.surround,
+    storey: o.storey ?? (lines.length && o.z >= lines[0] ? 1 : 0), bay: k, floor: 0,
+    fill: o.fill || 'glass', panel: null, keystone: !!o.keystone, hood: o.hood || null, balustrade: o.balustrade || null,
+    awning: false, stone: !!o.stone, pts: windowOutline(c, o.z, wd, h, shape),
+  };
 }
 
 // Returns { walls, trim, screens, panes, awnings, railings, ... } geometries for one building with a facade spec.
 export function facadeGeometries(b, shopSigns = null) {
   const L = facadeLayout(b);
-  const { F, ring, pitched, roofH, arcade, aH, arcadeEdges, lines, corniceZ, bandH, bays, windowed } = L;
+  const { F, ring, pitched, roofH, arcade, aH, arcadeEdges, lines, corniceZ, bandH, baysOf, windowed, detail, mould } = L;
   const skip = new Set(windowed.keys());
 
-  const out = { walls: [], trim: [], screens: [], panes: new Map(), awnings: [], railings: [], iron: [], glass: [], shops: [], shopFrames: [], fascias: [], fasciaRects: [], signs: [], signBoards: [], roofSigns: [], awningsByColor: new Map() };
+  const out = {
+    walls: [], trim: [], stone: [], screens: [], panes: new Map(), awnings: [], railings: [], iron: [], glass: [], shops: [], shopFrames: [],
+    fascias: [], fasciaRects: [], signs: [], signBoards: [], roofSigns: [], awningsByColor: new Map(),
+    planters: [], leaves: [], blooms: [], bells: [], clockFace: [], emblems: [], flags: [], inscriptions: [],
+  };
   const addPane = (key, g) => { if (!out.panes.has(key)) out.panes.set(key, []); out.panes.get(key).push(g); };
   if (arcadeEdges.length) {
     if (!F.passage) {                                          // a passage (lane under the building) has no ground floor
@@ -1006,34 +1068,48 @@ export function facadeGeometries(b, shopSigns = null) {
   }
   if (pitched) out.walls.push(gableGeometry(ring, pitched));
   for (const [i, { f, ws }] of windowed) {
-    out.walls.push(holedWall(f, arcadeEdges.length ? aH : 0, roofH, ws));
+    // F.wallSpans splits a wall into stretches of their own height (the Sé towers run on above the nave eave)
+    for (const sp of (F.wallSpans || {})[i] || [{ s: [0, f.L] }]) {
+      const s0 = Math.max(0, sp.s[0]), s1 = sp.s[1] >= f.L - 0.05 ? f.L : sp.s[1];
+      out.walls.push(holedWall(f, arcadeEdges.length ? aH : 0, sp.top ?? roofH, ws.filter((w) => w.c >= s0 && w.c < s1), s0, s1));
+    }
     for (const w of ws) {
       if (w.fill === 'shop') w.kind = bayKind(b, i, w.bay, `${f.a[0].toFixed(1)},${f.a[1].toFixed(1)}:${w.c.toFixed(1)}`);
       windowPanes(f, w, addPane);
-      windowDressing(f, w, out.trim, out.awnings, out.railings);
+      windowDressing(f, w, out);
     }
   }
 
+  const columnEdges = new Set(detail.filter((d) => d.type === 'columns').flatMap((d) => d.edges));
+  const pedimentEdges = new Map(detail.filter((d) => d.type === 'pediment').map((d) => [d.edge, d]));
   for (const i of F.edges) {
     const f = edgeFrame(ring, i);
     if (f.L < 1.5) continue;
     const ext = 0.25;                                          // run past the corner so bands meet
-    lines.forEach((lz, k) => {
-      const main = k === 0 && arcadeEdges.length;
-      const hBand = main ? 0.6 : 0.28, proj = main ? 0.2 : 0.12;
-      if (lz + hBand < corniceZ) out.trim.push(wallBox(f, -ext, f.L + ext, lz, lz + hBand, proj, 0.05));
-    });
-    if (F.cornice) out.trim.push(wallBox(f, -ext - F.cornice.proj, f.L + ext + F.cornice.proj, corniceZ, roofH, F.cornice.proj, 0.05));
-    if (F.pilasters) {
-      const { piers } = bayLayout(f.L, F.arcade ? F.arcade.bay : F.bay || 3.8, F.arcade ? F.arcade.pier : 0.9);
-      const z0 = lines.length ? lines[0] + (arcadeEdges.length ? 0.6 : 0.28) : 0;
-      for (const p of piers) out.trim.push(wallBox(f, p - 0.28, p + 0.28, z0, corniceZ, 0.1, 0.05));
+    if (F.courses !== false) {
+      lines.forEach((lz, k) => {
+        const main = k === 0 && arcadeEdges.length;
+        const hBand = main ? 0.6 : 0.28, proj = main ? 0.2 : 0.12;
+        if (lz + hBand < corniceZ) mould('courses', out).push(wallBox(f, -ext, f.L + ext, lz, lz + hBand, proj, 0.05));
+      });
     }
+    if (F.cornice) mould('cornice', out).push(wallBox(f, -ext - F.cornice.proj, f.L + ext + F.cornice.proj, corniceZ, roofH, F.cornice.proj, 0.05));
+    if (F.pilasters && !columnEdges.has(i)) {
+      // full-height pilasters on every pier, or only at the ends of the wall (市政署, photo #127)
+      const { piers } = baysOf(i);
+      const z0 = lines.length ? lines[0] + (arcadeEdges.length ? 0.6 : 0.28) : 0;
+      const ends = F.pilasters === 'ends';
+      for (const p of ends ? [0.45, f.L - 0.45] : piers) {
+        mould('pilasters', out).push(ends ? wallBox(f, p - 0.45, p + 0.45, 0, corniceZ, 0.14, 0.05) : wallBox(f, p - 0.28, p + 0.28, z0, corniceZ, 0.1, 0.05));
+      }
+    }
+    if (F.plinth) plinth(f, F.plinth, (windowed.get(i) || { ws: [] }).ws, mould('plinth', out));
   }
   if (pitched) {
-    // white raking cornice along the gable ends of the facade walls
+    // white raking cornice along the gable ends of the facade walls (a pediment brings its own)
     const P = gableProfile(ring, pitched);
     for (const i of F.edges) {
+      if (pedimentEdges.has(i)) continue;
       const f = edgeFrame(ring, i);
       const da = P.dOf(f.a), db = P.dOf(f.b);
       const ss = [0, f.L, ...P.cuts.filter((c) => (c - da) * (c - db) < 0).map((c) => ((c - da) / (db - da)) * f.L)].sort((x, y) => x - y);
@@ -1045,26 +1121,20 @@ export function facadeGeometries(b, shopSigns = null) {
     }
   }
   // bracket lanterns on the walls facing the square, above the ground-floor line
-  if (lines.length) {
+  if (lines.length && F.lanterns !== false) {
     for (const i of F.edges) {
       const f = edgeFrame(ring, i);
-      if ((F.edgeKinds || {})[i] === 'square' && f.L >= 5) wallLanterns(f, bays(f).piers, lines[0] + bandH(0) + 0.9, out);
+      if ((F.edgeKinds || {})[i] === 'square' && f.L >= 5) wallLanterns(f, baysOf(i).piers, lines[0] + bandH(0) + 0.9, out);
     }
   }
-  if (F.frontispiece) frontispiece(F, edgeFrame(ring, F.edges[0]), roofH, out);
-  if (F.parapet) {
-    const inner = offsetEdges(ring, new Map(ring.map((_, i) => [i, F.parapet.t])));
-    out.trim.push(prismGeometry(ring, [inner.slice().reverse()], b.h, roofH));
-    for (let i = 0; i < ring.length; i++) {
-      const f = edgeFrame(ring, i);
-      if (f.L > 0.5) out.trim.push(wallBox(f, -0.05, f.L + 0.05, b.h - 0.14, b.h, 0.06, F.parapet.t));   // coping
-    }
-  }
+  if (F.parapet) parapet(b, L, pedimentEdges, out);
+  for (const d of detail) DETAIL[d.type](b, L, d, out, shopSigns);
   if (shopSigns) placeSigns(b, L, shopSigns, out);
   const paneKeys = [...out.panes.keys()];
   return {
     walls: mergeFlatGrouped(out.walls),
     trim: mergeFlat(out.trim),
+    stone: mergeFlat(out.stone),
     screens: mergeFlat(out.screens),
     panes: paneKeys.length ? { keys: paneKeys, geometry: mergeGeometries(paneKeys.map((k) => mergeFlat(out.panes.get(k))), true) } : null,
     awnings: mergeFlat(out.awnings),
@@ -1078,6 +1148,14 @@ export function facadeGeometries(b, shopSigns = null) {
     signBoards: mergeFlat(out.signBoards),
     roofSigns: mergeFlat(out.roofSigns),
     signAwnings: [...out.awningsByColor].map(([color, list]) => ({ color, geometry: mergeFlat(list) })),
+    planters: mergeFlat(out.planters),
+    leaves: mergeFlat(out.leaves),
+    blooms: mergeFlat(out.blooms),
+    bells: mergeFlat(out.bells),
+    clockFace: mergeFlat(out.clockFace),
+    emblems: mergeFlat(out.emblems),
+    flags: mergeFlat(out.flags),
+    inscriptions: mergeFlat(out.inscriptions),
     windowCount: [...windowed.values()].reduce((n, e) => n + e.ws.length, 0),
   };
 }
@@ -1089,23 +1167,342 @@ function rakeGeometry(f, s0, z0, s1, z1, t, proj) {
   return new THREE.ExtrudeGeometry(shp, { depth: proj, bevelEnabled: false }).applyMatrix4(edgeMatrix(f));
 }
 
-// Church front above the main cornice (玫瑰堂, photo #23): an attic storey narrower than the facade with an oval
-// medallion, its own cornice, a triangular pediment and a cross. Wall parts go with the arcade screens (wall colour).
-function frontispiece(F, f, roofH, out) {
-  const fr = F.frontispiece;
-  const c = f.L / 2, s0 = c - fr.w / 2, s1 = c + fr.w / 2;
-  const z1 = roofH + fr.h, zp = z1 + 0.5, apex = zp + fr.pediment;
-  const V = (x, z) => new THREE.Vector2(x, z);
-  out.screens.push(wallBox(f, s0, s1, roofH - 0.3, z1, 0.02, fr.t));
-  for (const s of [s0 + 0.3, s1 - 0.3]) out.trim.push(wallBox(f, s - 0.3, s + 0.3, roofH, z1, 0.12, 0.05));
-  out.trim.push(wallBox(f, s0 - 0.3, s1 + 0.3, z1, zp, 0.3, fr.t));
-  const tri = new THREE.Shape([V(s0, zp), V(s1, zp), V(c, apex)]);
-  out.screens.push(new THREE.ExtrudeGeometry(tri, { depth: fr.t, bevelEnabled: false }).applyMatrix4(edgeMatrix(f, -fr.t)));
-  out.trim.push(rakeGeometry(f, s0 - 0.3, zp + 0.35, c, apex + 0.35, 0.4, 0.2), rakeGeometry(f, c, apex + 0.35, s1 + 0.3, zp + 0.35, 0.4, 0.2));
-  const oval = new THREE.Shape().absellipse(c, roofH + fr.h / 2, 1.25, 1.7, 0, Math.PI * 2);
-  oval.holes.push(new THREE.Path().absellipse(c, roofH + fr.h / 2, 0.95, 1.4, 0, Math.PI * 2, true));
-  out.trim.push(new THREE.ExtrudeGeometry(oval, { depth: 0.1, bevelEnabled: false, curveSegments: 20 }).applyMatrix4(edgeMatrix(f)));
-  out.trim.push(wallBox(f, c - 0.09, c + 0.09, apex + 0.2, apex + 1.6, 0.09, 0.09), wallBox(f, c - 0.45, c + 0.45, apex + 1.05, apex + 1.23, 0.09, 0.09));
+// Base course along a wall, broken at the openings that come down to the ground (doors).
+function plinth(f, spec, ws, list) {
+  const gaps = ws.filter((w) => w.z0 < spec.h).map((w) => [w.c - w.wd / 2 - w.surround, w.c + w.wd / 2 + w.surround]).sort((a, c) => a[0] - c[0]);
+  let s = -0.05;
+  for (const [g0, g1] of [...gaps, [f.L + 0.05, f.L + 0.05]]) {
+    if (g0 - s > 0.05) list.push(wallBox(f, s, g0, 0, spec.h, spec.proj ?? 0.08, 0.05));
+    s = Math.max(s, g1);
+  }
+}
+
+// Parapet: a solid ring wall with a coping, or, for a turned balustrade, a low solid base all round with balusters,
+// pedestals and a rail along the facade walls (仁慈堂, photos #0, #26, #40). Other parapets of type balustrade
+// stay solid blocks to keep the triangle budget.
+function parapet(b, L, pedimentEdges, out) {
+  const { F, ring, roofH, baysOf, mould } = L;
+  const t = F.parapet.t;
+  const inner = offsetEdges(ring, new Map(ring.map((_, i) => [i, t])));
+  const turned = F.parapet.type === 'balustrade' && F.parapet.turned
+    ? new Set(F.edges.filter((i) => edgeFrame(ring, i).L >= 2 && !pedimentEdges.has(i))) : new Set();
+  const base = turned.size ? roofH + 0.22 : b.h;
+  out.trim.push(prismGeometry(ring, [inner.slice().reverse()], base, roofH));
+  for (let i = 0; i < ring.length; i++) {
+    const f = edgeFrame(ring, i);
+    if (f.L <= 0.5) continue;
+    if (turned.has(i)) {
+      const posts = [0.25, f.L - 0.25, ...baysOf(i).piers.filter((p) => p > 0.8 && p < f.L - 0.8)];
+      balustrade(f, 0, f.L, base, b.h - base, t, posts, out.trim);
+      continue;
+    }
+    // an attic pediment stands in for the parapet over its width
+    const p = pedimentEdges.get(i), cut = p && p.attic ? [p.s ? p.s[0] : 0, p.s ? Math.min(p.s[1], f.L) : f.L] : null;
+    const spans = cut ? [[0, cut[0]], [cut[1], f.L]].filter(([s0, s1]) => s1 - s0 > 0.05) : [[0, f.L]];
+    for (const [s0, s1] of spans) {
+      if (base < b.h) out.trim.push(wallBox(f, s0, s1, base - 0.01, b.h, 0, t));
+      mould('coping', out).push(wallBox(f, s0 ? s0 : -0.05, s1 < f.L ? s1 : f.L + 0.05, b.h - 0.14, b.h, 0.06, t));
+    }
+  }
+}
+
+// Balustrade along wall f from s0 to s1, standing on z0, h high, from t behind the wall line to it: pedestals at
+// `posts`, square balusters (turned profile, four sides) between them, a moulded rail on top.
+const BALUSTER = [[0.06, 0], [0.1, 0.4], [0.042, 0.8], [0.075, 1]];
+function balustrade(f, s0, s1, z0, h, t, posts, list) {
+  const rail = 0.16, bh = h - rail, pw = 0.25;
+  list.push(wallBox(f, s0 - 0.04, s1 + 0.04, z0 + bh, z0 + h, 0.05, t + 0.05));
+  const ps = [...new Set(posts.map((p) => Math.min(Math.max(p, s0 + pw), s1 - pw)))].sort((a, c) => a - c);
+  for (const p of ps) list.push(wallBox(f, p - pw, p + pw, z0, z0 + bh, 0.03, t + 0.03));
+  const prof = BALUSTER.map(([r, y]) => new THREE.Vector2(r, y * bh));
+  const bounds = [s0, ...ps.flatMap((p) => [p - pw, p + pw]), s1];
+  for (let k = 0; k < bounds.length - 1; k += 2) {
+    const [x0, x1] = [bounds[k], bounds[k + 1]];
+    const n = Math.floor((x1 - x0) / 0.3);
+    for (let j = 0; j < n; j++) {
+      const x = x0 + ((x1 - x0) * (j + 0.5)) / n;
+      list.push(new THREE.LatheGeometry(prof, 4).rotateY(Math.PI / 4).translate(x, z0, -t / 2).applyMatrix4(edgeMatrix(f)));
+    }
+  }
+}
+
+// ---------- landmark detail (v8): the ornament of the four landmark fronts, from the photos ----------
+// b.facade.detail lists features in wall-local metres on one footprint edge: s from the edge's start corner, z up,
+// o outward. Mouldings go to the trim, or to the granite where F.stone names their kind; attic, pediment and tower
+// walls take the wall colour (screens).
+const V2 = (x, z) => new THREE.Vector2(x, z);
+const onWall = (f, g, o = 0) => g.applyMatrix4(edgeMatrix(f, o));
+
+// Counter-clockwise ring (data axes) of the rectangle s0..s1 x o0..o1 beside wall f; its edges face front, +s,
+// back and -s, in that order.
+function sideRing(f, s0, s1, o0, o1) {
+  const P = (s, o) => [f.a[0] + f.u[0] * s + f.n[0] * o, f.a[1] + f.u[1] * s + f.n[1] * o];
+  return [P(s0, o1), P(s1, o1), P(s1, o0), P(s0, o0)];
+}
+
+// Iron railing round a balcony from s0 to s1 standing d out from the wall, z0 to z0 + h: top and bottom rails and
+// bars about 12 cm apart on the front and both sides, each a flat strip (the material is double-sided).
+function ironRailing(f, s0, s1, z0, h, d, list) {
+  const ring = sideRing(f, s0, s1, 0, d), bar = 0.0125;
+  for (const k of [0, 1, 3]) {
+    const g = edgeFrame(ring, k), sink = newSink();
+    const strip = (x0, x1, za, zb) => planarFace([[x0, za], [x1, za], [x1, zb], [x0, zb]], [], 0, () => [0, 0], sink);
+    strip(0, g.L, z0 + h - 0.05, z0 + h);
+    strip(0, g.L, z0 + 0.04, z0 + 0.08);
+    const n = Math.max(1, Math.round(g.L / 0.12)), ends = k === 0 ? 0 : 1;
+    for (let j = ends; j <= n - ends; j++) {
+      const x = Math.min(Math.max((g.L * j) / n, bar), g.L - bar);
+      strip(x - bar, x + bar, z0, z0 + h - 0.05);
+    }
+    list.push(sinkGeometry(sink, edgeMatrix(g)));
+  }
+}
+
+// Engaged column from z0 to z1 at s: plinth, torus, tapering shaft, echinus and abacus; square = a pilaster.
+function column(f, s, z0, z1, r, square, list) {
+  const h = z1 - z0, oc = r * 0.4, front = oc + r;
+  const bh = Math.min(0.5, h * 0.07), ch = Math.min(0.55, h * 0.075);
+  list.push(wallBox(f, s - r - 0.12, s + r + 0.12, z0, z0 + bh * 0.55, front + 0.12, 0.02));
+  if (square) {
+    list.push(wallBox(f, s - r - 0.05, s + r + 0.05, z0 + bh * 0.55, z0 + bh, front + 0.05, 0.02));
+    list.push(wallBox(f, s - r, s + r, z0 + bh, z1 - ch, front, 0.02));
+    list.push(wallBox(f, s - r - 0.08, s + r + 0.08, z1 - ch, z1 - ch * 0.45, front + 0.06, 0.02));
+  } else {
+    // only the part in front of the wall is built: 7 facets over 207 degrees, open ends (hidden by the blocks)
+    const drum = (rt, rb, za, zb) => onWall(f, new THREE.CylinderGeometry(rt, rb, zb - za, 7, 1, true, -0.575 * Math.PI, 1.15 * Math.PI).translate(s, (za + zb) / 2, oc));
+    list.push(drum(r + 0.07, r + 0.09, z0 + bh * 0.55, z0 + bh), drum(r * 0.86, r, z0 + bh, z1 - ch), drum(r + 0.1, r * 0.88, z1 - ch, z1 - ch * 0.45));
+  }
+  list.push(wallBox(f, s - r - 0.16, s + r + 0.16, z1 - ch * 0.45, z1, front + 0.16, 0.02));
+}
+
+// Urn on a pedestal (仁慈堂 parapet, 玫瑰堂 cornice ends), centred o in front of the wall line.
+const URN = [[0, 0], [0.2, 0.06], [0.09, 0.16], [0.27, 0.5], [0.1, 0.78], [0.15, 0.86], [0, 1.08]];
+function urn(f, s, z, o, ped, scale, list) {
+  if (ped) list.push(wallBox(f, s - 0.3 * scale, s + 0.3 * scale, z, z + ped, o + 0.3 * scale, 0.3 * scale - o));
+  list.push(onWall(f, new THREE.LatheGeometry(URN.map(([r, y]) => V2(r * scale, y * scale)), 6).translate(s, z + ped, o)));
+}
+
+// Round emblem in a tympanum or attic: oval frame (玫瑰堂), dark disc in a ring (市政署, 仁慈堂) or louvred oculus (Sé).
+function emblem(f, c, z, e, out) {
+  const ring = (r0, r1, rz0, rz1) => {
+    const sh = new THREE.Shape().absellipse(c, z, r1, rz1, 0, Math.PI * 2);
+    sh.holes.push(new THREE.Path().absellipse(c, z, r0, rz0, 0, Math.PI * 2, true));
+    return onWall(f, new THREE.ExtrudeGeometry(sh, { depth: 0.1, bevelEnabled: false, curveSegments: 20 }), 0.02);
+  };
+  const r = e.r, rz = e.rz ?? r;
+  if (e.kind === 'oval') { out.trim.push(ring(r - 0.3, r, rz - 0.3, rz)); return; }
+  out.trim.push(ring(r, r + 0.18, rz, rz + 0.18));
+  const face = new THREE.CircleGeometry(1, 24).scale(r, rz, 1).translate(c, z, 0.06);
+  if (e.kind === 'oculus') {
+    const uv = face.attributes.uv;
+    for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * 2, uv.getY(k) * 2 * rz);
+    out.panes.has(e.fill || 'shutter_green') || out.panes.set(e.fill || 'shutter_green', []);
+    out.panes.get(e.fill || 'shutter_green').push(onWall(f, face));
+  } else {
+    (e.face === 'trim' ? out.trim : out.emblems).push(onWall(f, face));
+  }
+}
+
+// Classical pediment over s0..s1 of a wall, standing on z (default the cornice top): an optional attic (with
+// pilasters, oval medallion, inscription and side volutes), a horizontal cornice, the triangular tympanum with its
+// raking cornices and emblem, then a cross or a flagpole at the apex.
+function pedimentDetail(b, L, p, out, S) {
+  const f = edgeFrame(L.ring, p.edge), mould = L.mould('pediment', out);
+  const s0 = p.s ? p.s[0] : 0, s1 = p.s ? Math.min(p.s[1], f.L) : f.L, c = (s0 + s1) / 2;
+  const z = p.z === 'top' ? b.h : p.z ?? L.roofH, t = p.t ?? 0.6;
+  let zc = z;
+  if (p.attic) {
+    zc = z + p.attic;
+    out.screens.push(wallBox(f, s0, s1, z - 0.3, zc, 0.02, t));
+    for (const sp of [s0 + 0.3, s1 - 0.3]) mould.push(wallBox(f, sp - 0.3, sp + 0.3, z, zc, 0.12, 0.05));
+    if (p.atticEmblem) emblem(f, c, z + p.attic / 2, p.atticEmblem, out);
+    if (p.volutes) {
+      // scrolls sweeping down from the attic sides to the cornice (玫瑰堂, photo #23)
+      const vw = p.volutes.w, vh = Math.min(p.volutes.h, p.attic);
+      for (const sg of [-1, 1]) {
+        const x0 = sg < 0 ? s0 : s1;
+        const pts = [V2(x0, z), V2(x0 + sg * vw, z)];
+        for (let k = 1; k < 10; k++) {
+          const a = (k / 10) * Math.PI / 2;
+          pts.push(V2(x0 + sg * vw * (1 - Math.sin(a)), z + vh * (1 - Math.cos(a))));
+        }
+        pts.push(V2(x0, z + vh));
+        out.screens.push(onWall(f, new THREE.ExtrudeGeometry(new THREE.Shape(pts), { depth: t * 0.7, bevelEnabled: false }), 0.02 - t * 0.7));
+        mould.push(onWall(f, new THREE.CylinderGeometry(0.28, 0.28, 0.12, 14).rotateX(Math.PI / 2).translate(x0 + sg * (vw - 0.3), z + 0.3, 0.06)));
+      }
+    }
+    if (p.sign && S && S.signs[p.sign]) {
+      const a = S.signs[p.sign], k = fitSign(a, s1 - s0 - 1.6, p.attic * 0.8);
+      const sink = newSink();
+      signQuad(sink, c, p.signZ ?? z + p.attic / 2, a.w * k, a.h * k, 0.03, a.uv);
+      out.inscriptions.push(sinkGeometry(sink, edgeMatrix(f)));
+    }
+  }
+  const zp = zc + 0.5, apex = zp + p.rise;
+  mould.push(wallBox(f, s0 - 0.3, s1 + 0.3, zc, zp, 0.3, t));
+  out.screens.push(onWall(f, new THREE.ExtrudeGeometry(new THREE.Shape([V2(s0, zp), V2(s1, zp), V2(c, apex)]), { depth: t, bevelEnabled: false }), 0.02 - t));
+  mould.push(rakeGeometry(f, s0 - 0.3, zp + 0.35, c, apex + 0.35, 0.4, 0.2), rakeGeometry(f, c, apex + 0.35, s1 + 0.3, zp + 0.35, 0.4, 0.2));
+  if (p.emblem) emblem(f, c, zp + p.rise * (p.emblem.at ?? 0.4), p.emblem, out);
+  if (p.cross) {
+    const k = p.cross;
+    mould.push(wallBox(f, c - 0.09, c + 0.09, apex + 0.2, apex + 0.2 + k, 0.09, 0.09), wallBox(f, c - 0.32 * k, c + 0.32 * k, apex + 0.2 + 0.62 * k, apex + 0.2 + 0.75 * k, 0.09, 0.09));
+  }
+  if (p.flag) {
+    // flagpole on the apex with the flag hanging along the wall (仁慈堂, photos #26, #40, #87)
+    const top = apex + 0.35 + p.flag;
+    out.iron.push(onWall(f, new THREE.CylinderGeometry(0.04, 0.06, p.flag, 6).translate(c, apex + 0.35 + p.flag / 2, -0.1)),
+      onWall(f, new THREE.SphereGeometry(0.09, 6, 4).translate(c, top + 0.05, -0.1)));
+    out.flags.push(onWall(f, new THREE.PlaneGeometry(1.8, 1.2).translate(c + 0.95, top - 0.7, -0.1)));
+  }
+}
+
+// Engaged columns (or pilasters) in pairs at the piers or at listed s, one per storey between the string courses.
+function columnsDetail(b, L, p, out) {
+  const list = L.mould('columns', out);
+  const spans = p.storeys || L.storeys.map((st) => [st.k ? st.floor : (p.z0 ?? 0), st.ceil]);
+  for (const i of p.edges) {
+    const f = edgeFrame(L.ring, i);
+    const half = (p.pair || 0) / 2, margin = half + p.r + 0.15;
+    for (const s0 of p.at && p.at !== 'piers' ? p.at : L.baysOf(i).piers) {
+      const s = Math.min(Math.max(s0, margin), f.L - margin);
+      for (const [z0, z1] of spans) for (const ds of half ? [-half, half] : [0]) column(f, s + ds, z0, z1, p.r, !!p.square, list);
+    }
+  }
+}
+
+// Continuous balcony on brackets under one storey's windows (市政署 centre, photo #127).
+function balconyDetail(b, L, p, out) {
+  const { f, ws } = L.windowed.get(p.edge) || {};
+  const row = (ws || []).filter((w) => w.storey === (p.storey ?? 1));
+  if (!row.length) return;
+  const list = L.mould('balcony', out), d = p.depth ?? 0.9, h = p.h ?? 1.0;
+  const l = Math.min(...row.map((w) => w.c - w.wd / 2 - w.surround)) - 0.35;
+  const r = Math.max(...row.map((w) => w.c + w.wd / 2 + w.surround)) + 0.35;
+  const z = Math.min(...row.map((w) => w.z0));
+  list.push(wallBox(f, l, r, z - 0.22, z, d, 0.02), wallBox(f, l - 0.06, r + 0.06, z - 0.3, z - 0.22, d + 0.06, 0.02));
+  for (const w of row) {
+    for (const x of [w.c - w.wd / 2 - 0.15, w.c + w.wd / 2 + 0.15]) {
+      list.push(wallBox(f, x - 0.13, x + 0.13, z - 0.62, z - 0.3, d * 0.8, 0.02), wallBox(f, x - 0.1, x + 0.1, z - 0.95, z - 0.62, d * 0.4, 0.02));
+    }
+  }
+  ironRailing(f, l + 0.03, r - 0.03, z, h, d - 0.03, out.railings);
+}
+
+// Horizontal band (entablature, cornice) over part of a wall.
+function bandDetail(b, L, p, out) {
+  const f = edgeFrame(L.ring, p.edge);
+  const s0 = p.s ? p.s[0] : 0, s1 = p.s ? Math.min(p.s[1], f.L) : f.L;
+  L.mould('bands', out).push(wallBox(f, s0, s1, p.z[0], p.z[1], p.proj ?? 0.3, 0.05));
+  if (p.lip) L.mould('bands', out).push(wallBox(f, s0 - p.lip, s1 + p.lip, p.z[1] - 0.18, p.z[1], (p.proj ?? 0.3) + p.lip, 0.05));
+}
+
+function urnsDetail(b, L, p, out) {
+  const list = L.mould('urns', out);
+  const z = p.z === 'top' ? b.h : p.z === 'roof' ? L.roofH : p.z;
+  const o = p.o ?? (p.z === 'top' && L.F.parapet ? -L.F.parapet.t / 2 : -0.1);
+  for (const i of [].concat(p.edges ?? p.edge)) {
+    const f = edgeFrame(L.ring, i);
+    for (const s of p.at === 'piers' ? L.baysOf(i).piers : p.at) urn(f, Math.min(Math.max(s, 0.3), f.L - 0.3), z, o, p.pedestal ?? 0, p.scale ?? 1, list);
+  }
+}
+
+// Bell tower over s0..s1 of the front, `depth` deep (Sé, photos #S1–#S3): the shaft's back and side faces from the
+// ground (inside the nave where the footprint covers them; the front is the facade wall, see F.wallSpans), a
+// cornice, the belfry with an arched opening on each face and a bell inside, a second cornice, a balustrade with
+// corner finials.
+const BELL = [[0, 0.1], [0.56, 0], [0.5, 0.18], [0.4, 0.55], [0.34, 0.9], [0.2, 1.06], [0, 1.1]];
+function towerDetail(b, L, p, out) {
+  const f = edgeFrame(L.ring, p.edge), mould = L.mould('tower', out);
+  const [s0, s1] = p.s, d = p.depth, e = 0.03, sc = (s0 + s1) / 2, i = p.inset ?? 0.4;
+  const plane = (w, h, rot, x, z, o) => onWall(f, new THREE.PlaneGeometry(w, h).rotateY(rot).translate(x, z, o));
+  out.screens.push(plane(s1 - s0 - 2 * e, p.body, Math.PI, sc, p.body / 2, -d + e),
+    plane(d - e, p.body, -Math.PI / 2, s0 + e, p.body / 2, -(d - e) / 2), plane(d - e, p.body, Math.PI / 2, s1 - e, p.body / 2, -(d - e) / 2));
+  mould.push(wallBox(f, s0 - 0.35, s1 + 0.35, p.body - 0.55, p.body + 0.12, 0.4, d + 0.35));
+  // belfry: four walls with an arched opening each; the side walls fit between the front and back ones
+  const zb0 = p.body + 0.12, zb1 = p.belfry - 0.5, tw = 0.5, op = p.opening;
+  const ring = sideRing(f, s0 + i, s1 - i, -d + i, -i);
+  for (let k = 0; k < 4; k++) {
+    const g = edgeFrame(ring, k);
+    const a0 = k % 2 ? tw : 0, a1 = k % 2 ? g.L - tw : g.L, oz = zb0 + op.z;
+    const wall = new THREE.Shape([V2(a0, zb0), V2(a1, zb0), V2(a1, zb1), V2(a0, zb1)]);
+    wall.holes.push(new THREE.Path(windowOutline(g.L / 2, oz, op.w, op.h, 'round', 10).map(([x, z]) => V2(x, z))));
+    out.screens.push(onWall(g, new THREE.ExtrudeGeometry(wall, { depth: tw, bevelEnabled: false }), -tw));
+    for (const [x0, x1] of [[0, 0.55], [g.L - 0.55, g.L]]) mould.push(wallBox(g, x0, x1, zb0, zb1, 0.1, 0.02));
+    mould.push(wallBox(g, g.L / 2 - op.w / 2 - 0.2, g.L / 2 + op.w / 2 + 0.2, oz - 0.16, oz, 0.14, 0.02));
+    if (k === 0 && p.frontFill) {
+      // the front opening of the clock tower is shuttered (photos #S1, #S2)
+      const s = newSink();
+      planarFace(windowOutline(g.L / 2, oz, op.w, op.h, 'round', 10), [], -0.3, (x, z) => [((x - g.L / 2 + op.w / 2) / op.w) * 2, z - oz], s);
+      out.panes.has(p.frontFill) || out.panes.set(p.frontFill, []);
+      out.panes.get(p.frontFill).push(sinkGeometry(s, edgeMatrix(g)));
+    }
+  }
+  const top = p.top;
+  mould.push(wallBox(f, s0 + i - 0.35, s1 - i + 0.35, zb1, p.belfry, -i + 0.35, d - i + 0.35));
+  if (p.clock) {
+    // dials on the shaft faces listed (0 = front, 1 = +s side, 2 = back, 3 = -s side)
+    const shaft = sideRing(f, s0 + e, s1 - e, -d + e, 0);
+    for (const k of p.clock.faces) {
+      const g = edgeFrame(shaft, k);
+      clockOn(g, { ...p.clock, s: g.L / 2 }, out, mould);
+    }
+  }
+  if (p.bell) {
+    const zb = zb0 + op.z + op.h - 0.35;
+    out.bells.push(onWall(f, new THREE.LatheGeometry(BELL.map(([r, y]) => V2(r * p.bell, y * p.bell)), 12).translate(sc, zb - 1.1 * p.bell, -d / 2)),
+      wallBox(f, s0 + i + 0.2, s1 - i - 0.2, zb, zb + 0.25, -d / 2 + 0.15, d / 2 + 0.15));
+  }
+  // balustrade along the cornice edge, finials on the corner pedestals
+  const ring2 = sideRing(f, s0 + i - 0.25, s1 - i + 0.25, -d + i - 0.25, -i + 0.25);
+  for (let k = 0; k < 4; k++) {
+    const g = edgeFrame(ring2, k);
+    balustrade(g, 0, g.L, p.belfry, top - p.belfry, 0.3, [0.25, g.L / 2, g.L - 0.25], mould);
+    urn(g, 0.25, top, -0.15, 0, p.finial ?? 0.65, mould);
+  }
+}
+
+// Clock dial in a stone ring with hour marks and hands (Sé west tower, photos #S1, #S2).
+function clockOn(f, p, out, ringList) {
+  const r = p.r, m = edgeMatrix(f);
+  const ring = new THREE.Shape().absarc(p.s, p.z, r + 0.3, 0, Math.PI * 2);
+  ring.holes.push(new THREE.Path().absarc(p.s, p.z, r, 0, Math.PI * 2, true));
+  ringList.push(onWall(f, new THREE.ExtrudeGeometry(ring, { depth: 0.14, bevelEnabled: false, curveSegments: 28 })));
+  out.clockFace.push(onWall(f, new THREE.CircleGeometry(r, 32).translate(p.s, p.z, 0.05)));
+  const hand = (w, len, a, o) => new THREE.BoxGeometry(w, len, 0.02).translate(0, len / 2 - 0.1, 0).rotateZ(-a).translate(p.s, p.z, o).applyMatrix4(m);
+  for (let k = 0; k < 12; k++) {
+    const big = k % 3 === 0, len = r * (big ? 0.2 : 0.12);
+    out.iron.push(new THREE.BoxGeometry(big ? 0.09 : 0.05, len, 0.02).translate(0, r * 0.9 - len / 2, 0).rotateZ(-(k / 12) * Math.PI * 2).translate(p.s, p.z, 0.07).applyMatrix4(m));
+  }
+  const [hh, mm] = p.time || [10, 10];
+  out.iron.push(hand(0.1, r * 0.55, ((hh % 12) + mm / 60) / 12 * Math.PI * 2, 0.08), hand(0.07, r * 0.8, (mm / 60) * Math.PI * 2, 0.09));
+}
+function clockDetail(b, L, p, out) {
+  clockOn(edgeFrame(L.ring, p.edge), p, out, L.mould('clock', out));
+}
+
+// Lettering on a wall (市政署 frieze, photo #127), from the sign atlas.
+function inscriptionDetail(b, L, p, out, S) {
+  if (!S || !S.signs[p.sign]) return;
+  const f = edgeFrame(L.ring, p.edge), a = S.signs[p.sign];
+  const sink = newSink();
+  signQuad(sink, p.s ?? f.L / 2, p.z, a.w, a.h, p.o ?? 0.02, a.uv);
+  out.inscriptions.push(sinkGeometry(sink, edgeMatrix(f)));
+}
+
+const DETAIL = { pediment: pedimentDetail, columns: columnsDetail, balcony: balconyDetail, band: bandDetail, urns: urnsDetail, tower: towerDetail, clock: clockDetail, inscription: inscriptionDetail };
+
+// Highest point a facade's mouldings may reach: the parapet, or the top of a pediment's cross or flag, or a tower's
+// finials (used by the tests).
+export function facadeTop(b) {
+  const F = b.facade;
+  const roofH = b.roof && b.roof.shape ? b.roof.shape.eave : b.h - (F.parapet ? F.parapet.h : 0);
+  let top = b.h;
+  for (const d of F.detail || []) {
+    if (d.type === 'pediment') top = Math.max(top, (d.z === 'top' ? b.h : d.z ?? roofH) + (d.attic || 0) + 0.5 + d.rise + 0.35 + Math.max(0.2 + (d.cross || 0), d.flag ? d.flag + 0.15 : 0));
+    if (d.type === 'tower') top = Math.max(top, d.top + 1.08 * (d.finial ?? 0.65));
+    if (d.type === 'urns') top = Math.max(top, (d.z === 'top' ? b.h : d.z === 'roof' ? roofH : d.z) + (d.pedestal ?? 0) + 1.08 * (d.scale ?? 1));
+  }
+  return top;
 }
 
 // Merge prisms but keep the wall/roof split as two material groups.
@@ -1652,6 +2049,14 @@ export function buildSenado(data, opts = {}) {
   const roofMat = vcol('Roof');
   const rooftopMat = vcol('Rooftop');
   const awningMat = named(std(PALETTE.awning, { side: THREE.DoubleSide }), 'Awning');
+  // landmark detail (v8)
+  const ornamentMats = {
+    blooms: named(std(0xc8324a, { roughness: 0.8 }), 'Flowers'),
+    clockFace: named(std(0xf3f0e6, { roughness: 0.5 }), 'Clock_face'),
+    emblems: named(std(0x2c3a33, { roughness: 0.6 }), 'Emblem'),
+    flags: named(std(0x0b7a5c, { side: THREE.DoubleSide, roughness: 0.9 }), 'Flag'),   // Macau SAR flag green
+    railing: named(std(((data.windowColors || {}).lattice || {}).hex || 0x2c2a2d, { side: THREE.DoubleSide, roughness: 0.6 }), 'Railing_iron'),
+  };
   const paneMats = new Map();
   const paneMat = (key) => {
     if (key === 'shop') return mats.shop;
@@ -1681,6 +2086,7 @@ export function buildSenado(data, opts = {}) {
       const wallMat = colorMat(wallColor(b).getHex(), `Wall_${wcol ? wcol.key : label}`);
       const roofCls = (b.roof && b.roof.cls) || 'grey';
       const trim = wcol && wcol.trim ? colorMat(new THREE.Color(wcol.trim).getHex(), `Trim_${wcol.key}`) : trimMat;
+      const stone = colorMat(new THREE.Color((wcol && wcol.stone) || PALETTE.stoneGrey).getHex(), `Stone_${wcol ? wcol.key : label}`);
       const g = facadeGeometries(b, data.shopSigns || null);
       const grp = new THREE.Group();
       grp.name = `B_${b.id}${b.key ? '_' + b.key : ''}`;
@@ -1689,9 +2095,10 @@ export function buildSenado(data, opts = {}) {
         ['body', g.walls, [wallMat, colorMat(roofColor(b).getHex(), `Roof_${roofCls}`)]],
         ['arcade', g.screens, wallMat],
         ['trim', g.trim, trim],
+        ['stone', g.stone, stone],
         ['windows', g.panes && g.panes.geometry, g.panes && g.panes.keys.map(paneMat)],
         ['awnings', g.awnings, awningMat],
-        ['railings', g.railings, paneMat('lattice')],
+        ['railings', g.railings, ornamentMats.railing],
         ['lanterns', g.lanterns, mats.f_iron],
         ['lanternGlass', g.lanternGlass, mats.f_glass],
         ['shops', g.shops, mats.shop],
@@ -1701,6 +2108,14 @@ export function buildSenado(data, opts = {}) {
         ['signBoards', g.signBoards, mats.shopFrame],
         ['roofSigns', g.roofSigns, mats.sign],
         ...g.signAwnings.map((a, k) => [`signAwnings${k || ''}`, a.geometry, signAwningMat(a.color)]),
+        ['planters', g.planters, mats.f_planter],
+        ['leaves', g.leaves, mats.f_topiary],
+        ['blooms', g.blooms, ornamentMats.blooms],
+        ['bells', g.bells, mats.bronze],
+        ['clockFace', g.clockFace, ornamentMats.clockFace],
+        ['emblems', g.emblems, ornamentMats.emblems],
+        ['flag', g.flags, ornamentMats.flags],
+        ['inscriptions', g.inscriptions, mats.sign],
       ];
       for (const [part, geo, mat] of parts) {
         if (!geo) continue;

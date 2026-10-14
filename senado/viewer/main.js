@@ -4,6 +4,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 import { buildSenado, buildFigure, landmarkAnchors, prismGeometry } from './model.js';
 import { createLighting } from './lighting.js';
 import { plasterize, plasterUniforms } from './materials.js';
+import { createNight, nightUniforms } from './night.js';
 
 const EYE = 1.65;          // m, eye height of the 1.75 m reference person
 const WALK = 1.5, RUN = 6; // m/s
@@ -56,7 +57,7 @@ if (window.matchMedia('(pointer: coarse)').matches) { lighting.setQuality(false)
 const texLoader = new THREE.TextureLoader();
 const loadTex = (url) => new Promise((res, rej) => texLoader.load(url, res, undefined, rej));
 
-let world, pickTables = [], figureGroup, labelObjs = [], satMesh = null, highlight = null, gridTex = null;
+let world, pickTables = [], figureGroup, labelObjs = [], satMesh = null, highlight = null, gridTex = null, night = null;
 
 async function init() {
   const [data, calcada, louvre, glazing, facade, asphalt, paving, setts, railing, shops, signs, credits] = await Promise.all([
@@ -92,6 +93,7 @@ async function init() {
   for (const n of ['Railings']) { const o = world.getObjectByName(n); if (o) o.userData.noAO = true; }
   world.traverse((o) => { if (o.isMesh && o.material && o.material.name === 'Shop_sign') o.userData.noAO = true; });
   plasterize(world);   // lime-plaster tone, grime and grain on the walls (viewer only, see materials.js)
+  night = createNight(world);   // lamps, floodlights and lit windows, off until the 夜景 chip (see night.js)
 
   figureGroup = new THREE.Group();
   figureGroup.name = 'ScaleFigures';
@@ -130,13 +132,14 @@ async function init() {
   $('buildStamp').textContent = `資料版本：${data.meta.source}`;
   resize();
   renderer.setAnimationLoop(tick);
-  window.senado = { THREE, scene, camera, controls, state, setPreset, world, showPick, renderer, lighting, plaster: plasterUniforms };
+  window.senado = { THREE, scene, camera, controls, state, setPreset, world, showPick, renderer, lighting, plaster: plasterUniforms, night, nightUniforms };
 }
 
 // ---------------- scale ----------------
 function applyScale() {
   const s = state.scale;
   world.scale.set(s, state.planOnly ? 1 : s, s);
+  nightUniforms.ntScale.value.copy(world.scale);
   figureGroup.children.forEach((f) => {
     const [x, y, hd] = f.userData.base;
     f.position.copy(v3(x, y, 0));
@@ -337,6 +340,7 @@ bindToggle('tLabels', (on) => labelObjs.forEach((o) => { o.visible = on; o.eleme
 bindToggle('tFigs', (on) => { figureGroup.visible = on; figureGroup.traverse((o) => { if (o.isCSS2DObject) o.element.hidden = !on; }); });
 bindToggle('tContext', (on) => { const g = world.getObjectByName('Buildings_context'); if (g) g.visible = on; });
 bindToggle('tHQ', (on) => lighting.setQuality(on));
+bindToggle('tNight', (on) => { lighting.setNight(on); if (night) night.set(on); });
 // shop signs, roof sign frames and sign awnings (v7 showcase): off hides every trade name and logo
 bindToggle('tSigns', (on) => world.traverse((o) => { if (o.isMesh && /_(signs|roofSigns|signBoards|signAwnings\d*)$/.test(o.name)) o.visible = on; }));
 bindToggle('tStreet', (on) => { for (const n of ['StreetFurniture', 'Railings']) { const o = world.getObjectByName(n); if (o) o.visible = on; } });
@@ -393,6 +397,7 @@ $('photoFile').addEventListener('change', (e) => {
 });
 
 // facade spec + the Commons photos it was read from
+const DETAIL_ZH = { pediment: '三角楣', columns: '柱', balcony: '露台', band: '橫額', urns: '瓶飾', tower: '鐘樓', clock: '時鐘', inscription: '題字' };
 function showFacade(b) {
   const F = b && b.facade;
   $('pickFacade').hidden = !F;
@@ -413,6 +418,7 @@ function showFacade(b) {
     if (st && st.fill !== W.fill) text += `；街面 ${fill(st)}`;
     rows.push(['窗戶', text]);
   }
+  if (F.detail && F.detail.length) rows.push(['細部（v8）', [...new Set(F.detail.map((d) => DETAIL_ZH[d.type] || d.type))].join('、')]);
   $('pickFacadeKv').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
   $('pickNote').textContent = F.note || '';
   $('pickNote').hidden = !F.note;

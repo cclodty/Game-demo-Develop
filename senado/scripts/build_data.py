@@ -279,6 +279,7 @@ def main():
 
     find_fronts(buildings, squares, roads)
     attach_facades(buildings, curated)
+    check_lettering(curated)
     add_bridges(buildings, curated)
     attach_roofs(buildings + parts, curated)
     attach_generic_walls(buildings + parts, curated)
@@ -482,13 +483,35 @@ def attach_shops(buildings):
     return {"atlas": "signs.png", "signs": atlas, "generic": shops["generic"]}
 
 
+# per-building keys of a facade spec that go to the model as they are (v8 landmark detail; see the viewer's model.js)
+SPEC_KEYS = ("detail", "openings", "openingPatch", "wallSpans", "bayCounts")
+
+
 def facade_style(styles, spec):
     """Style dict with the spec's overrides; a spec's windows entry is merged key by key over the style's."""
     style = dict(styles[spec["style"]])
+    style.pop("note", None)
     style.update(spec.get("override", {}))
     if "windows" in spec:
         style["windows"] = {**style.get("windows", {}), **spec["windows"]}
+    for k in SPEC_KEYS:
+        if k in spec:
+            style[k] = spec[k]
     return style
+
+
+def check_lettering(curated):
+    """Every sign named by a landmark detail must be in the sign atlas at the size given in landmarks.json."""
+    atlas = json.loads(SIGN_ATLAS.read_text())["signs"] if SIGN_ATLAS.exists() else {}
+    defs = {k: v for k, v in curated.get("inscriptions", {}).items() if not k.startswith("_")}
+    for spec in curated.get("facades", []):
+        for d in spec.get("detail", []):
+            sid = d.get("sign")
+            if not sid:
+                continue
+            a = atlas.get(sid)
+            if sid not in defs or not a or a["w"] != defs[sid]["w"] or a["h"] != defs[sid]["h"]:
+                raise SystemExit(f"{spec['osm']}: lettering {sid} is not in sign_atlas.json as drawn; run make_shop_textures.py first")
 
 
 def wall_color(curated, spec):
@@ -500,6 +523,8 @@ def wall_color(curated, spec):
     out = {"key": key, "hex": c["hex"], "label": c["label"], "photos": sorted({x["photo"] for x in c["samples"]})}
     if "trim" in c:                                   # mouldings that are not the usual white
         out["trim"] = c["trim"]["hex"]
+    if "stone" in c:                                  # granite dressings (pilasters, courses, plinth)
+        out["stone"] = c["stone"]["hex"]
     return out
 
 

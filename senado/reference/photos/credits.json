@@ -405,6 +405,33 @@
     21.2,
     -70.1
    ]
+  },
+  "#S1": {
+   "src": "reference/photos/pS1.jpg",
+   "file": "Catedral de la Natividad de Nuestra Señora, Macao, 2013-08-08, DD 01.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Catedral_de_la_Natividad_de_Nuestra_Se%C3%B1ora,_Macao,_2013-08-08,_DD_01.jpg",
+   "author": "Diego Delso",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "camera": null
+  },
+  "#S2": {
+   "src": "reference/photos/pS2.jpg",
+   "file": "Cathedral of the Nativity of Our Lady of Macau 09-03-2024(1).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Cathedral_of_the_Nativity_of_Our_Lady_of_Macau_09-03-2024(1).jpg",
+   "author": "LN9267",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": null
+  },
+  "#S3": {
+   "src": "reference/photos/pS3.jpg",
+   "file": "Igreja da Sé Catedral à noite.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Igreja_da_S%C3%A9_Catedral_%C3%A0_noite.jpg",
+   "author": "K.Y.K.Z.K.",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "camera": null
   }
  }
 }

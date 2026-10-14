@@ -149,10 +149,10 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
   <header class="head">
     <div>
       <div class="eyebrow">Macau · Largo do Senado · 22.1937°N 113.5399°E</div>
-      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v7 展示版</span></div>
-      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。按 36 張實景照片加入騎樓及樓層外圍（v2），補上噴水池的下沉台階並從照片取得外牆顏色（v3），再為臨街立面開出凹入的窗洞，配上百葉、玻璃、窗框、欄杆和帆布篷（v4）。v5 按衛星圖為每個屋頂分類上色，加上雙坡頂、天台樓梯屋和水缸，玫瑰堂立面補上山花牆，其餘樓宇用通用色和窗格。v6 把車路降低一級路緣石，加上行車線、斑馬線、地磚和石仔路質感，以及燈柱、交通燈、欄杆、花盆和長椅。v7 是展示版：陽光陰影、環境光遮蔽和色調映射，騎樓內和地面層的店面，照片中的真實店舖招牌，以及灰泥牆質感。</p>
+      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v8 展示版</span></div>
+      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。按 39 張實景照片加入騎樓及樓層外圍（v2），補上噴水池的下沉台階並從照片取得外牆顏色（v3），再為臨街立面開出凹入的窗洞，配上百葉、玻璃、窗框、欄杆和帆布篷（v4）。v5 按衛星圖為每個屋頂分類上色，加上雙坡頂、天台樓梯屋和水缸，玫瑰堂立面補上山花牆，其餘樓宇用通用色和窗格。v6 把車路降低一級路緣石，加上行車線、斑馬線、地磚和石仔路質感，以及燈柱、交通燈、欄杆、花盆和長椅。v7 是展示版：陽光陰影、環境光遮蔽和色調映射，騎樓內和地面層的店面，照片中的真實店舖招牌，以及灰泥牆質感。v8 是 Three.js 的最後一版：仁慈堂、市政署和玫瑰堂加上柱、三角楣、題字、鐵欄和花槽，大堂建出兩座鐘樓連銅鐘和時鐘，並加入夜景。</p>
     </div>
-    <div class="status"><i></i>v7 69 間店面 · 49 款招牌 · 13 棟按照片掛招牌 · 陽光陰影 · 灰泥牆</div>
+    <div class="status"><i></i>v8 四座地標細部 · 大堂鐘樓 · 夜景 · 69 間店面 · 49 款招牌</div>
   </header>
 
   <div class="grid">
@@ -198,6 +198,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
           <button class="chip" id="tStreet" aria-pressed="true">街道傢俬</button>
           <button class="chip" id="tSigns" aria-pressed="true" title="關掉即不顯示任何店名和商標">店舖招牌</button>
           <button class="chip" id="tHQ" aria-pressed="true">高畫質</button>
+          <button class="chip" id="tNight" aria-pressed="false" title="街燈、泛光燈、店舖和部分窗戶亮起">夜景</button>
         </div>
       </div>
     </section>
@@ -267,6 +268,10 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
           <div><span class="sw cal"></span>葡式碎石波浪地磚</div>
           <div><span class="sw" style="background:linear-gradient(#2e2826,#2e2826) 50% 15% / 100% 28% no-repeat,linear-gradient(#e9e2d4,#e9e2d4) 50% 85% / 80% 60% no-repeat,#3a3029"></span>店面（v7）：店內貼圖亮着燈，深色框，上方招牌板</div>
           <div><span class="sw" style="background:#d8231f"></span>店舖招牌（v7，只作展示）：照片中的店名和商標，其餘為中葡雙語通用招牌</div>
+          <div><span class="sw" style="background:#8f8b85;box-shadow:inset 0 -4px 0 #6f6b66"></span>麻石線腳（v8）：市政署壁柱、腰線、簷口和門框；仁慈堂勒腳</div>
+          <div><span class="sw" style="background:repeating-linear-gradient(90deg,#2c2a2d 0 1px,transparent 1px 4px),linear-gradient(#2c2a2d,#2c2a2d) 50% 10% / 100% 2px no-repeat,#e8e5de"></span>鐵欄露台（v8）：上下橫杆，每 12 厘米一枝直枝</div>
+          <div><span class="sw" style="background:radial-gradient(circle at 25% 35%,#c8324a 0 18%,transparent 20%),radial-gradient(circle at 70% 35%,#c8324a 0 18%,transparent 20%),linear-gradient(#4c7637,#4c7637) 50% 60% / 100% 30% no-repeat,linear-gradient(#9d7458,#9d7458) 50% 100% / 100% 25% no-repeat,#f2efeb"></span>窗前花槽（v8，仁慈堂）</div>
+          <div><span class="sw" style="background:radial-gradient(circle,#f3f0e6 0 48%,#9a968f 50% 62%,#d9d3c8 64%)"></span>鐘面和銅鐘（v8，大堂鐘樓）</div>
           <div><span class="sw" style="background:#ff6a2a"></span>比例人 1.75 米</div>
           <div><span class="sw" style="background:linear-gradient(#3b3f42,#3b3f42) 50% 55% / 40% 45% no-repeat,#e8e5de"></span>窗格：每 3 米一窗、每 3.2 米一層（只用於未細化的樓宇，不是實測窗位）</div>
         </div>
@@ -275,6 +280,25 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
   </div>
 
   <div class="notes">
+    <div class="card">
+      <h2>v8：地標細部</h2>
+      <ul>
+        <li><b>仁慈堂：</b>兩層成對圓柱，拱窗前的鐵欄小露台連花槽，車花欄杆女兒牆和瓶飾；南段山花牆有題字「SANTA CASA DA MISERICÓRDIA」、三角楣、圓徽和旗杆（照片 #26、#40、#87）。</li>
+        <li><b>市政署：</b>灰麻石壁柱、腰線和簷口，中段大門的麻石門框，二樓連續鐵欄露台，簷上題字「市政署」，頂上三角楣（照片 #127）。</li>
+        <li><b>玫瑰堂：</b>成對圓柱，山花牆兩側渦卷、橢圓徽框、三角楣和十字架，簷口兩端的瓶飾（照片 #23）。</li>
+        <li><b>大堂：</b>兩座鐘樓夾著中段，三拱門和三扇墨綠百葉窗，鐘樓頂層四面拱洞掛銅鐘，簷上欄杆和角飾，西鐘樓有鐘（照片 #S1、#S2、#S3）。點選建築可看到細部清單和證據照片。</li>
+        <li>尺寸按照片目測和輪廓比例推算，不是測繪。全圖約 19.5 萬個三角形，GLB 約 19.7 MB。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>v8：夜景</h2>
+      <ul>
+        <li><b>「夜景」按鈕：</b>深藍夜空、近地平線的城市燈光、弱月光；按照片 #S3（大堂夜景）調整。</li>
+        <li><b>街燈：</b>每個燈罩都是光源，燈光照在地面的亮度預先算成俯視光照圖，地面和牆腳在燈下變亮。</li>
+        <li><b>泛光和窗戶：</b>廣場四周樓宇在騎樓以上有暖色泛光；約三成上層窗亮燈，按整個窗計；店面、招牌和鐘面自己發光，高畫質時有光暈。</li>
+        <li>夜景只在檢視器，GLB 不變。v8 是 Three.js 的最後一版，之後若繼續會換到遊戲引擎。</li>
+      </ul>
+    </div>
     <div class="card">
       <h2>v7：光影</h2>
       <ul>
@@ -376,7 +400,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
     <div>建築、街道及廣場輪廓：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors，ODbL 授權，經 Overpass API 擷取。</div>
     <div>衛星影像：Esri World Imagery（Esri, Maxar, Earthstar Geographics），只作參考對位，已按噴水池平移校正。</div>
     <div>實景照片：Wikimedia Commons，作者及授權（CC0、CC BY、CC BY-SA）見每張照片的連結及 <span class="mono">reference/photos/credits.json</span>。照片已縮小，未作其他修改。</div>
-    <div>店名和商標屬各自擁有者，只為重現實景而加入（v7 展示版）；遊戲用的基準版本 senado-v6 不含商標。</div>
+    <div>店名和商標屬各自擁有者，只為重現實景而加入（v7 起的展示版）；遊戲用的基準版本 senado-v6 不含商標。</div>
     <div id="buildStamp"></div>
   </footer>
 </div>
