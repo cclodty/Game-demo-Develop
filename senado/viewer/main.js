@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { buildSenado, buildFigure, landmarkAnchors, prismGeometry } from './model.js';
+import { createLighting } from './lighting.js';
+import { plasterize, plasterUniforms } from './materials.js';
 
 const EYE = 1.65;          // m, eye height of the 1.75 m reference person
 const WALK = 1.5, RUN = 6; // m/s
@@ -26,7 +28,7 @@ const PRESETS = [
 ];
 const FIGURES = [[-7, -12, 52], [5.5, -7.5, 200], [12, -15, 120], [28, 37, 230], [52, 80, 30], [-31, -38, 60]];
 
-const state = { scale: 1, planOnly: false, preset: 'mouth', walk: false, data: null, picked: null, sunAz: 125, sunEl: 50 };
+const state = { scale: 1, planOnly: false, preset: 'mouth', walk: false, data: null, picked: null };
 const v3 = (x, y, z = 0) => new THREE.Vector3(x * state.scale, z * (state.planOnly ? 1 : state.scale), -y * state.scale);
 
 // ---------------- renderer / scene ----------------
@@ -34,39 +36,21 @@ const host = $('view');
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 host.prepend(renderer.domElement);
 const labelRenderer = new CSS2DRenderer({ element: $('labels') });
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xcfd8de);
-scene.fog = new THREE.Fog(0xcfd8de, 420, 1500);
 const camera = new THREE.PerspectiveCamera(60, 1.6, 0.1, 4000);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.12;
 controls.maxPolarAngle = Math.PI * 0.495;
 
-// Lighting compared side by side with photos #87 and #130: morning sun from the south-east lights the
-// west row as in #87; a warm ground bounce keeps shaded pastel walls from going khaki. AgX and ACES
-// tone mapping were tried and washed the pastels out, so output is plain sRGB.
-const hemi = new THREE.HemisphereLight(0xeef3f8, 0xc9b99c, 1.8);
-scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff2de, 2.5);
-sun.castShadow = true;
-sun.shadow.mapSize.set(4096, 4096);
-sun.shadow.bias = -0.0004;
-sun.shadow.normalBias = 0.6;
-const sc = sun.shadow.camera;
-sc.left = -230; sc.right = 230; sc.top = 230; sc.bottom = -230; sc.near = 10; sc.far = 900;
-scene.add(sun, sun.target);
-function placeSun() {
-  // afternoon sun from the south-west, 48° elevation
-  const az = THREE.MathUtils.degToRad(state.sunAz), el = THREE.MathUtils.degToRad(state.sunEl), d = 420;
-  sun.target.position.set(10 * state.scale, 0, -20 * state.scale);
-  sun.position.set(sun.target.position.x + Math.sin(az) * Math.cos(el) * d, Math.sin(el) * d, sun.target.position.z - Math.cos(az) * Math.cos(el) * d);
-}
+// Sky, sun, ambient occlusion and tone mapping: see lighting.js. Colours were sampled from photos under the
+// v5 lighting; v7 keeps them and compares the result with photos #87 and #130 again.
+const lighting = createLighting(renderer, scene, camera);
+// phones and tablets start without the AO pass (the 高畫質 chip turns it on)
+if (window.matchMedia('(pointer: coarse)').matches) { lighting.setQuality(false); $('tHQ').setAttribute('aria-pressed', 'false'); }
 
 // ---------------- load ----------------
 const texLoader = new THREE.TextureLoader();
@@ -75,7 +59,7 @@ const loadTex = (url) => new Promise((res, rej) => texLoader.load(url, res, unde
 let world, pickTables = [], figureGroup, labelObjs = [], satMesh = null, highlight = null, gridTex = null;
 
 async function init() {
-  const [data, calcada, louvre, glazing, facade, asphalt, paving, setts, railing, credits] = await Promise.all([
+  const [data, calcada, louvre, glazing, facade, asphalt, paving, setts, railing, shops, signs, credits] = await Promise.all([
     fetch('data/senado_massing.json').then((r) => { if (!r.ok) throw new Error(`data ${r.status}`); return r.json(); }),
     loadTex('viewer/assets/calcada_waves.png'),
     loadTex('viewer/assets/louvre.png'),
@@ -85,23 +69,29 @@ async function init() {
     loadTex('viewer/assets/paving.png'),
     loadTex('viewer/assets/setts.png'),
     loadTex('viewer/assets/railing.png'),
+    loadTex('viewer/assets/shops.png'),
+    loadTex('viewer/assets/signs.png'),
     fetch('reference/photos/credits.json').then((r) => (r.ok ? r.json() : { photos: {} })).catch(() => ({ photos: {} })),
   ]);
   state.photos = credits.photos;
   const streetTextures = { asphalt, paving, setts, railing };
-  for (const t of [calcada, louvre, glazing, facade, asphalt, paving, setts, railing]) {
+  for (const t of [calcada, louvre, glazing, facade, asphalt, paving, setts, railing, shops, signs]) {
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = renderer.capabilities.getMaxAnisotropy();
   }
   // detail maps are stored bottom-up (glTF convention), see scripts/make_window_textures.py, make_street_textures.py
-  for (const t of [louvre, glazing, facade, asphalt, paving, setts, railing]) t.flipY = false;
+  for (const t of [louvre, glazing, facade, asphalt, paving, setts, railing, shops, signs]) t.flipY = false;
   gridTex = facade;
   state.data = data;
-  const built = buildSenado(data, { mode: 'viewer', calcadaTexture: calcada, louvreTexture: louvre, glazingTexture: glazing, facadeTexture: facade, streetTextures });
+  const built = buildSenado(data, { mode: 'viewer', calcadaTexture: calcada, louvreTexture: louvre, glazingTexture: glazing, facadeTexture: facade, streetTextures, shopTexture: shops, signTexture: signs });
   world = built.root;
   pickTables = built.pickTables;
   scene.add(world);
+  // alpha-masked railings and signs must not occlude like solid panels in the AO pass
+  for (const n of ['Railings']) { const o = world.getObjectByName(n); if (o) o.userData.noAO = true; }
+  world.traverse((o) => { if (o.isMesh && o.material && o.material.name === 'Shop_sign') o.userData.noAO = true; });
+  plasterize(world);   // lime-plaster tone, grime and grain on the walls (viewer only, see materials.js)
 
   figureGroup = new THREE.Group();
   figureGroup.name = 'ScaleFigures';
@@ -140,7 +130,7 @@ async function init() {
   $('buildStamp').textContent = `資料版本：${data.meta.source}`;
   resize();
   renderer.setAnimationLoop(tick);
-  window.senado = { THREE, scene, camera, controls, state, setPreset, world, showPick, renderer, hemi, sun, placeSun };
+  window.senado = { THREE, scene, camera, controls, state, setPreset, world, showPick, renderer, lighting, plaster: plasterUniforms };
 }
 
 // ---------------- scale ----------------
@@ -153,7 +143,6 @@ function applyScale() {
     f.rotation.y = THREE.MathUtils.degToRad(hd);
   });
   labelObjs.forEach((o) => { const [x, y, z] = o.userData.base; o.position.copy(v3(x, y, z)); });
-  placeSun();
   if (highlight) highlight.scale.copy(world.scale);
   $('scaleVal').textContent = `${s.toFixed(2)}×`;
   $('dimScale').textContent = s === 1 ? '實際比例' : `${s.toFixed(2)}× ${state.planOnly ? '平面' : '整體'}`;
@@ -342,6 +331,7 @@ function bindToggle(id, fn) {
 bindToggle('tLabels', (on) => labelObjs.forEach((o) => { o.visible = on; o.element.hidden = !on; }));
 bindToggle('tFigs', (on) => { figureGroup.visible = on; figureGroup.traverse((o) => { if (o.isCSS2DObject) o.element.hidden = !on; }); });
 bindToggle('tContext', (on) => { const g = world.getObjectByName('Buildings_context'); if (g) g.visible = on; });
+bindToggle('tHQ', (on) => lighting.setQuality(on));
 bindToggle('tStreet', (on) => { for (const n of ['StreetFurniture', 'Railings']) { const o = world.getObjectByName(n); if (o) o.visible = on; } });
 // generic window grid on the buildings without a facade spec (Facade_generic)
 bindToggle('tGrid', (on) => {
@@ -582,7 +572,7 @@ function tick() {
   }
   updateMinimap();
   updateScaleBar();
-  renderer.render(scene, camera);
+  lighting.render(state.walk ? null : controls.target);
   labelRenderer.render(scene, camera);
   declutter();
 }
@@ -605,6 +595,7 @@ function declutter() {
 function resize() {
   const w = host.clientWidth, h = host.clientHeight;
   renderer.setSize(w, h, false);
+  lighting.setSize(w, h);
   labelRenderer.setSize(w, h);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();

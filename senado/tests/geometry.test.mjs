@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import * as THREE from 'three';
-import { prismGeometry, buildSenado, gableGeometry, massGeometry } from '../viewer/model.js';
+import { prismGeometry, buildSenado, gableGeometry, massGeometry, facadeGeometries, edgeFrame } from '../viewer/model.js';
 
 const data = JSON.parse(fs.readFileSync(new URL('../data/senado_massing.json', import.meta.url), 'utf8'));
 
@@ -248,6 +248,43 @@ test('wall lanterns hang on the facades facing the square', () => {
     m.geometry.computeBoundingBox();
     assert.ok(m.geometry.boundingBox.min.y > 3, m.name);           // above the ground floor
   }
+});
+
+test('shop signs: every placement resolves, UVs stay inside the sign\'s atlas rectangle', () => {
+  const S = data.shopSigns;
+  assert.ok(S && Object.keys(S.signs).length > 20);
+  const rects = Object.values(S.signs).map((a) => a.uv);
+  const { root } = buildSenado(data, { mode: 'export' });
+  const signed = [];
+  root.traverse((o) => { if (o.isMesh && o.material.name === 'Shop_sign') signed.push(o); });
+  const branded = data.buildings.filter((b) => b.shops).map((b) => b.id);
+  for (const id of branded) assert.ok(signed.some((m) => m.name.startsWith(`B_${id}`)), `no signs on ${id}`);
+  for (const m of signed) {
+    const uv = m.geometry.attributes.uv, pos = m.geometry.attributes.position;
+    for (let k = 0; k < uv.count; k += 3) {
+      const u = uv.getX(k), v = uv.getY(k);
+      assert.ok(rects.some((r) => u >= r[0] - 1e-4 && u <= r[2] + 1e-4 && v >= r[1] - 1e-4 && v <= r[3] + 1e-4), `${m.name} uv ${u},${v}`);
+      assert.ok(Number.isFinite(pos.getX(k) + pos.getY(k) + pos.getZ(k)), m.name);
+    }
+  }
+});
+
+test('shop signs on the arcade bands stand just proud of the band', () => {
+  const b = data.buildings.find((q) => q.id === 'w761767134');        // STARBUCKS COFFEE (photo #175)
+  const g = facadeGeometries(b, data.shopSigns);
+  const p = g.signs.attributes.position, n = g.signs.attributes.normal;
+  const f = edgeFrame(b.outer, 1);
+  let onBand = 0;
+  for (let k = 0; k < p.count; k++) {
+    const x = p.getX(k), y = p.getY(k), z = p.getZ(k);
+    const o = (x - f.a[0]) * f.n[0] + (-z - f.a[1]) * f.n[1];           // three z = -north
+    if (y > 4.8 && y < 5.4) {
+      onBand++;
+      assert.ok(o > 0.2 && o < 0.25, `o ${o}`);
+      assert.ok(Math.abs(n.getX(k) - f.n[0]) < 1e-3 && Math.abs(-n.getZ(k) - f.n[1]) < 1e-3);
+    }
+  }
+  assert.ok(onBand >= 4);
 });
 
 // Recessed windows (v4) roughly add 40k triangles and the v6 street detail (kerbs, markings, furniture, wall lanterns)

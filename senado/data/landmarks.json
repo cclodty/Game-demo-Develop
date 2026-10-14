@@ -476,7 +476,7 @@
           "w": 2.8,
           "h": 3.6,
           "sill": 0.2,
-          "fill": "glass"
+          "fill": "shop"
         },
         "evidence": [
           "#263"
@@ -719,12 +719,15 @@
       "osm": "w780249151",
       "style": "plain2",
       "on": "square+street",
-      "note": "便民藥房：兩層、藍色帆布簷篷、無騎樓",
+      "note": "便民藥房：兩層、藍色帆布簷篷、無騎樓；地面層是藥房的玻璃門窗",
       "evidence": [
         "#36",
         "#132"
       ],
-      "wall": "farmacia"
+      "wall": "farmacia",
+      "windows": {
+        "ground": { "shape": "rect", "w": 1.6, "h": 2.6, "sill": 0.15, "fill": "shop" }
+      }
     },
     {
       "osm": "w265433529",

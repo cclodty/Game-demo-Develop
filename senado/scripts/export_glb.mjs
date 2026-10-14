@@ -48,6 +48,10 @@ const out = injectTextures(Buffer.from(glb), [
   { name: 'setts', png: asset('setts.png'), materials: (m) => m === 'Road_setts' || m === 'Footway', tint: true },
   // kerbside railing bars live in the alpha channel; the material is exported with alphaMode MASK
   { name: 'railing', png: asset('railing.png'), materials: (m) => m === 'Railing', tint: true },
+  // shopfronts (scripts/make_shop_textures.py): the lit interiors are the colour and the emissive map
+  { name: 'shops', png: asset('shops.png'), materials: (m) => m === 'Shopfront', tint: false, emissive: true },
+  // shop signs (showcase only, real trade names): an RGBA atlas exported with alphaMode MASK
+  { name: 'signs', png: asset('signs.png'), materials: (m) => m === 'Shop_sign', tint: false, emissive: true },
 ]);
 
 const suffix = scale !== 1 ? `_x${scale}` : plan !== 1 ? `_plan${plan}` : '';
@@ -59,7 +63,8 @@ model.traverse((o) => { if (o.isMesh) meshes++; });
 console.log(`wrote ${path.relative(process.cwd(), file)}  ${(out.length / 1048576).toFixed(2)} MB  meshes=${meshes}  scale h=${sx} v=${sy}`);
 
 // Embed PNGs as baseColorTexture of the matching materials (the exporter cannot encode images without a DOM canvas).
-// tint keeps the material's baseColorFactor, so a greyscale detail map is multiplied by the material colour.
+// tint keeps the material's baseColorFactor, so a greyscale detail map is multiplied by the material colour;
+// emissive also uses the image as emissiveTexture (scaled by the material's emissiveFactor).
 function injectTextures(buf, list) {
   const jsonLen = buf.readUInt32LE(12);
   const json = JSON.parse(buf.subarray(20, 20 + jsonLen).toString('utf8').trim());
@@ -67,7 +72,7 @@ function injectTextures(buf, list) {
   const binLen = buf.readUInt32LE(binStart);
   let bin = buf.subarray(binStart + 8, binStart + 8 + binLen);
   const pad = (n) => (4 - (n % 4)) % 4;
-  for (const { name, png, materials, tint } of list) {
+  for (const { name, png, materials, tint, emissive } of list) {
     const targets = json.materials.filter((m) => materials(m.name || ''));
     if (!targets.length) throw new Error(`no material for ${name}`);
     const offset = bin.length;
@@ -79,6 +84,7 @@ function injectTextures(buf, list) {
     for (const mat of targets) {
       const pbr = mat.pbrMetallicRoughness || {};
       mat.pbrMetallicRoughness = { ...pbr, baseColorFactor: tint ? pbr.baseColorFactor || [1, 1, 1, 1] : [1, 1, 1, 1], baseColorTexture: { index: json.textures.length - 1 } };
+      if (emissive) mat.emissiveTexture = { index: json.textures.length - 1 };
     }
   }
   json.buffers[0].byteLength = bin.length;

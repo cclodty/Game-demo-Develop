@@ -433,7 +433,7 @@ function colorSinkGeometry(s) {
 // ---------- facade periphery: arcades (騎樓), entablature, string courses, pilasters, cornice, parapet ----------
 // Everything here is driven by b.facade, which build_data.py copies from the photo-based specs in landmarks.json.
 
-function edgeFrame(ring, i) {
+export function edgeFrame(ring, i) {
   const a = ring[i], b = ring[(i + 1) % ring.length];
   const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
   const u = [(b[0] - a[0]) / L, (b[1] - a[1]) / L];
@@ -619,6 +619,12 @@ function windowPanes(f, w, add) {
     add(key, sinkGeometry(s, m));
   };
   const rect = (za, zb) => [[l, za], [l + wd, za], [l + wd, zb], [l, zb]];
+  if (w.fill === 'shop') {
+    const s = newSink();
+    shopFace(s, l, l + wd, z0, z0 + h, -depth, w.kind || shopKind(`${f.a[0].toFixed(1)},${f.a[1].toFixed(1)}:${c.toFixed(1)}`));
+    add('shop', sinkGeometry(s, m));
+    return;
+  }
   let zb = z0;
   if (w.panel && w.panel.h < h - 0.5) {
     part(w.panel.color, rect(z0, z0 + w.panel.h));
@@ -699,7 +705,7 @@ export function windowLayout(f, W, storeys, bays, kind) {
     for (let k = 0; k < piers.length - 1; k++) {
       const c = (piers[k] + piers[k + 1]) / 2;
       out.push({
-        c, z0, wd, h, shape, depth, surround: sw, storey: st.k,
+        c, z0, wd, h, shape, depth, surround: sw, storey: st.k, bay: k,
         fill: full.fill || 'glass', panel: full.panel || null, keystone: !!full.keystone, hood: full.hood || null,
         balustrade: full.balustrade || null, awning: !!full.awning,
         pts: windowOutline(c, z0, wd, h, shape),
@@ -709,8 +715,238 @@ export function windowLayout(f, W, storeys, bays, kind) {
   return out;
 }
 
-// Returns { walls, trim, screens, panes, awnings, railings } geometries for one building with a facade spec.
-export function facadeGeometries(b) {
+// ---------- shopfronts (v7): glazed fronts with lit interiors behind the arcades and in ground-floor shop openings ----------
+// viewer/assets/shops.png (scripts/make_shop_textures.py) is a 4 x 2 atlas with one kind of shop per cell, v running up
+// the front. The same image is the emissive map, so the interiors stay lit inside the shaded arcades.
+export const SHOP_KINDS = ['cosmetics', 'pharmacy', 'jewellery', 'bakery', 'fashion', 'cafe', 'jerky', 'shoes'];
+export const SHOP = { frame: 0x3a3029, fascia: 0x2e2826, glow: 0.4, maxH: 3.6, frameW: 0.09 };
+
+function shopUV(kind) {
+  const k = Math.max(0, SHOP_KINDS.indexOf(kind));
+  const c = k % 4, r = Math.floor(k / 4);
+  return (fu, fv) => [(c + fu) / 4, (r + fv) / 2];
+}
+
+// The same bay always gets the same kind of shop unless the shop data names one.
+export function shopKind(seed) {
+  let h = 2166136261;
+  for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return SHOP_KINDS[(h >>> 0) % SHOP_KINDS.length];
+}
+
+// Kind of shop in bay k of facade edge i: data/shops.json gives one kind per edge or a list per bay.
+function bayKind(b, i, k, seed) {
+  const spec = b.shops && b.shops.kinds && b.shops.kinds[i];
+  const kind = Array.isArray(spec) ? spec[k] : spec;
+  return SHOP_KINDS.includes(kind) ? kind : shopKind(seed);
+}
+
+function shopFace(sink, l, r, z0, z1, o, kind) {
+  const uv = shopUV(kind);
+  planarFace([[l, z0], [r, z0], [r, z1], [l, z1]], [], o, (x, z) => uv((x - l) / (r - l), (z - z0) / (z1 - z0)), sink);
+}
+
+// Extent along facade edge i (in its own s) of the arcade's back wall, i.e. of edge i moved in by its depth and
+// cut by its neighbours (themselves moved in when they are arcade edges too); see offsetEdges.
+function recessRange(ring, i, depthMap) {
+  const n = ring.length, f = edgeFrame(ring, i), d = depthMap.get(i) || 0;
+  const cut = (j, fallback) => {
+    const g = edgeFrame(ring, j), dj = depthMap.get(j) || 0;
+    const cross = f.u[0] * g.u[1] - f.u[1] * g.u[0];
+    if (Math.abs(cross) < 0.08) return fallback;
+    const px = g.a[0] - g.n[0] * dj - (f.a[0] - f.n[0] * d), py = g.a[1] - g.n[1] * dj - (f.a[1] - f.n[1] * d);
+    return (px * g.u[1] - py * g.u[0]) / cross;
+  };
+  return [cut((i - 1 + n) % n, 0), cut((i + 1) % n, f.L)];
+}
+
+// One shop per arcade bay on the back wall: glazing, a bronze frame and a fascia board above it for the sign.
+function arcadeShops(b, ring, i, depthMap, arc, out) {
+  const f = edgeFrame(ring, i);
+  const [sa, sb] = recessRange(ring, i, depthMap);
+  const { piers } = bayLayout(f.L, arc.bay, arc.pier);
+  const d = arc.depth, fr = SHOP.frameW;
+  const zg = Math.min(SHOP.maxH, arc.height - 1.3);
+  const fz0 = zg + fr + 0.15, fz1 = Math.min(fz0 + 0.65, arc.height - 0.3);
+  const sink = newSink();
+  for (let k = 0; k < piers.length - 1; k++) {
+    const l = Math.max(piers[k] + arc.pier / 2 + 0.15, sa + 0.3), r = Math.min(piers[k + 1] - arc.pier / 2 - 0.15, sb - 0.3);
+    if (r - l < 1.2) continue;
+    const kind = bayKind(b, i, k, `${b.id}:${i}:${k}`);
+    shopFace(sink, l, r, 0, zg, -d + 0.03, kind);
+    out.shopFrames.push(
+      wallBox(f, l - fr, l, 0, zg + fr, -d + 0.1, d),
+      wallBox(f, r, r + fr, 0, zg + fr, -d + 0.1, d),
+      wallBox(f, l - fr, r + fr, zg, zg + fr, -d + 0.1, d),
+    );
+    if (fz1 - fz0 > 0.3) {
+      out.fascias.push(wallBox(f, l - fr, r + fr, fz0, fz1, -d + 0.07, d));
+      out.fasciaRects.push({ i, k, l, r, z0: fz0, z1: fz1, o: -d + 0.07, kind });
+    }
+  }
+  if (sink.idx.length) out.shops.push(sinkGeometry(sink, edgeMatrix(f)));
+}
+
+// ---------- shop signs (v7, showcase): data/shops.json, drawn into viewer/assets/signs.png ----------
+// Each sign is a quad in wall-local coordinates a little in front of what it hangs on, textured with its
+// rectangle of the atlas; letters stand on a transparent ground (alpha mask). Placements: see the notes in
+// shops.json. Plain bilingual signs (`generic`, one per kind of shop) go on every other arcade fascia and above
+// ground-floor shop openings where there is room.
+export const SIGN = { gap: 0.02, inset: 0.05, roofSetback: 1.5, roofLift: 0.9, awning: { proj: 0.85, drop: 0.5, valance: 0.22 } };
+
+function signQuad(sink, s, z, w, h, o, uv) {
+  const l = s - w / 2, b = z - h / 2;
+  planarFace([[l, b], [l + w, b], [l + w, b + h], [l, b + h]], [], o,
+    (x, y) => [uv[0] + ((x - l) / w) * (uv[2] - uv[0]), uv[1] + ((y - b) / h) * (uv[3] - uv[1])], sink);
+}
+
+// sign scaled down (never up) to fit a w x h box
+const fitSign = (a, w, h) => Math.min(1, w / a.w, h / a.h);
+
+// Canvas awning over an opening: sloped top, front valance and side cheeks, in wall-local coordinates.
+function awningGeometry(f, l, r, zt) {
+  const { proj, drop, valance } = SIGN.awning;
+  const zf = zt - drop, zv = zf - valance;
+  const quads = [
+    [[l, zt, 0], [r, zt, 0], [r, zf, proj], [l, zf, proj]],
+    [[l, zf, proj], [r, zf, proj], [r, zv, proj], [l, zv, proj]],
+  ];
+  const pos = [];
+  for (const [a, b, c, d] of quads) pos.push(...a, ...d, ...c, ...a, ...c, ...b);
+  for (const x of [l, r]) pos.push(x, zt, 0, x, zf, proj, x, zv, proj);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array((pos.length / 3) * 2).fill(0), 2));
+  g.computeVertexNormals();
+  return g.applyMatrix4(edgeMatrix(f));
+}
+
+// Framed sign standing on the roof behind wall f (Hotel Central, photo #99): letters on an iron frame.
+function roofSign(f, s, top, a, out) {
+  const o = -SIGN.roofSetback, z0 = top + SIGN.roofLift, z1 = z0 + a.h;
+  const sink = newSink();
+  signQuad(sink, s, (z0 + z1) / 2, a.w, a.h, o, a.uv);
+  out.roofSigns.push(sinkGeometry(sink, edgeMatrix(f)));
+  const back = o - 0.12;
+  const n = Math.max(2, Math.round(a.w / 3) + 1);
+  for (let k = 0; k < n; k++) {
+    const x = s - a.w / 2 + 0.2 + (k * (a.w - 0.4)) / (n - 1);
+    out.signBoards.push(wallBox(f, x - 0.07, x + 0.07, top, z1, back, -back + 0.14));
+  }
+  for (const z of [z0 + 0.1, z0 + a.h * 0.45, z1 - 0.1]) out.signBoards.push(wallBox(f, s - a.w / 2, s + a.w / 2, z - 0.05, z + 0.05, back, -back + 0.1));
+}
+
+function placeSigns(b, L, S, out) {
+  const { ring, lines, bandH, corniceZ, arcadeEdges, windowed, roofH } = L;
+  const sinks = new Map();
+  const sinkFor = (i) => { if (!sinks.has(i)) sinks.set(i, newSink()); return sinks.get(i); };
+  const taken = new Map();                       // edge -> [s0, s1, z0, z1] already holding a sign or awning
+  const take = (i, s0, s1, z0, z1) => { if (!taken.has(i)) taken.set(i, []); taken.get(i).push([s0, s1, z0, z1]); };
+  const free = (i, s0, s1, z0, z1) => !(taken.get(i) || []).some((t) => t[0] < s1 && s0 < t[1] && t[2] < z1 && z0 < t[3]);
+  const fasciaDone = new Set();
+  const bandZ = lines.length ? lines[0] + bandH(0) / 2 : null;
+  const bandO = (arcadeEdges.length ? 0.2 : 0.12) + SIGN.gap;
+  const zOf = (z) => {
+    if (typeof z === 'number') return z;
+    const m = /^(band|top)([+-][\d.]+)?$/.exec(z || 'band');
+    return (m[1] === 'band' ? bandZ : corniceZ) + (m[2] ? parseFloat(m[2]) : 0);
+  };
+  const windowAt = (i, storey, bay) => (windowed.get(i) || { ws: [] }).ws.find((w) => w.storey === storey && w.bay === bay);
+  const put = (i, s, z, a, k, o) => {
+    const w = a.w * k, h = a.h * k;
+    signQuad(sinkFor(i), s, z, w, h, o, a.uv);
+    take(i, s - w / 2, s + w / 2, z - h / 2, z + h / 2);
+  };
+
+  for (const p of (b.shops && b.shops.signs) || []) {
+    const i = p.edge, f = edgeFrame(ring, i);
+    const ids = Array.isArray(p.sign) ? p.sign : [p.sign];
+    const sign = (j) => S.signs[ids[j % ids.length]];
+    const s = (p.s ?? 0.5) * f.L;
+    if (p.at === 'band' && bandZ != null) put(i, s, bandZ, sign(0), 1, bandO);
+    else if (p.at === 'wall') {
+      const a = sign(0), z = zOf(p.z), o = p.o ?? SIGN.gap;
+      put(i, s, z, a, 1, o);
+      if (p.board) out.signBoards.push(wallBox(f, s - a.w / 2 - 0.04, s + a.w / 2 + 0.04, z - a.h / 2 - 0.04, z + a.h / 2 + 0.04, o - 0.004, 0.05));
+    } else if (p.at === 'roof') {
+      roofSign(f, s, b.h, sign(0), out);
+    } else if (p.at === 'fascia') {
+      p.bays.forEach((k, j) => {
+        const r = out.fasciaRects.find((q) => q.i === i && q.k === k);
+        if (!r) return;
+        const a = sign(j);
+        put(i, (r.l + r.r) / 2, (r.z0 + r.z1) / 2, a, fitSign(a, r.r - r.l - 2 * SIGN.inset, r.z1 - r.z0 - 2 * SIGN.inset), r.o + SIGN.gap);
+        fasciaDone.add(`${i}:${k}`);
+      });
+    } else if (p.at === 'window' || p.at === 'lintel' || p.at === 'awning') {
+      p.bays.forEach((k, j) => {
+        const w = windowAt(i, p.at === 'window' ? p.storey : 0, k);
+        if (!w) return;
+        const top = w.z0 + w.h + w.surround;
+        if (p.at === 'awning') {
+          const l = w.c - w.wd / 2 - w.surround - 0.1, r = w.c + w.wd / 2 + w.surround + 0.1, zt = top + 0.3;
+          const list = out.awningsByColor.get(p.color) || [];
+          list.push(awningGeometry(f, l, r, zt));
+          out.awningsByColor.set(p.color, list);
+          take(i, l, r, top, zt + 0.6);
+          return;
+        }
+        const a = sign(j);
+        if (p.at === 'lintel') {
+          const k2 = fitSign(a, w.wd + 2 * w.surround, 0.8);
+          put(i, w.c, top + 0.1 + (a.h * k2) / 2, a, k2, SIGN.gap);
+        } else if (a.fill === 'cover') {
+          // banner over the whole opening, arched head included
+          const l = w.c - w.wd / 2;
+          const sink = sinkFor(i);
+          planarFace(w.pts, [], -w.depth + SIGN.gap,
+            (x, z) => [a.uv[0] + ((x - l) / w.wd) * (a.uv[2] - a.uv[0]), a.uv[1] + ((z - w.z0) / w.h) * (a.uv[3] - a.uv[1])], sink);
+        } else {
+          const k2 = fitSign(a, w.wd - 0.1, w.h - 0.1);
+          signQuad(sinkFor(i), w.c, w.z0 + w.h * (p.zc ?? 0.5), a.w * k2, a.h * k2, -w.depth + SIGN.gap, a.uv);
+        }
+      });
+    }
+  }
+
+  // plain signs for the remaining shops
+  const generic = (kind, seed) => {
+    const ids = S.generic[kind] || [];
+    return ids.length ? S.signs[ids[Math.floor(hash01(seed) * ids.length)]] : null;
+  };
+  for (const r of out.fasciaRects) {
+    if (fasciaDone.has(`${r.i}:${r.k}`)) continue;
+    const a = generic(r.kind, `${b.id}:${r.i}:${r.k}:sign`);
+    if (a) put(r.i, (r.l + r.r) / 2, (r.z0 + r.z1) / 2, a, fitSign(a, r.r - r.l - 2 * SIGN.inset, r.z1 - r.z0 - 2 * SIGN.inset), r.o + SIGN.gap);
+  }
+  for (const [i, { ws }] of windowed) {
+    for (const w of ws) {
+      if (w.fill !== 'shop' || w.storey !== 0) continue;
+      const a = generic(w.kind, `${b.id}:${i}:${w.bay}:sign`);
+      if (!a) continue;
+      const k = fitSign(a, w.wd + 2 * w.surround, 0.6);
+      const z0 = w.z0 + w.h + w.surround + 0.1, z1 = z0 + a.h * k;
+      const ceiling = lines.length ? lines[0] - 0.05 : roofH - 0.3;
+      if (z1 > ceiling || !free(i, w.c - (a.w * k) / 2, w.c + (a.w * k) / 2, z0, z1)) continue;
+      put(i, w.c, (z0 + z1) / 2, a, k, SIGN.gap);
+    }
+  }
+  for (const [i, sink] of sinks) if (sink.idx.length) out.signs.push(sinkGeometry(sink, edgeMatrix(edgeFrame(ring, i))));
+}
+
+// Roof signs on a building without a facade spec (only `roof` placements apply there).
+export function roofSignGeometries(b, S) {
+  const out = { roofSigns: [], signBoards: [] };
+  for (const p of (b.shops && b.shops.signs) || []) {
+    if (p.at !== 'roof') continue;
+    const f = edgeFrame(b.outer, p.edge);
+    roofSign(f, (p.s ?? 0.5) * f.L, b.h, S.signs[Array.isArray(p.sign) ? p.sign[0] : p.sign], out);
+  }
+  return { roofSigns: mergeFlat(out.roofSigns), signBoards: mergeFlat(out.signBoards) };
+}
+
+// Floor lines, storeys and window openings of a building with a facade spec; shared by the geometry and the signs.
+export function facadeLayout(b) {
   const F = b.facade;
   const ring = b.outer;
   const parapetH = F.parapet ? F.parapet.h : 0;
@@ -744,15 +980,23 @@ export function facadeGeometries(b) {
       if (ws.length) windowed.set(i, { f, ws });
     }
   }
+  return { F, ring, pitched, roofH, arcade, aH, arcadeEdges, lines, corniceZ, bandH, storeys, bays, windowed };
+}
+
+// Returns { walls, trim, screens, panes, awnings, railings, ... } geometries for one building with a facade spec.
+export function facadeGeometries(b, shopSigns = null) {
+  const L = facadeLayout(b);
+  const { F, ring, pitched, roofH, arcade, aH, arcadeEdges, lines, corniceZ, bandH, bays, windowed } = L;
   const skip = new Set(windowed.keys());
 
-  const out = { walls: [], trim: [], screens: [], panes: new Map(), awnings: [], railings: [], iron: [], glass: [] };
+  const out = { walls: [], trim: [], screens: [], panes: new Map(), awnings: [], railings: [], iron: [], glass: [], shops: [], shopFrames: [], fascias: [], fasciaRects: [], signs: [], signBoards: [], roofSigns: [], awningsByColor: new Map() };
   const addPane = (key, g) => { if (!out.panes.has(key)) out.panes.set(key, []); out.panes.get(key).push(g); };
   if (arcadeEdges.length) {
     if (!F.passage) {                                          // a passage (lane under the building) has no ground floor
       const depth = new Map(arcadeEdges.map((i) => [i, arcade.depth]));
       const recessed = offsetEdges(ring, depth);
       out.walls.push(prismGeometry(recessed, b.holes, aH, 0, { roof: false }));
+      for (const i of arcadeEdges) arcadeShops(b, ring, i, depth, arcade, out);
     }
     const upper = prismGeometry(ring, b.holes, roofH, aH, { bottom: true, skip, roof: !pitched });
     out.walls.push(upper);
@@ -761,9 +1005,10 @@ export function facadeGeometries(b) {
     out.walls.push(prismGeometry(ring, b.holes, roofH, 0, { skip, roof: !pitched }));
   }
   if (pitched) out.walls.push(gableGeometry(ring, pitched));
-  for (const { f, ws } of windowed.values()) {
+  for (const [i, { f, ws }] of windowed) {
     out.walls.push(holedWall(f, arcadeEdges.length ? aH : 0, roofH, ws));
     for (const w of ws) {
+      if (w.fill === 'shop') w.kind = bayKind(b, i, w.bay, `${f.a[0].toFixed(1)},${f.a[1].toFixed(1)}:${w.c.toFixed(1)}`);
       windowPanes(f, w, addPane);
       windowDressing(f, w, out.trim, out.awnings, out.railings);
     }
@@ -815,6 +1060,7 @@ export function facadeGeometries(b) {
       if (f.L > 0.5) out.trim.push(wallBox(f, -0.05, f.L + 0.05, b.h - 0.14, b.h, 0.06, F.parapet.t));   // coping
     }
   }
+  if (shopSigns) placeSigns(b, L, shopSigns, out);
   const paneKeys = [...out.panes.keys()];
   return {
     walls: mergeFlatGrouped(out.walls),
@@ -825,6 +1071,13 @@ export function facadeGeometries(b) {
     railings: mergeFlat(out.railings),
     lanterns: mergeFlat(out.iron),
     lanternGlass: mergeFlat(out.glass),
+    shops: mergeFlat(out.shops),
+    shopFrames: mergeFlat(out.shopFrames),
+    fascias: mergeFlat(out.fascias),
+    signs: mergeFlat(out.signs),
+    signBoards: mergeFlat(out.signBoards),
+    roofSigns: mergeFlat(out.roofSigns),
+    signAwnings: [...out.awningsByColor].map(([color, list]) => ({ color, geometry: mergeFlat(list) })),
     windowCount: [...windowed.values()].reduce((n, e) => n + e.ws.length, 0),
   };
 }
@@ -1293,7 +1546,18 @@ export function buildSenado(data, opts = {}) {
     f_topiary: named(std(0x4c7637), 'Topiary'),
     f_wood: named(std(0x8a6847), 'Bench_wood'),
     f_bin: named(std(0x2f5f9a, { roughness: 0.6 }), 'Bin'),
+    // shopfronts: the atlas is both colour and emissive map (export_glb.mjs injects it into both slots)
+    shop: named(std(0xffffff, { map: opts.shopTexture || null, emissiveMap: opts.shopTexture || null, emissive: new THREE.Color(SHOP.glow, SHOP.glow, SHOP.glow), roughness: 0.18 }), 'Shopfront'),
+    shopFrame: named(std(SHOP.frame, { roughness: 0.45, metalness: 0.35 }), 'Shop_frame'),
+    fascia: named(std(SHOP.fascia, { roughness: 0.6 }), 'Shop_fascia'),
+    // shop signs: one alpha-masked atlas (export_glb.mjs injects signs.png); a faint glow keeps fascias legible in the arcades
+    sign: named(std(0xffffff, { map: opts.signTexture || null, emissiveMap: opts.signTexture || null, emissive: new THREE.Color(0.12, 0.12, 0.12), alphaTest: 0.5, alphaToCoverage: true, roughness: 0.5 }), 'Shop_sign'),
   });
+  const awningMats = new Map();
+  const signAwningMat = (hex) => {
+    if (!awningMats.has(hex)) awningMats.set(hex, named(std(new THREE.Color(hex).getHex(), { side: THREE.DoubleSide, roughness: 0.85 }), `Awning_${hex.replace('#', '')}`));
+    return awningMats.get(hex);
+  };
   const matCache = new Map();
   const colorMat = (hex, name) => {
     const key = `${name}:${hex}`;
@@ -1390,6 +1654,7 @@ export function buildSenado(data, opts = {}) {
   const awningMat = named(std(PALETTE.awning, { side: THREE.DoubleSide }), 'Awning');
   const paneMats = new Map();
   const paneMat = (key) => {
+    if (key === 'shop') return mats.shop;
     if (!paneMats.has(key)) {
       const wc = (data.windowColors || {})[key] || {};
       const shutter = key.startsWith('shutter');
@@ -1416,7 +1681,7 @@ export function buildSenado(data, opts = {}) {
       const wallMat = colorMat(wallColor(b).getHex(), `Wall_${wcol ? wcol.key : label}`);
       const roofCls = (b.roof && b.roof.cls) || 'grey';
       const trim = wcol && wcol.trim ? colorMat(new THREE.Color(wcol.trim).getHex(), `Trim_${wcol.key}`) : trimMat;
-      const g = facadeGeometries(b);
+      const g = facadeGeometries(b, data.shopSigns || null);
       const grp = new THREE.Group();
       grp.name = `B_${b.id}${b.key ? '_' + b.key : ''}`;
       grp.userData = { ...info(b), facadeStyle: b.facade.style, evidence: b.facade.evidence };
@@ -1429,6 +1694,13 @@ export function buildSenado(data, opts = {}) {
         ['railings', g.railings, paneMat('lattice')],
         ['lanterns', g.lanterns, mats.f_iron],
         ['lanternGlass', g.lanternGlass, mats.f_glass],
+        ['shops', g.shops, mats.shop],
+        ['shopFrames', g.shopFrames, mats.shopFrame],
+        ['fascias', g.fascias, mats.fascia],
+        ['signs', g.signs, mats.sign],
+        ['signBoards', g.signBoards, mats.shopFrame],
+        ['roofSigns', g.roofSigns, mats.sign],
+        ...g.signAwnings.map((a, k) => [`signAwnings${k || ''}`, a.geometry, signAwningMat(a.color)]),
       ];
       for (const [part, geo, mat] of parts) {
         if (!geo) continue;
@@ -1452,6 +1724,18 @@ export function buildSenado(data, opts = {}) {
         mesh.userData = info(b);
         mesh.castShadow = mesh.receiveShadow = true;
         tg.add(mesh);
+        if (b.shops && data.shopSigns) {
+          // rooftop signs (Hotel Central) on a building without a facade spec
+          const rs = roofSignGeometries(b, data.shopSigns);
+          for (const [part, geo, mat] of [['roofSigns', rs.roofSigns, mats.sign], ['signBoards', rs.signBoards, mats.shopFrame]]) {
+            if (!geo) continue;
+            const m = new THREE.Mesh(geo, mat);
+            m.name = `${mesh.name}_${part}`;
+            m.userData = info(b);
+            m.castShadow = m.receiveShadow = true;
+            tg.add(m);
+          }
+        }
       }
     } else {
       const { geometry, triOwner } = mergePrisms(list.map((b) => massGeometry(b, ...cols.get(b))));

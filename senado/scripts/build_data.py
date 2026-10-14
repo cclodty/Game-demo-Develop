@@ -16,6 +16,8 @@ RAW = ROOT / "data" / "osm_raw.json"
 LANDMARKS = ROOT / "data" / "landmarks.json"
 ROOF_CLASSES = ROOT / "data" / "roof_classes.json"   # written by classify_roofs.py
 STREETS = ROOT / "data" / "streets.json"             # written by build_streets.py
+SHOPS = ROOT / "data" / "shops.json"                 # shop kinds and signs (v7, showcase)
+SIGN_ATLAS = ROOT / "data" / "sign_atlas.json"       # written by make_shop_textures.py
 OUT = ROOT / "data" / "senado_massing.json"
 
 ORIGIN_NODE = 5692359322            # 噴水池 San Ma Lou (historic=memorial node at the fountain)
@@ -280,6 +282,7 @@ def main():
     add_bridges(buildings, curated)
     attach_roofs(buildings + parts, curated)
     attach_generic_walls(buildings + parts, curated)
+    shop_signs = attach_shops(buildings)
 
     data = {
         "meta": {
@@ -308,6 +311,8 @@ def main():
         "fountain": fountain,
         "trees": trees,
     }
+    if shop_signs:
+        data["shopSigns"] = shop_signs
     if STREETS.exists():   # kerbs, markings and furniture from build_streets.py (run it after this script, then rerun)
         data["streets"] = json.loads(STREETS.read_text())
     OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
@@ -446,6 +451,35 @@ def attach_facades(buildings, curated):
                        "edgeKinds": {str(i): kinds.get(i, "square") for i in edges},
                        "evidence": spec.get("evidence", []), "note": spec.get("note"),
                        "wallColor": wall_color(curated, spec)}
+
+
+def attach_shops(buildings):
+    """Shop kinds and sign placements from shops.json onto the buildings; returns the sign atlas for the model."""
+    if not SHOPS.exists():
+        return None
+    shops = json.loads(SHOPS.read_text())
+    atlas = json.loads(SIGN_ATLAS.read_text())["signs"] if SIGN_ATLAS.exists() else {}
+    for sid, spec in shops["signs"].items():
+        a = atlas.get(sid)
+        if not a or a["w"] != spec["w"] or a["h"] != spec["h"]:
+            raise SystemExit(f"sign {sid} is not in sign_atlas.json as drawn; run make_shop_textures.py first")
+    by_id = {b["id"]: b for b in buildings}
+    for spec in shops["buildings"]:
+        b = by_id.get(spec["osm"])
+        if not b:
+            raise SystemExit(f"shop spec for unknown building {spec['osm']}")
+        for p in spec.get("signs", []):
+            ids = p.get("sign", [])
+            for sid in ids if isinstance(ids, list) else [ids]:
+                if sid not in atlas:
+                    raise SystemExit(f"{spec['osm']}: unknown sign {sid}")
+        b["shops"] = {"kinds": spec.get("kinds", {}), "signs": spec.get("signs", []),
+                      "evidence": spec.get("evidence", []), "note": spec.get("note")}
+    for kind, ids in shops["generic"].items():
+        for sid in ids:
+            if sid not in atlas:
+                raise SystemExit(f"generic {kind}: unknown sign {sid}")
+    return {"atlas": "signs.png", "signs": atlas, "generic": shops["generic"]}
 
 
 def facade_style(styles, spec):
