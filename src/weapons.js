@@ -2,7 +2,7 @@
 
 import * as THREE from 'three';
 import { GUN_Y } from './config.js';
-import { clamp, lerp, rand, segAABB, segCircle } from './utils.js';
+import { clamp, lerp, rand, segCircle } from './utils.js';
 
 /**
  * Pistols are the default and never run dry (they reload). Everything else
@@ -186,7 +186,7 @@ export class Grenades {
       // walls taller than the grenade's current height stop it
       for (const s of game.level.solids) {
         if (!s.alive || s.h < ny - 0.1) continue;
-        if (segAABB(g.x, g.z, nx, nz, s, _hit)) {
+        if (game.level.segSolid(g.x, g.z, nx, nz, s, _hit)) {
           boom = true;
           bx = g.x + (nx - g.x) * _hit.t + _hit.nx * 0.2;
           bz = g.z + (nz - g.z) * _hit.t + _hit.nz * 0.2;

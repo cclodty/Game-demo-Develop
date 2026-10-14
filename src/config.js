@@ -3,11 +3,11 @@
 export const ARENA = { halfW: 22, halfD: 15 };
 
 // Height (y) at which bullets fly. Collision itself is 2D on the XZ plane.
-export const GUN_Y = 1.35;
+export const GUN_Y = 1.38;
 
 export const PLAYER = {
-  radius: 0.42,
-  hitRadius: 0.3, // smaller than the body on purpose: near misses should feel fair
+  radius: 0.3,
+  hitRadius: 0.22, // smaller than the body on purpose: near misses should feel fair
   speed: 7.4,
   accel: 14,
   hp: 100,

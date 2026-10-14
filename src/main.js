@@ -58,6 +58,7 @@ class Game {
     this.hud = new HUD(this);
     this.post = new PostFX(this.renderer, this.scene, this.camera);
     this.post.setSize(innerWidth, innerHeight);
+    this.applyMapView();
 
     this.raycaster = new THREE.Raycaster();
     this.ndc = new THREE.Vector2();
@@ -165,6 +166,7 @@ class Game {
     this.fx.clear();
     if (this.level.map !== MAPS[mapIndex]) {
       this.level.load(MAPS[mapIndex]);
+      this.applyMapView();
       this.renderer.compile(this.scene, this.camera);
     } else {
       this.level.resetProps();
@@ -196,6 +198,16 @@ class Game {
     this.last = performance.now();
   }
 
+  /** Camera lens, exposure and bloom can differ per map (the daylight Senado map needs its own). */
+  applyMapView() {
+    const view = this.level.map.camera;
+    this.camera.fov = view?.fov ?? CAMERA.fov;
+    this.camera.updateProjectionMatrix();
+    this.renderer.toneMappingExposure = this.level.exposure;
+    this.post.bloom.threshold = this.level.bloom.threshold;
+    $('map-credit').textContent = this.level.map.credit || '';
+  }
+
   get stageMap() {
     return MAPS[(this.startMap + this.stage) % MAPS.length];
   }
@@ -217,6 +229,7 @@ class Game {
       this.pickups.clear();
       this.fx.clear();
       this.level.load(this.stageMap);
+      this.applyMapView();
       this.player.placeAtStart();
       this.updateCamera(1, true);
       this.renderer.compile(this.scene, this.camera);
@@ -591,8 +604,22 @@ class Game {
     const sx = s * (Math.sin(t * 1.13) + 0.5 * Math.sin(t * 2.71));
     const sz = s * (Math.cos(t * 0.97) + 0.5 * Math.sin(t * 2.33));
     const c = this.camTarget;
-    this.camera.position.set(c.x + sx, CAMERA.offsetY * this.zoom, c.z + CAMERA.offsetZ * this.zoom + sz);
+    const view = this.level.map.camera;
+    const offY = view?.y ?? CAMERA.offsetY;
+    const offZ = view?.z ?? CAMERA.offsetZ;
+    this.camera.position.set(c.x + sx, offY * this.zoom, c.z + offZ * this.zoom + sz);
     this.camera.lookAt(c.x + sx * 0.4, 0, c.z + sz * 0.4);
+
+    // Maps with tall buildings cut a hole between the camera and the player.
+    const cut = this.level.cut;
+    if (this.level.map.cutaway) {
+      this.camera.updateMatrixWorld();
+      cut.uCutA.value.copy(this.camera.position);
+      cut.uCutB.value.set(p.x, this.level.groundY(p.x, p.z) + 1.2, p.z);
+      cut.uCutR.value = 4.2;
+    } else {
+      cut.uCutR.value = 0;
+    }
   }
 
   render() {
@@ -609,7 +636,7 @@ class Game {
     u.uFlash.value = this.flashFx;
     u.uRipple.value = this.ripple;
     u.uCenter.value.copy(this.rippleCenter);
-    this.post.bloom.strength = 0.85 + focus * 0.25;
+    this.post.bloom.strength = this.level.bloom.strength + focus * 0.25;
     this.post.render();
   }
 }

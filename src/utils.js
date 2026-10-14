@@ -147,3 +147,124 @@ export function resolveCircleAABB(p, r, b) {
   }
   return true;
 }
+
+// ---------------------------------------------------------------- polygons
+// Polygons are flat arrays [x0, z0, x1, z1, ...] (closed implicitly), used for
+// real building footprints that are not axis aligned.
+
+export function pointInPoly(x, z, poly) {
+  let inside = false;
+  const n = poly.length;
+  for (let i = 0, j = n - 2; i < n; j = i, i += 2) {
+    const xi = poly[i];
+    const zi = poly[i + 1];
+    const xj = poly[j];
+    const zj = poly[j + 1];
+    if (zi > z !== zj > z && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/** Closest point on the polygon outline; writes {x, z, d2, nx, nz} (edge normal, unnormalised side). */
+export function closestOnPoly(x, z, poly, out) {
+  let best = Infinity;
+  const n = poly.length;
+  for (let i = 0, j = n - 2; i < n; j = i, i += 2) {
+    const ax = poly[j];
+    const az = poly[j + 1];
+    const bx = poly[i];
+    const bz = poly[i + 1];
+    const dx = bx - ax;
+    const dz = bz - az;
+    const l2 = dx * dx + dz * dz;
+    let t = l2 > 0 ? ((x - ax) * dx + (z - az) * dz) / l2 : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const qx = ax + dx * t;
+    const qz = az + dz * t;
+    const d2 = (x - qx) * (x - qx) + (z - qz) * (z - qz);
+    if (d2 < best) {
+      best = d2;
+      out.x = qx;
+      out.z = qz;
+      out.ex = dx;
+      out.ez = dz;
+    }
+  }
+  out.d2 = best;
+  return out;
+}
+
+/** Segment against a polygon outline (same contract as segAABB). */
+export function segPoly(x0, z0, x1, z1, poly, out) {
+  if (pointInPoly(x0, z0, poly)) {
+    out.t = 0;
+    out.nx = 0;
+    out.nz = 0;
+    return true;
+  }
+  const rx = x1 - x0;
+  const rz = z1 - z0;
+  let tmin = Infinity;
+  let nx = 0;
+  let nz = 0;
+  const n = poly.length;
+  for (let i = 0, j = n - 2; i < n; j = i, i += 2) {
+    const ax = poly[j];
+    const az = poly[j + 1];
+    const sx = poly[i] - ax;
+    const sz = poly[i + 1] - az;
+    const den = rx * sz - rz * sx;
+    if (Math.abs(den) < 1e-12) continue;
+    const qx = ax - x0;
+    const qz = az - z0;
+    const t = (qx * sz - qz * sx) / den;
+    const u = (qx * rz - qz * rx) / den;
+    if (t >= 0 && t <= 1 && u >= 0 && u <= 1 && t < tmin) {
+      tmin = t;
+      // edge normal facing the incoming ray
+      const l = Math.hypot(sx, sz) || 1;
+      nx = sz / l;
+      nz = -sx / l;
+      if (nx * rx + nz * rz > 0) {
+        nx = -nx;
+        nz = -nz;
+      }
+    }
+  }
+  if (tmin === Infinity) return false;
+  out.t = tmin;
+  out.nx = nx;
+  out.nz = nz;
+  return true;
+}
+
+const _cp = { x: 0, z: 0, d2: 0, ex: 0, ez: 0 };
+
+/** Push a circle (object with x,z) out of a polygon. Returns true if it collided. */
+export function resolveCirclePoly(p, r, poly) {
+  const inside = pointInPoly(p.x, p.z, poly);
+  closestOnPoly(p.x, p.z, poly, _cp);
+  if (!inside && _cp.d2 >= r * r) return false;
+  const d = Math.sqrt(_cp.d2);
+  let ux;
+  let uz;
+  if (d > 1e-6) {
+    ux = (p.x - _cp.x) / d;
+    uz = (p.z - _cp.z) / d;
+    if (inside) {
+      ux = -ux;
+      uz = -uz;
+    }
+  } else {
+    const l = Math.hypot(_cp.ex, _cp.ez) || 1;
+    ux = _cp.ez / l;
+    uz = -_cp.ex / l;
+  }
+  p.x = _cp.x + ux * r;
+  p.z = _cp.z + uz * r;
+  return true;
+}
+
+export function polyDist2(x, z, poly) {
+  return closestOnPoly(x, z, poly, _cp).d2;
+}

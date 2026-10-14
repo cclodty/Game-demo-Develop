@@ -3,6 +3,10 @@
 // spawn points. `decorate` adds the non-colliding scenery and animations.
 
 import * as THREE from 'three';
+import { CALCADA, FACADE, GLAZING, LOUVRE } from './senado/assets.js';
+import SENADO_DATA from './senado/data.js';
+import { buildSenado, FOUNTAIN } from './senado/model.js';
+import { SENADO, toGame } from './senado/transform.js';
 import { helipadTexture, neonSignTexture, windowTexture } from './textures.js';
 import { rand, TAU } from './utils.js';
 
@@ -498,4 +502,200 @@ const docks = {
   },
 };
 
-export const MAPS = [rooftop, club, docks];
+// ------------------------------------------------------------- Largo do Senado
+
+/**
+ * Hide whatever stands between the camera and the player: fragments inside a
+ * cylinder around the camera -> player line are discarded (with a dithered
+ * edge). Shadows still use the full buildings.
+ */
+function addCutaway(mat, U) {
+  if (mat.userData.cutaway) return;
+  mat.userData.cutaway = true;
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uCutA = U.uCutA;
+    shader.uniforms.uCutB = U.uCutB;
+    shader.uniforms.uCutR = U.uCutR;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vCutWorld;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvCutWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vCutWorld;\nuniform vec3 uCutA;\nuniform vec3 uCutB;\nuniform float uCutR;')
+      .replace(
+        '#include <clipping_planes_fragment>',
+        `#include <clipping_planes_fragment>
+        if (uCutR > 0.0 && vCutWorld.y > 0.45) {
+          vec3 ab = uCutB - uCutA;
+          float t = clamp(dot(vCutWorld - uCutA, ab) / dot(ab, ab), 0.0, 1.0);
+          float edge = uCutR - length(vCutWorld - (uCutA + ab * t));
+          if (t < 0.97 && edge > 0.0) {
+            float n = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+            if (edge > 1.2 || n < edge / 1.2) discard;
+          }
+        }`,
+      );
+  };
+  mat.customProgramCacheKey = () => 'cutaway';
+  mat.needsUpdate = true;
+}
+
+const senado = {
+  id: 'senado',
+  name: '議事亭前地',
+  en: 'LARGO DO SENADO',
+  desc: '按實景比例重建的澳門議事亭前地：新馬路、噴水池、窄段一直到板樟堂前地。',
+  color: '#f2c94c',
+  credit: '地圖資料 © OpenStreetMap contributors（ODbL）',
+  size: [SENADO.halfW, SENADO.halfD],
+  start: [2, 54],
+  camera: { y: 24, z: 7.5, fov: 30 },
+  cutaway: true,
+  theme: {
+    bg: 0x9cc4e8,
+    fog: [0xc9d8e6, 0.0042],
+    hemi: [0xeef3f8, 0xb8a888, 1.55],
+    moon: [0xfff0d8, 3.1],
+    sunDir: [-30, 44, 14],
+    points: [
+      [0xffffff, 0, -50, 0, 0, 1],
+      [0xffffff, 0, -50, 0, 0, 1],
+      [0xffffff, 0, -50, 0, 0, 1],
+      [0xffffff, 0, -50, 0, 0, 1],
+    ],
+    rain: false,
+    exposure: 0.95,
+    bloom: { strength: 0.55, threshold: 1.5 },
+    shadowFollow: true,
+  },
+  floor: 'none',
+  edges: null,
+  solids: [
+    // food stalls, planters, street lamps
+    [-12, 52, 2.8, 1.6, 1.1, 'stall'],
+    [11, 52, 2.8, 1.6, 1.1, 'stall'],
+    [-5.8, 20, 2.4, 1.5, 1.1, 'stall'],
+    [6, 12, 2.4, 1.5, 1.1, 'stall'],
+    [-14, -66, 2.8, 1.6, 1.1, 'stall'],
+    [-9, 44, 1.4, 1.4, 0.9, 'planter'],
+    [14, 44, 1.4, 1.4, 0.9, 'planter'],
+    [-5, -60, 1.4, 1.4, 0.9, 'planter'],
+    [-15, 60, 0.3, 0.3, 4, 'streetlamp'],
+    [16, 58, 0.3, 0.3, 4, 'streetlamp'],
+    [-9, 31, 0.3, 0.3, 4, 'streetlamp'],
+    [9, 30, 0.3, 0.3, 4, 'streetlamp'],
+    [-6, 6, 0.3, 0.3, 4, 'streetlamp'],
+    [7, 6, 0.3, 0.3, 4, 'streetlamp'],
+    [5, -24, 0.3, 0.3, 4, 'streetlamp'],
+    [-2.5, -40, 0.3, 0.3, 4, 'streetlamp'],
+    // the avenue: two parked taxis and a delivery crate or two up the narrow street
+    [-10, 68.5, 4.2, 1.8, 1.45, 'car'],
+    [14, 68, 4.2, 1.8, 1.45, 'car'],
+    [1.5, -28, 1.2, 1.2, 1.1, 'crate'],
+    [3, -50, 1.4, 1, 1, 'crate'],
+  ],
+  glass: [[10, 63.2, 3.6, 0.2, 2.1]],
+  barrels: [[-9.9, 51.6, 'lpg'], [9, 52.4, 'lpg'], [-4.1, 20.8, 'lpg'], [7.7, 13.3, 'lpg'], [-12, -64.5, 'lpg'], [20, 48, 'gas']],
+  pans: [[-12, 49.8], [11, 49.8], [-5.8, 17.9], [6, 9.9], [-14, -63.5], [1, -12]],
+  pads: [[-4, 48], [1, -34], [-10, -62]],
+  spawns: [
+    { x: -24.5, z: 68, ex: -17, ez: 64, kind: 'gate' },
+    { x: 24.5, z: 68, ex: 16, ez: 60, kind: 'gate' },
+    { x: 24.5, z: 40, ex: 12, ez: 40, kind: 'gate' },
+    { x: 24.5, z: 2, ex: 12.5, ez: 2, kind: 'gate' },
+    { x: -24.5, z: -13, ex: -10, ez: -12, kind: 'gate' },
+    { x: 24, z: -42, ex: 10, ez: -42, kind: 'gate' },
+    { x: -24.5, z: -62, ex: -14, ez: -62.5, kind: 'gate' },
+    { x: -6, z: -73, ex: -6, ez: -67, kind: 'gate' },
+  ],
+  decorate(L) {
+    const loader = new THREE.TextureLoader();
+    const tex = (uri) => {
+      const t = L.own(loader.load(uri));
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 8;
+      return t;
+    };
+    const { root } = buildSenado(SENADO_DATA, {
+      mode: 'viewer',
+      calcadaTexture: tex(CALCADA),
+      louvreTexture: tex(LOUVRE),
+      glazingTexture: tex(GLAZING),
+      facadeTexture: tex(FACADE),
+    });
+    const wrap = new THREE.Group();
+    wrap.rotation.y = (SENADO.rotDeg * Math.PI) / 180;
+    wrap.position.z = SENADO.offsetZ;
+    wrap.add(root);
+    L.add(wrap);
+    root.traverse((o) => {
+      if (!o.isMesh) return;
+      L.own(o.geometry);
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+        L.own(m);
+        if (L.map.cutaway) addCutaway(m, L.cut);
+        if (m.name === 'Calcada') {
+          // soften the black-and-white waves so characters stay readable on top of them
+          m.color.setRGB(0.8, 0.78, 0.74);
+          m.emissive.setRGB(0.15, 0.14, 0.13);
+        }
+      }
+    });
+
+    // Building footprints inside the play strip become solids.
+    const { halfW, halfD } = L.bounds;
+    for (const b of SENADO_DATA.buildings.concat(SENADO_DATA.parts)) {
+      if ((b.minH || 0) > 2.2) continue; // overhangs you can walk under
+      const pts = b.outer.map(([x, y]) => toGame(x, y));
+      const xs = pts.map((p) => p[0]);
+      const zs = pts.map((p) => p[1]);
+      if (Math.max(...xs) < -halfW - 1 || Math.min(...xs) > halfW + 1 || Math.max(...zs) < -halfD - 1 || Math.min(...zs) > halfD + 1) continue;
+      L.addPoly(pts, b.h);
+    }
+
+    // The fountain: its pool is solid cover, the ring around it is sunk below the square.
+    const f = SENADO_DATA.fountain;
+    const [fx, fz] = toGame(f.x, f.y);
+    const ring = [];
+    for (let k = 0; k < 20; k++) {
+      const a = (k / 20) * TAU;
+      ring.push([fx + Math.cos(a) * FOUNTAIN.poolOuter, fz + Math.sin(a) * FOUNTAIN.poolOuter]);
+    }
+    L.addPoly(ring, FOUNTAIN.basinTop, 'wall');
+    const floor = -FOUNTAIN.steps * FOUNTAIN.stepRise;
+    const pathR = FOUNTAIN.stepsOuter - FOUNTAIN.steps * FOUNTAIN.stepRun;
+    L.groundFn = (x, z) => {
+      const r = Math.hypot(x - fx, z - fz);
+      if (r >= FOUNTAIN.stepsOuter) return 0;
+      if (r <= pathR) return floor;
+      return -Math.ceil((FOUNTAIN.stepsOuter - r) / FOUNTAIN.stepRun) * FOUNTAIN.stepRise;
+    };
+    for (const [x, y] of SENADO_DATA.trees) {
+      const [tx, tz] = toGame(x, y);
+      L.addBox(tx, tz, 0.4, 0.4, 2.6, null, 'wall', { visible: false });
+    }
+
+    // Barriers where the strip cuts across streets, so the edge reads as an edge.
+    const barrier = L.own(new THREE.MeshStandardMaterial({ color: 0xd8d8d0, roughness: 0.6 }));
+    const stripe = L.own(new THREE.MeshStandardMaterial({ color: 0xd23a2a, roughness: 0.6 }));
+    for (const [x, z, w, d] of [
+      [-25.6, 66.5, 0.3, 7],
+      [25.6, 66.5, 0.3, 9],
+      [25.6, 40, 0.3, 10],
+      [25.6, 2, 0.3, 3],
+      [-25.6, -13, 0.3, 3],
+      [24.6, -42, 0.3, 3],
+      [-25.6, -62, 0.3, 8],
+      [-6, -73.7, 7, 0.3],
+    ]) {
+      L.deco(x, 0, z, w, 1.0, d, barrier, true);
+      L.deco(x, 0.62, z, w + 0.02, 0.16, d + 0.02, stripe);
+    }
+
+    // A bus shelter roof over the glass panel on the avenue
+    L.deco(10, 2.25, 62.6, 3.8, 0.08, 1.6, L.mat.darkMetal, true);
+    for (const x of [8.3, 11.7]) L.deco(x, 0, 62.0, 0.08, 2.25, 0.08, L.mat.darkMetal, true);
+  },
+};
+
+export const MAPS = [rooftop, club, docks, senado];

@@ -79,8 +79,16 @@ export class Waves {
 
   pickSpawn() {
     const { player, level } = this.game;
-    const far = level.spawns.filter((sp) => Math.hypot(sp.ex - player.x, sp.ez - player.z) > 7.5);
-    const pool = far.length ? far : level.spawns;
+    const dist = (sp) => Math.hypot(sp.ex - player.x, sp.ez - player.z);
+    // Not on top of the player, but not a long walk away either (the Senado strip is 148 m long).
+    let pool = level.spawns.filter((sp) => dist(sp) > 9 && dist(sp) < 45);
+    if (pool.length < 2) {
+      pool = level.spawns
+        .filter((sp) => dist(sp) > 7.5)
+        .sort((a, b) => dist(a) - dist(b))
+        .slice(0, 3);
+    }
+    if (!pool.length) pool = level.spawns;
     pool.sort((a, b) => a.lastUsed - b.lastUsed);
     const choice = pool[Math.floor(Math.random() * Math.min(2, pool.length))];
     choice.lastUsed = this.clock;

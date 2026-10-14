@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { MAPS } from './maps.js';
 import { NavGrid } from './nav.js';
-import { clamp, rand, resolveCircleAABB, segAABB, segCircle, TAU } from './utils.js';
+import { clamp, rand, resolveCircleAABB, resolveCirclePoly, segAABB, segCircle, segPoly, TAU } from './utils.js';
 import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenceTexture, floorTexture } from './textures.js';
 
 const _hit = { t: 0, nx: 0, nz: 0 };
@@ -17,13 +17,22 @@ class Barrel {
     this.variant = variant;
     this.home = [x, z];
     const gas = variant === 'gas';
-    this.r = gas ? 0.62 : 0.48;
-    this.blast = gas ? 5.6 : 4.4;
-    this.maxHp = gas ? 4 : 3;
+    const lpg = variant === 'lpg';
+    this.r = gas ? 0.62 : lpg ? 0.36 : 0.48;
+    this.blast = gas ? 5.6 : lpg ? 4.2 : 4.4;
+    this.maxHp = gas ? 4 : lpg ? 2 : 3;
     const g = new THREE.Group();
     const G = level.geo;
     const M = level.mat;
-    if (gas) {
+    if (lpg) {
+      // the LPG cylinders that sit beside every street-food stall
+      const body = new THREE.Mesh(G.lpg, M.lpg);
+      body.position.y = 0.52;
+      const collar = new THREE.Mesh(G.lpgCollar, M.darkMetal);
+      collar.position.y = 1.1;
+      g.add(body, collar);
+      this.body = body;
+    } else if (gas) {
       const body = new THREE.Mesh(G.gas, M.gas);
       body.position.y = 0.8;
       const band = new THREE.Mesh(G.gasBand, M.gasBand);
@@ -113,7 +122,7 @@ class Pan {
     });
     g.add(tilt);
     const marker = new THREE.Mesh(level.geo.panMarker, level.mat.panMarker);
-    marker.position.y = 0.025;
+    marker.position.y = 0.06;
     this.marker = marker;
     level.add(marker);
     this.tilt = tilt;
@@ -152,7 +161,7 @@ class Pan {
     this.mesh.rotation.y = this.angle;
     const air = clamp((this.y - 0.05) * 1.5, 0, 1);
     this.tilt.rotation.x = Math.sin(this.angle * 2.3) * 0.5 * air;
-    this.marker.position.set(this.x, 0.025, this.z);
+    this.marker.position.set(this.x, 0.06, this.z);
     const pulse = 0.5 + 0.5 * Math.sin(time * 3 + this.home[0]);
     this.marker.scale.setScalar(0.9 + pulse * 0.25);
   }
@@ -205,6 +214,8 @@ export class Level {
     this.beat = 0;
     this.root = null;
     this.owned = [];
+    // camera -> player cutaway, shared by every material that opts in (see maps.js)
+    this.cut = { uCutA: { value: new THREE.Vector3() }, uCutB: { value: new THREE.Vector3() }, uCutR: { value: 0 } };
     this.makeAssets();
     this.buildLights();
     this.rain = new Rain(this.scene, 900);
@@ -222,6 +233,8 @@ export class Level {
       gas: new THREE.CylinderGeometry(0.58, 0.58, 1.6, 18),
       gasBand: new THREE.CylinderGeometry(0.59, 0.59, 0.3, 18),
       gasValve: new THREE.CylinderGeometry(0.12, 0.16, 0.22, 8),
+      lpg: new THREE.CapsuleGeometry(0.3, 0.5, 6, 14),
+      lpgCollar: new THREE.CylinderGeometry(0.14, 0.18, 0.18, 10, 1, true),
       pan: new THREE.CylinderGeometry(0.38, 0.32, 0.07, 20),
       panRim: new THREE.TorusGeometry(0.38, 0.03, 6, 24),
       panHandle: new THREE.BoxGeometry(0.08, 0.05, 0.55),
@@ -254,6 +267,7 @@ export class Level {
       hazard: std({ color: 0xf2c230, emissive: 0xf2c230, emissiveIntensity: 0.35 }),
       gas: std({ color: 0xd8dde4, roughness: 0.35, metalness: 0.4 }),
       gasBand: std({ color: 0x2a6cff, emissive: 0x2a6cff, emissiveIntensity: 0.5 }),
+      lpg: std({ color: 0xe8652a, roughness: 0.45, metalness: 0.35, emissive: 0xff4400, emissiveIntensity: 0.15 }),
       pan: std({ color: 0x22242a, roughness: 0.3, metalness: 0.85 }),
       tray: std({ color: 0xb8bcc6, roughness: 0.2, metalness: 0.95 }),
       panRim: std({ color: 0xffd38a, emissive: 0xffb347, emissiveIntensity: 1.4, metalness: 0.9, roughness: 0.25 }),
@@ -275,6 +289,17 @@ export class Level {
       containerOrange: container(0xd0782a),
       curb: std({ color: 0x6a6a70, roughness: 0.95 }),
       forklift: std({ color: 0xe0b020, roughness: 0.5, metalness: 0.3 }),
+      // street furniture (Largo do Senado)
+      stall: std({ color: 0x8a5a36, roughness: 0.7 }),
+      canopyA: std({ color: 0xc8302a, roughness: 0.8, side: THREE.DoubleSide }),
+      canopyB: std({ color: 0xf2efe6, roughness: 0.8, side: THREE.DoubleSide }),
+      planter: std({ color: 0xb9b2a4, roughness: 0.9 }),
+      bush: std({ color: 0x4f7a3e, roughness: 0.95, flatShading: true }),
+      streetlamp: std({ color: 0x1d1f22, roughness: 0.5, metalness: 0.5 }),
+      lampGlass: std({ color: 0xfff6e0, emissive: 0xfff0c8, emissiveIntensity: 0.6, roughness: 0.3 }),
+      car: std({ color: 0x1a1c20, roughness: 0.3, metalness: 0.6 }),
+      carTop: std({ color: 0xe9d9a8, roughness: 0.5 }),
+      carGlass: std({ color: 0x20282e, roughness: 0.15, metalness: 0.5 }),
     };
   }
 
@@ -337,9 +362,10 @@ export class Level {
     this.props = [];
     this.pads = [];
     this.animators = [];
+    this.groundFn = null;
 
     this.applyTheme(map.theme);
-    this.buildFloor(map.floor);
+    if (map.floor !== 'none') this.buildFloor(map.floor);
     this.buildEdges(map.edges);
     for (const s of map.solids) this.addSolid(...s);
     for (const g of map.glass || []) this.addGlass(...g);
@@ -364,14 +390,24 @@ export class Level {
     this.hemi.intensity = t.hemi[2];
     this.moon.color.set(t.moon[0]);
     this.moon.intensity = t.moon[1];
-    this.moon.position.set(-14, 32, 16);
+    this.sunOffset = new THREE.Vector3(...(t.sunDir || [-14, 32, 16]));
+    this.moon.position.copy(this.sunOffset);
+    this.moon.target.position.set(0, 0, 0);
+    // Big maps keep a fixed-size shadow box that follows the camera instead
+    // of stretching one shadow map over the whole level.
+    this.shadowFollow = !!t.shadowFollow;
     const c = this.moon.shadow.camera;
     const { halfW, halfD } = this.bounds;
-    c.left = -halfW - 6;
-    c.right = halfW + 6;
-    c.top = halfD + 7;
-    c.bottom = -halfD - 7;
+    const sx = this.shadowFollow ? 42 : halfW + 6;
+    const sz = this.shadowFollow ? 42 : halfD + 7;
+    c.left = -sx;
+    c.right = sx;
+    c.top = sz;
+    c.bottom = -sz;
+    c.far = this.shadowFollow ? 160 : 100;
     c.updateProjectionMatrix();
+    this.exposure = t.exposure ?? 1.05;
+    this.bloom = t.bloom || { strength: 0.85, threshold: 0.82 };
     t.points.forEach(([color, x, y, z, intensity, distance], i) => {
       const p = this.points[i];
       p.light.color.set(color);
@@ -442,6 +478,34 @@ export class Level {
       case 'table':
         this.deco(x, h, z, 0.12, 0.12, 0.12, M.neonOrange);
         break;
+      case 'stall': {
+        // a counter with a striped canopy on poles
+        for (const sx of [-1, 1]) for (const sz of [-1, 1]) this.deco(x + sx * (w / 2 - 0.05), h, z + sz * (d / 2 - 0.05), 0.05, 1.25, 0.05, M.streetlamp);
+        const n = 6;
+        for (let i = 0; i < n; i++) {
+          this.deco(x - w / 2 - 0.15 + ((w + 0.3) * (i + 0.5)) / n, h + 1.25, z, (w + 0.3) / n, 0.05, d + 0.4, i % 2 ? M.canopyB : M.canopyA, true);
+        }
+        break;
+      }
+      case 'planter': {
+        const bush = new THREE.Mesh(this.own(new THREE.IcosahedronGeometry(Math.min(w, d) * 0.45, 0)), M.bush);
+        bush.position.set(x, h + 0.25, z);
+        bush.castShadow = true;
+        this.add(bush);
+        break;
+      }
+      case 'streetlamp':
+        // the collision box stays 30 cm; the visible post is a slim cast-iron pole
+        s.mesh.visible = false;
+        this.deco(x, 0, z, 0.24, 0.5, 0.24, M.streetlamp, true);
+        this.deco(x, 0, z, 0.11, h, 0.11, M.streetlamp, true);
+        this.deco(x, h, z, 0.55, 0.06, 0.08, M.streetlamp);
+        for (const o of [-0.26, 0.26]) this.deco(x + o, h - 0.45, z, 0.18, 0.4, 0.18, M.lampGlass);
+        break;
+      case 'car':
+        this.deco(x - w * 0.05, h, z, w * 0.55, 0.5, d * 0.92, M.carGlass, true);
+        this.deco(x - w * 0.05, h + 0.5, z, w * 0.5, 0.06, d * 0.86, M.carTop);
+        break;
       case 'forklift':
         this.deco(x, 0, z - d / 2 - 0.15, w * 0.9, 2.6, 0.18, M.darkMetal, true);
         this.deco(x - w * 0.3, 0.12, z - d / 2 - 0.65, 0.12, 0.06, 1.0, M.darkMetal);
@@ -449,6 +513,25 @@ export class Level {
         this.deco(x, h, z + d * 0.15, w, 0.08, d * 0.55, M.darkMetal, true);
         break;
     }
+    return s;
+  }
+
+  /** A solid with an arbitrary footprint: points = [[x, z], ...] in game space. */
+  addPoly(points, h, kind = 'wall') {
+    const poly = [];
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+    for (const [x, z] of points) {
+      poly.push(x, z);
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minZ = Math.min(minZ, z);
+      maxZ = Math.max(maxZ, z);
+    }
+    const s = { minX, maxX, minZ, maxZ, h, kind, alive: true, mesh: null, poly };
+    this.solids.push(s);
     return s;
   }
 
@@ -473,10 +556,10 @@ export class Level {
 
   addPad(x, z) {
     const base = new THREE.Mesh(this.geo.padBase, this.mat.padBase);
-    base.position.set(x, 0.01, z);
+    base.position.set(x, 0.05, z);
     base.receiveShadow = true;
     const ring = new THREE.Mesh(this.geo.padRing, this.mat.padRing);
-    ring.position.set(x, 0.03, z);
+    ring.position.set(x, 0.07, z);
     this.add(base);
     this.add(ring);
     this.pads.push({ x, z, pickup: null });
@@ -504,6 +587,11 @@ export class Level {
     const { halfW: W, halfD: D } = this.bounds;
     const t = 0.6;
     const side = (key, x, z, w, d) => {
+      if (!edges) {
+        // invisible boundary: the map's own buildings and barriers mark the edge
+        this.addBox(x, z, w, d, 3, null, 'wall', { visible: false });
+        return;
+      }
       const [h, matKey, trim] = edges[key];
       const length = Math.max(w, d);
       if (matKey === 'fence') {
@@ -538,7 +626,7 @@ export class Level {
     this.spawns = list.map((sp) => {
       const mat = this.own(this.mat.spawnRing.clone());
       const ring = new THREE.Mesh(this.geo.ring, mat);
-      ring.position.set(sp.ex, 0.04, sp.ez);
+      ring.position.set(sp.ex, 0.07, sp.ez);
       this.add(ring);
       let dx = sp.ex - sp.x;
       let dz = sp.ez - sp.z;
@@ -575,6 +663,19 @@ export class Level {
     this.nav.build(this.solids, 0.5);
   }
 
+  /** Segment against one solid (box or polygon footprint). */
+  segSolid(x0, z0, x1, z1, s, out) {
+    if (!s.poly) return segAABB(x0, z0, x1, z1, s, out);
+    // cheap reject on the bounding box first
+    if (Math.max(x0, x1) < s.minX || Math.min(x0, x1) > s.maxX || Math.max(z0, z1) < s.minZ || Math.min(z0, z1) > s.maxZ) return false;
+    return segPoly(x0, z0, x1, z1, s.poly, out);
+  }
+
+  /** Height of the ground (the Senado fountain sits in a sunken ring). */
+  groundY(x, z) {
+    return this.groundFn ? this.groundFn(x, z) : 0;
+  }
+
   /** Nearest static hit along a segment. */
   raycast(x0, z0, x1, z1, ignoreGlass = false) {
     let best = null;
@@ -582,7 +683,7 @@ export class Level {
     for (const s of this.solids) {
       if (!s.alive) continue;
       if (ignoreGlass && s.kind === 'glass') continue;
-      if (segAABB(x0, z0, x1, z1, s, _hit) && _hit.t < bt) {
+      if (this.segSolid(x0, z0, x1, z1, s, _hit) && _hit.t < bt) {
         bt = _hit.t;
         best = { t: _hit.t, nx: _hit.nx, nz: _hit.nz, solid: s };
       }
@@ -593,7 +694,7 @@ export class Level {
   hasLOS(x0, z0, x1, z1) {
     for (const s of this.solids) {
       if (!s.alive || s.kind === 'glass') continue;
-      if (segAABB(x0, z0, x1, z1, s, _hit)) return false;
+      if (this.segSolid(x0, z0, x1, z1, s, _hit)) return false;
     }
     return true;
   }
@@ -609,7 +710,7 @@ export class Level {
     for (const s of this.solids) {
       if (!s.alive) continue;
       if (p.x + r < s.minX || p.x - r > s.maxX || p.z + r < s.minZ || p.z - r > s.maxZ) continue;
-      if (resolveCircleAABB(p, r, s)) hit = true;
+      if (s.poly ? resolveCirclePoly(p, r, s.poly) : resolveCircleAABB(p, r, s)) hit = true;
     }
     return hit;
   }
@@ -642,7 +743,7 @@ export class Level {
     }
     this.game.audio.glass(this.game.panFor(s.x));
     this.game.score.style('GLASS', 10, false);
-    this.rebuildNav();
+    this.nav.buildRect(this.solids, 0.5, s.minX - 1, s.minZ - 1, s.maxX + 1, s.maxZ + 1);
   }
 
   resetProps() {
@@ -719,6 +820,13 @@ export class Level {
 
   updateAmbient(realDt, worldDt, cx, cz) {
     this.rain.update(worldDt, cx, cz);
+    if (this.shadowFollow) {
+      // snap to whole metres so the shadow texels do not crawl as the camera moves
+      const sx = Math.round(cx);
+      const sz = Math.round(cz);
+      this.moon.target.position.set(sx, 0, sz);
+      this.moon.position.set(sx + this.sunOffset.x, this.sunOffset.y, sz + this.sunOffset.z);
+    }
     // a beat clock that follows the (time-stretched) music
     this.beat += (realDt * this.game.audio.musicRate * 124) / 60;
     for (const fn of this.animators) fn(realDt, worldDt);

@@ -9,8 +9,8 @@ export class Player {
   constructor(game) {
     this.game = game;
     this.rig = buildCharacter({
-      body: 0xe9e9f2,
-      pants: 0x262a3e,
+      body: 0x2f9fbf,
+      pants: 0x1c2333,
       skin: 0xe2b48c,
       hair: 0x1b1b22,
       accent: 0x2ee8ff,
@@ -485,14 +485,14 @@ export class Player {
     const k = clamp(this.deathT / 0.45, 0, 1);
     const r = this.rig;
     r.inner.rotation.x = (-Math.PI / 2) * (1 - (1 - k) * (1 - k));
-    r.inner.position.y = 0.2 * k;
-    r.root.position.set(this.x, 0, this.z);
+    r.inner.position.y = 0.12 * k;
+    r.root.position.set(this.x, this.game.level.groundY(this.x, this.z), this.z);
     setFlash(r, 0);
   }
 
   syncRig() {
     const r = this.rig;
-    r.root.position.set(this.x, 0, this.z);
+    r.root.position.set(this.x, this.game.level.groundY(this.x, this.z), this.z);
     r.root.rotation.y = this.facing;
     animateRig(r, this.phase, this.moveAmt);
 

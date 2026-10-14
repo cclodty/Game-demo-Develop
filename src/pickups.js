@@ -28,7 +28,7 @@ export class Pickups {
     model.scale.setScalar(1.35);
     const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.1, 0.75, 0.2), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
     const ring = new THREE.Mesh(this.ringGeo, ringMat);
-    ring.position.y = 0.04;
+    ring.position.y = 0.075;
     const beamMat = new THREE.MeshBasicMaterial({
       color: new THREE.Color(0.16, 0.11, 0.03),
       blending: THREE.AdditiveBlending,

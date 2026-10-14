@@ -13,7 +13,7 @@ export const TYPES = {
     label: 'THUG',
     hp: 3,
     speed: 3.6,
-    radius: 0.45,
+    radius: 0.32,
     aimTime: 0.7,
     cooldown: [1.2, 2.2],
     range: [6, 13],
@@ -27,7 +27,7 @@ export const TYPES = {
     label: 'SHOTGUNNER',
     hp: 4,
     speed: 3.3,
-    radius: 0.47,
+    radius: 0.34,
     aimTime: 0.8,
     cooldown: [2.0, 2.8],
     range: [3.5, 8],
@@ -41,7 +41,7 @@ export const TYPES = {
     label: 'RIFLEMAN',
     hp: 3,
     speed: 3.2,
-    radius: 0.45,
+    radius: 0.32,
     aimTime: 0.95,
     cooldown: [2.2, 3.2],
     range: [10, 18],
@@ -55,7 +55,7 @@ export const TYPES = {
     label: 'BLADE',
     hp: 2,
     speed: 6.6,
-    radius: 0.42,
+    radius: 0.3,
     weapon: 'blade',
     score: 120,
     turn: 10,
@@ -65,7 +65,7 @@ export const TYPES = {
     label: 'BRUTE',
     hp: 20,
     speed: 2.1,
-    radius: 0.72,
+    radius: 0.48,
     aimTime: 1.1,
     cooldown: [2.6, 3.4],
     range: [5, 11],
@@ -74,7 +74,7 @@ export const TYPES = {
     lead: [0.3, 0.8],
     turn: 2.2,
     heavy: true,
-    look: { body: 0x3b3e48, pants: 0x22242c, accent: 0xff3a2a, hair: 0x55585f, weapon: 'minigun', scale: 1.4 },
+    look: { body: 0x3b3e48, pants: 0x22242c, accent: 0xff3a2a, hair: 0x55585f, weapon: 'minigun', scale: 1.25 },
   },
 };
 
@@ -609,7 +609,7 @@ class Enemy {
 
   sync() {
     const r = this.rig;
-    r.root.position.set(this.x, this.y, this.z);
+    r.root.position.set(this.x, this.y + this.game.level.groundY(this.x, this.z), this.z);
     r.root.rotation.y = this.facing;
     animateRig(r, this.phase, this.moveAmt);
     setFlash(r, this.flash * 2.5);
@@ -654,8 +654,8 @@ class Enemy {
     r.root.rotation.y += this.corpseSpin * dt * clamp(Math.hypot(this.vx, this.vz) / 5, 0, 1);
     const k = clamp(this.corpseT / 0.4, 0, 1);
     r.inner.rotation.x = -Math.PI / 2 * (1 - (1 - k) * (1 - k));
-    r.inner.position.y = 0.2 * this.rig.scale * k;
-    r.root.position.set(this.x, this.y, this.z);
+    r.inner.position.y = 0.12 * this.rig.scale * k;
+    r.root.position.set(this.x, this.y + this.game.level.groundY(this.x, this.z), this.z);
     setFlash(r, Math.max(0, 1 - this.corpseT * 4) * 2);
     animateRig(r, 0, 0);
     if (!this.pooled && this.corpseT > 0.7) {

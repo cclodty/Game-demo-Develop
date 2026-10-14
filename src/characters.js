@@ -14,15 +14,40 @@ function box(w, h, d, tx = 0, ty = 0, tz = 0) {
   }
   return g;
 }
-const ringGeo = new THREE.RingGeometry(0.58, 0.7, 36).rotateX(-Math.PI / 2);
 const woodMat = new THREE.MeshStandardMaterial({ color: 0x5a3a22, roughness: 0.7 });
 
-export const SHOULDER_X = 0.41;
-export const SHOULDER_Y = 1.38;
+/**
+ * Body proportions in metres (1 unit = 1 m, the same scale as the Senado
+ * model). Roughly a 1.78 m adult with 0.46 m shoulders, close to the scale
+ * figure used by the Senado viewer. Change these to restyle every character.
+ */
+export const BODY = {
+  hip: 0.9, // leg length
+  legW: 0.15,
+  legD: 0.17,
+  legGap: 0.095,
+  torsoW: 0.44,
+  torsoH: 0.56,
+  torsoD: 0.24,
+  torsoY: 1.18, // torso centre
+  headW: 0.2,
+  headH: 0.23,
+  headD: 0.22,
+  headY: 1.6, // head centre; hair tops out at ~1.78 m
+  shoulderX: 0.27,
+  shoulderY: 1.4,
+  armW: 0.095,
+  armLen: 0.58,
+  ring: [0.4, 0.5], // glowing ground ring under each character
+};
+
+export const SHOULDER_X = BODY.shoulderX;
+export const SHOULDER_Y = BODY.shoulderY;
 export const MUZZLE_Z = 0.95;
 
-const ANCHOR = { x: -0.18, y: SHOULDER_Y - 0.04, z: 0.28 };
-const CENTER = { x: 0, y: SHOULDER_Y - 0.06, z: 0.35 };
+const ringGeo = new THREE.RingGeometry(BODY.ring[0], BODY.ring[1], 36).rotateX(-Math.PI / 2);
+const ANCHOR = { x: -0.12, y: SHOULDER_Y - 0.04, z: 0.22 };
+const CENTER = { x: 0, y: SHOULDER_Y - 0.06, z: 0.3 };
 
 /**
  * Weapon models. `hold` says where the parts attach:
@@ -33,17 +58,17 @@ const CENTER = { x: 0, y: SHOULDER_Y - 0.06, z: 0.35 };
  * Parts are [w, h, d, x, y, z, material]; `end` is the barrel tip along z.
  */
 export const MODELS = {
-  dualPistol: { hold: 'dual', end: 0.95, parts: [[0.09, 0.15, 0.36, 0, 0.06, 0.76, 'gun']] },
+  dualPistol: { hold: 'dual', end: 0.9, parts: [[0.07, 0.13, 0.3, 0, 0.05, 0.74, 'gun']] },
   dualSmg: {
     hold: 'dual',
     end: 1.04,
     parts: [
-      [0.1, 0.16, 0.44, 0, 0.06, 0.8, 'gun'],
-      [0.06, 0.22, 0.08, 0, -0.08, 0.7, 'gun'],
-      [0.11, 0.03, 0.2, 0, 0.15, 0.82, 'accent'],
+      [0.08, 0.14, 0.4, 0, 0.05, 0.78, 'gun'],
+      [0.05, 0.2, 0.07, 0, -0.08, 0.68, 'gun'],
+      [0.09, 0.03, 0.18, 0, 0.13, 0.8, 'accent'],
     ],
   },
-  pistol: { hold: 'right', end: 0.95, parts: [[0.09, 0.15, 0.36, 0, 0.06, 0.76, 'gun']] },
+  pistol: { hold: 'right', end: 0.9, parts: [[0.07, 0.13, 0.3, 0, 0.05, 0.74, 'gun']] },
   shotgun: {
     hold: 'anchor',
     end: 1.02,
@@ -95,11 +120,11 @@ export const MODELS = {
 };
 
 const POSES = {
-  dual: { lx: 0, ly: 0.05, rx: 0, ry: -0.05 },
-  right: { lx: 1.25, ly: 0, rx: 0, ry: 0 },
-  anchor: { lx: 0, ly: -0.75, rx: 0, ry: 0.35 },
-  center: { lx: 0, ly: -0.35, rx: 0, ry: 0.35 },
-  blade: { lx: 0.9, ly: 0, rx: 0.5, ry: 0 },
+  dual: { lx: 0, ly: 0.04, rx: 0, ry: -0.04 },
+  right: { lx: 1.3, ly: 0, rx: 0, ry: 0 },
+  anchor: { lx: 0, ly: -0.62, rx: 0, ry: 0.28 },
+  center: { lx: 0, ly: -0.3, rx: 0, ry: 0.3 },
+  blade: { lx: 0.95, ly: 0, rx: 0.5, ry: 0 },
 };
 
 function partMesh(p, mats) {
@@ -192,31 +217,33 @@ export function buildCharacter(options) {
   inner.scale.setScalar(o.scale);
   root.add(inner);
 
-  const legL = new THREE.Mesh(box(0.22, 0.8, 0.26, 0, -0.4, 0), mats.pants);
-  legL.position.set(0.15, 0.8, 0);
-  const legR = new THREE.Mesh(box(0.22, 0.8, 0.26, 0, -0.4, 0), mats.pants);
-  legR.position.set(-0.15, 0.8, 0);
+  const B = BODY;
+  const legL = new THREE.Mesh(box(B.legW, B.hip, B.legD, 0, -B.hip / 2, 0), mats.pants);
+  legL.position.set(B.legGap, B.hip, 0);
+  const legR = new THREE.Mesh(box(B.legW, B.hip, B.legD, 0, -B.hip / 2, 0), mats.pants);
+  legR.position.set(-B.legGap, B.hip, 0);
 
   const torso = new THREE.Group();
-  torso.position.y = 1.16;
-  torso.add(new THREE.Mesh(box(0.66, 0.68, 0.38), mats.body));
-  const padL = new THREE.Mesh(box(0.2, 0.07, 0.32), mats.accent);
-  padL.position.set(0.27, 0.36, 0);
-  const padR = new THREE.Mesh(box(0.2, 0.07, 0.32), mats.accent);
-  padR.position.set(-0.27, 0.36, 0);
+  torso.position.y = B.torsoY;
+  torso.add(new THREE.Mesh(box(B.torsoW, B.torsoH, B.torsoD), mats.body));
+  const padW = B.torsoW * 0.34;
+  const padL = new THREE.Mesh(box(padW, 0.05, B.torsoD * 0.9), mats.accent);
+  padL.position.set(B.torsoW / 2 - padW / 2, B.torsoH / 2 + 0.02, 0);
+  const padR = new THREE.Mesh(box(padW, 0.05, B.torsoD * 0.9), mats.accent);
+  padR.position.set(-B.torsoW / 2 + padW / 2, B.torsoH / 2 + 0.02, 0);
   torso.add(padL, padR);
 
   const head = new THREE.Group();
-  head.position.y = 1.72;
-  head.add(new THREE.Mesh(box(0.36, 0.36, 0.36), mats.skin));
-  head.add(new THREE.Mesh(box(0.4, 0.13, 0.4, 0, 0.17, -0.01), mats.hair));
-  head.add(new THREE.Mesh(box(0.34, 0.07, 0.05, 0, 0.03, 0.185), mats.accent));
+  head.position.y = B.headY;
+  head.add(new THREE.Mesh(box(B.headW, B.headH, B.headD), mats.skin));
+  head.add(new THREE.Mesh(box(B.headW + 0.03, 0.08, B.headD + 0.03, 0, B.headH / 2 + 0.02, -0.01), mats.hair));
+  head.add(new THREE.Mesh(box(B.headW * 0.92, 0.045, 0.03, 0, 0.02, B.headD / 2 + 0.01), mats.accent));
 
   const makeArm = (side) => {
     const g = new THREE.Group();
     g.position.set(side * SHOULDER_X, SHOULDER_Y, 0);
-    g.add(new THREE.Mesh(box(0.15, 0.15, 0.6, 0, 0, 0.27), mats.body));
-    g.add(new THREE.Mesh(box(0.13, 0.13, 0.13, 0, 0, 0.62), mats.skin));
+    g.add(new THREE.Mesh(box(B.armW, B.armW, B.armLen, 0, 0, B.armLen / 2 - 0.03), mats.body));
+    g.add(new THREE.Mesh(box(0.085, 0.085, 0.085, 0, 0, B.armLen), mats.skin));
     return g;
   };
   const armL = makeArm(1);
@@ -231,14 +258,15 @@ export function buildCharacter(options) {
     if (m.isMesh) m.castShadow = true;
   });
 
+  // normal (not additive) blending so the ring also shows on pale daylight paving
   const ringMat = new THREE.MeshBasicMaterial({
     color: new THREE.Color(o.accent).multiplyScalar(o.ring),
-    blending: THREE.AdditiveBlending,
     transparent: true,
+    opacity: 0.9,
     depthWrite: false,
   });
   const ring = new THREE.Mesh(ringGeo, ringMat);
-  ring.position.y = 0.03;
+  ring.position.y = 0.065;
   ring.scale.setScalar(o.scale);
   root.add(ring);
 
@@ -249,10 +277,11 @@ export function buildCharacter(options) {
 
 export function animateRig(rig, phase, moveAmt) {
   const swing = Math.sin(phase) * 0.75 * moveAmt;
+  const bob = Math.abs(Math.cos(phase)) * 0.04 * moveAmt;
   rig.legL.rotation.x = swing;
   rig.legR.rotation.x = -swing;
-  rig.torso.position.y = 1.16 + Math.abs(Math.cos(phase)) * 0.05 * moveAmt;
-  rig.head.position.y = 1.72 + Math.abs(Math.cos(phase)) * 0.05 * moveAmt;
+  rig.torso.position.y = BODY.torsoY + bob;
+  rig.head.position.y = BODY.headY + bob;
 }
 
 export function setFlash(rig, v) {

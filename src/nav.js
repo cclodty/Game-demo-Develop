@@ -1,5 +1,7 @@
 // Grid A* used by enemies to walk around cover.
 
+import { pointInPoly, polyDist2 } from './utils.js';
+
 export class NavGrid {
   constructor(minX, minZ, maxX, maxZ, cell) {
     this.minX = minX;
@@ -19,19 +21,31 @@ export class NavGrid {
   }
 
   build(solids, inflate) {
+    this.buildRect(solids, inflate, -Infinity, -Infinity, Infinity, Infinity);
+  }
+
+  /** (Re)compute blocked cells whose centres fall inside the given rectangle. */
+  buildRect(solids, inflate, x0, z0, x1, z1) {
     const { cols, rows, cell } = this;
-    this.blocked.fill(0);
-    for (let r = 0; r < rows; r++) {
+    const c0 = Math.max(0, Math.floor((x0 - this.minX) / cell));
+    const c1 = Math.min(cols - 1, Math.ceil((x1 - this.minX) / cell));
+    const r0 = Math.max(0, Math.floor((z0 - this.minZ) / cell));
+    const r1 = Math.min(rows - 1, Math.ceil((z1 - this.minZ) / cell));
+    const inf2 = inflate * inflate;
+    for (let r = r0; r <= r1; r++) {
       const z = this.minZ + (r + 0.5) * cell;
-      for (let c = 0; c < cols; c++) {
+      for (let c = c0; c <= c1; c++) {
         const x = this.minX + (c + 0.5) * cell;
+        let blocked = 0;
         for (const s of solids) {
           if (!s.alive) continue;
-          if (x > s.minX - inflate && x < s.maxX + inflate && z > s.minZ - inflate && z < s.maxZ + inflate) {
-            this.blocked[r * cols + c] = 1;
+          if (x <= s.minX - inflate || x >= s.maxX + inflate || z <= s.minZ - inflate || z >= s.maxZ + inflate) continue;
+          if (!s.poly || pointInPoly(x, z, s.poly) || polyDist2(x, z, s.poly) < inf2) {
+            blocked = 1;
             break;
           }
         }
+        this.blocked[r * cols + c] = blocked;
       }
     }
   }

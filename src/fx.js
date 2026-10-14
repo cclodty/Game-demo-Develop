@@ -50,7 +50,7 @@ class ParticlePool {
     p.grav = o.grav || 0;
     p.drag = o.drag || 0;
     p.bounce = o.bounce || 0;
-    p.floor = o.floor ?? 0.02;
+    p.floor = o.floor ?? 0.06;
     p.stretch = o.stretch || 0;
     p.shrink = o.shrink ?? true;
     p.grow = o.grow || 0;
@@ -294,7 +294,8 @@ export class FX {
   decal(x, z, size, r, g, b) {
     const i = this.decalIdx;
     _q.setFromAxisAngle(_v.set(0, 1, 0), rand(0, TAU));
-    _m.compose(_p.set(x, 0.012 + (i % 16) * 0.0006, z), _q, _s.set(size, 1, size * rand(0.55, 1)));
+    // above the Senado paving, which sits 4 cm over the ground
+    _m.compose(_p.set(x, this.game.level.groundY(x, z) + 0.052 + (i % 16) * 0.0006, z), _q, _s.set(size, 1, size * rand(0.55, 1)));
     this.decals.setMatrixAt(i, _m);
     this.decals.instanceColor.setXYZ(i, r, g, b);
     this.decalIdx = (i + 1) % this.decalMax;
