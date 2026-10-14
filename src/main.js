@@ -18,6 +18,7 @@ import { Grenades } from './weapons.js';
 
 const MAP_KEY = 'bullet-ballet.map';
 const VIEW_KEY = 'bullet-ballet.view';
+const DEFAULT_VIEW = VIEWS.findIndex((v) => v.id === 'iso');
 
 const $ = (id) => document.getElementById(id);
 
@@ -34,11 +35,13 @@ class Game {
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(CAMERA.fov, innerWidth / innerHeight, 0.5, 400);
-    this.view = 0;
+    // 45° side view by default; V cycles the others and the choice is remembered
+    this.view = DEFAULT_VIEW;
     try {
-      this.view = Math.min(VIEWS.length - 1, Math.max(0, Number(localStorage.getItem(VIEW_KEY)) || 0));
+      const saved = localStorage.getItem(VIEW_KEY);
+      if (saved !== null) this.view = clamp(Math.floor(Number(saved)) || 0, 0, VIEWS.length - 1);
     } catch {
-      this.view = 0;
+      /* storage unavailable */
     }
     this.camPitch = 1;
     this.camYaw = 0;
@@ -132,10 +135,25 @@ class Game {
       if (performance.now() - this.overAt > 700) start();
     });
     $('pause').addEventListener('click', () => this.setPaused(false));
+    const menu = {
+      resume: () => this.setPaused(false),
+      restart: () => start(),
+      title: () => this.toTitle(),
+    };
+    for (const b of document.querySelectorAll('.menu button')) {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu[b.dataset.act]();
+      });
+    }
     addEventListener('keydown', (e) => {
       if (e.code === 'Escape' || e.code === 'KeyP') {
         if (this.state === 'playing') this.setPaused(true);
         else if (this.state === 'paused') this.setPaused(false);
+      } else if (e.code === 'KeyR' && this.state === 'paused') {
+        start();
+      } else if (e.code === 'KeyT') {
+        if (this.state === 'paused' || (this.state === 'over' && performance.now() - this.overAt > 700)) this.toTitle();
       } else if (e.code === 'KeyV' && this.state !== 'paused') {
         this.cycleView();
       } else if (e.code === 'KeyM') {
@@ -167,6 +185,38 @@ class Game {
     } catch {
       /* storage unavailable */
     }
+    this.resetWorld(MAPS[mapIndex]);
+    this.score.reset();
+    this.waves.reset();
+    this.hud.reset();
+    this.state = 'playing';
+    $('title').classList.add('hidden');
+    $('gameover').classList.add('hidden');
+    $('pause').classList.add('hidden');
+    document.body.classList.add('playing');
+    this.hud.show(true);
+    this.audio.resume();
+    this.updateCamera(1, true);
+    this.last = performance.now();
+  }
+
+  /** Abandon the run (from pause or game over) and go back to the map select. */
+  toTitle() {
+    this.resetWorld(this.level.map);
+    this.state = 'title';
+    $('pause').classList.add('hidden');
+    $('gameover').classList.add('hidden');
+    $('title').classList.remove('hidden');
+    $('title').scrollTop = 0;
+    document.body.classList.remove('playing');
+    this.hud.show(false);
+    this.audio.resume();
+    this.updateCamera(1, true);
+    this.last = performance.now();
+  }
+
+  /** Clear everything a run leaves behind and stand the player at the map's start. */
+  resetWorld(map) {
     this.stage = 0;
     this.transition = null;
     $('fade').classList.remove('on');
@@ -175,17 +225,14 @@ class Game {
     this.grenades.clear();
     this.pickups.clear();
     this.fx.clear();
-    if (this.level.map !== MAPS[mapIndex]) {
-      this.level.load(MAPS[mapIndex]);
+    if (this.level.map !== map) {
+      this.level.load(map);
       this.applyMapView();
       this.renderer.compile(this.scene, this.camera);
     } else {
       this.level.resetProps();
     }
     this.player.reset();
-    this.score.reset();
-    this.waves.reset();
-    this.hud.reset();
     this.focusActive = false;
     this.focusAmt = 0;
     this.focusMeter = 1;
@@ -198,15 +245,7 @@ class Game {
     this.deathT = 0;
     this.worldTime = 0;
     this.lastKillAt = -9;
-    this.state = 'playing';
-    $('title').classList.add('hidden');
-    $('gameover').classList.add('hidden');
-    $('pause').classList.add('hidden');
-    document.body.classList.add('playing');
-    this.hud.show(true);
     this.audio.setSlow(0);
-    this.updateCamera(1, true);
-    this.last = performance.now();
   }
 
   cycleView() {
@@ -271,6 +310,8 @@ class Game {
   setPaused(on) {
     if (on && this.state === 'playing') {
       this.state = 'paused';
+      const m = this.stageMap;
+      $('pause-info').textContent = `${m.name} · 第 ${Math.max(1, this.waves.wave)} 波 · ${Math.round(this.score.score).toLocaleString('en-US')} 分`;
       $('pause').classList.remove('hidden');
       document.body.classList.remove('playing');
       this.input.releaseAll();

@@ -871,7 +871,59 @@ body.playing * {
 }
 
 #pause p {
+  margin: 10px 0 0;
   color: var(--dim);
+  letter-spacing: 1px;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 3px solid var(--pink);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+
+.menu button:hover,
+.menu button:focus-visible {
+  background: rgba(255, 63, 164, 0.14);
+  transform: translateX(3px);
+  outline: none;
+}
+
+.menu kbd {
+  min-width: 34px;
+  padding: 2px 8px;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: normal;
+  letter-spacing: 2px;
+  color: var(--gold);
+  border: 1px solid rgba(255, 200, 97, 0.4);
+  border-radius: 3px;
+}
+
+#gameover .menu {
+  margin-top: 14px;
 }
 
 @media (max-width: 720px) {
