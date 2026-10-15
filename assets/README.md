@@ -6,10 +6,12 @@
 
 | 檔案 | 內容 |
 |---|---|
+| [START_HERE.md](START_HERE.md) | 給 AI 建模工具（Dots／ChatGPT）的英文說明：項目背景、硬性規定、交付格式、製作次序 |
 | [SPEC.md](SPEC.md) | 比例尺寸與交付規格：人物、武器、地圖的尺寸，母版要求，轉引擎須知 |
 | [PROMPTS.md](PROMPTS.md) | 71 件物件的提示詞（參考圖＋3D 模型），按類別和優先次序排列 |
 | [asset-list.json](asset-list.json) / [.csv](asset-list.csv) | 同一份清單的機器可讀版（任何引擎都能讀）／試算表版 |
 | [maps/](maps/) | 四張地圖的佈局（米），供本遊戲或其他引擎使用 |
+| [screenshots/](screenshots/) | 遊戲現況（方塊版）的截圖：四張地圖的實際鏡頭，以及一張側面比例參考 |
 
 PROMPTS、asset-list 和 maps 都由 `npm run assets:docs` 從 `src/asset-manifest.js` 和 `src/maps.js` 生成。要加減物件或改尺寸，改那兩個檔案再重新生成。
 
