@@ -29,18 +29,21 @@ export const MODELS = {
   "brute": {
     "id": "brute",
     "file": "brute.glb",
-    "bytes": 215780,
-    "tris": 7981,
+    "bytes": 688168,
+    "tris": 11636,
     "size": [
-      1.648,
+      1.453,
       2,
-      0.586
+      0.516
     ],
     "skinned": true,
     "clips": [
+      "crouch_idle",
+      "crouch_walk",
       "death",
       "idle",
-      "run"
+      "run",
+      "walk"
     ]
   },
   "car": {
@@ -137,18 +140,21 @@ export const MODELS = {
   "grunt": {
     "id": "grunt",
     "file": "grunt.glb",
-    "bytes": 195804,
-    "tris": 5958,
+    "bytes": 659368,
+    "tris": 10922,
     "size": [
-      1.287,
+      1.133,
       2,
-      0.592
+      0.4
     ],
     "skinned": true,
     "clips": [
+      "crouch_idle",
+      "crouch_walk",
       "death",
       "idle",
-      "run"
+      "run",
+      "walk"
     ]
   },
   "guardhut": {
@@ -167,18 +173,21 @@ export const MODELS = {
   "hero": {
     "id": "hero",
     "file": "hero.glb",
-    "bytes": 236628,
-    "tris": 10000,
+    "bytes": 676532,
+    "tris": 10988,
     "size": [
-      1.351,
+      1.187,
       2,
-      0.554
+      0.397
     ],
     "skinned": true,
     "clips": [
+      "crouch_idle",
+      "crouch_walk",
       "death",
       "idle",
-      "run"
+      "run",
+      "walk"
     ]
   },
   "hut": {
@@ -262,52 +271,61 @@ export const MODELS = {
   "rifle": {
     "id": "rifle",
     "file": "rifle.glb",
-    "bytes": 196232,
-    "tris": 5966,
+    "bytes": 799016,
+    "tris": 14508,
     "size": [
-      1.375,
+      1.164,
       2,
-      0.552
+      0.443
     ],
     "skinned": true,
     "clips": [
+      "crouch_idle",
+      "crouch_walk",
       "death",
       "idle",
-      "run"
+      "run",
+      "walk"
     ]
   },
   "rusher": {
     "id": "rusher",
     "file": "rusher.glb",
-    "bytes": 193932,
-    "tris": 5998,
+    "bytes": 773196,
+    "tris": 13700,
     "size": [
-      1.237,
+      1.093,
       2,
-      0.554
+      0.39
     ],
     "skinned": true,
     "clips": [
+      "crouch_idle",
+      "crouch_walk",
       "death",
       "idle",
-      "run"
+      "run",
+      "walk"
     ]
   },
   "shotgun": {
     "id": "shotgun",
     "file": "shotgun.glb",
-    "bytes": 196048,
-    "tris": 5954,
+    "bytes": 665136,
+    "tris": 10516,
     "size": [
-      1.498,
+      1.24,
       2,
-      0.55
+      0.49
     ],
     "skinned": true,
     "clips": [
+      "crouch_idle",
+      "crouch_walk",
       "death",
       "idle",
-      "run"
+      "run",
+      "walk"
     ]
   },
   "sofa": {
