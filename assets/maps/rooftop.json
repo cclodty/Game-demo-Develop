@@ -1,0 +1,431 @@
+{
+  "format": 1,
+  "id": "rooftop",
+  "name": "霓虹天台",
+  "en": "NEON ROOFTOP",
+  "note": "Generated from src/maps.js by scripts/asset-docs.mjs. Metres; x east, y up, z south (towards the default camera); origin at the centre of the playable area. Boxes are axis-aligned: x, z = centre, w along x, d along z, h tall from the ground. \"asset\" is the id in assets/asset-list.json.",
+  "playable": {
+    "width": 44,
+    "depth": 30
+  },
+  "start": {
+    "x": 0,
+    "z": 4
+  },
+  "camera": {
+    "distance": 22.7,
+    "fov": 40,
+    "topDownPitch": 59.25,
+    "views": [
+      {
+        "id": "top",
+        "name": "俯視",
+        "en": "TOP-DOWN"
+      },
+      {
+        "id": "tilt",
+        "name": "45° 俯視",
+        "en": "45° TILT",
+        "pitch": 45,
+        "yaw": 0
+      },
+      {
+        "id": "iso",
+        "name": "45° 側俯視",
+        "en": "45° SIDE",
+        "pitch": 45,
+        "yaw": -45
+      }
+    ],
+    "defaultView": "iso"
+  },
+  "lighting": {
+    "background": "#0a0816",
+    "fog": {
+      "color": "#0d0a1c",
+      "density": 0.011
+    },
+    "hemisphere": {
+      "sky": "#8c80ff",
+      "ground": "#1c1020",
+      "intensity": 1.1
+    },
+    "sun": {
+      "color": "#c4d2ff",
+      "intensity": 1.6,
+      "direction": [
+        -14,
+        32,
+        16
+      ]
+    },
+    "points": [
+      {
+        "color": "#ff3fa4",
+        "x": 0,
+        "y": 3.5,
+        "z": -16.5,
+        "intensity": 90,
+        "distance": 34
+      },
+      {
+        "color": "#3fe6ff",
+        "x": -23,
+        "y": 2.5,
+        "z": 6,
+        "intensity": 60,
+        "distance": 26
+      },
+      {
+        "color": "#3fe6ff",
+        "x": 23,
+        "y": 2.5,
+        "z": 6,
+        "intensity": 60,
+        "distance": 26
+      },
+      {
+        "color": "#ffa040",
+        "x": 0,
+        "y": 4,
+        "z": 16.5,
+        "intensity": 50,
+        "distance": 26
+      }
+    ],
+    "rain": true
+  },
+  "floor": "concrete",
+  "edges": {
+    "n": {
+      "height": 1,
+      "kind": "parapet",
+      "trim": "neonPink"
+    },
+    "s": {
+      "height": 0.8,
+      "kind": "parapet",
+      "trim": "neonCyan"
+    },
+    "w": {
+      "height": 1,
+      "kind": "parapet",
+      "trim": "neonCyan"
+    },
+    "e": {
+      "height": 1,
+      "kind": "parapet",
+      "trim": "neonCyan"
+    }
+  },
+  "solids": [
+    {
+      "kind": "crate",
+      "asset": "crate",
+      "x": -7.5,
+      "z": -5,
+      "w": 2,
+      "d": 2,
+      "h": 1.7
+    },
+    {
+      "kind": "crate",
+      "asset": "crate",
+      "x": -5.9,
+      "z": -5.6,
+      "w": 1.2,
+      "d": 1.2,
+      "h": 1.1
+    },
+    {
+      "kind": "crate",
+      "asset": "crate",
+      "x": 7.5,
+      "z": -5,
+      "w": 2,
+      "d": 2,
+      "h": 1.7
+    },
+    {
+      "kind": "crate",
+      "asset": "crate",
+      "x": 9.1,
+      "z": -4.4,
+      "w": 1.2,
+      "d": 1.2,
+      "h": 1.1
+    },
+    {
+      "kind": "crate",
+      "asset": "crate",
+      "x": -18,
+      "z": 10,
+      "w": 1.6,
+      "d": 1.6,
+      "h": 1.4
+    },
+    {
+      "kind": "crate",
+      "asset": "crate",
+      "x": 18,
+      "z": 10,
+      "w": 1.6,
+      "d": 1.6,
+      "h": 1.4
+    },
+    {
+      "kind": "crate",
+      "asset": "crate",
+      "x": -2.5,
+      "z": 11.5,
+      "w": 1.4,
+      "d": 1.4,
+      "h": 1.3
+    },
+    {
+      "kind": "concrete",
+      "asset": "concrete",
+      "x": 0,
+      "z": -8,
+      "w": 7,
+      "d": 0.6,
+      "h": 1.25
+    },
+    {
+      "kind": "concrete",
+      "asset": "concrete",
+      "x": -10.5,
+      "z": 9,
+      "w": 0.6,
+      "d": 4.5,
+      "h": 1.25
+    },
+    {
+      "kind": "concrete",
+      "asset": "concrete",
+      "x": 10.5,
+      "z": 9,
+      "w": 0.6,
+      "d": 4.5,
+      "h": 1.25
+    },
+    {
+      "kind": "pillar",
+      "asset": "pillar",
+      "x": -4.5,
+      "z": 2.5,
+      "w": 1,
+      "d": 1,
+      "h": 3.4
+    },
+    {
+      "kind": "pillar",
+      "asset": "pillar",
+      "x": 4.5,
+      "z": 2.5,
+      "w": 1,
+      "d": 1,
+      "h": 3.4
+    },
+    {
+      "kind": "unit",
+      "asset": "unit",
+      "x": -14,
+      "z": 4,
+      "w": 2.8,
+      "d": 1.8,
+      "h": 1.5
+    },
+    {
+      "kind": "unit",
+      "asset": "unit",
+      "x": 14,
+      "z": 4,
+      "w": 2.8,
+      "d": 1.8,
+      "h": 1.5
+    },
+    {
+      "kind": "unit",
+      "asset": "unit",
+      "x": -17,
+      "z": -6,
+      "w": 1.4,
+      "d": 1.4,
+      "h": 1
+    },
+    {
+      "kind": "unit",
+      "asset": "unit",
+      "x": 17,
+      "z": -6,
+      "w": 1.4,
+      "d": 1.4,
+      "h": 1
+    },
+    {
+      "kind": "hut",
+      "asset": "hut",
+      "x": -13,
+      "z": -13.5,
+      "w": 4,
+      "d": 3,
+      "h": 2.9
+    },
+    {
+      "kind": "hut",
+      "asset": "hut",
+      "x": 13,
+      "z": -13.5,
+      "w": 4,
+      "d": 3,
+      "h": 2.9
+    }
+  ],
+  "glass": [
+    {
+      "x": 0,
+      "z": -12.4,
+      "w": 6,
+      "d": 0.25,
+      "h": 1.9
+    },
+    {
+      "x": -19.5,
+      "z": -2.5,
+      "w": 0.25,
+      "d": 4,
+      "h": 1.9
+    },
+    {
+      "x": 19.5,
+      "z": -2.5,
+      "w": 0.25,
+      "d": 4,
+      "h": 1.9
+    },
+    {
+      "x": 0,
+      "z": 7,
+      "w": 5,
+      "d": 0.25,
+      "h": 1.9
+    }
+  ],
+  "barrels": [
+    {
+      "asset": "barrel",
+      "x": -6,
+      "z": -3.4
+    },
+    {
+      "asset": "barrel",
+      "x": 11.8,
+      "z": 6.2
+    },
+    {
+      "asset": "barrel",
+      "x": -12,
+      "z": -2
+    },
+    {
+      "asset": "barrel",
+      "x": 3.5,
+      "z": -10
+    },
+    {
+      "asset": "barrel",
+      "x": -19.5,
+      "z": 13
+    },
+    {
+      "asset": "barrel",
+      "x": 5.2,
+      "z": 12.4
+    },
+    {
+      "asset": "barrel",
+      "x": 15.5,
+      "z": -9.5
+    }
+  ],
+  "pans": [
+    {
+      "asset": "pan",
+      "x": -2.5,
+      "z": -1.5
+    },
+    {
+      "asset": "pan",
+      "x": 2.5,
+      "z": -1.5
+    },
+    {
+      "asset": "pan",
+      "x": -12.5,
+      "z": -8.5
+    },
+    {
+      "asset": "pan",
+      "x": 12.5,
+      "z": -8.5
+    },
+    {
+      "asset": "pan",
+      "x": -16,
+      "z": 7
+    },
+    {
+      "asset": "pan",
+      "x": 16,
+      "z": 7
+    }
+  ],
+  "weaponPads": [
+    {
+      "x": -9,
+      "z": 1
+    },
+    {
+      "x": 9,
+      "z": 1
+    }
+  ],
+  "spawns": [
+    {
+      "x": -13,
+      "z": -11.4,
+      "ex": -13,
+      "ez": -9.2,
+      "kind": "door"
+    },
+    {
+      "x": 13,
+      "z": -11.4,
+      "ex": 13,
+      "ez": -9.2,
+      "kind": "door"
+    },
+    {
+      "x": -21.4,
+      "z": 3.5,
+      "ex": -18.6,
+      "ez": 3.5,
+      "kind": "ledge"
+    },
+    {
+      "x": 21.4,
+      "z": 3.5,
+      "ex": 18.6,
+      "ez": 3.5,
+      "kind": "ledge"
+    },
+    {
+      "x": 7.5,
+      "z": 14.4,
+      "ex": 7.5,
+      "ez": 11.6,
+      "kind": "ledge"
+    }
+  ]
+}

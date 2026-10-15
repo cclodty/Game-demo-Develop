@@ -1,6 +1,8 @@
-// Map data. Every map lists its cover as [x, z, width, depth, height, material]
-// (x right, z toward the camera), plus glass, barrels, pans, weapon pads and
-// spawn points. `decorate` adds the non-colliding scenery and animations.
+// Map data. Every map lists its cover as [x, z, width, depth, height, material,
+// facing?] (x right, z toward the camera; facing is where a made model's front
+// points, in degrees: 0 south, 90 east, 180 north, 270 west), plus glass,
+// barrels, pans, weapon pads and spawn points. `decorate` adds the
+// non-colliding scenery and animations.
 
 import * as THREE from 'three';
 import { Pigeons } from './ambient.js';
@@ -200,16 +202,16 @@ const club = {
     [8.5, -5.5, 1, 1, 3.2, 'pillar'],
     [-8.5, 5, 1, 1, 3.2, 'pillar'],
     [8.5, 5, 1, 1, 3.2, 'pillar'],
-    [17.6, -4, 1.4, 4.4, 0.9, 'sofa'],
-    [17.6, 4, 1.4, 4.4, 0.9, 'sofa'],
+    [17.6, -4, 1.4, 4.4, 0.9, 'sofa', 270],
+    [17.6, 4, 1.4, 4.4, 0.9, 'sofa', 270],
     [15.4, -4, 1, 1.2, 0.8, 'table'],
     [15.4, 4, 1, 1.2, 0.8, 'table'],
-    [-17.6, 3, 1.4, 5, 0.9, 'sofa'],
+    [-17.6, 3, 1.4, 5, 0.9, 'sofa', 90],
     [-15.4, 3, 1, 1.2, 0.8, 'table'],
     [-4.5, 10, 1.3, 1.3, 1.7, 'speaker'],
     [4.5, 10, 1.3, 1.3, 1.7, 'speaker'],
-    [-13.5, 9, 0.5, 4, 1.2, 'bar'],
-    [13.5, 9.5, 0.5, 3, 1.2, 'bar'],
+    [-13.5, 9, 0.5, 4, 1.2, 'bar', 90],
+    [13.5, 9.5, 0.5, 3, 1.2, 'bar', 270],
   ],
   glass: [
     [-12, -13.3, 9, 0.35, 1.9],

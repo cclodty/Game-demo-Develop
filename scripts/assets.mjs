@@ -1,14 +1,16 @@
 #!/usr/bin/env node
-// Turns raw exports (Meshy, Tripo, Blender...) in assets/raw/ into small,
-// game-ready models in assets/models/, and writes src/models-index.js so the
-// game knows what exists.
+// Turns the high-quality masters in assets/source/ into small, web-ready
+// models in assets/models/, and writes src/models-index.js so the game knows
+// what exists. The masters stay untouched (they are what another engine would
+// import; see assets/SPEC.md).
 //
-//   npm run assets                 build every raw model that changed
+//   npm run assets                 build every master that changed
 //   npm run assets -- --all        rebuild everything
 //   npm run assets -- inspect f.glb [...]   print size, triangles, bones, clips
+//   npm run assets:docs            regenerate PROMPTS.md, asset-list.*, maps/*.json
 //
-// Naming in assets/raw/:
-//   hero.glb             the model for manifest id "hero"
+// Naming (any folder under assets/source/, usually one folder per asset):
+//   hero.glb             the master for manifest id "hero"
 //   hero-tripo.glb       a variant ("-" + anything) — handy for comparing tools;
 //                        pick one in game with ?use=hero-tripo
 //   hero@run.glb         an extra animation for hero.glb; only its animation is
@@ -26,7 +28,7 @@ import sharp from 'sharp';
 import { ASSETS } from '../src/asset-manifest.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const RAW = path.join(ROOT, 'assets/raw');
+const SOURCE = path.join(ROOT, 'assets/source');
 const OUT = path.join(ROOT, 'assets/models');
 const INDEX = path.join(ROOT, 'src/models-index.js');
 
@@ -98,13 +100,13 @@ async function build(name, files) {
   if (!spec) console.warn(`  ! ${name}: "${id}" is not in src/asset-manifest.js — built anyway, but the game won't use it`);
   const budget = spec?.tris ?? 3000;
   const texSize = spec?.texture ?? 512;
-  const doc = await io.read(path.join(RAW, `${name}.glb`));
+  const doc = await io.read(files.main);
   if (!doc.getRoot().listBuffers().length) doc.createBuffer();
   const before = stats(doc);
   for (const f of files.clips) {
-    const clip = f.slice(name.length + 1, -4);
-    const missing = mergeClips(doc, await io.read(path.join(RAW, f)), clip);
-    if (missing) console.warn(`  ! ${f}: ${missing} channels had no matching bone (different rig?)`);
+    const clip = path.basename(f).slice(name.length + 1, -4);
+    const missing = mergeClips(doc, await io.read(f), clip);
+    if (missing) console.warn(`  ! ${path.basename(f)}: ${missing} channels had no matching bone (different rig?)`);
   }
   const dropped = [];
   for (const anim of doc.getRoot().listAnimations()) {
@@ -124,7 +126,7 @@ async function build(name, files) {
   if (after.tris > budget * 1.1) warn.push(`${after.tris} tris > budget ${budget}`);
   if (spec?.kind === 'character' && !after.skinned) warn.push('no skeleton — rig it before export');
   if (spec?.kind === 'character' && after.skinned && !after.clips.some((c) => /run|jog|sprint|walk/i.test(c))) warn.push('no run/walk clip');
-  console.log(`  ${name}: ${before.tris} → ${after.tris} tris, ${kb(fs.statSync(path.join(RAW, `${name}.glb`)).size)} → ${kb(bytes)}, clips [${after.clips.join(', ')}]${dropped.length ? ` (dropped ${dropped.join(', ')})` : ''}${warn.length ? `  ⚠ ${warn.join('; ')}` : ''}`);
+  console.log(`  ${name}: ${before.tris} → ${after.tris} tris, ${kb(fs.statSync(files.main).size)} → ${kb(bytes)}, clips [${after.clips.join(', ')}]${dropped.length ? ` (dropped ${dropped.join(', ')})` : ''}${warn.length ? `  ⚠ ${warn.join('; ')}` : ''}`);
   return { id, file, bytes, tris: after.tris, size: after.size, skinned: after.skinned, clips: after.clips };
 }
 
@@ -153,21 +155,30 @@ if (args[0] === 'inspect') {
     if (s.joints.length) console.log(`  bones: ${s.joints.join(', ')}`);
   }
 } else {
-  fs.mkdirSync(RAW, { recursive: true });
+  fs.mkdirSync(SOURCE, { recursive: true });
   fs.mkdirSync(OUT, { recursive: true });
   const all = args.includes('--all');
-  const raws = fs.readdirSync(RAW).filter((f) => f.endsWith('.glb'));
+  const masters = fs
+    .readdirSync(SOURCE, { recursive: true })
+    .filter((f) => f.endsWith('.glb'))
+    .map((f) => path.join(SOURCE, f));
   const groups = new Map();
-  for (const f of raws.filter((f) => !f.includes('@'))) groups.set(f.slice(0, -4), { clips: [] });
-  for (const f of raws.filter((f) => f.includes('@'))) {
-    const g = groups.get(f.slice(0, f.indexOf('@')));
-    if (g) g.clips.push(f);
-    else console.warn(`  ! ${f}: no ${f.slice(0, f.indexOf('@'))}.glb to attach this animation to`);
+  for (const f of masters) {
+    const base = path.basename(f, '.glb');
+    if (base.includes('@')) continue;
+    if (groups.has(base)) console.warn(`  ! two masters named ${base}.glb; using ${path.relative(ROOT, f)}`);
+    groups.set(base, { main: f, clips: [] });
   }
-  console.log(groups.size ? `Building ${groups.size} model(s) from assets/raw/` : 'Nothing in assets/raw/ yet.');
+  for (const f of masters.filter((f) => path.basename(f).includes('@'))) {
+    const base = path.basename(f);
+    const g = groups.get(base.slice(0, base.indexOf('@')));
+    if (g) g.clips.push(f);
+    else console.warn(`  ! ${base}: no ${base.slice(0, base.indexOf('@'))}.glb to attach this animation to`);
+  }
+  console.log(groups.size ? `Building ${groups.size} model(s) from assets/source/` : 'Nothing in assets/source/ yet.');
   for (const [name, files] of groups) {
     const out = path.join(OUT, `${name}.glb`);
-    const newest = Math.max(...[`${name}.glb`, ...files.clips].map((f) => fs.statSync(path.join(RAW, f)).mtimeMs));
+    const newest = Math.max(...[files.main, ...files.clips].map((f) => fs.statSync(f).mtimeMs));
     if (!all && fs.existsSync(out) && fs.statSync(out).mtimeMs > newest) continue;
     try {
       built[name] = await build(name, files);

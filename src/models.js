@@ -27,7 +27,9 @@ export async function loadModels() {
   const params = new URLSearchParams(location.search);
   if (params.get('models') === 'off') return;
   const use = (params.get('use') || '').split(',').filter(Boolean);
+  // only what the game places today; weapons, scenery and landmarks wait for their code
   const wanted = Object.keys(ASSETS)
+    .filter((id) => ASSETS[id].kind === 'character' || ASSETS[id].kind === 'prop')
     .map((id) => [id, pick(id, use)])
     .filter(([, name]) => name);
   if (!wanted.length) return;
@@ -94,33 +96,57 @@ function tintMaterials(id, scene, tint) {
 /**
  * A copy of the model that stands in for a map material / barrel / pan
  * (`kind`), fitted to w × d × h metres (or the manifest size), with its base
- * on y = 0 and the box centre at the origin. Null when there is no model.
+ * on y = 0 and the box centre at the origin. `face` (degrees, optional) is
+ * where the model's front (+Z) should point: 0 south, 90 east, 180 north,
+ * 270 west; without it the model's long side follows the box's long side.
+ * Null when there is no model.
  */
-export function propModel(kind, mapId, w, d, h) {
+export function propModel(kind, mapId, w, d, h, face) {
   const alias = MAP_ALIASES[mapId]?.[kind] ?? kind;
   const [id, tint] = ALIASES[alias] ?? [alias];
   const m = loaded.get(id);
   if (!m || m.kind !== 'prop') return null;
   const spec = ASSETS[id];
   if (w === undefined) [w, d, h] = spec.size;
+  if (spec.fit !== 'tile') return fitted(m, spec, tint, w, d, h, face, spec.fit || 'box');
+
+  // long things are one module repeated, so their textures never stretch
+  const alongX = w >= d;
+  const len = alongX ? w : d;
+  const n = Math.max(1, Math.round(len / (spec.module || len)));
+  const out = new THREE.Group();
+  for (let i = 0; i < n; i++) {
+    const seg = fitted(m, spec, tint, alongX ? len / n : w, alongX ? d : len / n, h, face, 'box');
+    seg.position[alongX ? 'x' : 'z'] += -len / 2 + (i + 0.5) * (len / n);
+    out.add(seg);
+  }
+  return out;
+}
+
+function fitted(m, spec, tint, w, d, h, face, fit) {
   const size = m.box.getSize(new THREE.Vector3());
   const centre = m.box.getCenter(new THREE.Vector3());
-
   const inner = m.scene.clone(true);
   if (tint !== undefined) {
-    const swap = tintMaterials(id, m.scene, tint);
+    const swap = tintMaterials(m.id, m.scene, tint);
     inner.traverse((o) => {
       if (o.isMesh && swap.has(o.material)) o.material = swap.get(o.material);
     });
   }
   inner.position.set(-centre.x, -m.box.min.y, -centre.z);
 
-  // lay the model's long side along the box's long side
-  const longX = (v, u) => v > u * 1.15;
-  const turn = (longX(size.x, size.z) && longX(d, w)) || (longX(size.z, size.x) && longX(w, d));
   const pivot = new THREE.Group();
   pivot.add(inner);
-  if (turn) pivot.rotation.y = Math.PI / 2;
+  let turn;
+  if (face !== undefined) {
+    pivot.rotation.y = (face * Math.PI) / 180;
+    turn = Math.round(face / 90) % 2 !== 0;
+  } else {
+    // lay the model's long side along the box's long side
+    const longX = (v, u) => v > u * 1.15;
+    turn = (longX(size.x, size.z) && longX(d, w)) || (longX(size.z, size.x) && longX(w, d));
+    if (turn) pivot.rotation.y = Math.PI / 2;
+  }
   const mx = turn ? size.z : size.x;
   const mz = turn ? size.x : size.z;
 
@@ -128,7 +154,6 @@ export function propModel(kind, mapId, w, d, h) {
   out.add(pivot);
   const sx = w / mx;
   const sz = d / mz;
-  const fit = spec.fit || 'box';
   if (fit === 'box') out.scale.set(sx, h / size.y, sz);
   else if (fit === 'footprint') out.scale.set(sx, (sx + sz) / 2, sz);
   else out.scale.setScalar(h / size.y);

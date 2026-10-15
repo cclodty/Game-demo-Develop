@@ -7,7 +7,8 @@
     "senado:glb": "node senado/scripts/export_glb.mjs",
     "senado:serve": "python3 -m http.server 8000 --directory senado",
     "test": "node --test senado/tests/*.test.mjs",
-    "assets": "node scripts/assets.mjs"
+    "assets": "node scripts/assets.mjs",
+    "assets:docs": "node scripts/asset-docs.mjs"
   },
   "dependencies": {
     "three": "0.160.0"

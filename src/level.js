@@ -471,10 +471,11 @@ export class Level {
     return this.add(m);
   }
 
-  addSolid(x, z, w, d, h, matKey) {
+  /** face: optional direction (degrees) a made model's front points: 0 south, 90 east, 180 north, 270 west. */
+  addSolid(x, z, w, d, h, matKey, face) {
     const M = this.mat;
     const s = this.addBox(x, z, w, d, h, M[matKey], matKey === 'crate' ? 'crate' : 'wall');
-    const model = propModel(matKey, this.map.id, w, d, h);
+    const model = propModel(matKey, this.map.id, w, d, h, face);
     if (model) {
       // a made model replaces the block look; the box stays for collision
       s.mesh.visible = false;
