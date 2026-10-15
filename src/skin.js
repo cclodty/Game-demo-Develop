@@ -13,6 +13,7 @@ import { clamp, TAU, wrapAngle } from './utils.js';
 
 const HEIGHT = 1.78; // top of the head, the same as BODY in characters.js
 const GRIP = 0.58; // hand distance along a block arm (where its hand cube sits)
+const PALM = 0.06; // the hand bone is the wrist: aim it this far behind a grip so the palm closes on it
 
 const _a = new THREE.Vector3();
 const _b = new THREE.Vector3();
@@ -143,6 +144,12 @@ export function prepareCharacter(scene, animations, spec) {
   });
   const size = box.getSize(new THREE.Vector3());
   const centre = box.getCenter(new THREE.Vector3());
+  // stand the hips over the origin: a box centre drifts with A-pose arms and long feet
+  if (bones.hips) {
+    const hips = bones.hips.getWorldPosition(new THREE.Vector3());
+    centre.x = hips.x;
+    centre.z = hips.z;
+  }
 
   // glTF characters should face +z; if the left arm sits on -x the model faces -z
   let turn = spec.turn ? (spec.turn * Math.PI) / 180 : 0;
@@ -280,15 +287,29 @@ function reach(upper, lower, hand, target, pole) {
 
 const _grip = new THREE.Vector3();
 const _pole = new THREE.Vector3();
+const _back = new THREE.Vector3();
+const BLADE = 0.5; // how far a long gun turns the chest side-on (radians), so the support hand reaches
 
-function arm(rig, side, holder, gx, gy, gz) {
+/** `slide`: how far (holder metres) the hand may move back along the gun when the grip is out of reach. */
+function arm(rig, side, holder, gx, gy, gz, slide = 0) {
   const b = rig.skin.bones;
   const k = side > 0 ? 'L' : 'R';
   const upper = b[`upperArm${k}`];
   const lower = b[`foreArm${k}`];
   const hand = b[`hand${k}`];
   if (!upper || !lower || !hand) return;
-  holder.localToWorld(_grip.set(gx, gy, gz));
+  holder.localToWorld(_grip.set(gx, gy, gz - PALM));
+  if (slide > 0) {
+    // the nearest point back along the barrel that the arm can reach, so the hand stays on the gun
+    const s = upper.getWorldPosition(_s);
+    const len = (s.distanceTo(lower.getWorldPosition(_el)) + _el.distanceTo(hand.getWorldPosition(_h))) * 0.98;
+    _back.set(0, 0, -1).transformDirection(holder.matrixWorld);
+    _d.subVectors(_grip, s);
+    const vd = _d.dot(_back);
+    const disc = vd * vd - _d.lengthSq() + len * len;
+    const along = _d.lengthSq() > len * len ? -vd - Math.sqrt(Math.max(0, disc)) : 0;
+    _grip.addScaledVector(_back, clamp(along, 0, slide * holder.getWorldScale(_t).z));
+  }
   // elbows out to the side and a little down and back
   rig.inner.localToWorld(_pole.set(side * 0.9, 0.9, -0.5));
   reach(upper, lower, hand, _grip, _pole);
@@ -348,9 +369,14 @@ export function poseSkin(rig, time) {
   } else if (rig.hold === 'right') {
     arm(rig, -1, rig.armR, 0, 0, GRIP);
   } else {
+    // a gun at the shoulder turns the chest side-on, the head stays on the aim
+    if (rig.hold === 'anchor' && b.spine) {
+      turnBone(b.spine, UP, -BLADE);
+      if (b.head) turnBone(b.head, UP, BLADE);
+    }
     const holder = rig.hold === 'center' ? rig.center : rig.anchor;
     arm(rig, -1, holder, ...grips[0]);
-    arm(rig, 1, holder, ...grips[1]);
+    arm(rig, 1, holder, ...grips[1], grips[1][2] - grips[0][2] - 0.1);
   }
 }
 

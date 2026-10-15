@@ -14,8 +14,9 @@
 //
 //   kind      character | weapon | prop | env | landmark | material
 //               prop      — placed by the game today (map boxes, barrels, pans)
-//               env, weapon, landmark, material — listed for production; the
-//               game takes them in once they exist
+//               weapon    — held by the characters, lying on pads, in flight
+//               env, landmark, material — listed for production; the game
+//               takes them in once they exist
 //   group     section in PROMPTS.md (see GROUPS)
 //   zh        Chinese name
 //   priority  1 = do first (many copies or always on screen) … 3 = nice to have

@@ -114,9 +114,11 @@ async function build(name, files) {
     dropped.push(anim.getName());
     anim.dispose();
   }
-  const ops = [dedup(), prune(), weld()];
+  // weapons keep their empty socket_* helper nodes (muzzle, support hand, ...)
+  const keepLeaves = !!spec?.sockets;
+  const ops = [dedup(), prune({ keepLeaves }), weld()];
   if (before.tris > budget) ops.push(simplify({ simplifier: MeshoptSimplifier, ratio: budget / before.tris, error: 0.02 }));
-  ops.push(resample(), textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [texSize, texSize] }), prune(), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
+  ops.push(resample(), textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [texSize, texSize] }), prune({ keepLeaves }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
   await doc.transform(...ops);
   const after = stats(doc);
   const file = `${name}.glb`;
@@ -124,6 +126,11 @@ async function build(name, files) {
   const bytes = fs.statSync(path.join(OUT, file)).size;
   const warn = [];
   if (after.tris > budget * 1.1) warn.push(`${after.tris} tris > budget ${budget}`);
+  if (spec?.sockets) {
+    const nodes = new Set(doc.getRoot().listNodes().map((n) => n.getName()));
+    const lost = Object.keys(spec.sockets).filter((s) => !nodes.has(`socket_${s}`));
+    if (lost.length) warn.push(`no ${lost.map((s) => `socket_${s}`).join(', ')}`);
+  }
   if (spec?.kind === 'character' && !after.skinned) warn.push('no skeleton — rig it before export');
   if (spec?.kind === 'character' && after.skinned && !after.clips.some((c) => /run|jog|sprint|walk/i.test(c))) warn.push('no run/walk clip');
   console.log(`  ${name}: ${before.tris} → ${after.tris} tris, ${kb(fs.statSync(files.main).size)} → ${kb(bytes)}, clips [${after.clips.join(', ')}]${dropped.length ? ` (dropped ${dropped.join(', ')})` : ''}${warn.length ? `  ⚠ ${warn.join('; ')}` : ''}`);

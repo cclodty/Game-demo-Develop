@@ -46,8 +46,14 @@ PROMPTS、asset-list 和 maps 都由 `npm run assets:docs` 從 `src/asset-manife
   - **長物件**：吧枱、路障、沙發會按長度重複一節模型，貼圖不會被拉長。
   - **染色**：貨櫃用同一個模型染成四種顏色。
   - **朝向**：地圖可以指定模型面向哪一方，例如沙發背靠牆。
+- **武器**（`weapon_pistol`、`weapon_smg`、`weapon_shotgun`、`weapon_rifle`、`weapon_sniper`、`weapon_launcher`、`weapon_minigun`、`weapon_blade`、`weapon_grenade`）
+  - 原點（主握把）放在手上；長槍放在肩前，主角和敵人共用。
+  - `socket_muzzle`／`socket_tip` 決定子彈從哪裡射出；`socket_support` 是另一隻手的 IK 位置，手伸不到時會沿槍身往後握。
+  - 雙槍、雙衝鋒槍左手那把會鏡像。
+  - 地上的武器和武器台也用同一個模型；`weapon_grenade` 是榴彈發射器射出的彈（放大 2.5 倍，方便看見）。
+  - 拿長槍時上身會側轉，好讓兩隻手都握到槍。
 
-**武器、環境物、地標和材質**已經在清單裡，可以先做。做好後再接進遊戲：武器掛到手上和槍口位置，佈景改成資料格式擺放。
+**環境物、地標和材質**已經在清單裡，可以先做。做好後再接進遊戲：佈景改成資料格式擺放。
 
 ## 授權紀錄
 

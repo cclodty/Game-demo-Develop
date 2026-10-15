@@ -2,6 +2,7 @@
 
 import * as THREE from 'three';
 import { GUN_Y } from './config.js';
+import { weaponTemplate } from './models.js';
 import { clamp, lerp, rand, segCircle } from './utils.js';
 
 /**
@@ -157,13 +158,23 @@ export class Grenades {
     dx /= d;
     dz /= d;
     const mesh = new THREE.Group();
-    mesh.add(new THREE.Mesh(this.geo, this.mat));
+    // the real 40 mm round, if there is one, at 2.5× so it reads from the game camera
+    const tpl = weaponTemplate('weapon_grenade');
+    let spin = mesh;
+    if (tpl) {
+      spin = tpl.scene.clone();
+      spin.scale.setScalar(2.5);
+      mesh.rotation.y = Math.atan2(dx, dz);
+      mesh.add(spin);
+    } else {
+      mesh.add(new THREE.Mesh(this.geo, this.mat));
+    }
     const blink = new THREE.Mesh(this.blinkGeo, this.blinkMat);
     blink.position.y = 0.13;
     mesh.add(blink);
     mesh.castShadow = true;
     this.game.scene.add(mesh);
-    this.list.push({ x, z, sx: x, sz: z, tx: x + dx * dist, tz: z + dz * dist, dist, t: 0, T: dist / speed, y: GUN_Y, mesh, blink, smoke: 0 });
+    this.list.push({ x, z, sx: x, sz: z, tx: x + dx * dist, tz: z + dz * dist, dist, t: 0, T: dist / speed, y: GUN_Y, mesh, spin, blink, smoke: 0 });
   }
 
   clear() {
@@ -209,7 +220,7 @@ export class Grenades {
       g.z = nz;
       g.y = ny;
       g.mesh.position.set(nx, ny, nz);
-      g.mesh.rotation.x += dt * 12;
+      g.spin.rotation.x += dt * 12;
       g.blink.visible = Math.floor(g.t * 14) % 2 === 0;
       g.smoke -= dt;
       if (g.smoke <= 0) {

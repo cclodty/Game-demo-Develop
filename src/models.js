@@ -27,9 +27,9 @@ export async function loadModels() {
   const params = new URLSearchParams(location.search);
   if (params.get('models') === 'off') return;
   const use = (params.get('use') || '').split(',').filter(Boolean);
-  // only what the game places today; weapons, scenery and landmarks wait for their code
+  // only what the game places today; scenery and landmarks wait for their code
   const wanted = Object.keys(ASSETS)
-    .filter((id) => ASSETS[id].kind === 'character' || ASSETS[id].kind === 'prop')
+    .filter((id) => ['character', 'prop', 'weapon'].includes(ASSETS[id].kind))
     .map((id) => [id, pick(id, use)])
     .filter(([, name]) => name);
   if (!wanted.length) return;
@@ -63,13 +63,29 @@ function prepare(id, name, gltf) {
   });
   if (spec.kind === 'character') return { id, name, kind: 'character', ...prepareCharacter(scene, gltf.animations, spec) };
   scene.updateMatrixWorld(true);
-  return { id, name, kind: 'prop', scene, box: new THREE.Box3().setFromObject(scene) };
+  const box = new THREE.Box3().setFromObject(scene);
+  if (spec.kind !== 'weapon') return { id, name, kind: 'prop', scene, box };
+
+  // origin = the main grip, barrel along +z; empty socket_* nodes mark the muzzle,
+  // the support hand and so on (the manifest's numbers stand in for missing ones)
+  const sockets = {};
+  scene.traverse((o) => {
+    if (o.name.startsWith('socket_')) sockets[o.name.slice(7)] = o.getWorldPosition(new THREE.Vector3());
+  });
+  for (const [k, v] of Object.entries(spec.sockets || {})) sockets[k] ??= new THREE.Vector3(...v);
+  return { id, name, kind: 'weapon', scene, box, sockets };
 }
 
 /** The loaded character template for an id, or null. */
 export function characterTemplate(id) {
   const m = loaded.get(id);
   return m && m.kind === 'character' ? m : null;
+}
+
+/** The loaded weapon template for an id ({ scene, box, sockets }), or null. Clone `scene` to use it. */
+export function weaponTemplate(id) {
+  const m = loaded.get(id);
+  return m && m.kind === 'weapon' ? m : null;
 }
 
 export function loadedCharacters() {

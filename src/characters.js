@@ -5,7 +5,7 @@
 // over the block rig, which keeps driving the aim, weapons and moves.
 
 import * as THREE from 'three';
-import { characterTemplate } from './models.js';
+import { characterTemplate, weaponTemplate } from './models.js';
 import { createSkin, deathSkin, disposeSkin, flashSkin, poseSkin } from './skin.js';
 
 const geoCache = new Map();
@@ -60,10 +60,13 @@ const CENTER = { x: 0, y: SHOULDER_Y - 0.06, z: 0.3 };
  *   anchor - a two-handed long gun held at the right shoulder
  *   center - a heavy gun held at the chest
  * Parts are [w, h, d, x, y, z, material]; `end` is the barrel tip along z.
+ * `asset` is the real model (src/models.js) that replaces the parts once it
+ * exists: it hangs from its grip, and its sockets replace `end` and `grips`.
  */
 export const MODELS = {
-  dualPistol: { hold: 'dual', end: 0.9, parts: [[0.07, 0.13, 0.3, 0, 0.05, 0.74, 'gun']] },
+  dualPistol: { asset: 'weapon_pistol', hold: 'dual', end: 0.9, parts: [[0.07, 0.13, 0.3, 0, 0.05, 0.74, 'gun']] },
   dualSmg: {
+    asset: 'weapon_smg',
     hold: 'dual',
     end: 1.04,
     parts: [
@@ -72,8 +75,9 @@ export const MODELS = {
       [0.09, 0.03, 0.18, 0, 0.13, 0.8, 'accent'],
     ],
   },
-  pistol: { hold: 'right', end: 0.9, parts: [[0.07, 0.13, 0.3, 0, 0.05, 0.74, 'gun']] },
+  pistol: { asset: 'weapon_pistol', hold: 'right', end: 0.9, parts: [[0.07, 0.13, 0.3, 0, 0.05, 0.74, 'gun']] },
   shotgun: {
+    asset: 'weapon_shotgun',
     hold: 'anchor',
     end: 1.02,
     parts: [
@@ -88,6 +92,7 @@ export const MODELS = {
     ],
   },
   rifle: {
+    asset: 'weapon_rifle',
     hold: 'anchor',
     end: 1.08,
     parts: [
@@ -102,6 +107,7 @@ export const MODELS = {
     ],
   },
   sniper: {
+    asset: 'weapon_sniper',
     hold: 'anchor',
     end: 1.46,
     parts: [
@@ -112,6 +118,7 @@ export const MODELS = {
     ],
   },
   launcher: {
+    asset: 'weapon_launcher',
     hold: 'anchor',
     end: 0.88,
     parts: [
@@ -121,6 +128,7 @@ export const MODELS = {
     ],
   },
   minigun: {
+    asset: 'weapon_minigun',
     hold: 'center',
     end: 1.15,
     parts: [
@@ -132,7 +140,7 @@ export const MODELS = {
       [0.16, 0, 0.45],
     ],
   },
-  blade: { hold: 'right', end: 1.15, parts: [[0.05, 0.04, 0.55, 0, 0, 0.9, 'accent']] },
+  blade: { asset: 'weapon_blade', hold: 'right', end: 1.15, parts: [[0.05, 0.04, 0.55, 0, 0, 0.9, 'accent']] },
 };
 
 /** Where a skinned model's right and left hands go on a two-handed gun, in the gun's space. */
@@ -165,12 +173,21 @@ function partMesh(p, mats) {
 /** A free-standing copy of a weapon model (used by floor pickups). */
 export function buildWeaponModel(model, mats) {
   const def = MODELS[model];
+  const tpl = def.asset && weaponTemplate(def.asset);
+  const centre = tpl && tpl.box.getCenter(new THREE.Vector3());
   const g = new THREE.Group();
   const copies = def.hold === 'dual' ? [-0.16, 0.16] : [0];
   for (const off of copies) {
     const sub = new THREE.Group();
-    for (const p of def.parts) sub.add(partMesh(p, mats));
-    sub.position.set(off, 0, def.hold === 'dual' ? -0.7 : -def.end / 2);
+    if (tpl) {
+      const gun = tpl.scene.clone();
+      gun.position.copy(centre).negate();
+      sub.add(gun);
+      sub.position.x = off;
+    } else {
+      for (const p of def.parts) sub.add(partMesh(p, mats));
+      sub.position.set(off, 0, def.hold === 'dual' ? -0.7 : -def.end / 2);
+    }
     g.add(sub);
   }
   return g;
@@ -181,7 +198,32 @@ export function attachWeapon(rig, model) {
   for (const m of rig.weaponParts) m.parent.remove(m);
   rig.weaponParts.length = 0;
   const def = MODELS[model];
-  const add = (parent) => {
+  const handed = def.hold === 'dual' || def.hold === 'right';
+  let grips = def.grips || GRIPS[def.hold];
+  let end = def.end;
+  let muzzleX = 0;
+
+  // a real model hangs from its grip: in the hand, or where the right hand holds a long gun
+  const tpl = def.asset && weaponTemplate(def.asset);
+  const grip = handed ? [0, 0, BODY.armLen] : grips?.[0];
+  if (tpl) {
+    const tip = tpl.sockets.muzzle || tpl.sockets.tip;
+    if (tip) {
+      end = grip[2] + tip.z;
+      muzzleX = grip[0] + tip.x;
+    }
+    const sup = tpl.sockets.support;
+    if (sup && !handed) grips = [grip, [grip[0] + sup.x, grip[1] + sup.y, grip[2] + sup.z]];
+  }
+  const add = (parent, mirror = false) => {
+    if (tpl) {
+      const gun = tpl.scene.clone();
+      gun.position.set(...grip);
+      if (mirror) gun.scale.x = -1; // the left-hand copy of a dual pair
+      parent.add(gun);
+      rig.weaponParts.push(gun);
+      return;
+    }
     for (const p of def.parts) {
       const mesh = partMesh(p, rig.mats);
       parent.add(mesh);
@@ -190,20 +232,20 @@ export function attachWeapon(rig, model) {
   };
   const s = rig.scale;
   if (def.hold === 'dual') {
-    add(rig.armL);
+    add(rig.armL, true);
     add(rig.armR);
     rig.muzzles = [
-      [-SHOULDER_X * s, def.end * s],
-      [SHOULDER_X * s, def.end * s],
+      [-SHOULDER_X * s, end * s],
+      [SHOULDER_X * s, end * s],
     ];
   } else if (def.hold === 'right') {
     add(rig.armR);
-    rig.muzzles = [[-SHOULDER_X * s, def.end * s]];
+    rig.muzzles = [[-SHOULDER_X * s, end * s]];
   } else {
     const a = def.hold === 'center' ? CENTER : ANCHOR;
     const anchor = def.hold === 'center' ? rig.center : rig.anchor;
     add(anchor);
-    rig.muzzles = [[a.x * s, (a.z + def.end) * s]];
+    rig.muzzles = [[(a.x + muzzleX) * s, (a.z + end) * s]];
     rig.gripZ = a.z * s;
   }
   const pose = POSES[model === 'blade' ? 'blade' : def.hold];
@@ -212,7 +254,7 @@ export function attachWeapon(rig, model) {
   rig.armR.rotation.set(pose.rx, pose.ry, 0);
   rig.model = model;
   rig.hold = def.hold;
-  rig.grips = def.grips || GRIPS[def.hold];
+  rig.grips = grips;
 }
 
 export function buildCharacter(options) {
