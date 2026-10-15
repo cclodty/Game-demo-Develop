@@ -733,7 +733,9 @@ class Game {
   }
 }
 
-// optional models first (none is fine), then the game
-loadModels().then(() => {
-  window.game = new Game();
-});
+// optional models first (none is fine), then the game — which starts even if loading fails
+loadModels()
+  .catch((err) => console.warn('[models] skipped', err))
+  .then(() => {
+    window.game = new Game();
+  });

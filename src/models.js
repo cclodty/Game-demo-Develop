@@ -9,8 +9,6 @@
 //   ?use=hero-tripo,crate-b   pick these variants (id = the part before "-")
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ALIASES, ASSETS, MAP_ALIASES } from './asset-manifest.js';
 import { MODELS } from './models-index.js';
 import { prepareCharacter } from './skin.js';
@@ -29,13 +27,17 @@ export async function loadModels() {
   const params = new URLSearchParams(location.search);
   if (params.get('models') === 'off') return;
   const use = (params.get('use') || '').split(',').filter(Boolean);
+  const wanted = Object.keys(ASSETS)
+    .map((id) => [id, pick(id, use)])
+    .filter(([, name]) => name);
+  if (!wanted.length) return;
+  // the loader and its WebAssembly decoder are only fetched when there is something to load
+  const [{ GLTFLoader }, { MeshoptDecoder }] = await Promise.all([import('three/addons/loaders/GLTFLoader.js'), import('three/addons/libs/meshopt_decoder.module.js')]);
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   // the single-file build inlines models as data URIs
   const inline = globalThis.BULLET_BALLET_MODELS || {};
   await Promise.all(
-    Object.keys(ASSETS).map(async (id) => {
-      const name = pick(id, use);
-      if (!name) return;
+    wanted.map(async ([id, name]) => {
       const file = MODELS[name].file;
       try {
         const gltf = await loader.loadAsync(inline[file] || `assets/models/${file}`);
