@@ -13,15 +13,27 @@
 因為使用 ES modules，必須經由 HTTP 開啟（直接雙擊 `index.html` 不行）：
 
 ```bash
-python3 -m http.server 8000
-# 或
-npx http-server -p 8000
+npm install        # 第一次：安裝測試和工具用的套件
+npm run serve      # http://127.0.0.1:8123/
 ```
 
-然後打開 <http://localhost:8000>。需要滑鼠 + 鍵盤（暫不支援手機觸控）。
+需要滑鼠 + 鍵盤（暫不支援手機觸控）。
 
 推送到 `main` 時，`.github/workflows/pages.yml` 會把整個 repo 部署到 GitHub Pages
-（repo 的 Pages 設定需選擇 *GitHub Actions* 作為來源）。
+（repo 的 Pages 設定需選擇 *GitHub Actions* 作為來源）。每次推送 `.github/workflows/ci.yml` 都會跑 lint 和測試。
+
+## 開發
+
+| 指令 | 作用 |
+| --- | --- |
+| `npm run lint` | ESLint 檢查 `src/`、`scripts/`、`test/` |
+| `npm test` | 議事亭單元測試、冒煙測試、地圖驗證、資產管線、每張地圖一段機器人對戰（約 2 分鐘） |
+| `npm run test:game` | 較慢：每種武器開火、E 交換、長時間撿武器跨場景（約 10 分鐘） |
+| `npm run build` | 打包成單一 HTML 檔 `dist/bullet-ballet.html`，方便分享 |
+| `npm run assets` | 把 `assets/source/` 的模型母版處理成網頁版 |
+| `npm run assets:docs` | 重新生成 `assets/PROMPTS.md`、`asset-list.*`、`maps/*.json` |
+
+給 Claude 的工作說明在 [`CLAUDE.md`](CLAUDE.md)；規劃書、任務清單和決策紀錄在 [`docs/`](docs/)。
 
 ## 操作
 

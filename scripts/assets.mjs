@@ -28,9 +28,10 @@ import sharp from 'sharp';
 import { ASSETS } from '../src/asset-manifest.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SOURCE = path.join(ROOT, 'assets/source');
-const OUT = path.join(ROOT, 'assets/models');
-const INDEX = path.join(ROOT, 'src/models-index.js');
+// the tests point these at temporary folders
+const SOURCE = path.resolve(process.env.BB_ASSETS_SOURCE || path.join(ROOT, 'assets/source'));
+const OUT = path.resolve(process.env.BB_ASSETS_OUT || path.join(ROOT, 'assets/models'));
+const INDEX = path.resolve(process.env.BB_MODELS_INDEX || path.join(ROOT, 'src/models-index.js'));
 
 await Promise.all([MeshoptDecoder.ready, MeshoptEncoder.ready, MeshoptSimplifier.ready]);
 // clips the game plays (or may soon); others (dances, waves, T-poses) are dropped to save space
