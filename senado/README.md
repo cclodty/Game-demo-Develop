@@ -29,6 +29,7 @@
 | `viewer/lighting.js` | 檢視器燈光（v7）：天空、跟隨鏡頭的陽光陰影、天空環境光、GTAO 環境光遮蔽、PBR Neutral 色調映射；v8 加夜空、月光、夜間環境光和光暈（bloom）；v9 改成模型照片的日光：更低更強的陽光、較少天空補光、調色和隨鏡頭距離的霧氣。只用於檢視器，不進入 GLB |
 | `viewer/night.js` | 檢視器夜景（v8）：街燈光照圖、樓宇泛光、上層窗亮燈、店面和鐘面自發光，編譯著色器時加入，一個參數開關。只用於檢視器，不進入 GLB |
 | `viewer/materials.js` | 檢視器灰泥牆（v7）：在牆身和線腳的材質加上色塊、污漬、牆腳污跡和細紋凹凸，按世界座標計算，不需要 UV；v9 把通用窗格的窗變成反光玻璃。只用於檢視器，不進入 GLB |
+| `export/senado_viewer.html` | 整個檢視器匯出成單一 HTML 檔（約 9 MB）：雙擊即可在瀏覽器打開，不需伺服器或網絡。由 `scripts/export_html.mjs` 用 esbuild 把 `viewer/` 和 three.js 打包，模型資料、貼圖和參考照片內嵌；不含衛星參考圖，所以沒有位置圖和衛星疊圖。內含 v7 起的真實商標，只作展示 |
 | `export/senado_massing.glb` | 模型，19.7 MB，約 19.5 萬個三角面，78 種材質，已通過 glTF Validator（0 錯誤、0 警告）。v7 起的 GLB 含真實商標，只作展示 |
 | `data/osm_raw.json` | Overpass 原始擷取（© OpenStreetMap contributors，ODbL） |
 | `data/landmarks.json` | 人手整理：地標名稱、已知外牆顏色、高度修正、立面樣式（`facadeStyles`）、每棟樓的立面規格與照片證據（`facades`）、過街樓（`bridges`）、照片取色（`wallColors`、`windowColors`）、通用色（`genericWalls`）、屋頂顏色（`roofPalette`）和坡頂（`roofShapes`） |
@@ -129,6 +130,7 @@ python3 senado/scripts/build_streets.py     # 車路、路緣石、標線、街�
 python3 senado/scripts/build_data.py        # 再跑一次，把 streets.json 併入 senado_massing.json
 python3 senado/scripts/make_street_textures.py  # 路面和欄杆貼圖
 node senado/scripts/export_glb.mjs          # → export/senado_massing.glb
+npm run senado:html                         # → export/senado_viewer.html（單一檔案的離線檢視器）
 npm run senado:serve                        # 檢視器：http://localhost:8000
 ```
 
