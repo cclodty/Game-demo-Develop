@@ -42,3 +42,4 @@ jobs:
           name: test-screenshots
           path: test/.out/
           if-no-files-found: ignore
+          include-hidden-files: true

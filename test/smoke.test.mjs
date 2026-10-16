@@ -83,16 +83,32 @@ test('start, pause menu, back to title, pick another map, restart', async () => 
 test('dying shows the game over screen and T returns to the title', async () => {
   const { page, logs } = await h.open();
   await page.keyboard.press('Digit2');
-  await page.waitForTimeout(1200);
-  await page.evaluate(() => {
-    const p = window.game.player;
+  await page.waitForTimeout(300);
+  let s = await state(page);
+  assert.equal(s.state, 'playing');
+  // Game over comes 2.3 s of frame time after death, and frame time is capped
+  // at 0.05 s per frame — on a slow SwiftShader runner that can take minutes
+  // of wall time. Stop the real loop and step the death by hand instead.
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    g.frame = () => {};
+    const p = g.player;
     p.invuln = 0;
     p.spinT = 0;
-    p.hurt(500, 0, 1);
+    const hit = p.hurt(500, 0, 1);
+    let frames = 0;
+    while (g.state !== 'over' && frames < 600) {
+      g.time += 1 / 60;
+      g.updateAim();
+      g.updatePlay(1 / 60);
+      frames++;
+    }
+    return { hit, frames, state: g.state };
   });
-  await page.waitForFunction(() => window.game.state === 'over', null, { timeout: 30000 });
-  await page.waitForTimeout(900);
-  let s = await state(page);
+  assert.equal(r.hit, true, 'the player should take the hit');
+  assert.equal(r.state, 'over', `game over should follow the death, got ${r.state} after ${r.frames} frames`);
+  await page.waitForTimeout(900); // the game-over screen ignores input for its first 700 ms
+  s = await state(page);
   assert.equal(s.over, true);
   await snap(page, 'smoke-gameover.png');
   await page.click('#gameover button[data-act=title]');
