@@ -222,12 +222,12 @@ function paint(g, cols) {
 }
 
 // Stable per-building randomness (FNV-1a seed, mulberry32 stream): the same OSM id always gets the same result.
-function hash01(s) {
+export function hash01(s) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (h >>> 0) / 4294967296;
 }
-function rng(seed) {
+export function rng(seed) {
   let a = Math.floor(hash01(seed) * 4294967296);
   return () => {
     a = (a + 0x6d2b79f5) | 0;
@@ -334,7 +334,7 @@ export function massGeometry(b, wallCol, roofCol) {
 // tanks); positions are random but stable per OSM id and keep clear of the roof edge.
 const TANK_COLORS = [[0xb8bec3, 3], [0x4a78b0, 2], [0xe8e8e4, 2]];   // stainless, blue plastic, white plastic
 const ringArea = (r) => r.reduce((s, p, i) => { const q = r[(i + 1) % r.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0) / 2;
-function pointIn(p, ring) {
+export function pointIn(p, ring) {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const [xi, yi] = ring[i], [xj, yj] = ring[j];
@@ -355,7 +355,7 @@ function edgeClearance(p, rings) {
   return d;
 }
 
-const newColorSink = () => ({ pos: [], nor: [], uv: [], col: [], idx: [] });
+export const newColorSink = () => ({ pos: [], nor: [], uv: [], col: [], idx: [] });
 function sinkQuad(s, a, b, z0, z1, c) {
   const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
   const nx = (b[1] - a[1]) / len, ny = -(b[0] - a[0]) / len;
@@ -373,7 +373,7 @@ function sinkPrism(s, ring, z0, z1, side, top) {
   for (let i = 1; i < ring.length - 1; i++) s.idx.push(...upward(v, base, [0, i, i + 1]));   // convex: fan
 }
 
-function rooftopClutter(b, wallCol, roofCol, sink, tanks) {
+export function rooftopClutter(b, wallCol, roofCol, sink, tanks) {
   if ((b.roof && b.roof.shape) || b.h < 6) return;
   const rings = [b.outer, ...b.holes];
   const area = ringArea(b.outer) + b.holes.reduce((s, r) => s + ringArea(r), 0);
@@ -421,7 +421,7 @@ function rooftopClutter(b, wallCol, roofCol, sink, tanks) {
   }
 }
 
-function colorSinkGeometry(s) {
+export function colorSinkGeometry(s) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(s.pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(s.nor, 3));
@@ -751,7 +751,7 @@ export function windowLayout(f, W, storeys, bays, kind) {
 export const SHOP_KINDS = ['cosmetics', 'pharmacy', 'jewellery', 'bakery', 'fashion', 'cafe', 'jerky', 'shoes'];
 export const SHOP = { frame: 0x3a3029, fascia: 0x2e2826, glow: 0.4, maxH: 3.6, frameW: 0.09 };
 
-function shopUV(kind) {
+export function shopUV(kind) {
   const k = Math.max(0, SHOP_KINDS.indexOf(kind));
   const c = k % 4, r = Math.floor(k / 4);
   return (fu, fv) => [(c + fu) / 4, (r + fv) / 2];
@@ -2127,7 +2127,8 @@ export function buildSenado(data, opts = {}) {
       }
       tg.add(grp);
     }
-    const list = tierList.filter((q) => !q.facade);
+    // opts.skip: buildings the viewer rebuilds itself (v9 streetscape, viewer/streetscape.js)
+    const list = tierList.filter((q) => !q.facade && !(opts.skip && opts.skip.has(q.id)));
     if (!list.length) continue;
     const cols = new Map(list.map((b) => [b, [wallColor(b), roofColor(b)]]));
     const individual = mode === 'export' ? tier !== 'context' : tier === 'landmark' || tier === 'frontage' || tier === 'avenue';
@@ -2181,7 +2182,7 @@ export function buildSenado(data, opts = {}) {
   trees.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   root.add(trees);
 
-  return { root, pickTables, info, materials: mats };
+  return { root, pickTables, info, materials: mats, wallColor, roofColor };
 }
 
 export function landmarkAnchors(data) {

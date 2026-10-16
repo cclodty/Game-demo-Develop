@@ -149,11 +149,15 @@ const FRAG_BODY = /* glsl */ `
       light += vec3(ntSelf);
     #endif
     vec3 glow = vec3(0.0);
-    #if defined(NT_PANE) && defined(USE_MAP)
-      // the maps are dark in the panes and the gaps between slats, light on bars and slats
+    #ifdef NT_PANE
+      // the maps are dark in the panes and the gaps between slats, light on bars and slats; plain glass is all pane
       if (ntVLit > 1.0 && ntVLit - 1.0 < ntShare) {
         float r = fract(ntVLit * 7.31);
-        float gap = 1.0 - dot(texture2D(map, vMapUv).rgb, vec3(0.3333));
+        #ifdef USE_MAP
+          float gap = 1.0 - dot(texture2D(map, vMapUv).rgb, vec3(0.3333));
+        #else
+          float gap = 0.75;   // v9 street glass: no map, a little under a fully open pane
+        #endif
         glow = mix(ntWarm, ntCool, step(0.8, fract(ntVLit * 13.7))) * ntWinK * (0.55 + 0.9 * r) * gap;
       }
     #endif
@@ -171,7 +175,7 @@ const FRAG_BODY = /* glsl */ `
 
 function kindOf(name) {
   if (name.startsWith('Wall_') || name === 'Trim' || name.startsWith('Trim_') || name.startsWith('Stone_')) return 'FLOOD';
-  if (name.startsWith('Window_') && name !== 'Window_lattice') return 'PANE';
+  if ((name.startsWith('Window_') && name !== 'Window_lattice') || name === 'Glass_street') return 'PANE';
   if (name === 'Facade_generic') return 'GRID';
   if (name in NIGHT.self) return 'SELF';
   return '';
@@ -184,7 +188,7 @@ function patch(m) {
     if (prev) prev.call(m, shader, renderer);
     Object.assign(shader.uniforms, nightUniforms, { ntSelf: { value: NIGHT.self[m.name] || 0 } });
     const defs = kind ? { [`NT_${kind}`]: '' } : {};
-    if (kind === 'PANE') defs.NT_FLOOD = '';   // recessed in the floodlit walls
+    if (kind === 'PANE' && m.name !== 'Glass_street') defs.NT_FLOOD = '';   // recessed in the floodlit walls (v9 glass: not)
     shader.defines = { ...shader.defines, ...defs };
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>

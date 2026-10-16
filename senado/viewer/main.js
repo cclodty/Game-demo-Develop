@@ -5,6 +5,7 @@ import { buildSenado, buildFigure, landmarkAnchors, prismGeometry } from './mode
 import { createLighting } from './lighting.js';
 import { plasterize, plasterUniforms } from './materials.js';
 import { createNight, nightUniforms } from './night.js';
+import { streetscapeSelection, buildStreetscape } from './streetscape.js';
 
 const EYE = 1.65;          // m, eye height of the 1.75 m reference person
 const WALK = 1.5, RUN = 6; // m/s
@@ -85,9 +86,14 @@ async function init() {
   for (const t of [louvre, glazing, facade, asphalt, paving, setts, railing, shops, signs]) t.flipY = false;
   gridTex = facade;
   state.data = data;
-  const built = buildSenado(data, { mode: 'viewer', calcadaTexture: calcada, louvreTexture: louvre, glazingTexture: glazing, facadeTexture: facade, streetTextures, shopTexture: shops, signTexture: signs });
+  // v9: the generic buildings around the square are rebuilt with windows, shops and rooftops (see streetscape.js)
+  const sel = streetscapeSelection(data);
+  const built = buildSenado(data, { mode: 'viewer', calcadaTexture: calcada, louvreTexture: louvre, glazingTexture: glazing, facadeTexture: facade, streetTextures, shopTexture: shops, signTexture: signs, skip: sel.ids });
   world = built.root;
-  pickTables = built.pickTables;
+  const street = buildStreetscape(data, sel, built);
+  world.add(street.group);
+  state.streetscape = street.stats;
+  pickTables = built.pickTables.concat(street.pickTables);
   scene.add(world);
   // alpha-masked railings and signs must not occlude like solid panels in the AO pass
   for (const n of ['Railings']) { const o = world.getObjectByName(n); if (o) o.userData.noAO = true; }
