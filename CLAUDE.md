@@ -133,5 +133,10 @@ merges `<id>@clip.glb` animations, writes `assets/models/` and
   (`PLAYWRIGHT_BROWSERS_PATH`), otherwise `npx playwright install chromium`.
 - Tests use `window.game` and call `updatePlay(1/60)` directly; keep those
   entry points stable or update `test/helpers.mjs` with them.
+- `index.html` has `<div id="game">`, so `window.game` is that element until
+  `main.js` assigns the real `Game` (after the optional models load). Check
+  for `window.game.startRun` before using it.
+- With the 39 web models the single-file build is ~11 MB; the 16 MB cap is
+  about 3.5 MB more of GLB away.
 - GitHub Pages deploys `main` (`.github/workflows/pages.yml`); CI
   (`ci.yml`) runs lint + tests on every push.

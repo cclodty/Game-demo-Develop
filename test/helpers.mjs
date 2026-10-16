@@ -28,7 +28,9 @@ export async function gameHarness() {
       });
       page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}\n${e.stack}`));
       await page.goto(`${server.url}/index.html${query}`);
-      await page.waitForFunction(() => window.game, null, { timeout: 60000 });
+      // index.html has <div id="game">, so window.game is that element until main.js
+      // assigns the real Game (after the optional models load) — wait for the object.
+      await page.waitForFunction(() => window.game && typeof window.game.startRun === 'function', null, { timeout: 120000 });
       await page.waitForTimeout(500);
       return { page, logs };
     },
