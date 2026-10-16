@@ -88,9 +88,36 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ochre); out
 .photo-ctl { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--sunken); font-size: 12.5px; }
 .photo-ctl label { display: inline-flex; gap: 8px; align-items: center; }
 .photo-ctl #photoName { max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.walkpad { position: absolute; right: 10px; bottom: 54px; display: grid; grid-template-columns: repeat(3, 40px); gap: 4px; }
-.walkpad button { width: 40px; height: 40px; border-radius: 6px; border: 1px solid rgba(30,33,32,.2); background: rgba(250,250,247,.92); font: 600 14px/1 var(--mono); color: #1e2120; touch-action: none; }
-.walkpad .sp { visibility: hidden; }
+
+/* v10 stroll: the viewport takes the whole window; a small HUD floats over the street */
+body.strolling { overflow: hidden; }
+body.strolling .canvas-box { position: fixed; inset: 0; z-index: 50; width: 100vw; height: 100vh; height: 100dvh; min-height: 0; max-height: none !important; aspect-ratio: auto !important; }
+body.strolling .canvas-box > .overlay, body.strolling .canvas-box > .labels, body.strolling .canvas-box > .photo-ov { display: none !important; }
+.canvas-box:fullscreen { width: 100%; height: 100%; max-height: none; aspect-ratio: auto; }
+.stroll-hud { position: absolute; inset: 0; pointer-events: none; color: #fff; font: 500 13px/1.3 var(--cjk); }
+.st-place { position: absolute; left: 50%; top: max(7%, 18px); transform: translate(-50%, -6px); text-align: center; color: #1d4a8f; background: #f7f7f3; border: 2px solid #1d4a8f; border-radius: 3px; box-shadow: inset 0 0 0 3px #f7f7f3, inset 0 0 0 4px #1d4a8f, 0 8px 28px rgba(0, 0, 0, .28); padding: 10px 24px 9px; opacity: 0; transition: opacity .9s ease, transform .9s ease; max-width: calc(100% - 32px); }
+.st-place.show { opacity: 1; transform: translate(-50%, 0); }
+.st-place b { display: block; font: 700 clamp(19px, 2.6vw, 28px)/1.2 var(--cjk); letter-spacing: .14em; }
+.st-place span { display: block; margin-top: 3px; font: italic 500 clamp(11.5px, 1.3vw, 14px)/1.3 var(--sans); letter-spacing: .03em; }
+.st-bar { position: absolute; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; background: rgba(18, 20, 19, .55); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); pointer-events: auto; transition: opacity .5s; max-width: calc(100% - 32px); }
+.stroll-hud.locked .st-bar { opacity: 0; }
+.st-time { display: inline-flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; }
+.st-time input { width: clamp(90px, 18vw, 170px); accent-color: #fff; }
+.st-time .mono { min-width: 5ch; }
+.st-btn { font: 500 12.5px/1 var(--cjk); color: #fff; background: transparent; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; padding: 8px 12px; cursor: pointer; }
+.st-btn:hover { background: rgba(255, 255, 255, .14); }
+.st-btn[aria-pressed="true"] { background: #fff; color: #1e2120; border-color: #fff; }
+.st-btn kbd { font: 500 10px/1 var(--mono); opacity: .65; margin-left: 4px; }
+.st-hint { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 10px 16px; border-radius: 6px; background: rgba(18, 20, 19, .6); text-align: center; line-height: 1.6; pointer-events: none; max-width: calc(100% - 32px); }
+.st-hint .touch { display: none; }
+.st-joy { position: absolute; left: max(22px, env(safe-area-inset-left)); bottom: 84px; width: 124px; height: 124px; border-radius: 50%; background: rgba(255, 255, 255, .16); border: 1.5px solid rgba(255, 255, 255, .55); display: none; pointer-events: auto; touch-action: none; }
+.st-joy i { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px; border-radius: 50%; background: rgba(255, 255, 255, .85); pointer-events: none; }
+@media (pointer: coarse) {
+  .st-joy { display: block; }
+  .st-hint .mouse { display: none; }
+  .st-hint .touch { display: inline; }
+  .st-full { display: none; }
+}
 
 .controls { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; padding: 12px; border-top: 1px solid var(--line); }
 .controls label { display: inline-flex; align-items: center; gap: 8px; font: 500 12.5px/1.2 var(--cjk); }
@@ -149,10 +176,10 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
   <header class="head">
     <div>
       <div class="eyebrow">Macau · Largo do Senado · 22.1937°N 113.5399°E</div>
-      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v9 精緻街景</span></div>
-      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。按 39 張實景照片加入騎樓及樓層外圍（v2），補上噴水池的下沉台階並從照片取得外牆顏色（v3），再為臨街立面開出凹入的窗洞，配上百葉、玻璃、窗框、欄杆和帆布篷（v4）。v5 按衛星圖為每個屋頂分類上色，加上雙坡頂、天台樓梯屋和水缸，玫瑰堂立面補上山花牆，其餘樓宇用通用色和窗格。v6 把車路降低一級路緣石，加上行車線、斑馬線、地磚和石仔路質感，以及燈柱、交通燈、欄杆、花盆和長椅。v7 是展示版：陽光陰影、環境光遮蔽和色調映射，騎樓內和地面層的店面，照片中的真實店舖招牌，以及灰泥牆質感。v8 是 Three.js 的最後一版：仁慈堂、市政署和玫瑰堂加上柱、三角楣、題字、鐵欄和花槽，大堂建出兩座鐘樓連銅鐘和時鐘，並加入夜景。v9 不再為遊戲建模，只做精緻街景：廣場周圍 362 棟樓宇重建出窗、鐵窗、冷氣機、地鋪、招牌和天台，燈光改成模型照片的感覺。</p>
+      <div class="title"><h1>議事亭前地 量體研究</h1><span class="pt">Largo do Senado · v10 散步</span></div>
+      <p class="lede">建築輪廓和高度來自 OpenStreetMap 實測資料，以真實比例建模（1 單位 = 1 米，原點在噴水池）。按 39 張實景照片加入騎樓及樓層外圍（v2），補上噴水池的下沉台階並從照片取得外牆顏色（v3），再為臨街立面開出凹入的窗洞，配上百葉、玻璃、窗框、欄杆和帆布篷（v4）。v5 按衛星圖為每個屋頂分類上色，加上雙坡頂、天台樓梯屋和水缸，玫瑰堂立面補上山花牆，其餘樓宇用通用色和窗格。v6 把車路降低一級路緣石，加上行車線、斑馬線、地磚和石仔路質感，以及燈柱、交通燈、欄杆、花盆和長椅。v7 是展示版：陽光陰影、環境光遮蔽和色調映射，騎樓內和地面層的店面，照片中的真實店舖招牌，以及灰泥牆質感。v8 是 Three.js 的最後一版：仁慈堂、市政署和玫瑰堂加上柱、三角楣、題字、鐵欄和花槽，大堂建出兩座鐘樓連銅鐘和時鐘，並加入夜景。v9 不再為遊戲建模，只做精緻街景：廣場周圍 362 棟樓宇重建出窗、鐵窗、冷氣機、地鋪、招牌和天台，燈光改成模型照片的感覺。v10 讓人可以一個人在街上慢慢走：按「散步」進入全畫面，跟著路緣石和噴水池台階高低，走進騎樓；時間由日出到日落，街聲、噴水池和雀鳥即場合成；牆上掛藍白瓷磚路牌，窗外有晾衫竹和盆栽。</p>
     </div>
-    <div class="status"><i></i>v9 精緻街景 · 362 棟樓宇 · 約 2.1 萬個窗 · 7 千多個鐵窗 · 約 650 間地鋪 · 夜景</div>
+    <div class="status"><i></i>v10 散步 · 362 棟樓宇 · 日出到日落 · 即場合成的街聲 · 73 塊街名路牌 · 1,420 支晾衫竹 · 夜景</div>
   </header>
 
   <div class="grid">
@@ -162,7 +189,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
         <div class="seg">
           <button class="btn" id="photoBtn" type="button" title="選一張實景照片，半透明疊在 3D 畫面上對位">疊上實景照片</button>
           <input type="file" id="photoFile" accept="image/*" hidden>
-          <button class="btn" id="walkBtn" type="button" aria-pressed="false" title="WASD／方向鍵移動，拖曳轉向，Shift 跑步">步行模式</button>
+          <button class="btn primary" id="walkBtn" type="button" aria-pressed="false" title="全畫面在街上散步：滑鼠轉向，WASD 走路，Shift 快行">散步</button>
         </div>
       </div>
       <div class="photo-ctl" id="photoCtl" hidden>
@@ -180,15 +207,24 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
           <div class="scalebar"><span id="sbLabel">10 m</span><div class="rule" id="sbRule" style="width:60px"></div></div>
         </div>
         <div class="overlay ov-br" id="hintBox">拖曳旋轉 · 右鍵平移 · 滾輪縮放 · 點選建築</div>
-        <div class="walkpad" id="walkpad" hidden>
-          <span class="sp"></span><button data-k="f" aria-label="前進">▲</button><span class="sp"></span>
-          <button data-k="l" aria-label="左移">◀</button><button data-k="b" aria-label="後退">▼</button><button data-k="r" aria-label="右移">▶</button>
+        <div class="stroll-hud" id="strollHud" hidden>
+          <div class="st-place" id="stPlace" aria-live="polite"><b id="stZh"></b><span id="stPt"></span></div>
+          <div class="st-hint" id="stHint"><span class="mouse">點一下畫面，用滑鼠轉向 · W A S D 走路 · Shift 快行<br>Esc 放開滑鼠，再按一次離開</span><span class="touch">拖曳畫面轉向 · 左下圓盤走路</span></div>
+          <div class="st-joy" id="stJoy" aria-hidden="true"><i></i></div>
+          <div class="st-bar">
+            <label class="st-time" for="stTime">時間 <input type="range" id="stTime" step="0.05"> <span class="mono" id="stTimeVal"></span></label>
+            <button class="st-btn" id="stNight" type="button" aria-pressed="false">夜景</button>
+            <button class="st-btn" id="stSound" type="button" aria-pressed="false" title="街聲、噴水池、雀鳥和腳步聲，全部即場合成">聲音</button>
+            <button class="st-btn st-full" id="stFull" type="button" aria-pressed="false">全螢幕</button>
+            <button class="st-btn" id="stExit" type="button">離開<kbd>Esc</kbd></button>
+          </div>
         </div>
       </div>
       <div class="controls">
         <label for="scale">環境比例 <input type="range" id="scale" min="1" max="1.6" step="0.05" value="1"> <span class="val" id="scaleVal">1.00×</span></label>
         <label for="planOnly"><input type="checkbox" id="planOnly"> 只放大平面（樓高不變）</label>
         <label for="fov">FOV <input type="range" id="fov" min="25" max="95" step="1" value="60"> <span class="val" id="fovVal">60°</span></label>
+        <label for="time" title="十月中的太陽位置：日出後至日落前">時間 <input type="range" id="time" step="0.05"> <span class="val" id="timeVal"></span></label>
         <div class="toggles" role="group" aria-label="圖層">
           <button class="chip" id="tSat" aria-pressed="false">衛星底圖</button>
           <button class="chip" id="tLabels" aria-pressed="true">地標名稱</button>
@@ -280,6 +316,17 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
   </div>
 
   <div class="notes">
+    <div class="card">
+      <h2>v10：散步</h2>
+      <ul>
+        <li><b>散步：</b>按「散步」進入全畫面，點一下畫面用滑鼠轉向，W A S D 走路，Shift 快行，Esc 離開；手機拖曳畫面轉向，用左下圓盤走路。視高 1.62 米，每秒 1.35 米。</li>
+        <li><b>碰撞和高低：</b>走不進樓宇，碰到牆沿牆滑行；可以走進騎樓和過街樓底；燈柱、花盆、欄杆和噴水池擋路；落路緣石低一級，噴水池台階一級級落到下沉通道。走進另一條街時，上方顯示中葡文街名。</li>
+        <li><b>時間：</b>由 06:36 到 17:45，按澳門十月中的太陽位置；早晚陽光變暖變長，天空和霧氣跟著轉色。預設 09:54 就是 v9 的陽光。</li>
+        <li><b>聲音：</b>全部在瀏覽器即場合成，不用錄音：城市聲、按距離和方向的車聲（新馬路旁最響）、噴水池水聲、早上較多的雀鳥聲和腳步聲。</li>
+        <li><b>眼高細節：</b>街兩端轉角掛藍白瓷磚路牌（73 塊、46 個 OSM 街名）；唐樓和住宅窗外的晾衫竹和衣物、窗台盆栽、轉角落水管，以及樓梯口鐵閘。v9 的窗和天台不變。</li>
+        <li>街景按 80 米分成 21 區，看不到的不畫；約 77 萬個三角形。散步、時間、聲音和細節只在檢視器，GLB 仍然是 v8。</li>
+      </ul>
+    </div>
     <div class="card">
       <h2>v9：精緻街景</h2>
       <ul>
@@ -401,7 +448,7 @@ dl.kv dd small { color: var(--muted); font-weight: 400; }
       <h2>下一步</h2>
       <ul>
         <li><b>按照片逐棟核對通用色：</b>先做新馬路其餘一段、板樟堂前地東面、營地街市和大堂（現為暫定色）。</li>
-        <li><b>街道傢俬實測：</b>用街景照片核對燈柱、花盆和長椅的實際位置；加入路牌、指示牌和節慶裝飾（現時刻意不加）。</li>
+        <li><b>街道傢俬實測：</b>用街景照片核對燈柱、花盆和長椅的實際位置；指示牌和節慶裝飾（現時刻意不加）；路牌位置按照片逐塊核對（v10 按規則放）。</li>
         <li><b>新馬路的騎樓和招牌</b>仍欠照片證據；<b>大堂鐘樓</b>和市政署的細部；遊戲用的碰撞簡化。</li>
       </ul>
     </div>

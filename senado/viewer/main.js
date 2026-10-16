@@ -2,10 +2,12 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { buildSenado, buildFigure, landmarkAnchors, prismGeometry } from './model.js';
-import { createLighting } from './lighting.js';
+import { createLighting, SOLAR } from './lighting.js';
 import { plasterize, plasterUniforms } from './materials.js';
 import { createNight, nightUniforms } from './night.js';
 import { streetscapeSelection, buildStreetscape } from './streetscape.js';
+import { createStroll } from './stroll.js';
+import { createAmbience } from './ambience.js';
 
 const EYE = 1.65;          // m, eye height of the 1.75 m reference person
 const WALK = 1.5, RUN = 6; // m/s
@@ -30,7 +32,7 @@ const PRESETS = [
 ];
 const FIGURES = [[-7, -12, 52], [5.5, -7.5, 200], [12, -15, 120], [28, 37, 230], [52, 80, 30], [-31, -38, 60]];
 
-const state = { scale: 1, planOnly: false, preset: 'mouth', walk: false, data: null, picked: null };
+const state = { scale: 1, planOnly: false, preset: 'mouth', walk: false, night: false, time: SOLAR.start, data: null, picked: null };
 const v3 = (x, y, z = 0) => new THREE.Vector3(x * state.scale, z * (state.planOnly ? 1 : state.scale), -y * state.scale);
 
 // ---------------- renderer / scene ----------------
@@ -58,7 +60,7 @@ if (window.matchMedia('(pointer: coarse)').matches) { lighting.setQuality(false)
 const texLoader = new THREE.TextureLoader();
 const loadTex = (url) => new Promise((res, rej) => texLoader.load(url, res, undefined, rej));
 
-let world, pickTables = [], figureGroup, labelObjs = [], satMesh = null, highlight = null, gridTex = null, night = null;
+let world, pickTables = [], figureGroup, labelObjs = [], satMesh = null, highlight = null, gridTex = null, night = null, stroll = null, ambience = null;
 
 async function init() {
   const [data, calcada, louvre, glazing, facade, asphalt, paving, setts, railing, shops, signs, credits] = await Promise.all([
@@ -100,6 +102,17 @@ async function init() {
   world.traverse((o) => { if (o.isMesh && o.material && o.material.name === 'Shop_sign') o.userData.noAO = true; });
   plasterize(world);   // lime-plaster tone, grime and grain on the walls (viewer only, see materials.js)
   night = createNight(world);   // lamps, floodlights and lit windows, off until the 夜景 chip (see night.js)
+  // v10 stroll: walls and posts in plan from the data, the ground from these meshes (see stroll.js)
+  stroll = createStroll({
+    data, world, camera, renderer,
+    toWorld: (x, y, z) => v3(x, y, z),
+    groundNames: ['Ground', 'Carriageway', 'Kerbs', 'Footways', 'Road_Markings', 'Grass', 'Calcada_Squares', 'Fountain_Steps', 'Fountain_SunkenPath'],
+    hud: { hint: $('stHint'), joy: $('stJoy') },
+    onPlace: showPlace,
+    onStep: (pace) => ambience.step(pace),
+    onExit: () => setWalk(false),
+  });
+  ambience = createAmbience(data);   // v10: sound while strolling, off until the 聲音 button (see ambience.js)
 
   figureGroup = new THREE.Group();
   figureGroup.name = 'ScaleFigures';
@@ -138,7 +151,7 @@ async function init() {
   $('buildStamp').textContent = `資料版本：${data.meta.source}`;
   resize();
   renderer.setAnimationLoop(tick);
-  window.senado = { THREE, scene, camera, controls, state, setPreset, world, showPick, renderer, lighting, plaster: plasterUniforms, night, nightUniforms };
+  window.senado = { THREE, scene, camera, controls, state, setPreset, world, showPick, renderer, lighting, plaster: plasterUniforms, night, nightUniforms, stroll, ambience, setWalk, setTime, setNight };
 }
 
 // ---------------- scale ----------------
@@ -216,62 +229,104 @@ function buildPresetButtons() {
   }
 }
 
-// ---------------- walk mode ----------------
-const keys = new Set();
-let yaw = 0, pitch = 0;
+// ---------------- stroll (v10) ----------------
+// 散步: the viewport fills the window, the panels go, and the camera walks at eye height (see stroll.js). It
+// starts where the camera stands at eye level, or on the ground the orbit looks at, or at the square's mouth.
+let orbitFov = 60, placeTimer = null;
 function setWalk(on) {
+  if (on === state.walk || !stroll) return;
   state.walk = on;
   $('walkBtn').setAttribute('aria-pressed', String(on));
-  $('walkpad').hidden = !on;
+  document.body.classList.toggle('strolling', on);
+  $('strollHud').hidden = !on;
   controls.enabled = !on;
+  figureGroup.visible = !on && $('tFigs').getAttribute('aria-pressed') === 'true';
   if (on) {
     tween = null;
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir);
-    yaw = Math.atan2(dir.x, -dir.z);
-    pitch = 0;
-    camera.position.y = EYE;
-    camera.fov = Math.max(camera.fov, 60);
+    showPick(null);
+    const dir = camera.getWorldDirection(new THREE.Vector3());
+    const s = state.scale, at = camera.position.y < 4 ? camera.position : controls.target;
+    stroll.enter(at.x / s, -at.z / s, Math.atan2(-dir.z, dir.x));
+    orbitFov = camera.fov;
+    camera.fov = 62;
     camera.updateProjectionMatrix();
-    $('hintBox').textContent = 'WASD／方向鍵移動 · 拖曳轉向 · Shift 跑步 6 m/s';
     document.querySelectorAll('#presets button').forEach((b) => b.setAttribute('aria-pressed', 'false'));
-    $('camInfo').textContent = '步行模式 · 眼高 1.65 米';
+    $('stPlace').classList.remove('show');
+    $('stHint').hidden = false;
   } else {
-    const dir = new THREE.Vector3(Math.sin(yaw), 0, -Math.cos(yaw));
-    controls.target.copy(camera.position).addScaledVector(dir, 10);
-    $('hintBox').textContent = '拖曳旋轉 · 右鍵平移 · 滾輪縮放 · 點選建築';
+    stroll.exit();
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    const dir = camera.getWorldDirection(new THREE.Vector3());
+    dir.y = 0;
+    controls.target.copy(camera.position).addScaledVector(dir.normalize(), 10);
+    controls.maxPolarAngle = Math.PI * 0.62;
+    camera.fov = orbitFov;
+    camera.updateProjectionMatrix();
+    $('camInfo').textContent = '散步結束，回到環視鏡頭';
   }
 }
+// the street or square underfoot, on a blue-and-white tile like the street plaques, for a few seconds
+function showPlace({ zh, pt }) {
+  $('stZh').textContent = zh;
+  $('stPt').textContent = pt;
+  $('stPt').hidden = !pt;
+  $('stPlace').classList.add('show');
+  clearTimeout(placeTimer);
+  placeTimer = setTimeout(() => $('stPlace').classList.remove('show'), 4200);
+}
 $('walkBtn').addEventListener('click', () => setWalk(!state.walk));
-window.addEventListener('keydown', (e) => {
-  if (e.target.closest('input')) return;
-  const p = PRESETS.find((q) => q.key === e.key);
-  if (p) { setPreset(p.id); return; }
-  if (state.walk) { keys.add(e.code); if (e.code.startsWith('Arrow')) e.preventDefault(); }
+$('stExit').addEventListener('click', () => setWalk(false));
+$('stFull').addEventListener('click', () => {
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  else if (host.requestFullscreen) host.requestFullscreen().catch(() => {});
 });
-window.addEventListener('keyup', (e) => keys.delete(e.code));
+document.addEventListener('fullscreenchange', () => $('stFull').setAttribute('aria-pressed', String(!!document.fullscreenElement)));
+document.addEventListener('pointerlockchange', () => $('strollHud').classList.toggle('locked', !!document.pointerLockElement));
+window.addEventListener('keydown', (e) => {
+  if ((e.target instanceof Element && e.target.closest('input')) || state.walk) return;
+  const p = PRESETS.find((q) => q.key === e.key);
+  if (p) setPreset(p.id);
+});
 let drag = null;
 renderer.domElement.addEventListener('pointerdown', (e) => {
   drag = { x: e.clientX, y: e.clientY, moved: 0 };
 });
 window.addEventListener('pointermove', (e) => {
   if (!drag) return;
-  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-  drag.moved += Math.abs(dx) + Math.abs(dy);
+  drag.moved += Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y);
   drag.x = e.clientX; drag.y = e.clientY;
-  if (state.walk) {
-    yaw += dx * 0.0042;
-    pitch = THREE.MathUtils.clamp(pitch - dy * 0.0042, -1.2, 1.2);
-  }
 });
 window.addEventListener('pointerup', (e) => {
-  if (drag && drag.moved < 5 && e.target === renderer.domElement) pick(e);
+  if (drag && drag.moved < 5 && e.target === renderer.domElement && !state.walk) pick(e);
   drag = null;
 });
-document.querySelectorAll('#walkpad button').forEach((b) => {
-  const k = { f: 'KeyW', b: 'KeyS', l: 'KeyA', r: 'KeyD' }[b.dataset.k];
-  b.addEventListener('pointerdown', (e) => { e.stopPropagation(); keys.add(k); });
-  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, () => keys.delete(k));
+
+// ---------------- time of day and night (v10) ----------------
+const hhmm = (h) => { const m = Math.round(h * 60); return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
+function setTime(h) {
+  state.time = h;
+  if (state.night) setNight(false);
+  lighting.setTime(h);
+  for (const id of ['time', 'stTime']) if (Math.abs(parseFloat($(id).value) - h) > 1e-6) $(id).value = h;
+  $('timeVal').textContent = $('stTimeVal').textContent = hhmm(h);
+}
+function setNight(on) {
+  state.night = on;
+  lighting.setNight(on);
+  if (night) night.set(on);
+  for (const id of ['tNight', 'stNight']) $(id).setAttribute('aria-pressed', String(on));
+}
+for (const id of ['time', 'stTime']) {
+  const el = $(id);
+  el.min = SOLAR.min; el.max = SOLAR.max; el.value = SOLAR.start;
+  el.addEventListener('input', () => setTime(parseFloat(el.value)));
+}
+$('timeVal').textContent = $('stTimeVal').textContent = hhmm(SOLAR.start);
+$('tNight').addEventListener('click', () => setNight(!state.night));
+$('stNight').addEventListener('click', () => setNight(!state.night));
+$('stSound').addEventListener('click', () => {
+  ambience.setOn(!ambience.on);
+  $('stSound').setAttribute('aria-pressed', String(ambience.on));
 });
 
 // ---------------- picking ----------------
@@ -346,7 +401,6 @@ bindToggle('tLabels', (on) => labelObjs.forEach((o) => { o.visible = on; o.eleme
 bindToggle('tFigs', (on) => { figureGroup.visible = on; figureGroup.traverse((o) => { if (o.isCSS2DObject) o.element.hidden = !on; }); });
 bindToggle('tContext', (on) => { const g = world.getObjectByName('Buildings_context'); if (g) g.visible = on; });
 bindToggle('tHQ', (on) => lighting.setQuality(on));
-bindToggle('tNight', (on) => { lighting.setNight(on); if (night) night.set(on); });
 // shop signs, roof sign frames and sign awnings (v7 showcase): off hides every trade name and logo
 bindToggle('tSigns', (on) => world.traverse((o) => { if (o.isMesh && /_(signs|roofSigns|signBoards|signAwnings\d*)$/.test(o.name)) o.visible = on; }));
 bindToggle('tStreet', (on) => { for (const n of ['StreetFurniture', 'Railings']) { const o = world.getObjectByName(n); if (o) o.visible = on; } });
@@ -575,25 +629,19 @@ function tick() {
     camera.updateProjectionMatrix();
     if (tween.t >= 1) tween = null;
   }
-  if (state.walk) {
-    const sp = (keys.has('ShiftLeft') || keys.has('ShiftRight') ? RUN : WALK) * dt;
-    const f = new THREE.Vector3(Math.sin(yaw), 0, -Math.cos(yaw));
-    const r = new THREE.Vector3(Math.cos(yaw), 0, Math.sin(yaw));
-    if (keys.has('KeyW') || keys.has('ArrowUp')) camera.position.addScaledVector(f, sp);
-    if (keys.has('KeyS') || keys.has('ArrowDown')) camera.position.addScaledVector(f, -sp);
-    if (keys.has('KeyA') || keys.has('ArrowLeft')) camera.position.addScaledVector(r, -sp);
-    if (keys.has('KeyD') || keys.has('ArrowRight')) camera.position.addScaledVector(r, sp);
-    camera.position.y = EYE;
-    const look = new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
-    camera.lookAt(camera.position.clone().add(look));
-  } else {
-    controls.update();
+  if (state.walk) stroll.update(dt);
+  else controls.update();
+  if (ambience) {
+    const S = stroll.state;
+    ambience.update(dt, { p: S.p, yaw: S.yaw, hour: state.time, night: state.night, active: state.walk });
   }
   updateMinimap();
-  updateScaleBar();
+  if (!state.walk) updateScaleBar();
   lighting.render(state.walk ? null : controls.target);
-  labelRenderer.render(scene, camera);
-  declutter();
+  if (!state.walk) {
+    labelRenderer.render(scene, camera);
+    declutter();
+  }
 }
 
 // Hide labels that collide with a nearer one.

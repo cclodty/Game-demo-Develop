@@ -8,9 +8,15 @@
 // neighbour stay blank up to the neighbour's height. The GLB keeps the v8 massing: scripts/export_glb.mjs does not run
 // this file, so the game asset is unchanged.
 //
+// v10 adds what a walker sees at eye level: blue-and-white street-name plaques at the street corners (the real
+// names, from OSM), laundry on poles out of the windows, pots on the sills, drainpipes, and the iron gate of the
+// stair hall among the shops. The zone is cut into tiles of TILE metres, so the browser skips what is behind the
+// walker.
+//
 // Wall-local coordinates as in model.js: s along the wall from its start corner, z up, o outward.
 import * as THREE from 'three';
 import { edgeFrame, gableGeometry, hash01, rng, pointIn, rooftopClutter, shopUV, shopKind } from './model.js';
+import { splitName } from './stroll.js';
 
 export const STREETSCAPE = {
   centre: [40, 30], radius: 175,   // detail zone (data metres from the fountain): the plaza, the Sé and São Domingos
@@ -19,6 +25,8 @@ export const STREETSCAPE = {
   minEdge: 1.8,                    // shorter walls stay plain
   reveal: 0.16,                    // window recess
   glassFloor: 2.5,                 // panes above this may be lit at night (night.js)
+  tile: 80,                        // v10: m, side of the culling tiles
+  plaque: { z: 2.45, h: 0.36, tile: 0.15, reach: 7 },   // street plaques: bottom (m), height, tile size, search reach
 };
 
 // Building families. ground / storey: floor heights (m); bay: window spacing; win: width, height, sill;
@@ -50,6 +58,20 @@ const VSIGNS = [
 ];
 const SHUTTER = '#9ea3a5';
 const SHOP_FRAME = '#3a3029';
+// v10 eye level: laundry, pots, pipes, stair-hall gates
+const CLOTH = ['#f4f4f0', '#e4e9ef', '#9cc0e0', '#e8a8b4', '#2c3a5c', '#c8423b', '#e8d36a', '#7d8a8f', '#5e8f6a', '#f0d9c0', '#4a4a4f'];
+const POLES = ['#b9a77a', '#a0a6a8'];                             // bamboo, aluminium
+const POTS = ['#a65a3c', '#b8734f', '#7c7f80', '#d8d4cc'];
+const LEAVES = ['#3f6b35', '#4f7d3a', '#5a8a44', '#365e33'];
+const PIPES = ['#8d9296', '#e3e1da', '#5a5f63', '#a8aca8'];
+const GATES = ['#2f4a3c', '#3a3d40', '#5b2f2a', '#c9ccd0'];
+// per family: share of the upper windows with laundry (street front, back), with pots on the sill
+const EYE = {
+  shophouse: { wash: [0.05, 0.12], pots: 0.06, pipes: true },
+  residential: { wash: [0.06, 0.14], pots: 0.05, pipes: true },
+  office: { wash: [0, 0], pots: 0.01, pipes: false },
+  tower: { wash: [0, 0], pots: 0, pipes: false },
+};
 
 // Per-window choices: model.js's FNV hash, finished with a murmur3 mix. FNV alone gives nearly the same value
 // for keys that differ only in the last digit (window j, j + 1), which lit and caged whole rows together.
@@ -222,7 +244,7 @@ function familyOf(H, R) {
 }
 
 function buildOne(b, ctx) {
-  const R = rng(`${b.id}:v9`);
+  const R = rng(`${b.id}:v9`), R10 = rng(`${b.id}:v10`);
   const shape = b.roof && b.roof.shape;
   const H = shape ? shape.eave : b.h;
   const fam = familyOf(H, R), F = FAMILY[fam];
@@ -241,6 +263,11 @@ function buildOne(b, ctx) {
     shops: H >= 6 && R() < 0.9,
     band: F.band ? (R() < 0.5 ? wall.clone().multiplyScalar(1.07) : C('#efede6')) : null,
     seed: b.id,
+    eye: EYE[fam],
+    // v10 choices from their own stream, so the v9 ones above and the rooftops below come out as before
+    pipe: C(pick(PIPES, R10)),
+    gate: C(pick(GATES, R10)),
+    street: false, plaque: null,                                  // per wall, set below
   };
   const ring0 = ctx.walls.tris;
   const rings = [b.outer, ...b.holes];
@@ -250,6 +277,8 @@ function buildOne(b, ctx) {
       if (!(f.L > 1e-3)) continue;
       const ex = exposure(b, f, ctx.L);
       const ops = wallOps(f);
+      P.street = ex.street;
+      P.plaque = ri === 0 ? ctx.plaqueSpec.get(`${b.id}:${i}`) || null : null;
       if (ex.open >= H - 0.5 || f.L < STREETSCAPE.minEdge) ops.front(ctx.walls, 0, f.L, 0, H, 0, wall);
       else facadeWall(f, ops, ex, P, ctx, `${ri}:${i}`);
       if (!shape && ex.open < H) parapet(f, ops, P, ctx);
@@ -353,9 +382,29 @@ function facadeWall(f, ops, ex, P, ctx, wallKey) {
       continue;
     }
     const ground = k === 0 && n > 1;
-    if (ground && ex.street && P.shops) shopRow(f, ops, va, vb, s0, s1, P, ctx, wallKey);
-    else if (F.curtain) curtainRow(f, ops, va, vb, s0, s1, P, ctx, `${wallKey}:${k}`, ground);
-    else windowRow(f, ops, va, vb, s0, s1, P, ctx, `${wallKey}:${k}`, ground);
+    // v10: the street plaque goes on plain wall at the corner, so the ground row starts after it
+    let a = s0, c = s1;
+    if (k === 0 && P.plaque) {
+      const pw = P.plaque.w + 0.55;
+      if (P.plaque.at === 'start') { ops.front(ctx.walls, s0, s0 + pw, va, vb, 0, wall); a = s0 + pw; }
+      else { ops.front(ctx.walls, s1 - pw, s1, va, vb, 0, wall); c = s1 - pw; }
+    }
+    if (ground && ex.street && P.shops) shopRow(f, ops, va, vb, a, c, P, ctx, wallKey);
+    else if (F.curtain) curtainRow(f, ops, va, vb, a, c, P, ctx, `${wallKey}:${k}`, ground);
+    else windowRow(f, ops, va, vb, a, c, P, ctx, `${wallKey}:${k}`, ground);
+  }
+  if (P.plaque && from === 0) plaque(f, ops, P.plaque, s0, s1, ctx);
+  // v10: drainpipes down the corners of the older blocks, clear of the windows and shops
+  if (P.eye.pipes && H > 6 && L > 4 && from === 0) {
+    const r = h01(`${P.seed}:${wallKey}:pipe`);
+    const ends = r < 0.35 ? [] : r < 0.85 ? [r < 0.6 ? 0 : 1] : [0, 1];
+    for (const e of ends) {
+      if (P.plaque && (P.plaque.at === 'start') === (e === 0)) continue;
+      const x = e === 0 ? wc + 0.02 : L - wc - 0.11;
+      ops.box(ctx.frames, x, x + 0.09, 0.12, H + P.F.parapet - 0.25, 0, 0.09, P.pipe, 1 | 2 | 4);
+      ops.box(ctx.frames, x - 0.03, x + 0.12, 0.05, 0.12, 0, 0.12, P.pipe, 1 | 2 | 4 | 8);   // shoe
+      ctx.count.pipes++;
+    }
   }
   // corner piers, floor bands, a canopy over the shops, projecting signs
   if (wc > 0) for (const [a, c] of [[0, wc], [L - wc, L]]) ops.box(ctx.walls, a, c, from, H, 0, 0.05, wall, 1 | 2 | 4);
@@ -422,8 +471,58 @@ function windowRow(f, ops, va, vb, s0, s1, P, ctx, key, ground) {
       }
       ctx.count.ac++;
     }
+    // v10: laundry on poles out of the window (or its cage), pots on the sill (or inside the cage)
+    if (!ground) {
+      const wseed = `${P.seed}:${key}:${j}`;
+      if (v0 > STREETSCAPE.glassFloor && h01(`${wseed}:wash`) < P.eye.wash[P.street ? 0 : 1]) laundry(ops, c, v1, caged ? 0.36 : 0.02, P, ctx, wseed);
+      else if (h01(`${wseed}:pot`) < P.eye.pots && !(rac < P.ac && P.acWindow && !caged)) pots(ops, u0, u1, v0, caged, ctx, wseed);
+    }
   }
   ops.front(ctx.walls, s, s1, v0, v1, 0, wall);
+}
+
+// Laundry (晾衫) on one or two poles out of a window: shirts, towels and trousers hang edge-on to the street,
+// pegged under the pole. The cloth is one double-sided quad each.
+function laundry(ops, c, top, o0, P, ctx, seed) {
+  const R = rng(`${seed}:wash`);
+  const len = 1.1 + R() * 0.7, z = top + 0.06, pole = C(pick(POLES, R));
+  const poles = R() < 0.4 ? [c - 0.3, c + 0.3] : [c + (R() - 0.5) * 0.4];
+  for (const s of poles) {
+    ops.box(ctx.frames, s - 0.02, s + 0.02, z - 0.02, z + 0.02, o0, o0 + len, pole, 1 | 2 | 4 | 8 | 16);
+    let o = o0 + 0.12 + R() * 0.15;
+    while (true) {
+      const w = 0.26 + R() * 0.36, hh = 0.38 + R() * 0.55;
+      if (o + w > o0 + len - 0.06) break;
+      ops.left(ctx.cloth, s, z - 0.02 - hh, z - 0.02, o, o + w, C(pick(CLOTH, R)));
+      o += w + 0.04 + R() * 0.14;
+      ctx.count.clothes++;
+    }
+  }
+  ctx.count.laundry++;
+}
+
+// One to three pots on a sill, or on the floor of an iron cage, each with a clump of leaves.
+function pots(ops, u0, u1, v0, caged, ctx, seed) {
+  const R = rng(`${seed}:pot`);
+  const n = 1 + Math.floor(R() * Math.min(3, (u1 - u0) / 0.4)), step = (u1 - u0) / n;
+  const z0 = caged ? v0 - 0.08 : v0, o0 = caged ? 0.06 : 0.0;
+  for (let k = 0; k < n; k++) {
+    const c = u0 + step * (k + 0.5) + (R() - 0.5) * 0.08, w = 0.1 + R() * 0.05, ph = 0.14 + R() * 0.08;
+    ops.box(ctx.frames, c - w, c + w, z0, z0 + ph, o0, o0 + 2 * w, C(pick(POTS, R)), 1 | 2 | 4);
+    const lw = w * (1.2 + R() * 0.5), lh = 0.16 + R() * 0.28;
+    ops.box(ctx.frames, c - lw, c + lw, z0 + ph, z0 + ph + lh, o0 - 0.02, o0 + 2 * w + 0.04, C(pick(LEAVES, R)), 1 | 2 | 4 | 8);
+    ctx.count.pots++;
+  }
+}
+
+// The street plaque (路牌): blue-and-white tiles on the corner, the Chinese name over the Portuguese one.
+function plaque(f, ops, q, s0, s1, ctx) {
+  const { z, h } = STREETSCAPE.plaque;
+  const a = q.at === 'start' ? s0 + 0.25 : s1 - 0.25 - q.w, b = a + q.w;
+  const [u0, v0, u1, v1] = ctx.atlas.uv(q.name);
+  ops.front(ctx.plaques, a, b, z, z + h, 0.018, C('#ffffff'), [[u0, v0], [u1, v0], [u1, v1], [u0, v1]]);
+  ops.box(ctx.frames, a, b, z, z + h, 0, 0.018, C('#eef0f2'), 2 | 4 | 8 | 16);
+  ctx.count.plaques++;
 }
 
 // Iron window cage (鐵窗): barred front, ends and floor in the alpha-masked grille; a solid sheet on top.
@@ -467,6 +566,8 @@ function shopRow(f, ops, va, vb, s0, s1, P, ctx, key) {
   if (span < 2.2) { ops.front(ctx.walls, s0, s1, va, vb, 0, wall); return; }
   ops.front(ctx.walls, s0, s1, zg, vb, 0, wall);
   const pier = 0.35;
+  // flats above have their own door: one bay of a residential or office block is the stair hall (v10)
+  const gateBay = (P.fam === 'residential' || P.fam === 'office') && nb >= 2 ? Math.floor(h01(`${P.seed}:${key}:gate`) * nb) : -1;
   let s = s0;
   for (let j = 0; j < nb; j++) {
     const l = s0 + bw * j + pier / 2, r = s0 + bw * (j + 1) - pier / 2;
@@ -478,6 +579,23 @@ function shopRow(f, ops, va, vb, s0, s1, P, ctx, key) {
     ops.bottom(ctx.walls, l, r, zg, -d, 0, rv);
     const seed = `${P.seed}:${key}:${j}`;
     const shut = h01(`${seed}:shut`) < 0.18;
+    if (j === gateBay) {
+      // v10: the stair hall of the flats above, behind an iron gate, with a dim lobby inside
+      const gl = Math.max(l, (l + r) / 2 - 0.9), gr = Math.min(r, (l + r) / 2 + 0.9);
+      ops.front(ctx.walls, l, gl, va, zg, -d + 0.01, rv);
+      ops.front(ctx.walls, gr, r, va, zg, -d + 0.01, rv);
+      ops.front(ctx.walls, gl, gr, va, zg, -d - 1.2, C('#4a4743'));
+      ops.right(ctx.walls, gl, va, zg, -d - 1.2, -d, C('#5b5751'));
+      ops.left(ctx.walls, gr, va, zg, -d - 1.2, -d, C('#5b5751'));
+      ops.top(ctx.walls, gl, gr, va + 0.005, -d - 1.2, -d, C('#6e6a63'));
+      ops.bottom(ctx.walls, gl, gr, zg, -d - 1.2, -d, C('#3a3835'));
+      const bar = 0.11, rail = 0.45, gz1 = Math.min(zg, va + 2.3);
+      ops.front(ctx.grilles, gl, gr, va, gz1, -d + 0.06, P.gate, [[gl / bar, va / rail], [gr / bar, va / rail], [gr / bar, gz1 / rail], [gl / bar, gz1 / rail]]);
+      ops.box(ctx.frames, gl - 0.04, gr + 0.04, gz1, gz1 + 0.06, -d + 0.02, -d + 0.1, P.gate, 1 | 8 | 16);
+      if (zg > gz1 + 0.1) ops.front(ctx.frames, gl, gr, gz1 + 0.06, zg, -d + 0.04, C('#2b2b2c'));   // fanlight
+      ctx.count.gates++;
+      continue;
+    }
     if (shut) {
       // roller shutter: slats as a gradient of thin bands
       const g = C(SHUTTER), n = Math.max(4, Math.round((zg - va) / 0.25));
@@ -535,6 +653,115 @@ function projectingSigns(f, ops, P, ctx, key) {
   }
 }
 
+// ---------- v10 street plaques: where they go ----------
+// Near both ends of every named OSM way, on the corner of a rebuilt building whose wall runs along the street, faces
+// it and is open at the ground floor; one plaque per name within 25 m. The plaque shows the main name only (the
+// older name OSM gives in brackets is left off), its width set by the longer of the two lines.
+export function plaqueText(name) {
+  const { zh, pt } = splitName(name);
+  return { zh: zh.replace(/\s*[(（].*?[)）]\s*/g, '').trim(), pt };
+}
+export function plaqueWidth({ zh, pt }) {
+  const T = STREETSCAPE.plaque.tile;
+  return Math.min(1.5, Math.max(0.6, Math.ceil((Math.max([...zh].length * 0.13, pt.length * 0.031) + 0.2) / T) * T));
+}
+
+function plaquePlan(data, sel, L) {
+  const Q = STREETSCAPE.plaque, G = grid(16), out = new Map(), placed = [];
+  for (const b of sel.list) {
+    b.outer.forEach((_, i) => {
+      const f = edgeFrame(b.outer, i);
+      if (!(f.L > 3)) return;
+      G.add(Math.min(f.a[0], f.b[0]) - Q.reach, Math.min(f.a[1], f.b[1]) - Q.reach, Math.max(f.a[0], f.b[0]) + Q.reach, Math.max(f.a[1], f.b[1]) + Q.reach, { b, i, f });
+    });
+  }
+  const [cx, cy] = STREETSCAPE.centre;
+  for (const r of data.roads) {
+    if (!r.name || r.hw === 'steps' || r.pts.length < 2) continue;
+    const text = plaqueText(r.name), w = plaqueWidth(text);
+    for (const pts of [r.pts, r.pts.slice().reverse()]) {
+      const E = pts[0], seg = Math.hypot(pts[1][0] - E[0], pts[1][1] - E[1]);
+      if (seg < 1e-6) continue;
+      const t = [(pts[1][0] - E[0]) / seg, (pts[1][1] - E[1]) / seg], k = Math.min(3, seg / 2);
+      const q = [E[0] + t[0] * k, E[1] + t[1] * k];
+      if (Math.hypot(q[0] - cx, q[1] - cy) > STREETSCAPE.radius - 10) continue;
+      if (placed.some((p) => p.name === r.name && Math.hypot(p.x - q[0], p.y - q[1]) < 25)) continue;
+      let best = null;
+      for (const c of G.at(q)) {
+        const { f } = c;
+        if (Math.abs(f.u[0] * t[0] + f.u[1] * t[1]) < 0.8 || f.L < w + 3) continue;
+        const rx = q[0] - f.a[0], ry = q[1] - f.a[1];
+        const o = rx * f.n[0] + ry * f.n[1], sAlong = rx * f.u[0] + ry * f.u[1];
+        if (o < r.w / 2 - 1.5 || o > r.w / 2 + Q.reach || sAlong < -3 || sAlong > f.L + 3) continue;
+        if (out.has(`${c.b.id}:${c.i}`)) continue;
+        const score = Math.abs(o - r.w / 2) + Math.max(0, -sAlong, sAlong - f.L);
+        if (!best || score < best.score) best = { ...c, score, sAlong };
+      }
+      if (!best || exposure(best.b, best.f, L).open > 0.3) continue;
+      out.set(`${best.b.id}:${best.i}`, { name: r.name, ...text, w, at: best.sAlong < best.f.L / 2 ? 'start' : 'end' });
+      placed.push({ name: r.name, x: q[0], y: q[1] });
+    }
+  }
+  return out;
+}
+
+// The plaques' atlas: rows of plaques at 480 px per metre, drawn in the browser's CJK font (none in Node, where
+// only the layout is needed). Glazed white tiles with faint joints, a cobalt border, the names in cobalt.
+function plaqueAtlas(plaques) {
+  const PX = 480, W = 2048, hpx = Math.round(STREETSCAPE.plaque.h * PX), cells = new Map();
+  let x = 0, y = 0;
+  for (const q of plaques.values()) {
+    if (cells.has(q.name)) continue;
+    const wpx = Math.round(q.w * PX);
+    if (x + wpx > W) { x = 0; y += hpx + 4; }
+    cells.set(q.name, { x, y, w: wpx, q });
+    x += wpx + 4;
+  }
+  const H = Math.max(16, Math.ceil((y + hpx) / 16) * 16);
+  let texture = null;
+  if (typeof document !== 'undefined' && cells.size) {
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const g = cv.getContext('2d'), blue = '#1d4a8f', tile = STREETSCAPE.plaque.tile * PX;
+    for (const { x: x0, y: y0, w, q } of cells.values()) {
+      g.fillStyle = '#f4f5f1'; g.fillRect(x0, y0, w, hpx);
+      g.strokeStyle = '#dde2e6'; g.lineWidth = 1.5;
+      for (let k = tile; k < w - 1; k += tile) { g.beginPath(); g.moveTo(x0 + k, y0); g.lineTo(x0 + k, y0 + hpx); g.stroke(); }
+      for (let k = tile; k < hpx - 1; k += tile) { g.beginPath(); g.moveTo(x0, y0 + k); g.lineTo(x0 + w, y0 + k); g.stroke(); }
+      g.strokeStyle = blue;
+      g.lineWidth = 7; g.strokeRect(x0 + 6, y0 + 6, w - 12, hpx - 12);
+      g.lineWidth = 2; g.strokeRect(x0 + 15, y0 + 15, w - 30, hpx - 30);
+      for (const [cx, cy] of [[x0 + 15, y0 + 15], [x0 + w - 15, y0 + 15], [x0 + 15, y0 + hpx - 15], [x0 + w - 15, y0 + hpx - 15]]) {
+        g.fillStyle = blue; g.beginPath(); g.moveTo(cx, cy - 6); g.lineTo(cx + 6, cy); g.lineTo(cx, cy + 6); g.lineTo(cx - 6, cy); g.fill();
+      }
+      g.fillStyle = blue; g.textAlign = 'center'; g.textBaseline = 'middle';
+      const fit = (text, size, font) => {
+        g.font = font(size);
+        const m = g.measureText(text).width, room = w - 48;
+        if (m > room) g.font = font(Math.floor(size * room / m));
+      };
+      fit(q.zh, 66, (px) => `bold ${px}px "Noto Sans CJK TC", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif`);
+      g.fillText(q.zh, x0 + w / 2, y0 + hpx * 0.4);
+      if (q.pt) {
+        fit(q.pt, 27, (px) => `600 ${px}px "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif`);
+        g.fillText(q.pt, x0 + w / 2, y0 + hpx * 0.75);
+      }
+    }
+    texture = new THREE.CanvasTexture(cv);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = 8;
+  }
+  return {
+    texture,
+    size: [W, H],
+    // [u0, v0, u1, v1] of a name's plaque; v from the bottom (the canvas is flipped on upload)
+    uv(name) {
+      const c = cells.get(name);
+      return [c.x / W, 1 - (c.y + hpx) / H, (c.x + c.w) / W, 1 - c.y / H];
+    },
+  };
+}
+
 // ---------- the vertical sign atlas: one 128 x 512 column per trade, characters stacked top to bottom ----------
 function vsignTexture() {
   if (typeof document === 'undefined') return null;
@@ -578,52 +805,74 @@ function grilleTexture() {
 }
 
 // Builds the detail zone. `built` is buildSenado's result (materials and colours), `sel` streetscapeSelection's.
+// v10: one group per TILE-metre tile (by building centroid), each with its own meshes and pick table, sharing the
+// materials.
 export function buildStreetscape(data, sel, built) {
-  const ctx = {
-    L: lookups(data),
-    wallColor: built.wallColor, roofColor: built.roofColor,
-    signs: data.shopSigns || { signs: {}, generic: {} },
-    walls: new Sink({ uv: true }), frames: new Sink(), glass: new Sink({ lit: true }), grilles: new Sink({ uv: true }),
-    shops: new Sink({ uv: true }), signQuads: new Sink({ uv: true }), vsigns: new Sink({ uv: true }),
-    owner: [], count: { buildings: 0, windows: 0, grilles: 0, ac: 0, roofAC: 0, huts: 0, shops: 0, signs: 0 },
-  };
-  for (const b of sel.list) { buildOne(b, ctx); ctx.count.buildings++; }
-
+  const L = lookups(data);
+  const plaques = plaquePlan(data, sel, L);
+  const atlas = plaqueAtlas(plaques);
+  const count = { buildings: 0, windows: 0, grilles: 0, ac: 0, roofAC: 0, huts: 0, shops: 0, signs: 0, gates: 0, plaques: 0, laundry: 0, clothes: 0, pots: 0, pipes: 0, tiles: 0 };
   const std = (name, extra = {}) => {
     const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0, ...extra });
     m.name = name;
     return m;
   };
   const M = built.materials;
-  const parts = [
-    ['walls', ctx.walls, std('Facade_street')],
-    ['frames', ctx.frames, std('Street_frame', { roughness: 0.6 })],
-    ['glass', ctx.glass, std('Glass_street', { roughness: 0.12 })],
-    ['grilles', ctx.grilles, std('Street_grille', { map: grilleTexture(), alphaTest: 0.35, alphaToCoverage: true, side: THREE.DoubleSide, roughness: 0.6 })],
-    ['shops', ctx.shops, M.shop],
-    ['signs', ctx.signQuads, M.sign],
+  const mats = {
+    walls: std('Facade_street'),
+    frames: std('Street_frame', { roughness: 0.6 }),
+    glass: std('Glass_street', { roughness: 0.12 }),
+    grilles: std('Street_grille', { map: grilleTexture(), alphaTest: 0.35, alphaToCoverage: true, side: THREE.DoubleSide, roughness: 0.6 }),
+    shops: M.shop,
+    signs: M.sign,
     // named like the v7 signs: no AO, and lit at night (night.js)
-    ['vsigns', ctx.vsigns, std('Shop_sign', { map: vsignTexture(), roughness: 0.5 })],
-  ];
+    vsigns: std('Shop_sign', { map: vsignTexture(), roughness: 0.5 }),
+    cloth: std('Street_cloth', { side: THREE.DoubleSide, roughness: 0.95 }),
+    plaques: std('Street_plaque', { map: atlas.texture, roughness: 0.22 }),
+  };
+  const tiles = new Map();
+  for (const b of sel.list) {
+    const [x, y] = centroid(b.outer), k = `${Math.floor(x / STREETSCAPE.tile)}_${Math.floor(y / STREETSCAPE.tile)}`;
+    if (!tiles.has(k)) tiles.set(k, []);
+    tiles.get(k).push(b);
+  }
   const group = new THREE.Group();
   group.name = 'Streetscape';
   const pickTables = [];
   let tris = 0;
-  for (const [part, sk, mat] of parts) {
-    const g = sk.geometry();
-    if (!g) continue;
-    const mesh = new THREE.Mesh(g, mat);
-    mesh.name = `Streetscape_${part}`;
-    mesh.castShadow = mesh.receiveShadow = true;
-    mesh.userData = { kind: part === 'walls' ? 'merged' : 'streetscape', tier: 'streetscape' };
-    if (part === 'grilles' || part === 'signs' || part === 'vsigns') mesh.userData.noAO = true;
-    if (part === 'walls') {
-      const triOwner = new Int32Array(sk.tris);
-      ctx.owner.forEach(([a, c], i) => triOwner.fill(i, a, c));
-      pickTables.push({ mesh, triOwner, list: sel.list });
+  for (const [k, list] of tiles) {
+    const ctx = {
+      L, atlas, count, plaqueSpec: plaques,
+      wallColor: built.wallColor, roofColor: built.roofColor,
+      signs: data.shopSigns || { signs: {}, generic: {} },
+      walls: new Sink({ uv: true }), frames: new Sink(), glass: new Sink({ lit: true }), grilles: new Sink({ uv: true }),
+      shops: new Sink({ uv: true }), signQuads: new Sink({ uv: true }), vsigns: new Sink({ uv: true }),
+      cloth: new Sink(), plaques: new Sink({ uv: true }),
+      owner: [],
+    };
+    for (const b of list) { buildOne(b, ctx); count.buildings++; }
+    const tile = new THREE.Group();
+    tile.name = `Streetscape_tile_${k}`;
+    const parts = [['walls', ctx.walls], ['frames', ctx.frames], ['glass', ctx.glass], ['grilles', ctx.grilles], ['shops', ctx.shops],
+      ['signs', ctx.signQuads], ['vsigns', ctx.vsigns], ['cloth', ctx.cloth], ['plaques', ctx.plaques]];
+    for (const [part, sk] of parts) {
+      const g = sk.geometry();
+      if (!g) continue;
+      const mesh = new THREE.Mesh(g, mats[part]);
+      mesh.name = `Streetscape_${part}`;
+      mesh.castShadow = mesh.receiveShadow = true;
+      mesh.userData = { kind: part === 'walls' ? 'merged' : 'streetscape', tier: 'streetscape' };
+      if (part === 'grilles' || part === 'signs' || part === 'vsigns' || part === 'cloth') mesh.userData.noAO = true;
+      if (part === 'walls') {
+        const triOwner = new Int32Array(sk.tris);
+        ctx.owner.forEach(([a, c], i) => triOwner.fill(i, a, c));
+        pickTables.push({ mesh, triOwner, list });
+      }
+      tris += sk.tris;
+      tile.add(mesh);
     }
-    tris += sk.tris;
-    group.add(mesh);
+    group.add(tile);
+    count.tiles++;
   }
-  return { group, pickTables, stats: { ...ctx.count, triangles: tris } };
+  return { group, pickTables, plaques, stats: { ...count, triangles: tris } };
 }
