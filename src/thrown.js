@@ -93,8 +93,8 @@ export class Thrown {
   aimDir() {
     const g = this.game;
     const p = g.player;
-    let dx = g.aimPoint.x - p.x;
-    let dz = g.aimPoint.z - p.z;
+    let dx = g.cmd.aim.x - p.x;
+    let dz = g.cmd.aim.z - p.z;
     const d = Math.hypot(dx, dz) || 1;
     return { dx: dx / d, dz: dz / d, d };
   }

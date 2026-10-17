@@ -53,7 +53,8 @@ performance and "does it feel good" are the developer's calls; ask for them.
 
 ```
 index.html, style.css        HUD / menu DOM and styles; importmap → vendor/three
-src/main.js                  Game: loop, time scale (bullet time, hit-stop, kill-cam), camera views, screens
+src/main.js                  Game: fixed 120 Hz logic steps + per-frame present, time scale (bullet time, hit-stop, kill-cam), camera views, screens
+src/input.js  replay.js      live keyboard/mouse → one StepInput per logic step; the run's input record (changes only)
 src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, VIEWS
 src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS and the AI state machine
 src/weapons.js bullets.js    player weapon stats, drops, grenades; projectile stepping and ricochet
@@ -89,8 +90,15 @@ Conventions that matter:
 - **Models are optional.** With no files in `assets/models/`, the block
   versions render; `?models=off` forces them. Never make the game depend on an
   asset existing.
-- **Time:** `dt` is world time (scaled by bullet time), `realDt` is wall time.
-  UI, camera easing and audio use `realDt`; everything in the world uses `dt`.
+- **Time:** the game logic runs in fixed steps of 1/120 s (`LOGIC_HZ`):
+  `updatePlay(realDt)` runs the steps that fit the frame, then `present(realDt)`
+  does what is only shown (effects, ambient life, camera, HUD). Inside a step,
+  `h` is the step's real time and `dt` is world time (scaled by bullet time);
+  everything in the world uses `dt`. `realDt` belongs to `present` and the UI.
+- **Input in logic** comes only from the step's `game.cmd` (a `StepInput`:
+  controls held and pressed, the aim on the floor, the camera yaw), never from
+  `game.input`, `game.aimPoint` or the camera; that is what gets recorded. A new
+  control the logic reads goes at the end of `BUTTONS` in `input.js`.
 - Every material gets the cut-away shader hook (`addCutaway`) when a map
   loads; new materials created later must opt in themselves if they can hide
   the player.
@@ -153,8 +161,10 @@ merges `<id>@clip.glb` animations, writes `assets/models/` and
 - `prettier` is not configured; don't reformat whole files.
 - Playwright needs Chromium: locally it is pre-installed in some sandboxes
   (`PLAYWRIGHT_BROWSERS_PATH`), otherwise `npx playwright install chromium`.
-- Tests use `window.game` and call `updatePlay(1/60)` directly; keep those
-  entry points stable or update `test/helpers.mjs` with them.
+- Tests use `window.game` and call `updatePlay(1/60)` directly (one 60 Hz
+  frame: two logic steps); keep those entry points stable or update
+  `test/helpers.mjs` with them. `game.feed` hands steps recorded input instead
+  of the keyboard (`test/fixedstep.test.mjs`).
 - `index.html` has `<div id="game">`, so `window.game` is that element until
   `main.js` assigns the real `Game` (after the optional models load). Check
   for `window.game.startRun` before using it.

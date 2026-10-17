@@ -4,7 +4,7 @@
 // moment" notes (N) that export as Markdown from the pause menu. Nothing here
 // changes gameplay on its own; only the tuning rows do, and the HUD says so.
 
-import { CAMERA, FOCUS, PLAYER, VIEWS } from './config.js';
+import { CAMERA, FOCUS, LOGIC_HZ, PLAYER, VIEWS } from './config.js';
 import { QUALITIES, readQuality, saveQuality } from './quality.js';
 
 const NOTES_KEY = 'bullet-ballet.notes';
@@ -263,6 +263,7 @@ export class Notes {
     const lines = [
       `${this.perf.fps} fps · ${this.perf.ms} ms（最差 ${this.perf.worst}）· 三角形 ${fmt(r.triangles)} · 繪製 ${r.calls}`,
       `世界 ×${g.timeScale.toFixed(2)} · 玩家 ×${g.playerVelScale.toFixed(2)} · 慢鏡 ${g.focusActive ? '開' : '關'} ${Math.round(g.focusMeter * 100)}% · 停格 ${g.hitstopT.toFixed(2)} · 殺戮鏡頭 ${g.killcamT.toFixed(2)}`,
+      `邏輯 ${LOGIC_HZ} Hz · 第 ${fmt(g.stepCount)} 步（這格 ${g.frameSteps} 步）· 輸入記錄 ${g.record.size < 1024 ? `${g.record.size} B` : `${(g.record.size / 1024).toFixed(1)} KB`}`,
       `${g.state} · ${g.level.map.name} · 第 ${w.wave} 波（${w.state}，剩 ${w.remaining}）· 敵人 ${g.enemies.aliveCount} · 子彈 ${g.bullets.list.length}`,
       `HP ${Math.max(0, Math.ceil(p.hp))} · (${p.x.toFixed(1)}, ${p.z.toFixed(1)}) · ${p.weapon.name} ${ammo} · ${spin} · 無敵 ${p.invuln > 0 ? p.invuln.toFixed(2) : '—'}`,
       `${fmt(g.score.score)} 分 · 連擊 x${g.score.mult} · 開局後 ${mmss(this.runT)} · 鏡頭 ${VIEWS[g.view].name}`,

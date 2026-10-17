@@ -2,7 +2,7 @@
 // brightens while they aim, so a quick read (or bullet time) lets you dodge.
 
 import * as THREE from 'three';
-import { GUN_Y } from './config.js';
+import { GUN_Y, LOGIC_HZ } from './config.js';
 import { animateRig, buildCharacter, deathPose, disposeRig, finishRig, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { DROPS } from './weapons.js';
@@ -622,7 +622,7 @@ class Enemy {
     setFlash(r, this.flash * 2.5);
     if (this.cfg.weapon === 'blade') {
       const raise = this.state === 'windup' ? -1.6 : this.state === 'strike' ? 0.9 : 0.5;
-      r.armR.rotation.x = damp(r.armR.rotation.x, raise, 25, 1 / 60);
+      r.armR.rotation.x = damp(r.armR.rotation.x, raise, 25, 1 / LOGIC_HZ); // once per logic step
     }
     r.ring.material.color.setRGB(this.aiming ? 1.6 : 0.35, 0.05, 0.08);
     finishRig(r, this.game.worldTime + this.idleOffset);

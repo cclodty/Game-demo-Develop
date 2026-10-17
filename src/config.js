@@ -5,6 +5,10 @@ export const ARENA = { halfW: 22, halfD: 15 };
 // Height (y) at which bullets fly. Collision itself is 2D on the XZ plane.
 export const GUN_Y = 1.38;
 
+// The game logic advances in fixed steps of 1/LOGIC_HZ seconds, whatever the
+// display's refresh rate. Not a feel number: recorded runs depend on it.
+export const LOGIC_HZ = 120;
+
 export const PLAYER = {
   radius: 0.3,
   hitRadius: 0.22, // smaller than the body on purpose: near misses should feel fair
