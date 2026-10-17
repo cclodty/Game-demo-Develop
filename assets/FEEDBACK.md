@@ -1,20 +1,22 @@
 # 模型回饋清單
 
-每次 `npm test` 都會量度穿上的人物和放進地圖的道具（`test/calibration.test.mjs`），全部數字寫到 `test/.out/calibration.json`。偏差超過 5 cm 的模型在這裡留一行；英文那句可以直接貼給 Dots。遊戲程式已經補救、不用改模型的，寫在「遊戲這邊已處理」，免得重複要求。
+每次 `npm test` 都會量度穿上的人物和放進地圖的道具（`test/calibration.test.mjs`），全部數字寫到 `test/.out/calibration.json`。偏差超過 5 cm 的模型在這裡留一行，英文那句是給模型或動作來源的要求。遊戲程式已經補救、不用改模型的，寫在「遊戲這邊已處理」，免得重複要求。
+
+**2026-10-17 起不再請 Dots 做人物模型**（開發者決定）。第一階段用現有的 39 件模型；下面要改動作的一項改由遊戲程式處理，自建人物模型列在 `docs/TASKS.md` 待排。
 
 量度方法：人物在待機、跑步一整步（24 格）和踢腿三個姿勢下逐個頂點量（Box3 精確模式）；道具在四張地圖逐件量，對比碰撞盒（`box`／`tile` 擬合）或方塊版的大小（油桶、平底鑊）。
 
 ## 2026-10-17 第一次校正（第一批 39 件網頁模型）
 
-### 偏差超過 5 cm、要 Dots 改的
+### 偏差超過 5 cm、要改模型的
 
 沒有。六個人物、九件武器、24 件道具在遊戲程式修正後都在 5 cm 以內（腳底 ±1.1 cm、雙手離握把 0 cm、槍口離激光起點 0 cm、槍管與激光差 ≤ 1.1°、道具與碰撞盒差 < 1 cm）。
 
-### 要開發者先看、再決定要不要請 Dots 改
+### 要開發者先看、再決定要不要改
 
-| 模型 | 量到甚麼 | 給 Dots 的一句 |
+| 模型 | 量到甚麼 | 要求（英文） |
 |---|---|---|
-| 六個人物的 `run` 動作 | 盆骨上下起伏約 23 cm；每步約四成時間雙腳離地，最低那隻腳離地 17–25 cm。俯視鏡頭下可能顯得「飄」 | "The run clips bob the hips about 23 cm and both feet are off the ground for about 40% of each stride (the lower foot reaches 17–25 cm). Please make a run with about 8 cm of hip bob and a short flight phase, same length and in place." |
+| 六個人物的 `run` 動作 | 盆骨上下起伏約 23 cm；每步約四成時間雙腳離地，最低那隻腳離地 17–25 cm。俯視鏡頭下可能顯得「飄」。不再找 Dots：覺得飄就在 `skin.js` 載入動作時把盆骨起伏縮小（待排） | "The run clips bob the hips about 23 cm and both feet are off the ground for about 40% of each stride (the lower foot reaches 17–25 cm). Please make a run with about 8 cm of hip bob and a short flight phase, same length and in place." |
 
 ### 遊戲這邊已處理（不用改模型）
 
