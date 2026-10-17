@@ -3,7 +3,8 @@
 const BLOCKED = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'Tab', 'Digit1', 'Digit2', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
 /** Keys typed into a text field (the playtest note box) are not game input. */
-const editable = (t) => !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.isContentEditable);
+const TOGGLES = new Set(['checkbox', 'radio', 'range', 'button']);
+const editable = (t) => !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !TOGGLES.has(t.type)) || t.isContentEditable);
 
 export class Input {
   constructor() {

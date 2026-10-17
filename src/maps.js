@@ -79,6 +79,7 @@ function cityBackdrop(L, { facade = true, keepOut = [36, 28] } = {}) {
 
 const rooftop = {
   id: 'rooftop',
+  budget: { tris: 335000, calls: 1550 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '霓虹天台',
   en: 'NEON ROOFTOP',
   desc: '雨夜的天台：直升機坪、玻璃溫室和一排排油桶。',
@@ -172,6 +173,7 @@ const rooftop = {
 
 const club = {
   id: 'club',
+  budget: { tris: 425000, calls: 260 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '脈衝夜店',
   en: 'CLUB PULSE',
   desc: '跟著節拍閃爍的舞池、吧枱後的一整排酒瓶，和一顆鏡面球。',
@@ -375,6 +377,7 @@ const club = {
 
 const docks = {
   id: 'docks',
+  budget: { tris: 360000, calls: 2050 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '七號碼頭',
   en: 'HARBOR 7',
   desc: '貨櫃迷宮、會大爆炸的氣罐，敵人還會從海裡爬上來。',
@@ -522,6 +525,7 @@ const SENADO_IMAGES =
 
 const senado = {
   id: 'senado',
+  budget: { tris: 270000, calls: 1950 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '議事亭前地',
   en: 'LARGO DO SENADO',
   desc: '按實景比例重建的澳門議事亭前地：新馬路、噴水池、窄段一直到板樟堂前地。',

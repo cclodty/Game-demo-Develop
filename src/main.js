@@ -14,6 +14,7 @@ import { Notes } from './notes.js';
 import { Pickups } from './pickups.js';
 import { Player } from './player.js';
 import { PostFX } from './postfx.js';
+import { readQuality } from './quality.js';
 import { Score } from './score.js';
 import { Thrown } from './thrown.js';
 import { clamp, damp, lerp } from './utils.js';
@@ -25,14 +26,16 @@ const VIEW_KEY = 'bullet-ballet.view';
 const DEFAULT_VIEW = VIEWS.findIndex((v) => v.id === 'iso');
 
 const $ = (id) => document.getElementById(id);
-const isTyping = (t) => !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.isContentEditable);
+const TOGGLES = new Set(['checkbox', 'radio', 'range', 'button']);
+const isTyping = (t) => !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !TOGGLES.has(t.type)) || t.isContentEditable);
 
 class Game {
   constructor() {
+    this.quality = readQuality(); // 'high' or 'low' (no bloom, no shadows, pixel ratio 1)
     this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    this.renderer.setPixelRatio(this.quality === 'low' ? 1 : Math.min(devicePixelRatio, 1.5));
     this.renderer.setSize(innerWidth, innerHeight);
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.enabled = this.quality !== 'low';
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
@@ -77,6 +80,7 @@ class Game {
     this.hud = new HUD(this);
     this.post = new PostFX(this.renderer, this.scene, this.camera);
     this.post.setSize(innerWidth, innerHeight);
+    this.post.bloom.enabled = this.quality !== 'low';
     this.applyMapView();
 
     this.raycaster = new THREE.Raycaster();

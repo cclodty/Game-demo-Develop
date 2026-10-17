@@ -97,12 +97,14 @@ function validate(i) {
     g.player.placeAtStart();
     g.updateCamera(1, true);
     g.render();
+    const info = g.renderer.info.render;
+    const rendered = { tris: info.triangles, calls: info.calls };
     let tris = 0;
     L.root.traverse((o) => {
       if (!o.isMesh) return;
       tris += o.geometry.index ? o.geometry.index.count / 3 : o.geometry.attributes.position.count / 3;
     });
-    return { map: L.map.id, issues, solids: L.solids.length, reach, open, tris: Math.round(tris) };
+    return { map: L.map.id, issues, solids: L.solids.length, reach, open, tris: Math.round(tris), rendered, budget: L.map.budget };
   }, i);
 }
 
@@ -117,6 +119,11 @@ test('every map validates', async () => {
     // Senado's own geometry is ~200k (see senado/tests); the web models add
     // 20–60k of props per map (counted per instance, not instanced).
     assert.ok(r.tris < 300000, `${r.map}: ${r.tris} triangles is over the budget`);
+    // the render budget in the map data: what one frame costs, all passes included
+    console.log(`# ${r.map}: ${r.rendered.tris.toLocaleString('en-US')} triangles, ${r.rendered.calls} draw calls per frame (budget ${r.budget && r.budget.tris.toLocaleString('en-US')} / ${r.budget && r.budget.calls})`);
+    assert.ok(r.budget && r.budget.tris > 0 && r.budget.calls > 0, `${r.map} has no render budget in maps.js`);
+    assert.ok(r.rendered.tris <= r.budget.tris, `${r.map}: ${r.rendered.tris} rendered triangles per frame, budget ${r.budget.tris}`);
+    assert.ok(r.rendered.calls <= r.budget.calls, `${r.map}: ${r.rendered.calls} draw calls per frame, budget ${r.budget.calls}`);
   }
   assert.deepEqual(problems(logs), []);
 });

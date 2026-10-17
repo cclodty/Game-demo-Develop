@@ -1245,3 +1245,45 @@ body.playing #debug {
   font-weight: 400;
   color: var(--dim);
 }
+
+#fps {
+  position: fixed;
+  right: 16px;
+  bottom: 56px;
+  z-index: 4;
+  padding: 3px 7px;
+  font: 12px/1 ui-monospace, Menlo, Consolas, monospace;
+  color: var(--cyan);
+  background: rgba(8, 6, 20, 0.7);
+  border: 1px solid rgba(46, 232, 255, 0.3);
+  pointer-events: none;
+}
+
+#fps.low {
+  color: var(--red);
+  border-color: rgba(255, 51, 85, 0.5);
+}
+
+#debug .dbg-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+#debug .dbg-opts label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#debug .dbg-opts select {
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 2px 4px;
+}

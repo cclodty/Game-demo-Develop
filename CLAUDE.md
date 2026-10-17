@@ -155,5 +155,11 @@ merges `<id>@clip.glb` animations, writes `assets/models/` and
   for `window.game.startRun` before using it.
 - With the 39 web models the single-file build is ~11 MB; the 16 MB cap is
   about 3.5 MB more of GLB away.
+- Each map carries a render `budget` (triangles and draw calls per frame, all
+  passes) in `maps.js`; `test/maps.test.mjs` fails when a frame exceeds it.
+  Draw calls, not triangles, are the weak-GPU problem (rooftop, docks and
+  Senado are all over 1,300). Real-GPU numbers reach you only through the
+  developer's notes export (`perfLine`); `?quality=low` turns bloom and
+  shadows off for comparison.
 - GitHub Pages deploys `main` (`.github/workflows/pages.yml`); CI
   (`ci.yml`) runs lint + tests on every push.

@@ -121,3 +121,45 @@ test('the stats panel toggles with ` and live tuning survives a reload until res
   assert.deepEqual(problems(logs), []);
   await page.close();
 });
+
+test('the fps badge, the run perf line and the low quality switch', { timeout: 120000 }, async () => {
+  const { page, logs } = await h.open();
+  assert.equal(await shown(page, 'fps'), false);
+  await page.keyboard.press('Backquote');
+  await page.check('#dbg-fps');
+  assert.equal(await shown(page, 'fps'), true);
+  await page.waitForFunction(() => /^[1-9]\d* fps · \d+ ms$/.test(document.getElementById('fps').textContent), null, { timeout: 20000 });
+  // a run records its frame times; the export carries them with the GPU name
+  await page.keyboard.press('Backquote');
+  await page.keyboard.press('Digit1');
+  await page.waitForTimeout(1200);
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    g.frame = () => {};
+    // a second of slow frames, by hand: the drop event fires
+    for (let i = 0; i < 25; i++) g.notes.update(0.05, 0.05);
+    return { run: g.notes.run, line: g.notes.perfLine(), md: g.notes.exportText(), events: g.notes.events.map((e) => e.text), quality: g.quality, bloom: g.post.bloom.enabled, shadows: g.renderer.shadowMap.enabled };
+  });
+  assert.ok(r.run.frames >= 25, `frames counted: ${r.run.frames}`);
+  assert.ok(r.run.below50 >= 1.2, `slow time counted: ${r.run.below50}`);
+  assert.match(r.line, /^平均 \d+ fps · 低於 50 fps [\d.]+ 秒（\d+%）.*GPU .+ · 畫質 高$/);
+  assert.ok(r.md.includes('- 效能（這局到此刻）：平均'), r.md);
+  assert.ok(r.events.some((t) => t.startsWith('掉幀：一秒平均')), r.events.join(' | '));
+  assert.equal(r.quality, 'high');
+  assert.equal(r.bloom, true);
+  assert.equal(r.shadows, true);
+  // low quality, remembered: no bloom, no shadows, pixel ratio 1; the badge is remembered too
+  await page.evaluate(() => localStorage.setItem('bullet-ballet.quality', 'low'));
+  await page.reload();
+  await page.waitForFunction(() => window.game && typeof window.game.startRun === 'function', null, { timeout: 120000 });
+  const low = await page.evaluate(() => ({ quality: window.game.quality, bloom: window.game.post.bloom.enabled, shadows: window.game.renderer.shadowMap.enabled, ratio: window.game.renderer.getPixelRatio(), line: window.game.notes.perfLine(), sel: document.getElementById('dbg-quality').value }));
+  assert.equal(low.quality, 'low');
+  assert.equal(low.bloom, false);
+  assert.equal(low.shadows, false);
+  assert.equal(low.ratio, 1);
+  assert.match(low.line, /畫質 低$/);
+  assert.equal(low.sel, 'low');
+  assert.equal(await shown(page, 'fps'), true, 'the fps badge survives a reload');
+  assert.deepEqual(problems(logs), []);
+  await page.close();
+});

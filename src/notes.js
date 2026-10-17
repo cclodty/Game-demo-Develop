@@ -5,10 +5,12 @@
 // changes gameplay on its own; only the tuning rows do, and the HUD says so.
 
 import { CAMERA, FOCUS, PLAYER, VIEWS } from './config.js';
+import { QUALITIES, readQuality, saveQuality } from './quality.js';
 
 const NOTES_KEY = 'bullet-ballet.notes';
 const TUNE_KEY = 'bullet-ballet.tune';
 const PANEL_KEY = 'bullet-ballet.panel';
+const FPS_KEY = 'bullet-ballet.fps';
 const MAX_EVENTS = 40;
 const EVENTS_PER_NOTE = 10;
 
@@ -58,6 +60,15 @@ const resolve = (path) => {
   return { obj: ROOTS[root], key };
 };
 const eventItems = (events) => events.map((e) => `<li><span>${mmss(e.t)}</span>${esc(e.text)}</li>`).join('');
+const gpuName = (renderer) => {
+  try {
+    const gl = renderer.getContext();
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    return String((ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) || 'unknown');
+  } catch {
+    return 'unknown';
+  }
+};
 
 export class Notes {
   constructor(game) {
@@ -70,6 +81,11 @@ export class Notes {
     this.defaults = Object.fromEntries(TUNABLES.map((t) => [t.path, this.value(t.path)]));
     this.perf = { fps: 0, ms: 0, worst: 0 };
     this.acc = { t: 0, n: 0, worst: 0 };
+    this.run = { frames: 0, time: 0, below50: 0, below30: 0, worst: 0 }; // the whole run, playing frames only
+    this.win = { t: 0, n: 0 }; // one-second window for the frame-drop event
+    this.lastDrop = -10;
+    this.gpu = gpuName(game.renderer);
+    this.quality = readQuality();
     this.refreshT = 0;
     this.dirty = true;
     this.noteFrom = null;
@@ -83,8 +99,10 @@ export class Notes {
       text: $('note-text'),
       clear: $('notes-clear'),
       msg: $('notes-msg'),
+      fps: $('fps'),
     };
     this.buildPanel();
+    this.setFpsBadge(load(FPS_KEY, false) === true || new URLSearchParams(location.search).get('fps') === '1');
     const tune = load(TUNE_KEY, {});
     for (const [path, v] of Object.entries(tune)) if (path in this.defaults && Number.isFinite(v)) this.apply(path, v);
     this.renderTuning();
@@ -106,6 +124,9 @@ export class Notes {
   reset(map) {
     this.events.length = 0;
     this.runT = 0;
+    this.run = { frames: 0, time: 0, below50: 0, below30: 0, worst: 0 };
+    this.win.t = this.win.n = 0;
+    this.lastDrop = -10;
     this.hideNote();
     this.log(`開局：${map.name}（鏡頭 ${VIEWS[this.game.view].name}）`);
   }
@@ -121,7 +142,31 @@ export class Notes {
       a.t = a.n = a.worst = 0;
     }
     const s = this.game.state;
-    if (s === 'playing' || s === 'dying') this.runT += realDt;
+    if (s === 'playing' || s === 'dying') {
+      this.runT += realDt;
+      const r = this.run;
+      r.frames++;
+      r.time += rawDt;
+      if (rawDt > 1 / 50) r.below50 += rawDt;
+      if (rawDt > 1 / 30) r.below30 += rawDt;
+      r.worst = Math.max(r.worst, rawDt);
+      const w = this.win;
+      w.t += rawDt;
+      w.n++;
+      if (w.t >= 1) {
+        const fps = w.n / w.t;
+        if (fps < 45 && this.runT - this.lastDrop > 5) {
+          this.lastDrop = this.runT;
+          this.log(`掉幀：一秒平均 ${Math.round(fps)} fps（最差一格 ${Math.round(a.worst * 1000) || this.perf.worst} ms）`);
+        }
+        w.t = w.n = 0;
+      }
+    }
+    if (this.el.fps && !this.el.fps.classList.contains('hidden') && this.fpsT !== this.perf) {
+      this.fpsT = this.perf;
+      this.el.fps.textContent = `${this.perf.fps} fps · ${this.perf.ms} ms`;
+      this.el.fps.classList.toggle('low', this.perf.fps > 0 && this.perf.fps < 50);
+    }
     if (!this.visible) return;
     this.refreshT -= rawDt;
     if (this.refreshT > 0) return;
@@ -153,6 +198,7 @@ export class Notes {
     p.innerHTML =
       '<div class="dbg-head">數據面板 <span>` 關閉 · N 記下這一刻</span></div>' +
       '<pre id="dbg-stats"></pre>' +
+      '<div class="dbg-opts"><label><input type="checkbox" id="dbg-fps" /> 常駐 FPS 角標</label><label>畫質 <select id="dbg-quality"><option value="high">高</option><option value="low">低：無泛光、無陰影</option></select></label></div>' +
       '<div class="dbg-title">手感數字（即時生效，會記住） <button type="button" id="dbg-reset">重設為預設</button></div>' +
       '<div id="dbg-tune"></div>' +
       '<div class="dbg-title">最近事件</div>' +
@@ -172,7 +218,39 @@ export class Notes {
       else this.renderTuning();
     });
     $('dbg-reset').addEventListener('click', () => this.resetTuning());
+    $('dbg-fps').addEventListener('change', (e) => {
+      this.setFpsBadge(e.target.checked);
+      e.target.blur(); // so the game's keys work again straight away
+    });
+    const sel = $('dbg-quality');
+    sel.value = this.quality;
+    sel.addEventListener('change', () => this.setQuality(sel.value));
     for (const ev of ['click', 'mousedown', 'mouseup', 'wheel']) p.addEventListener(ev, (e) => e.stopPropagation());
+  }
+
+  /** A small always-on fps readout in the corner (also ?fps=1). */
+  setFpsBadge(on) {
+    this.el.fps.classList.toggle('hidden', !on);
+    $('dbg-fps').checked = on;
+    save(FPS_KEY, on);
+    this.fpsT = this.perf;
+    this.el.fps.textContent = `${this.perf.fps} fps · ${this.perf.ms} ms`;
+  }
+
+  /** 'high' or 'low'; takes effect on reload, which this triggers. */
+  setQuality(q) {
+    if (!QUALITIES.includes(q) || q === this.quality) return;
+    saveQuality(q);
+    this.quality = q;
+    location.reload();
+  }
+
+  /** The run's frame-time record in one line, for the export. */
+  perfLine() {
+    const r = this.run;
+    const avg = r.time > 0 ? Math.round(r.frames / r.time) : 0;
+    const pct = r.time > 0 ? Math.round((r.below50 / r.time) * 100) : 0;
+    return `平均 ${avg} fps · 低於 50 fps ${r.below50.toFixed(1)} 秒（${pct}%）· 低於 30 fps ${r.below30.toFixed(1)} 秒 · 最差一格 ${Math.round(r.worst * 1000)} ms · GPU ${this.gpu} · 畫質 ${this.quality === 'low' ? '低' : '高'}`;
   }
 
   renderStats() {
@@ -188,6 +266,7 @@ export class Notes {
       `${g.state} · ${g.level.map.name} · 第 ${w.wave} 波（${w.state}，剩 ${w.remaining}）· 敵人 ${g.enemies.aliveCount} · 子彈 ${g.bullets.list.length}`,
       `HP ${Math.max(0, Math.ceil(p.hp))} · (${p.x.toFixed(1)}, ${p.z.toFixed(1)}) · ${p.weapon.name} ${ammo} · ${spin} · 無敵 ${p.invuln > 0 ? p.invuln.toFixed(2) : '—'}`,
       `${fmt(g.score.score)} 分 · 連擊 x${g.score.mult} · 開局後 ${mmss(this.runT)} · 鏡頭 ${VIEWS[g.view].name}`,
+      `這局：${this.perfLine()}`,
     ];
     $('dbg-stats').textContent = lines.join('\n');
     if (this.dirty) {
@@ -265,6 +344,7 @@ export class Notes {
       weapon: p.weapon.name,
       view: VIEWS[g.view].name,
       fps: this.perf.fps,
+      perf: this.perfLine(),
       events: this.events.slice(-EVENTS_PER_NOTE).map((e) => ({ t: e.t, text: e.text })),
     };
   }
@@ -379,12 +459,14 @@ export class Notes {
       `- 匯出：${stamp}`,
       `- 瀏覽器：${navigator.userAgent}`,
       `- 視窗：${innerWidth}×${innerHeight} @${devicePixelRatio}x · 鏡頭 ${VIEWS[g.view].name}`,
+      `- 效能（這局到此刻）：${this.perfLine()}`,
       `- 調整過的手感數字：${diff.length ? diffLine(diff) : '無（全部預設）'}`,
       '',
     ];
     this.list.forEach((n, i) => {
       out.push(`## ${i + 1} · ${n.map} · 第 ${n.wave} 波 · ${mmss(n.runT)}`, '', `> ${n.text.replace(/\n/g, '\n> ')}`, '', `- 當時：${this.contextLine(n)}`);
       if (n.tuning && n.tuning.length) out.push(`- 當時的調整：${diffLine(n.tuning)}`);
+      if (n.perf) out.push(`- 效能到那時：${n.perf}`);
       out.push(`- 記錄於 ${n.at}`, `- 之前 ${n.events.length} 件事：`);
       for (const e of n.events) out.push(`  - ${mmss(e.t)} ${e.text}`);
       out.push('');
