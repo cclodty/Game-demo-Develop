@@ -228,6 +228,7 @@ function mapJson(map) {
     barrels: (map.barrels || []).map(([x, z, v = 'barrel']) => ({ asset: v, x, z })),
     pans: (map.pans || []).map(([x, z, v = 'pan']) => ({ asset: v, x, z })),
     weaponPads: (map.pads || []).map(([x, z]) => ({ x, z })),
+    pigeonFlocks: (map.flocks || []).map(([x, z]) => ({ x, z })),
     spawns: map.spawns,
   };
   if (map.id === 'senado') {

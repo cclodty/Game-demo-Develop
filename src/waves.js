@@ -3,6 +3,17 @@
 
 import { TYPES } from './enemies.js';
 
+/**
+ * The ways to play a run. Arcade ends: its last wave stands in for a boss
+ * for now, half as big again with one more brute. Input records store a
+ * mode's place in this list, so only ever append.
+ */
+export const MODES = {
+  arcade: { name: '街機', en: 'ARCADE', color: '#ffc861', desc: '12 波一局，約十分鐘 · 打完有結算', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, graded: true },
+  endless: { name: '無盡', en: 'ENDLESS', color: '#2ee8ff', desc: '打到倒下為止', waves: Infinity, perStage: 3 },
+};
+export const MODE_IDS = Object.keys(MODES);
+
 export class Waves {
   constructor(game) {
     this.game = game;
@@ -13,12 +24,22 @@ export class Waves {
     this.wave = 0;
     this.queue = [];
     this.pending = [];
-    this.state = 'intermission';
+    this.state = 'intermission'; // then 'active', 'transition', and 'done' once an arcade run is cleared; 'warmup' before wave 1 of a first run
     this.timer = 2.4;
     this.maxAlive = 3;
     this.spawnCd = 0;
     this.clock = 0;
     this.stageNext = false;
+    this.hurt = false; // the player took damage this wave
+    this.cleanWaves = 0;
+  }
+
+  get rules() {
+    return MODES[this.game.mode];
+  }
+
+  get isFinal() {
+    return this.wave === this.rules.waves;
   }
 
   get remaining() {
@@ -31,8 +52,13 @@ export class Waves {
 
   compose(n) {
     const rng = this.game.rng;
-    const total = 3 + Math.floor(n * 1.7);
-    const brutes = n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
+    const finale = n === this.rules.waves ? this.rules.finale : null;
+    let total = 3 + Math.floor(n * 1.7);
+    let brutes = n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
+    if (finale) {
+      total = Math.round(total * finale.size);
+      brutes += finale.brutes;
+    }
     const weights = [
       ['grunt', 6],
       ['shotgun', n >= 2 ? 2.5 : 0],
@@ -62,9 +88,10 @@ export class Waves {
     const count = {};
     for (const t of this.queue) count[t] = (count[t] || 0) + 1;
     g.notes.log(`第 ${this.wave} 波開始：${Object.entries(count).map(([t, n]) => `${TYPES[t] ? TYPES[t].label : t}×${n}`).join(' ')}`);
-    this.maxAlive = Math.min(3 + Math.floor(this.wave * 0.7), 9);
+    this.maxAlive = this.isFinal ? this.rules.finale.maxAlive : Math.min(3 + Math.floor(this.wave * 0.7), 9);
     this.state = 'active';
     this.spawnCd = 0.3;
+    this.hurt = false;
     const tips = [
       '敵人的紅色激光變亮 = 即將開槍',
       '按 Shift 進入子彈時間，看清每一顆子彈',
@@ -82,7 +109,8 @@ export class Waves {
       '狙擊槍的子彈會穿透敵人和玻璃',
       '站在另一把武器上按 E 交換；1 / 2 或滾輪切換',
     ];
-    g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
+    if (this.isFinal) g.hud.banner('FINAL WAVE', `最後一波 · 撐過去就通關`, 'stage');
+    else g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
     g.audio.waveStart();
     g.pickups.refillPads();
   }
@@ -105,13 +133,24 @@ export class Waves {
     return choice;
   }
 
+  /** The first run's warm-up holds wave 1 back until endWarmup(). */
+  startWarmup() {
+    this.state = 'warmup';
+  }
+
+  endWarmup() {
+    this.state = 'intermission';
+    this.timer = 1.5;
+  }
+
   update(dt, realDt) {
     this.clock += dt;
+    if (this.state === 'warmup') return;
     if (this.state === 'intermission') {
       this.timer -= realDt;
       if (this.timer <= 0 && this.game.player.alive) {
         if (this.stageNext) {
-          // every third wave the fight moves to the next map
+          // the wave before was a stage end: move to the next map first
           this.stageNext = false;
           this.state = 'transition';
           this.game.beginStageTransition();
@@ -142,9 +181,16 @@ export class Waves {
     }
 
     if (!this.queue.length && !this.pending.length && enemies.aliveCount === 0) {
+      if (!this.hurt) this.cleanWaves++;
+      if (this.isFinal) {
+        this.state = 'done';
+        this.game.onRunClear(this.wave);
+        return;
+      }
       this.state = 'intermission';
       this.timer = 3.8;
-      this.stageNext = this.wave % 3 === 0;
+      // every few waves the fight moves to the next map
+      this.stageNext = this.wave % this.rules.perStage === 0;
       this.game.onWaveClear(this.wave, this.stageNext);
     }
   }

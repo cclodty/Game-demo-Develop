@@ -828,8 +828,8 @@
       "fit": "box",
       "offset": {
         "x": 0,
-        "y": 0.245,
-        "z": 0
+        "y": -0.05,
+        "z": 0.245
       },
       "uses": {
         "rooftop": 6,
@@ -1167,6 +1167,11 @@
       },
       "origin": "at the bottom centre",
       "fit": "box",
+      "offset": {
+        "x": 0,
+        "y": -0.05,
+        "z": 0
+      },
       "uses": {
         "club": 6
       },

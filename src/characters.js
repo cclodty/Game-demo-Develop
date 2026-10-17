@@ -49,6 +49,9 @@ export const SHOULDER_X = BODY.shoulderX;
 export const SHOULDER_Y = BODY.shoulderY;
 export const MUZZLE_Z = 0.95;
 
+/** Set by style.js: a rig was built, its weapon changed, or it was disposed. */
+export const hooks = { rigBuilt: null, rigChanged: null, rigDisposed: null };
+
 const ringGeo = new THREE.RingGeometry(BODY.ring[0], BODY.ring[1], 36).rotateX(-Math.PI / 2);
 const ANCHOR = { x: -0.12, y: SHOULDER_Y - 0.04, z: 0.22 };
 const CENTER = { x: 0, y: SHOULDER_Y - 0.06, z: 0.3 };
@@ -156,7 +159,7 @@ const GRIPS = {
 };
 
 const POSES = {
-  dual: { lx: 0, ly: 0.04, rx: 0, ry: -0.04 },
+  dual: { lx: 0, ly: -0.04, rx: 0, ry: 0.04 }, // toed in: the two guns cross about 7 m ahead, where the laser usually ends
   right: { lx: 1.3, ly: 0, rx: 0, ry: 0 },
   anchor: { lx: 0, ly: -0.62, rx: 0, ry: 0.28 },
   center: { lx: 0, ly: -0.3, rx: 0, ry: 0.3 },
@@ -255,6 +258,7 @@ export function attachWeapon(rig, model) {
   rig.model = model;
   rig.hold = def.hold;
   rig.grips = grips;
+  if (hooks.rigChanged) hooks.rigChanged(rig);
 }
 
 export function buildCharacter(options) {
@@ -353,6 +357,7 @@ export function buildCharacter(options) {
     for (const a of [armL, armR]) for (const m of a.children) m.visible = false;
   }
   attachWeapon(rig, o.weapon);
+  if (hooks.rigBuilt) hooks.rigBuilt(rig);
   return rig;
 }
 
@@ -390,6 +395,7 @@ export function setFlash(rig, v) {
 }
 
 export function disposeRig(rig) {
+  if (hooks.rigDisposed) hooks.rigDisposed(rig);
   if (rig.skin) disposeSkin(rig.skin);
   for (const m of Object.values(rig.mats)) m.dispose();
   rig.ring.material.dispose();

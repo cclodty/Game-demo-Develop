@@ -3,8 +3,9 @@
 // again; this module only records and reads back (playing a run is the replay
 // card's job). A ten-minute run must stay under 100 KB.
 //
-// Layout: a 13-byte header ("BB", version, logic Hz, seed u32, map index,
-// step count u32; little-endian), then one entry per step whose input
+// Layout: a 14-byte header ("BB", version, logic Hz, seed u32, map index,
+// step count u32, mode index with bit 7 set when the run opened with the
+// warm-up; little-endian), then one entry per step whose input
 // differs from the step before. An entry starts with a varint holding
 // (unchanged steps skipped since the previous entry) * 32 + flags, followed by
 // the fields the flags name: held controls, pressed controls (varints), the
@@ -15,8 +16,8 @@
 
 import { StepInput } from './input.js';
 
-const VERSION = 1;
-const HEADER = 13;
+const VERSION = 3;
+const HEADER = 14;
 const F_KEYS = 1;
 const F_PRESSED = 2;
 const F_AIM = 4;
@@ -24,9 +25,11 @@ const F_YAW = 8;
 const F_NUDGE = 16; // a small aim change, packed into one byte
 
 export class InputRecord {
-  constructor({ seed = 0, map = 0, hz = 120 } = {}) {
+  constructor({ seed = 0, map = 0, mode = 0, warmup = false, hz = 120 } = {}) {
     this.seed = seed >>> 0;
     this.map = map;
+    this.mode = mode; // index into MODE_IDS (waves.js)
+    this.warmup = warmup; // the run opened with the first-run warm-up (tutorial.js)
     this.hz = hz;
     this.steps = 0;
     this.buf = new Uint8Array(1 << 14);
@@ -82,6 +85,7 @@ export class InputRecord {
     v.setUint32(4, this.seed, true);
     out[8] = this.map;
     v.setUint32(9, this.steps, true);
+    out[13] = this.mode | (this.warmup ? 0x80 : 0);
     out.set(this.buf.subarray(0, this.length), HEADER);
     return out;
   }
@@ -119,6 +123,8 @@ export class RecordReader {
     this.seed = v.getUint32(4, true);
     this.map = bytes[8];
     this.steps = v.getUint32(9, true);
+    this.mode = bytes[13] & 0x7f;
+    this.warmup = (bytes[13] & 0x80) !== 0;
     this.left = this.steps;
     this.pos = HEADER;
     this.cmd = new StepInput();

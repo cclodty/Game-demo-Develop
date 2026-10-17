@@ -234,7 +234,10 @@ export class Bullets {
         if (hit.nz) rz = -rz;
         const col = b.owner === 'player' ? [6, 4.5, 1.8] : [6, 1.4, 0.6];
         fx.sparks(b.x, GUN_Y, b.z, rx, rz, 6, col, 7);
-        if (s.kind === 'crate') fx.debris(b.x, GUN_Y, b.z, rx, rz, 3, [0.42, 0.29, 0.17], 0.08);
+        if (s.kind === 'crate') {
+          fx.debris(b.x, GUN_Y, b.z, rx, rz, 3, [0.42, 0.29, 0.17], 0.08);
+          if (s.hp !== undefined && --s.hp <= 0) game.level.breakCrate(s, b.dx, b.dz);
+        }
         else fx.debris(b.x, GUN_Y, b.z, rx, rz, 2, [0.3, 0.3, 0.34], 0.06);
         game.audio.impact(pan);
         b.alive = false;

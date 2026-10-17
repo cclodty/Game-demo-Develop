@@ -251,6 +251,73 @@ body.playing * {
   top: 14px;
   right: 22px;
   text-align: right;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+/* the live Style rank, D to SSS */
+#rank {
+  width: 86px;
+  text-align: center;
+  --rank: var(--dim);
+}
+
+#rank b {
+  display: block;
+  font-family: var(--display);
+  font-weight: normal;
+  font-size: 64px;
+  line-height: 0.95;
+  letter-spacing: 1px;
+  color: var(--rank);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--rank) 60%, transparent);
+}
+
+#rank-bar {
+  height: 4px;
+  margin: 4px 6px 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#rank-fill {
+  height: 100%;
+  width: 0;
+  background: var(--rank);
+}
+
+#rank small {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--dim);
+}
+
+#rank[data-rank='C'] {
+  --rank: var(--ink);
+}
+
+#rank[data-rank='B'] {
+  --rank: var(--cyan);
+}
+
+#rank[data-rank='A'] {
+  --rank: #7af3ff;
+}
+
+#rank[data-rank='S'] {
+  --rank: var(--gold);
+}
+
+#rank[data-rank='SS'] {
+  --rank: #ff9f4a;
+}
+
+#rank[data-rank='SSS'] {
+  --rank: var(--pink);
 }
 
 #score {
@@ -297,6 +364,32 @@ body.playing * {
   height: 100%;
   background: var(--pink);
   transform-origin: right center;
+}
+
+/* the warm-up's hint for its current step */
+#tutorial {
+  position: absolute;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  padding: 10px 22px;
+  border-left: 3px solid var(--gold);
+  background: rgba(10, 8, 22, 0.78);
+  color: var(--ink);
+  font-size: 18px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+
+#tutorial.show {
+  opacity: 1;
+}
+
+#tutorial b {
+  color: var(--gold);
 }
 
 #feed {
@@ -809,6 +902,70 @@ body.playing * {
   color: #c9cae6;
 }
 
+.mode-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.mode-row .maps-title {
+  flex: none;
+  margin: 0;
+}
+
+.modes {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mode-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  min-width: 0;
+  padding: 8px 12px;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid var(--mode);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mode-card:hover,
+.mode-card:focus-visible {
+  background: rgba(255, 255, 255, 0.09);
+  outline: none;
+}
+
+.mode-card.selected {
+  background: color-mix(in srgb, var(--mode) 12%, transparent);
+  box-shadow: 0 0 0 1px var(--mode), 0 0 22px color-mix(in srgb, var(--mode) 30%, transparent);
+}
+
+.mode-zh {
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.mode-en {
+  font-family: var(--display);
+  letter-spacing: 3px;
+  color: var(--mode);
+}
+
+.mode-desc {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #c9cae6;
+}
+
 .start {
   margin-top: 18px;
   font-family: var(--display);
@@ -930,12 +1087,117 @@ body.playing * {
   margin-top: 14px;
 }
 
+#gameover.cleared .go-title {
+  color: var(--gold);
+  text-shadow:
+    0 0 32px rgba(255, 200, 97, 0.6),
+    3px 3px 0 rgba(255, 63, 164, 0.5);
+}
+
+#gameover:not(.cleared) .clear-only,
+#gameover.cleared .over-only,
+#gameover:not(.graded) .go-grade,
+#gameover:not(.graded) .go-hint {
+  display: none;
+}
+
+/* the arcade grade: a big letter beside its three parts */
+.go-grade {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  margin-top: 14px;
+}
+
+.grade {
+  font-family: var(--display);
+  font-size: 96px;
+  line-height: 0.9;
+  width: 82px;
+  text-align: center;
+  color: var(--ink);
+}
+
+.grade[data-grade='S'] {
+  color: var(--gold);
+  text-shadow:
+    0 0 28px rgba(255, 200, 97, 0.7),
+    3px 3px 0 rgba(255, 63, 164, 0.5);
+}
+
+.grade[data-grade='A'] {
+  color: var(--cyan);
+  text-shadow: 0 0 22px rgba(46, 232, 255, 0.5);
+}
+
+.grade[data-grade='C'] {
+  color: var(--dim);
+}
+
+.grade[data-grade='D'] {
+  color: var(--red);
+}
+
+.grade-parts {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+}
+
+.grade-parts > div {
+  display: grid;
+  grid-template-columns: 76px 120px 52px;
+  align-items: center;
+  gap: 10px;
+}
+
+.grade-parts span {
+  font-size: 12px;
+  color: var(--dim);
+  letter-spacing: 2px;
+}
+
+.grade-parts i {
+  display: block;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.grade-parts em {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--gold);
+  border-radius: 3px;
+}
+
+.grade-parts b {
+  font-family: var(--display);
+  font-weight: normal;
+  font-size: 20px;
+  text-align: right;
+}
+
+.go-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
 @media (max-width: 720px) {
   .panel {
     padding: 24px 18px;
   }
   .maps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mode-row {
+    flex-direction: column;
+    align-items: stretch;
   }
   .cols {
     grid-template-columns: 1fr;

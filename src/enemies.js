@@ -128,6 +128,7 @@ class Enemy {
     this.lead = 0.5;
     this.timer = 0;
     this.stunT = 0;
+    this.blindT = 0; // a flock burst in his face: no aiming, and a kill now is a PIGEON STRIKE
     this.stunCause = 'kick';
     this.flash = 0;
     this.phase = rand(0, TAU);
@@ -185,6 +186,15 @@ class Enemy {
     }
     g.hud.hitMarker(false);
     if (!this.cfg.heavy && this.state === 'aim') this.aimT = Math.max(0, this.aimT - 0.22);
+  }
+
+  /** Pigeons in the face: the aim breaks off and cannot start again for `t` seconds. */
+  blind(t) {
+    this.endAim();
+    if (this.state === 'aim' || this.state === 'fire') this.state = 'move';
+    this.repath = 0;
+    this.blindT = t;
+    this.fireCd = Math.max(this.fireCd, t);
   }
 
   kick(dx, dz, power, cause = 'kick', dmg = 1) {
@@ -266,6 +276,7 @@ class Enemy {
   }
 
   pickGoal() {
+    if (this.sp.stay) return { x: this.sp.ex, z: this.sp.ez }; // a warm-up enemy keeps its post
     const g = this.game;
     const p = g.player;
     const [rmin, rmax] = this.cfg.range;
@@ -371,6 +382,7 @@ class Enemy {
     const cfg = this.cfg;
     this.flash = Math.max(0, this.flash - dt * 6);
     this.fireCd -= dt;
+    this.blindT = Math.max(0, this.blindT - dt);
     this.spawnLock -= dt;
     this.losT -= dt;
     if (this.losT <= 0) {
@@ -618,13 +630,14 @@ class Enemy {
     const r = this.rig;
     r.root.position.set(this.x, this.y + this.game.level.groundY(this.x, this.z), this.z);
     r.root.rotation.y = this.facing;
-    animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
     setFlash(r, this.flash * 2.5);
+    r.ring.material.color.setRGB(this.aiming ? 1.6 : 0.35, 0.05, 0.08);
+    if (!this.game.style.poseDue(r, this.game.worldTime + this.idleOffset)) return; // the pose holds between the style's steps
+    animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
     if (this.cfg.weapon === 'blade') {
       const raise = this.state === 'windup' ? -1.6 : this.state === 'strike' ? 0.9 : 0.5;
       r.armR.rotation.x = damp(r.armR.rotation.x, raise, 25, 1 / LOGIC_HZ); // once per logic step
     }
-    r.ring.material.color.setRGB(this.aiming ? 1.6 : 0.35, 0.05, 0.08);
     finishRig(r, this.game.worldTime + this.idleOffset);
   }
 
@@ -660,16 +673,18 @@ class Enemy {
     this.y = Math.max(0, this.y - dt * 6);
     const r = this.rig;
     r.root.rotation.y += this.corpseSpin * dt * clamp(Math.hypot(this.vx, this.vz) / 5, 0, 1);
-    const k = clamp(this.corpseT / 0.4, 0, 1);
-    const clip = deathPose(r, this.corpseT);
-    if (!clip) {
-      r.inner.rotation.x = -Math.PI / 2 * (1 - (1 - k) * (1 - k));
-      r.inner.position.y = 0.12 * this.rig.scale * k;
-    }
     r.root.position.set(this.x, this.y + this.game.level.groundY(this.x, this.z), this.z);
     setFlash(r, Math.max(0, 1 - this.corpseT * 4) * 2);
-    animateRig(r, 0, 0);
-    if (!clip) finishRig(r, this.idleOffset);
+    if (this.game.style.poseDue(r, this.game.worldTime + this.idleOffset)) {
+      const k = clamp(this.corpseT / 0.4, 0, 1);
+      const clip = deathPose(r, this.corpseT);
+      if (!clip) {
+        r.inner.rotation.x = -Math.PI / 2 * (1 - (1 - k) * (1 - k));
+        r.inner.position.y = 0.12 * this.rig.scale * k;
+      }
+      animateRig(r, 0, 0);
+      if (!clip) finishRig(r, this.idleOffset);
+    }
     if (!this.pooled && this.corpseT > 0.7) {
       this.pooled = true;
       // resting bodies stop casting shadows: halves their draw calls
@@ -699,6 +714,15 @@ export class Enemies {
     const e = new Enemy(this, type, sp);
     this.list.push(e);
     return e;
+  }
+
+  /** Take a live enemy away without a death (the warm-up ending early). */
+  remove(e) {
+    e.endAim();
+    e.alive = false;
+    this.list = this.list.filter((x) => x !== e);
+    this.game.fx.ring(e.x, e.z, 1.2, 0.4, 0xff3355, 2);
+    e.dispose();
   }
 
   clear() {

@@ -56,6 +56,66 @@ export const BULLET = {
 
 export const COMBO_WINDOW = 3.2;
 
+/**
+ * The live Style rank in the top-right corner, D to SSS: a gauge where each
+ * whole step is one rank. A kill with a style tag (SLOW-MO, KICK, RICOCHET…)
+ * pushes it by `move` (plus `extra` per further tag), a plain kill by
+ * `kill`, a style bonus (DODGE, CLOSE CALL…) by its points × `perPoint`. The
+ * same move again right after itself gains `repeat` times what it gained the
+ * time before; a different move gains in full again. A hit drops `hit`
+ * ranks; after `idle` seconds without a gain the gauge drains `drain` ranks a
+ * second. Times are real seconds. The rank only shows: it changes no score.
+ */
+export const RANK = {
+  names: ['D', 'C', 'B', 'A', 'S', 'SS', 'SSS'],
+  kill: 0.3,
+  move: 0.75,
+  extra: 0.25,
+  perPoint: 0.005,
+  repeat: 0.5,
+  hit: 1,
+  idle: 5,
+  drain: 0.5,
+};
+
+/** Things in the maps that play along (環境互動). */
+export const ENV = {
+  crateHits: 6, // bullets a wooden crate takes before it breaks apart
+  flockReach: 2, // metres: an aiming enemy this close to a flock that takes off loses his aim
+  flockBlind: 0.5, // world seconds before he can aim again (a kill meanwhile is a PIGEON STRIKE)
+  flockScare: 1.5, // metres: a player bullet passing this close to a resting flock startles it
+  flockAway: [14, 24], // world seconds a startled flock stays away
+};
+
+/** The 60-second warm-up on a first run (src/tutorial.js). */
+export const WARMUP = {
+  limit: 60, // real seconds before it ends anyway and wave 1 starts
+  front: 8, // metres in front of the player for the first enemy
+  behindPan: 3.5, // metres beyond the nearest pan, seen from the player, for the second
+  besideBarrel: 1.6, // metres beyond the nearest barrel for the third: inside its blast
+};
+
+/**
+ * The grade at the end of an arcade run (S, A, B, C, D). Three parts add up
+ * to 100 points: the run's Style score against a par, the waves cleared
+ * without a hit, and how fast a cleared run was. A run that falls gets no
+ * time points. The god-mode bot clears 12 waves with about 206,000 points.
+ */
+export const RATING = {
+  style: 50, // points for the Style score, all of them at stylePar or more
+  clean: 30, // points for waves cleared without a hit, all of them when every wave of the run is clean
+  time: 20, // points for a cleared run's time: all at timePar seconds or faster, none at timeSlow
+  stylePar: 250000,
+  timePar: 480,
+  timeSlow: 960,
+  grades: [
+    ['S', 85],
+    ['A', 70],
+    ['B', 55],
+    ['C', 40],
+  ], // the lowest total for each grade; below the last one is D
+};
+
 export const CAMERA = {
   dist: 22.7, // camera distance from the point it looks at
   pitch: 59.25, // degrees above the horizon (maps can override both)
@@ -75,3 +135,25 @@ export const VIEWS = [
   { id: 'tilt', name: '45° 俯視', en: '45° TILT', pitch: 45, yaw: 0 },
   { id: 'iso', name: '45° 側俯視', en: '45° SIDE', pitch: 45, yaw: -45 },
 ];
+
+/**
+ * The look ("neon figures", 2026-10-17): flat toon shading, an inverted-hull
+ * outline, cyan afterimages behind the player's moves, character poses held
+ * at 12 fps and comic proportions on worn models. Rendering only; each part
+ * has a switch in the stats panel (src/style.js) and ?style=off turns it off.
+ */
+export const STYLE = {
+  charSteps: 2, // toon ramp steps on characters
+  worldSteps: 3, // and on the world
+  charLine: 0.024, // outline thickness in metres on characters and props
+  worldLine: 0.012, // world outline, when switched on
+  ghostEvery: 0.05, // world seconds between afterimages during a move
+  ghostLife: 0.3, // world seconds an afterimage takes to fade
+  ghostAlpha: 0.26,
+  ghostColor: [0.15, 0.95, 1.3], // under the bloom threshold on its own; three overlapping ghosts still glow
+  stepHz: 12, // character poses refresh this often (world time)
+  head: 1.28, // proportions on worn models
+  hand: 1.35,
+  foot: 1.2,
+  thigh: 0.9,
+};
