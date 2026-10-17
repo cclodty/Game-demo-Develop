@@ -72,7 +72,7 @@ export class Bullets {
 
   /**
    * o: { x, z, dx, dz, speed, owner: 'player'|'enemy', damage, range, split, source,
-   *      look, trail, pierce, knock, weapon }
+   *      look, trail, pierce, knock, weapon, spinShot }
    */
   spawn(o) {
     const b = this.acquire(o.look || (o.owner === 'player' ? 'player' : 'enemy'));
@@ -88,6 +88,7 @@ export class Bullets {
     b.pierce = o.pierce || 0;
     b.knock = o.knock || 1;
     b.weapon = o.weapon || null;
+    b.spinShot = !!o.spinShot;
     b.kills = 0;
     b.hits = [];
     b.trailLen = 0;

@@ -179,6 +179,7 @@ class Enemy {
         ricochet: b.ricochet,
         bullet: b,
         knock,
+        juggle: this.stunT > 0 && this.stunCause === 'kick', // shot while still flying from the player's kick
       });
       return;
     }
@@ -210,7 +211,10 @@ class Enemy {
     this.vx += dx * 10;
     this.vz += dz * 10;
     if (this.hp <= 0) this.die(dx, dz, { cause: 'explosion' });
-    else this.stunT = 0.5;
+    else {
+      this.stunT = 0.5;
+      this.stunCause = 'blast';
+    }
   }
 
   die(dx, dz, info) {

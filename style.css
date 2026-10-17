@@ -716,6 +716,10 @@ body.playing * {
   padding: 0 5px;
 }
 
+.pink {
+  color: var(--pink);
+}
+
 .red {
   color: var(--red);
 }

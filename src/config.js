@@ -20,6 +20,8 @@ export const PLAYER = {
   spinDuration: 0.5,
   spinCooldown: 0.28,
   spinSpeedMul: 1.7,
+  spinFireMul: 0.55, // fire interval while spinning: holding fire during a spin sprays a ring (the spin shot)
+  spinFan: 0.35, // radians between the two guns during a spin shot
   kickRange: 2.1,
   kickArc: 1.25, // radians, total cone is twice this
   kickCooldown: 0.45,

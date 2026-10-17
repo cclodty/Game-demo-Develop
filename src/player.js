@@ -146,6 +146,13 @@ export class Player {
     return { x: s.x + Math.sin(angle) * len, z: s.z + Math.cos(angle) * len };
   }
 
+  /** How far the body has turned in the current spin dodge (two full turns, easing out); 0 when not spinning. */
+  spinYaw() {
+    if (this.spinT <= 0) return 0;
+    const k = 1 - this.spinT / PLAYER.spinDuration;
+    return (1 - (1 - k) * (1 - k)) * Math.PI * 4;
+  }
+
   // -------------------------------------------------------------- update
 
   update(dt, input) {
@@ -327,6 +334,18 @@ export class Player {
     } else {
       shots.push({ side: 0, tx: aim.x, tz: aim.z, split: false });
     }
+    // spin shot: while spinning the guns point where the body has turned to,
+    // so holding fire sprays a ring instead of aiming at the cursor
+    const yaw = this.spinYaw();
+    if (yaw) {
+      for (const s of shots) {
+        const a = this.facing + yaw + (s.side || 0) * PLAYER.spinFan;
+        s.spin = a;
+        s.tx = this.x + Math.sin(a) * 30;
+        s.tz = this.z + Math.cos(a) * 30;
+        s.split = false;
+      }
+    }
 
     let fired = false;
     for (const s of shots) {
@@ -335,7 +354,11 @@ export class Player {
       let origin;
       let m;
       let armAngle = this.facing;
-      if (s.side) {
+      if (s.spin !== undefined) {
+        armAngle = s.spin;
+        origin = { x: this.x + Math.sin(armAngle) * 0.3, z: this.z + Math.cos(armAngle) * 0.3 };
+        m = { x: this.x + Math.sin(armAngle) * 0.8, z: this.z + Math.cos(armAngle) * 0.8 };
+      } else if (s.side) {
         const arm = s.side === 1 ? this.rig.armL : this.rig.armR;
         armAngle = this.facing + arm.rotation.y;
         origin = this.shoulder(s.side);
@@ -379,6 +402,7 @@ export class Player {
             knock: w.knock,
             range: w.range,
             weapon: w.id,
+            spinShot: s.spin !== undefined,
           });
         }
         dx = Math.sin(base);
@@ -403,7 +427,7 @@ export class Player {
     g.level.noise(this.x, this.z, 11);
     g.audio.shot(w.sound, g.panFor(this.x));
     g.shake(w.shake);
-    this.fireCd = w.interval;
+    this.fireCd = w.interval * (yaw ? PLAYER.spinFireMul : 1);
     if (this.slot === 'pistols') {
       if (this.ammo <= 0) this.startReload();
     } else if (this.special.ammo <= 0) {
@@ -513,7 +537,7 @@ export class Player {
 
     if (this.spinT > 0) {
       const k = 1 - this.spinT / PLAYER.spinDuration;
-      r.inner.rotation.y = (1 - (1 - k) * (1 - k)) * Math.PI * 4;
+      r.inner.rotation.y = this.spinYaw();
       r.inner.position.y = Math.sin(k * Math.PI) * 0.3;
     } else {
       r.inner.rotation.y = 0;

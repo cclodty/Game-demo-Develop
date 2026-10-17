@@ -431,7 +431,9 @@ class Game {
     const tags = [{ label: e.cfg.label, pts: e.cfg.score }];
     let refill = FOCUS.killRefill;
     if (this.focusActive) tags.push({ label: 'SLOW-MO', pts: 50, cls: 'cyan' });
-    if (p.alive && p.spinning) tags.push({ label: 'SPIN KILL', pts: 100, cls: 'cyan' });
+    if (info.bullet && info.bullet.spinShot) tags.push({ label: 'PIROUETTE', pts: 150, cls: 'pink' });
+    else if (p.alive && p.spinning) tags.push({ label: 'SPIN KILL', pts: 100, cls: 'cyan' });
+    if (info.juggle) tags.push({ label: 'JUGGLE', pts: 120, cls: 'gold' });
     if (info.split) tags.push({ label: 'SPLIT AIM', pts: 100, cls: 'pink' });
     if (info.ricochet) {
       tags.push({ label: 'RICOCHET', pts: 200, cls: 'gold' });
