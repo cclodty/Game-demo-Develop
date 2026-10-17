@@ -67,7 +67,7 @@ src/models.js                loads assets/models/*.glb, fits props to map boxes;
 src/asset-manifest.js        catalogue of every asset we want as a real model (sizes, budgets, prompts)
 src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
-src/ambient.js               pigeons
+src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
 src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
 src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export
 src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions

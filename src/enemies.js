@@ -128,6 +128,7 @@ class Enemy {
     this.lead = 0.5;
     this.timer = 0;
     this.stunT = 0;
+    this.blindT = 0; // a flock burst in his face: no aiming, and a kill now is a PIGEON STRIKE
     this.stunCause = 'kick';
     this.flash = 0;
     this.phase = rand(0, TAU);
@@ -185,6 +186,15 @@ class Enemy {
     }
     g.hud.hitMarker(false);
     if (!this.cfg.heavy && this.state === 'aim') this.aimT = Math.max(0, this.aimT - 0.22);
+  }
+
+  /** Pigeons in the face: the aim breaks off and cannot start again for `t` seconds. */
+  blind(t) {
+    this.endAim();
+    if (this.state === 'aim' || this.state === 'fire') this.state = 'move';
+    this.repath = 0;
+    this.blindT = t;
+    this.fireCd = Math.max(this.fireCd, t);
   }
 
   kick(dx, dz, power, cause = 'kick', dmg = 1) {
@@ -372,6 +382,7 @@ class Enemy {
     const cfg = this.cfg;
     this.flash = Math.max(0, this.flash - dt * 6);
     this.fireCd -= dt;
+    this.blindT = Math.max(0, this.blindT - dt);
     this.spawnLock -= dt;
     this.losT -= dt;
     if (this.losT <= 0) {

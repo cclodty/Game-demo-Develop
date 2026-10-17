@@ -78,6 +78,15 @@ export const RANK = {
   drain: 0.5,
 };
 
+/** Things in the maps that play along (環境互動). */
+export const ENV = {
+  crateHits: 6, // bullets a wooden crate takes before it breaks apart
+  flockReach: 2, // metres: an aiming enemy this close to a flock that takes off loses his aim
+  flockBlind: 0.5, // world seconds before he can aim again (a kill meanwhile is a PIGEON STRIKE)
+  flockScare: 1.5, // metres: a player bullet passing this close to a resting flock startles it
+  flockAway: [14, 24], // world seconds a startled flock stays away
+};
+
 /** The 60-second warm-up on a first run (src/tutorial.js). */
 export const WARMUP = {
   limit: 60, // real seconds before it ends anyway and wave 1 starts

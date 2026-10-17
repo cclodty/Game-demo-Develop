@@ -577,6 +577,7 @@ class Game {
     if (info.cause === 'kick') tags.push({ label: 'KICK', pts: 150, cls: 'gold' });
     if (info.cause === 'strike') tags.push({ label: 'STRIKE!', pts: 200, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });
+    if (e.blindT > 0) tags.push({ label: 'PIGEON STRIKE', pts: 80, cls: 'gold' });
     if (info.cause === 'bullet') {
       if (d < 2.6) tags.push({ label: 'POINT BLANK', pts: 60 });
       else if (d > 16) tags.push({ label: 'LONG SHOT', pts: 80 });

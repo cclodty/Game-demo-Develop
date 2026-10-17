@@ -594,6 +594,8 @@ const senado = {
   ],
   barrels: [[-9.9, 51.6, 'lpg'], [9, 52.4, 'lpg'], [-4.1, 20.8, 'lpg'], [7.7, 13.3, 'lpg'], [-12, -64.5, 'lpg'], [20, 48, 'gas'], [16.2, 46.2], [-11, 35.5], [-21, -68, 'gas']],
   pans: [[-12, 49.8], [11, 49.8], [-5.8, 17.9], [6, 9.9], [-14, -63.5], [1, -12], [8, 40], [-8, -60]],
+  // pigeon flocks resting on the square: they burst into the air at shots, blasts and runners (PIGEON STRIKE)
+  flocks: [[-6, 46], [8, 44], [0, 22], [-10, -64]],
   pads: [[-4, 48], [1, -34], [-10, -62]],
   spawns: [
     { x: -24.5, z: 68, ex: -17, ez: 64, kind: 'gate' },
@@ -691,18 +693,8 @@ const senado = {
       L.deco(x, 0.62, z, w + 0.02, 0.16, d + 0.02, stripe);
     }
 
-    // the square's pigeons: they scatter at gunfire and drift back later
-    L.ambient.push(
-      new Pigeons(
-        L,
-        [
-          [-14, 40, 12, 60],
-          [-8, 12, 8, 28],
-          [-20, -70, 2, -58],
-        ],
-        28,
-      ),
-    );
+    // the square's pigeons (their flocks are in `flocks`, above): they burst into the air and drift back later
+    L.ambient.push(new Pigeons(L, 28));
 
     // A bus shelter roof over the glass panel on the avenue
     L.deco(10, 2.25, 62.6, 3.8, 0.08, 1.6, L.mat.darkMetal, true);
