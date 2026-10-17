@@ -173,6 +173,7 @@ export class Grenades {
     blink.position.y = 0.13;
     mesh.add(blink);
     mesh.castShadow = true;
+    this.game.style.dress(mesh);
     this.game.scene.add(mesh);
     this.list.push({ x, z, sx: x, sz: z, tx: x + dx * dist, tz: z + dz * dist, dist, t: 0, T: dist / speed, y: GUN_Y, mesh, spin, blink, smoke: 0 });
   }

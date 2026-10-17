@@ -75,3 +75,25 @@ export const VIEWS = [
   { id: 'tilt', name: '45° 俯視', en: '45° TILT', pitch: 45, yaw: 0 },
   { id: 'iso', name: '45° 側俯視', en: '45° SIDE', pitch: 45, yaw: -45 },
 ];
+
+/**
+ * The look ("neon figures", 2026-10-17): flat toon shading, an inverted-hull
+ * outline, cyan afterimages behind the player's moves, character poses held
+ * at 12 fps and comic proportions on worn models. Rendering only; each part
+ * has a switch in the stats panel (src/style.js) and ?style=off turns it off.
+ */
+export const STYLE = {
+  charSteps: 2, // toon ramp steps on characters
+  worldSteps: 3, // and on the world
+  charLine: 0.024, // outline thickness in metres on characters and props
+  worldLine: 0.012, // world outline, when switched on
+  ghostEvery: 0.05, // world seconds between afterimages during a move
+  ghostLife: 0.3, // world seconds an afterimage takes to fade
+  ghostAlpha: 0.26,
+  ghostColor: [0.15, 0.95, 1.3], // under the bloom threshold on its own; three overlapping ghosts still glow
+  stepHz: 12, // character poses refresh this often (world time)
+  head: 1.28, // proportions on worn models
+  hand: 1.35,
+  foot: 1.2,
+  thigh: 0.9,
+};

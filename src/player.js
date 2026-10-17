@@ -247,7 +247,8 @@ export class Player {
       tx = this.spinDirX * sp;
       tz = this.spinDirZ * sp;
       accel = 30;
-      if (rand(0, 1) < 0.8) {
+      // the sparkle cloud marks the spin only when there are no afterimages to do it
+      if (!g.style.ghostsOn && rand(0, 1) < 0.8) {
         g.fx.glow.spawn({ x: this.x + rand(-0.3, 0.3), y: rand(0.4, 1.8), z: this.z + rand(-0.3, 0.3), life: 0.3, size: rand(0.06, 0.12), r: 0.5, g: 2.6, b: 3.4 });
       }
       if (this.spinT <= 0) this.spinCd = PLAYER.spinCooldown;
@@ -582,6 +583,11 @@ export class Player {
     const r = this.rig;
     r.root.position.set(this.x, this.game.level.groundY(this.x, this.z), this.z);
     r.root.rotation.y = this.facing;
+    // flash and ring track every frame; the pose below refreshes at the style's step rate
+    setFlash(r, this.hurtFlash * 2.5);
+    const ringBoost = this.spinT > 0 ? 3 : 1;
+    r.ring.material.color.setRGB(0.25 * ringBoost, 0.85 * ringBoost, 1.0 * ringBoost);
+    if (!this.game.style.poseDue(r, this.game.worldTime)) return;
     animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
 
     if (this.spinT > 0) {
@@ -628,9 +634,6 @@ export class Player {
       r.center.position.z = this.centerZ - this.recoilR * 0.1;
     }
 
-    setFlash(r, this.hurtFlash * 2.5);
-    const ringBoost = this.spinT > 0 ? 3 : 1;
-    r.ring.material.color.setRGB(0.25 * ringBoost, 0.85 * ringBoost, 1.0 * ringBoost);
     finishRig(r, this.game.worldTime);
   }
 

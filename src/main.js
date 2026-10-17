@@ -18,6 +18,7 @@ import { readQuality } from './quality.js';
 import { InputRecord } from './replay.js';
 import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
 import { Score } from './score.js';
+import { Style } from './style.js';
 import { Thrown } from './thrown.js';
 import { clamp, damp, lerp } from './utils.js';
 import { Waves } from './waves.js';
@@ -79,6 +80,7 @@ class Game {
     this.aimEvery = 1;
     this.audio = new AudioSys();
     this.fx = new FX(this);
+    this.style = new Style(this); // the look; before the level, whose materials it converts as they load
     this.maps = MAPS;
     this.startMap = 0;
     try {
@@ -287,6 +289,7 @@ class Game {
     this.grenades.clear();
     this.pickups.clear();
     this.thrown.clear();
+    this.style.clearGhosts();
     this.fx.clear();
     if (this.level.map !== map) {
       this.level.load(map);
@@ -729,6 +732,7 @@ class Game {
   present(realDt) {
     const dt = realDt * this.timeScale;
     this.fx.update(dt);
+    this.style.update(dt);
     this.level.updateAmbient(realDt, dt, this.camTarget.x, this.camTarget.z);
 
     this.hurtFx = Math.max(0, this.hurtFx - realDt * 1.8);
@@ -748,6 +752,7 @@ class Game {
     this.bullets.update(dt);
     this.grenades.update(dt);
     this.fx.update(dt);
+    this.style.update(dt);
     this.level.updateAmbient(realDt, dt, this.camTarget.x, this.camTarget.z);
     this.focusAmt = damp(this.focusAmt, 0, 4, realDt);
     this.hurtFx = Math.max(0, this.hurtFx - realDt * 1.8);

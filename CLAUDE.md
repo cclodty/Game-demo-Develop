@@ -69,6 +69,7 @@ src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-tim
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
 src/ambient.js               pigeons
 src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export
+src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions
 src/senado/                  Largo do Senado data and model code extracted from the senado/ sub-project
 scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, serve.mjs, senado-extract.mjs
 test/                        node:test + playwright; helpers.mjs has the bot
@@ -109,6 +110,14 @@ Conventions that matter:
 - Gameplay events worth a tester's attention go through `notes.log()` (hits
   taken with their source, kills with tags, focus on/off, waves, pickups) so
   they show up in the feedback export. Keep the lines short and in Chinese.
+- **The look is a rendering layer** (`style.js`, decided 2026-10-17: flat toon
+  shading, outlines, afterimages, 12 fps pose step, comic proportions). Lit
+  materials are swapped for toon twins when a level loads or a rig is built;
+  anything you add to the scene later goes through `game.style.dress(root)`
+  (pickups, thrown guns and grenades do). Character pose code runs only when
+  `style.poseDue(rig, worldTime)` says so; root position and facing update
+  every frame. Never make play depend on the style; `?style=off` must play
+  identically.
 
 ## Working rules
 

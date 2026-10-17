@@ -422,6 +422,7 @@ export class Level {
         if (m && m.isMeshStandardMaterial) addCutaway(m, this.cut);
       }
     });
+    if (this.game.style) this.game.style.dressLevel(this); // the look: toon twins (with the cutaway), lines on the props
 
     this.nav = new NavGrid(-halfW, -halfD, halfW, halfD, 0.5);
     this.rebuildNav();

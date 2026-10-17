@@ -342,6 +342,7 @@ export function poseSkin(rig, time) {
     A.idle.setEffectiveWeight(A.run ? 1 - moving : 1);
   }
   skin.mixer.update(0);
+  if (skin.afterMix) skin.afterMix(); // the style's proportions, which a clip's scale tracks would undo
   rig.root.updateMatrixWorld(true);
   rig.inner.getWorldQuaternion(_qi);
   const side = _side.set(1, 0, 0).applyQuaternion(_qi);
@@ -389,5 +390,6 @@ export function deathSkin(rig, t) {
   A.death.time = Math.min(t, d - 1e-3);
   A.death.setEffectiveWeight(1);
   rig.skin.mixer.update(0);
+  if (rig.skin.afterMix) rig.skin.afterMix();
   return true;
 }
