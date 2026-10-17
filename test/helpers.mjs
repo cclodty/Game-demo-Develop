@@ -51,13 +51,16 @@ export const problems = (logs) => logs.filter((l) => !/GPU stall|SwiftShader|swi
  * window.stats with what happened. simStep returns false after an exception.
  * With `seed` the bot's own choices (aim jitter, wandering) repeat exactly;
  * without one they are random, so each test run explores a little differently.
+ * `mode` picks arcade or endless first. When the run ends the bot starts
+ * another, unless `restart` is false: then simStep stops on the end screen.
  */
-export async function installBot(page, { map = 0, view = 2, seed = null } = {}) {
+export async function installBot(page, { map = 0, view = 2, seed = null, mode = null, restart = true } = {}) {
   await page.evaluate(
-    ([map, view, seed]) => {
+    ([map, view, seed, mode, restart]) => {
       const g = window.game;
       g.frame = () => {};
       g.view = view; // before startRun, so the camera starts in this view instead of easing into it
+      if (mode) g.setMode(mode);
       g.startRun(map);
       let random = Math.random;
       if (seed !== null) {
@@ -163,6 +166,7 @@ export async function installBot(page, { map = 0, view = 2, seed = null } = {}) 
             return false;
           }
           if (g.state === 'over') {
+            if (!restart) break;
             stats.deaths++;
             g.startRun();
           }
@@ -172,7 +176,7 @@ export async function installBot(page, { map = 0, view = 2, seed = null } = {}) 
         return true;
       };
     },
-    [map, view, seed],
+    [map, view, seed, mode, restart],
   );
 }
 

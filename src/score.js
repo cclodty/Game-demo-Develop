@@ -7,13 +7,18 @@ const KEY = 'bullet-ballet.best';
 export class Score {
   constructor(game) {
     this.game = game;
-    this.best = 0;
+    this.useBest(game.mode);
+    this.reset();
+  }
+
+  /** Each mode keeps its own best (endless keeps the key the game always had). */
+  useBest(mode) {
+    this.key = mode === 'endless' ? KEY : `${KEY}.${mode}`;
     try {
-      this.best = Number(localStorage.getItem(KEY)) || 0;
+      this.best = Number(localStorage.getItem(this.key)) || 0;
     } catch {
       this.best = 0;
     }
-    this.reset();
   }
 
   reset() {
@@ -70,7 +75,7 @@ export class Score {
     if (this.score <= this.best) return false;
     this.best = this.score;
     try {
-      localStorage.setItem(KEY, String(this.best));
+      localStorage.setItem(this.key, String(this.best));
     } catch {
       /* storage unavailable */
     }

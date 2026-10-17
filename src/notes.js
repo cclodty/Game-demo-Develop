@@ -6,6 +6,7 @@
 
 import { CAMERA, FOCUS, LOGIC_HZ, PLAYER, VIEWS } from './config.js';
 import { QUALITIES, readQuality, saveQuality } from './quality.js';
+import { MODES } from './waves.js';
 
 const NOTES_KEY = 'bullet-ballet.notes';
 const TUNE_KEY = 'bullet-ballet.tune';
@@ -128,7 +129,7 @@ export class Notes {
     this.win.t = this.win.n = 0;
     this.lastDrop = -10;
     this.hideNote();
-    this.log(`開局：${map.name}（鏡頭 ${VIEWS[this.game.view].name}）`);
+    this.log(`開局：${map.name}（${MODES[this.game.mode].name} · 鏡頭 ${VIEWS[this.game.view].name}）`);
   }
 
   /** Called every frame with the capped game step and the raw wall-clock step. */

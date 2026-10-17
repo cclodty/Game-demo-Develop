@@ -110,7 +110,11 @@
             </ul>
           </div>
         </div>
-        <h3 class="maps-title">選擇起點場景 <span>每 3 波換一個場景</span></h3>
+        <div class="mode-row">
+          <h3 class="maps-title">選擇模式</h3>
+          <div id="mode-cards" class="modes"></div>
+        </div>
+        <h3 class="maps-title">選擇起點場景 <span id="maps-note">每 3 波換一個場景</span></h3>
         <div id="map-cards" class="maps"></div>
         <div class="start">點擊開始 <span>/ Enter · 1–4 選場景</span></div>
       </div>
@@ -145,13 +149,15 @@
 
     <div id="gameover" class="screen hidden">
       <div class="panel small">
-        <div class="logo-en red">GAME OVER</div>
+        <div class="logo-en red go-title" id="go-title">GAME OVER</div>
         <div class="go-score" id="go-score">0</div>
         <div class="go-best" id="go-best"></div>
         <div class="go-stats">
-          <div><span>波次</span><b id="go-wave">0</b></div>
+          <div class="over-only"><span>波次</span><b id="go-wave">0</b></div>
+          <div class="clear-only"><span>用時</span><b id="go-time">0:00</b></div>
           <div><span>擊殺</span><b id="go-kills">0</b></div>
           <div><span>最高連擊</span><b id="go-combo">x1</b></div>
+          <div class="clear-only"><span>無傷波數</span><b id="go-clean">0</b></div>
         </div>
         <div class="start">點擊重新開始 <span>/ Enter</span></div>
         <div class="menu">

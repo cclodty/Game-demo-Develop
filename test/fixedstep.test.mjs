@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { gameHarness, installBot, problems } from './helpers.mjs';
 
 const HZ = 120;
-const HEADER = 13;
+const HEADER = 14;
 let h;
 let page;
 let logs;
@@ -41,8 +41,10 @@ function replay(bytes, dt) {
     async ([bytes, dt]) => {
       const g = window.game;
       const { RecordReader } = await import('/src/replay.js');
+      const { MODE_IDS } = await import('/src/waves.js');
       const rd = new RecordReader(Uint8Array.from(bytes));
       g.fixedSeed = rd.seed;
+      g.setMode(MODE_IDS[rd.mode]);
       g.startRun(rd.map);
       g.feed = (game) => rd.next(game.player.x, game.player.z);
       window.trace = [];
@@ -129,7 +131,7 @@ test('the stats panel shows the logic rate and step count', async () => {
 });
 
 test('a ten-minute run records under 100 KB of input', { timeout: 10 * 60 * 1000 }, async () => {
-  await installBot(page, { map: 0, view: 2, seed: 11 });
+  await installBot(page, { map: 0, view: 2, seed: 11, mode: 'endless' }); // an arcade run may end sooner
   // keep the player standing so one run lasts the whole ten minutes (waves, stage changes and all)
   const r = await page.evaluate(() => {
     const g = window.game;
