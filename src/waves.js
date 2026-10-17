@@ -1,6 +1,7 @@
 // Wave director: builds each wave's roster and feeds enemies in through the
 // stairwell doors and over the roof ledges, telegraphing each spawn.
 
+import { TYPES } from './enemies.js';
 import { rand } from './utils.js';
 
 export class Waves {
@@ -58,6 +59,9 @@ export class Waves {
     const g = this.game;
     this.wave++;
     this.queue = this.compose(this.wave);
+    const count = {};
+    for (const t of this.queue) count[t] = (count[t] || 0) + 1;
+    g.notes.log(`第 ${this.wave} 波開始：${Object.entries(count).map(([t, n]) => `${TYPES[t] ? TYPES[t].label : t}×${n}`).join(' ')}`);
     this.maxAlive = Math.min(3 + Math.floor(this.wave * 0.7), 9);
     this.state = 'active';
     this.spawnCd = 0.3;

@@ -20,6 +20,12 @@ you go.
   tests save PNGs in `test/.out/`), a numbers change comes with before/after.
 - The developer cannot see your tool output. Summarise results; never claim a
   test passed or a push happened without having seen it.
+- **Feel feedback arrives as a Markdown export** from the game (N records a
+  moment; the pause menu exports). Each note carries the map, wave, HP, focus
+  state and the last ten events, plus any feel numbers the developer tuned
+  live in the stats panel (` key). Treat those numbers as ground truth and
+  turn a tuned value into a `config.js` change plus a `docs/DECISIONS.md`
+  line; the live tuning itself is only for trying things out.
 
 ## Run, test, lint
 
@@ -60,6 +66,7 @@ src/asset-manifest.js        catalogue of every asset we want as a real model (s
 src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
 src/ambient.js               pigeons
+src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export
 src/senado/                  Largo do Senado data and model code extracted from the senado/ sub-project
 scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, serve.mjs, senado-extract.mjs
 test/                        node:test + playwright; helpers.mjs has the bot
@@ -87,7 +94,12 @@ Conventions that matter:
   loads; new materials created later must opt in themselves if they can hide
   the player.
 - Feel numbers live in `config.js`; don't scatter magic numbers. When you
-  change one, note the old and new value in `docs/DECISIONS.md`.
+  change one, note the old and new value in `docs/DECISIONS.md`. Read them
+  where they are used, never copy them into module-level constants: the
+  stats panel changes `FOCUS`/`PLAYER`/`CAMERA` properties live.
+- Gameplay events worth a tester's attention go through `notes.log()` (hits
+  taken with their source, kills with tags, focus on/off, waves, pickups) so
+  they show up in the feedback export. Keep the lines short and in Chinese.
 
 ## Working rules
 

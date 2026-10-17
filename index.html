@@ -56,9 +56,10 @@
       <div id="prompt"></div>
       <div id="indicators"></div>
       <div id="map-credit"></div>
+      <div id="tuned" class="hidden"></div>
       <div id="lock-marker"></div>
       <div id="hint">
-        <span><b>Shift / Q</b> 子彈時間</span><span><b>Space</b> 旋轉閃避</span><span><b>右鍵</b> 分離瞄準</span><span><b>F</b> 踢</span><span><b>E</b> 交換武器</span><span><b>1 / 2</b> 切換</span><span><b>R</b> 換彈</span><span><b>V</b> 鏡頭</span><span><b>M</b> 音樂</span><span><b>Esc</b> 暫停</span>
+        <span><b>Shift / Q</b> 子彈時間</span><span><b>Space</b> 旋轉閃避</span><span><b>右鍵</b> 分離瞄準</span><span><b>F</b> 踢</span><span><b>E</b> 交換武器</span><span><b>1 / 2</b> 切換</span><span><b>R</b> 換彈</span><span><b>V</b> 鏡頭</span><span><b>M</b> 音樂</span><span><b>Esc</b> 暫停</span><span><b>N</b> 回饋</span>
       </div>
       <div id="crosshair">
         <svg viewBox="-20 -20 40 40" width="40" height="40">
@@ -90,6 +91,7 @@
               <li><b>F</b> 踢 · <b>R</b> 換彈 · <b>M</b> 音樂 · <b>Esc</b> 暫停</li>
               <li><b>E</b> 交換地上的武器 · <b>1 / 2</b> 或滾輪 切換武器</li>
               <li><b>V</b> 切換鏡頭（三種）· 現在：<span id="view-name">45° 側俯視</span></li>
+              <li><b>N</b> 記下這一刻，給開發回饋 · <b>`</b> 數據面板</li>
             </ul>
           </div>
           <div class="col">
@@ -120,7 +122,20 @@
           <button type="button" data-act="resume">繼續 <kbd>Esc</kbd></button>
           <button type="button" data-act="restart">重新開始 <kbd>R</kbd></button>
           <button type="button" data-act="title">返回主畫面 · 換地圖 <kbd>T</kbd></button>
+          <button type="button" data-act="note">記下這一刻 · 給開發回饋 <kbd>N</kbd></button>
+          <button type="button" data-act="export">匯出回饋 <small class="notes-count"></small> <kbd>⇩</kbd></button>
         </div>
+        <div id="note-box" class="hidden">
+          <div id="note-context"></div>
+          <ul id="note-events"></ul>
+          <textarea id="note-text" rows="3" placeholder="這一刻怎麼了？例：旋轉閃避的無敵時間太短，第 3 波被散彈打中兩次"></textarea>
+          <div class="note-actions">
+            <button type="button" data-act="save">儲存並繼續 <kbd>Enter</kbd></button>
+            <button type="button" data-act="cancel">取消 <kbd>Esc</kbd></button>
+          </div>
+        </div>
+        <p id="notes-msg" class="notes-msg"></p>
+        <p class="notes-foot"><button type="button" class="link hidden" id="notes-clear">清除已記錄的回饋</button></p>
       </div>
     </div>
 
@@ -137,9 +152,12 @@
         <div class="start">點擊重新開始 <span>/ Enter</span></div>
         <div class="menu">
           <button type="button" data-act="title">返回主畫面 · 換地圖 <kbd>T</kbd></button>
+          <button type="button" data-act="export">匯出回饋 <small class="notes-count"></small> <kbd>⇩</kbd></button>
         </div>
       </div>
     </div>
+
+    <div id="debug" class="hidden"></div>
 
     <noscript>這個遊戲需要啟用 JavaScript。</noscript>
     <script type="module" src="src/main.js"></script>

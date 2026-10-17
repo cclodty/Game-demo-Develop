@@ -27,6 +27,9 @@ const browser = {
   Image: 'readonly',
   URLSearchParams: 'readonly',
   location: 'readonly',
+  navigator: 'readonly',
+  URL: 'readonly',
+  Blob: 'readonly',
   globalThis: 'readonly',
 };
 

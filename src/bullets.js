@@ -258,7 +258,7 @@ export class Bullets {
         } else b.alive = false;
         return;
       case 'player':
-        game.player.hurt(b.damage, b.dx, b.dz);
+        game.player.hurt(b.damage, b.dx, b.dz, false, b.source && b.source.cfg ? `${b.source.cfg.label} 的子彈` : '子彈');
         b.alive = false;
         return;
       case 'bullet': {

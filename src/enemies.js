@@ -534,7 +534,7 @@ class Enemy {
           want = null;
           if (!this.struck && distP < 1.55 + this.radius) {
             this.struck = true;
-            if (p.hurt(30, dxp / distP, dzp / distP)) g.shake(0.4);
+            if (p.hurt(30, dxp / distP, dzp / distP, false, `${this.cfg.label} 近身`)) g.shake(0.4);
             else if (p.spinning) g.score.style('DODGE', 40, true);
           }
           if (this.timer <= 0) {

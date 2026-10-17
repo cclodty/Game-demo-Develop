@@ -1014,3 +1014,230 @@ body.playing * {
     opacity: 0.4;
   }
 }
+
+/* ------------------------------------------------------- playtest notes */
+
+#tuned {
+  position: absolute;
+  right: 16px;
+  bottom: 32px;
+  padding: 2px 7px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--gold);
+  border: 1px solid rgba(255, 200, 97, 0.45);
+}
+
+#debug {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  width: min(430px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  padding: 10px 12px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: rgba(8, 6, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 2px solid var(--cyan);
+  cursor: default;
+}
+
+body.playing #debug {
+  pointer-events: none;
+}
+
+#debug .dbg-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: 3px;
+  color: var(--cyan);
+}
+
+#debug .dbg-head span {
+  font-family: var(--body);
+  font-size: 11px;
+  letter-spacing: 0;
+  color: var(--dim);
+}
+
+#debug pre {
+  margin: 6px 0 8px;
+  font: 12px/1.55 ui-monospace, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  color: var(--ink);
+}
+
+#debug .dbg-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0 4px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--gold);
+}
+
+#debug .dbg-title button,
+.link {
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--dim);
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+}
+
+#debug .dbg-title button:hover,
+.link:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+#debug .dbg-row {
+  display: grid;
+  grid-template-columns: 1fr 88px 72px;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 0;
+}
+
+#debug .dbg-row small {
+  display: block;
+  font-size: 10px;
+  color: var(--dim);
+}
+
+#debug .dbg-row input {
+  width: 100%;
+  padding: 3px 6px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+#debug .dbg-row.changed input {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+#debug .dbg-row em {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--gold);
+}
+
+#debug ol,
+#note-events {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#debug ol li,
+#note-events li {
+  display: flex;
+  gap: 8px;
+}
+
+#debug ol li span,
+#note-events li span {
+  flex: none;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  color: var(--dim);
+}
+
+#note-box {
+  margin-top: 16px;
+  padding: 12px 14px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 3px solid var(--cyan);
+  cursor: default;
+}
+
+#note-context {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--cyan);
+}
+
+#note-events {
+  max-height: 150px;
+  margin: 8px 0;
+  overflow-y: auto;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+#note-box textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  resize: vertical;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.note-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.note-actions button {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+}
+
+.note-actions button:hover {
+  background: rgba(46, 232, 255, 0.14);
+}
+
+.note-actions kbd {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--gold);
+}
+
+.notes-msg,
+.notes-foot {
+  min-height: 1.2em;
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+
+.notes-msg {
+  color: var(--cyan);
+}
+
+.menu small.notes-count {
+  margin-left: auto;
+  font-weight: 400;
+  color: var(--dim);
+}

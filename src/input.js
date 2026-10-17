@@ -2,6 +2,9 @@
 
 const BLOCKED = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'Tab', 'Digit1', 'Digit2', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
+/** Keys typed into a text field (the playtest note box) are not game input. */
+const editable = (t) => !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.isContentEditable);
+
 export class Input {
   constructor() {
     this.keys = new Set();
@@ -17,6 +20,7 @@ export class Input {
     };
 
     addEventListener('keydown', (e) => {
+      if (editable(e.target)) return;
       if (BLOCKED.has(e.code)) e.preventDefault();
       if (!e.repeat) this.pressed.add(e.code);
       this.keys.add(e.code);

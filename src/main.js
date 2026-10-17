@@ -10,6 +10,7 @@ import { Input } from './input.js';
 import { Level } from './level.js';
 import { MAPS } from './maps.js';
 import { loadedCharacters, loadModels } from './models.js';
+import { Notes } from './notes.js';
 import { Pickups } from './pickups.js';
 import { Player } from './player.js';
 import { PostFX } from './postfx.js';
@@ -23,6 +24,7 @@ const VIEW_KEY = 'bullet-ballet.view';
 const DEFAULT_VIEW = VIEWS.findIndex((v) => v.id === 'iso');
 
 const $ = (id) => document.getElementById(id);
+const isTyping = (t) => !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.isContentEditable);
 
 class Game {
   constructor() {
@@ -34,6 +36,7 @@ class Game {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     $('game').appendChild(this.renderer.domElement);
+    this.renderer.info.autoReset = false; // reset once per frame in render(), so the stats panel sees the whole frame
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(CAMERA.fov, innerWidth / innerHeight, 0.5, 400);
@@ -104,6 +107,7 @@ class Game {
     this.lastCloseCall = 0;
     this.time = 0;
     this.last = performance.now();
+    this.notes = new Notes(this);
 
     addEventListener('resize', () => this.resize());
     this.warmCharacters();
@@ -157,6 +161,8 @@ class Game {
       resume: () => this.setPaused(false),
       restart: () => start(),
       title: () => this.toTitle(),
+      note: () => this.notes.openNote(),
+      export: () => this.notes.download(),
     };
     for (const b of document.querySelectorAll('.menu button')) {
       b.addEventListener('click', (e) => {
@@ -165,9 +171,16 @@ class Game {
       });
     }
     addEventListener('keydown', (e) => {
+      if (isTyping(e.target)) return; // the note box handles its own keys
       if (e.code === 'Escape' || e.code === 'KeyP') {
-        if (this.state === 'playing') this.setPaused(true);
+        if (this.notes.noteOpen) this.notes.cancelNote();
+        else if (this.state === 'playing') this.setPaused(true);
         else if (this.state === 'paused') this.setPaused(false);
+      } else if (e.code === 'Backquote') {
+        this.notes.togglePanel();
+      } else if (e.code === 'KeyN' && (this.state === 'playing' || this.state === 'paused')) {
+        e.preventDefault(); // or the N lands in the note box it just focused
+        this.notes.openNote();
       } else if (e.code === 'KeyR' && this.state === 'paused') {
         start();
       } else if (e.code === 'KeyT') {
@@ -207,6 +220,7 @@ class Game {
     this.score.reset();
     this.waves.reset();
     this.hud.reset();
+    this.notes.reset(MAPS[mapIndex]);
     this.state = 'playing';
     $('title').classList.add('hidden');
     $('gameover').classList.add('hidden');
@@ -222,6 +236,7 @@ class Game {
   toTitle() {
     this.resetWorld(this.level.map);
     this.state = 'title';
+    this.notes.hideNote();
     $('pause').classList.add('hidden');
     $('gameover').classList.add('hidden');
     $('title').classList.remove('hidden');
@@ -310,6 +325,7 @@ class Game {
       this.pickups.clear();
       this.fx.clear();
       this.level.load(this.stageMap);
+      this.notes.log(`轉場 → ${this.stageMap.name}`);
       this.applyMapView();
       this.player.placeAtStart();
       this.updateCamera(1, true);
@@ -393,6 +409,7 @@ class Game {
   setFocus(on) {
     if (this.focusActive === on) return;
     this.focusActive = on;
+    this.notes.log(`慢鏡${on ? '開' : '關'}（焦點 ${Math.round(this.focusMeter * 100)}%）`);
     if (on) {
       this.audio.focusIn();
       this.startRipple(this.player.x, this.player.z);
@@ -435,6 +452,7 @@ class Game {
     if (last) tags.push({ label: 'LAST ONE', pts: 100 });
 
     this.score.kill(tags);
+    this.notes.log(`擊殺 ${e.cfg.label}：${tags.map((t) => t.label).join(' + ')} ×${this.score.mult}`);
     this.addFocus(refill);
     this.hud.hitMarker(true);
     this.audio.kill(this.panFor(e.x));
@@ -450,6 +468,7 @@ class Game {
   onCloseCall(spin) {
     if (this.time - this.lastCloseCall < 0.25) return;
     this.lastCloseCall = this.time;
+    this.notes.log(spin ? '旋轉中子彈穿身（DODGE）' : '子彈擦身（CLOSE CALL）');
     if (spin) {
       this.score.style('DODGE', 40);
       this.addFocus(0.06);
@@ -459,7 +478,8 @@ class Game {
     }
   }
 
-  onPlayerHurt(dmg) {
+  onPlayerHurt(dmg, source = '子彈') {
+    this.notes.log(`被${source}打中 −${dmg}（HP ${Math.max(0, Math.ceil(this.player.hp))}）`);
     this.score.breakCombo();
     this.hurtFx = Math.min(1, this.hurtFx + 0.45 + dmg / 60);
     this.shake(0.35);
@@ -468,6 +488,7 @@ class Game {
 
   onPlayerDeath() {
     this.state = 'dying';
+    this.notes.log('倒下');
     this.deathT = 0;
     this.focusActive = false;
     this.audio.death();
@@ -478,6 +499,7 @@ class Game {
   onWaveClear(n, stageEnd = false) {
     if (!this.player.alive) return;
     const bonus = 250 * n;
+    this.notes.log(`第 ${n} 波清空${stageEnd ? '，準備轉場' : ''}`);
     this.score.bonus('WAVE CLEAR', bonus);
     this.addFocus(0.35);
     this.player.hp = PLAYER.hp;
@@ -541,7 +563,8 @@ class Game {
 
   frame(now) {
     requestAnimationFrame((t) => this.frame(t));
-    const realDt = Math.min(0.05, Math.max(0, (now - this.last) / 1000));
+    const rawDt = Math.max(0, (now - this.last) / 1000);
+    const realDt = Math.min(0.05, rawDt);
     this.last = now;
     this.time += realDt;
     if (this.state !== 'paused') {
@@ -550,6 +573,7 @@ class Game {
       else this.updateIdle(realDt);
     }
     this.input.endFrame();
+    this.notes.update(realDt, rawDt);
     this.render();
   }
 
@@ -715,6 +739,7 @@ class Game {
   }
 
   render() {
+    this.renderer.info.reset();
     const u = this.post.u;
     let focus = this.focusAmt;
     if (this.killcamT > 0) focus = Math.max(focus, 0.85);

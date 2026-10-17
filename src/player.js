@@ -105,6 +105,7 @@ export class Player {
 
   giveWeapon(kind, ammo, replace = false) {
     const w = PLAYER_WEAPONS[kind];
+    this.game.notes.log(`拿起 ${w.name}${replace ? '（交換）' : ''}`);
     if (this.special && this.special.id === kind && !replace) {
       this.special.ammo = Math.min(this.special.ammo + ammo, w.ammo * 2);
     } else {
@@ -189,6 +190,7 @@ export class Player {
 
     if (input.hit('Space') && this.spinCd <= 0 && this.spinT <= 0) {
       this.spinT = PLAYER.spinDuration;
+      g.notes.log('旋轉閃避');
       if (il > 0) {
         this.spinDirX = ix;
         this.spinDirZ = iz;
@@ -452,7 +454,7 @@ export class Player {
     }
   }
 
-  hurt(dmg, dx = 0, dz = 0, explosion = false) {
+  hurt(dmg, dx = 0, dz = 0, explosion = false, source = '') {
     if (!this.alive || this.invuln > 0) return false;
     if (this.spinning && !explosion) return false;
     const g = this.game;
@@ -463,7 +465,7 @@ export class Player {
     this.vx += dx * 4;
     this.vz += dz * 4;
     g.fx.blood(this.x, 1.2, this.z, dx, dz, 10);
-    g.onPlayerHurt(dmg);
+    g.onPlayerHurt(dmg, source || (explosion ? '爆炸' : '子彈'));
     if (this.hp <= 0) this.die(dx, dz);
     return true;
   }
