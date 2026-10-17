@@ -130,10 +130,13 @@ export class HUD {
     });
     this.set('comboT', Math.round((sc.comboT / COMBO_WINDOW) * 60) / 60, (v) => (e.comboFill.style.transform = `scaleX(${Math.max(0, v)})`));
 
-    this.set('wave', g.waves.wave, (v) => (e.wave.textContent = v > 0 ? `WAVE ${v}` : ''));
+    const last = g.waves.rules.waves; // arcade runs show how far there is to go
+    const waveLabel = g.waves.wave > 0 ? `WAVE ${g.waves.wave}${Number.isFinite(last) ? ` / ${last}` : ''}` : '';
+    this.set('wave', waveLabel, (v) => (e.wave.textContent = v));
     const wv = g.waves;
     const where = g.level.map.name;
-    const sub = wv.state === 'active' ? `剩餘敵人 ${wv.remaining} · ${where}` : wv.wave > 0 ? `下一波準備中… · ${where}` : `準備… · ${where}`;
+    const sub =
+      wv.state === 'active' ? `剩餘敵人 ${wv.remaining} · ${where}` : wv.state === 'done' ? `全部 ${wv.wave} 波清空 · ${where}` : wv.wave > 0 ? `下一波準備中… · ${where}` : `準備… · ${where}`;
     this.set('waveSub', sub, (v) => (e.waveSub.textContent = v));
 
     const m = g.input.mouse;

@@ -58,7 +58,7 @@ src/input.js  replay.js      live keyboard/mouse → one StepInput per logic ste
 src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, VIEWS
 src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS and the AI state machine
 src/weapons.js bullets.js    player weapon stats, drops, grenades; projectile stepping and ricochet
-src/waves.js  pickups.js     wave composition and spawn pacing; floor weapons and pads
+src/waves.js  pickups.js     MODES (arcade: 12 waves, then RUN CLEAR; endless), wave composition and spawn pacing; floor weapons and pads
 src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 4 maps as data
 src/nav.js                   grid A* on 0.5 m cells
 src/rng.js                   seeded RNG: game.rng for logic (?seed=), vfxRng behind utils.js rand/pick for effects
