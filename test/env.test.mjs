@@ -84,7 +84,7 @@ test('a crate takes six bullets, breaks apart, opens its nav cells, and comes ba
 });
 
 test('pigeons bursting up in front of an aiming enemy break his aim for 0.5 s; a kill then is a PIGEON STRIKE', { timeout: 120000 }, async () => {
-  const { page, logs } = await h.open();
+  const { page, logs } = await h.open('?seed=41');
   try {
     await begin(page, 3); // the Senado square
     const r = await page.evaluate(() => {
@@ -97,7 +97,10 @@ test('pigeons bursting up in front of an aiming enemy break his aim for 0.5 s; a
       const near = g.enemies.spawn('grunt', { x: f.x + 1.5, z: f.z, ex: f.x + 1.5, ez: f.z, stay: true });
       const far = g.enemies.spawn('grunt', { x: f.x + 1, z: f.z + 4, ex: f.x + 1, ez: f.z + 4, stay: true });
       window.play(30);
+      // start from a resting flock and two enemies who were never startled (walking in may already have)
+      f.reset();
       for (const e of [near, far]) {
+        e.blindT = 0;
         e.state = 'move';
         e.startAim();
       }
@@ -141,7 +144,7 @@ test('pigeons bursting up in front of an aiming enemy break his aim for 0.5 s; a
 });
 
 test('a flock bursting up makes a picture', { timeout: 120000 }, async () => {
-  const { page, logs } = await h.open();
+  const { page, logs } = await h.open('?seed=42');
   try {
     await begin(page, 3);
     await page.evaluate(() => {
@@ -153,6 +156,8 @@ test('a flock bursting up makes a picture', { timeout: 120000 }, async () => {
       // 1.7 m away: inside the 2 m reach, outside the 1.5 m at which walking up startles the flock
       const e = g.enemies.spawn('grunt', { x: f.x + 1.5, z: f.z - 0.8, ex: f.x + 1.5, ez: f.z - 0.8, stay: true });
       window.play(60);
+      f.reset(); // a resting flock and an enemy who was never startled, as in the test above
+      e.blindT = 0;
       e.state = 'move';
       e.startAim();
       window.shoot(f.x - 2, f.z + 0.4, 1, 0);
