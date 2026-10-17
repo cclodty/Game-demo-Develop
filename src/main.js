@@ -607,6 +607,7 @@ class Game {
   onPlayerHurt(dmg, source = '子彈') {
     this.notes.log(`被${source}打中 −${dmg}（HP ${Math.max(0, Math.ceil(this.player.hp))}）`);
     this.score.breakCombo();
+    this.score.rank.hit();
     this.waves.hurt = true;
     this.hurtFx = Math.min(1, this.hurtFx + 0.45 + dmg / 60);
     this.shake(0.35);
@@ -812,7 +813,7 @@ class Game {
     this.thrown.update(dt);
     this.pickups.update(dt, h, cmd);
     this.waves.update(dt, h);
-    this.score.update(dt);
+    this.score.update(dt, h);
     if (this.clearT > 0) {
       this.clearT -= h;
       if (this.clearT <= 0) this.gameOver(true);

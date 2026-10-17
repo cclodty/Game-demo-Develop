@@ -57,6 +57,28 @@ export const BULLET = {
 export const COMBO_WINDOW = 3.2;
 
 /**
+ * The live Style rank in the top-right corner, D to SSS: a gauge where each
+ * whole step is one rank. A kill with a style tag (SLOW-MO, KICK, RICOCHET…)
+ * pushes it by `move` (plus `extra` per further tag), a plain kill by
+ * `kill`, a style bonus (DODGE, CLOSE CALL…) by its points × `perPoint`. The
+ * same move again right after itself gains `repeat` times what it gained the
+ * time before; a different move gains in full again. A hit drops `hit`
+ * ranks; after `idle` seconds without a gain the gauge drains `drain` ranks a
+ * second. Times are real seconds. The rank only shows: it changes no score.
+ */
+export const RANK = {
+  names: ['D', 'C', 'B', 'A', 'S', 'SS', 'SSS'],
+  kill: 0.3,
+  move: 0.75,
+  extra: 0.25,
+  perPoint: 0.005,
+  repeat: 0.5,
+  hit: 1,
+  idle: 5,
+  drain: 0.5,
+};
+
+/**
  * The grade at the end of an arcade run (S, A, B, C, D). Three parts add up
  * to 100 points: the run's Style score against a par, the waves cleared
  * without a hit, and how fast a cleared run was. A run that falls gets no
