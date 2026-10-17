@@ -104,8 +104,13 @@ Conventions that matter:
 ## Working rules
 
 1. **One task, one PR, one day.** A task comes from `docs/TASKS.md` with
-   acceptance criteria. Do that, not the thing next to it. Found something
-   else worth doing? Add it to TASKS.md and say so; don't build it.
+   acceptance criteria and a "這次不做" list. Do that, not the thing next to
+   it. Found something else worth doing? Add it to TASKS.md and say so; don't
+   build it. When the developer asks for something that has no card (a
+   playtest idea, say), write the card first, in two minutes, agree the
+   acceptance criteria in the reply, then build. A card that does not fit a
+   day is two cards. The PR body follows `.github/pull_request_template.md`
+   and ticks the card's criteria one by one.
 2. **Check the pillars** (ROADMAP.md): style over body count; bullet time is a
    tool, not a crutch; real Macau is the selling point; a run is ten minutes
    and always leaves something behind. A feature that fits none is a no.
