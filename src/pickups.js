@@ -78,7 +78,7 @@ export class Pickups {
       if (pad.pickup) continue;
       const fresh = PAD_POOL.filter((k) => !used.has(k));
       const pool = fresh.length ? fresh : PAD_POOL;
-      const kind = pool[Math.floor(Math.random() * pool.length)];
+      const kind = this.game.rng.pick(pool);
       used.add(kind);
       this.spawn(kind, pad.x, pad.z, { pad });
       this.game.fx.ring(pad.x, pad.z, 1.6, 0.5, 0xffc861, 3);

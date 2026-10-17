@@ -2,7 +2,7 @@
 // Particles tick with world time, so in bullet time sparks hang in the air.
 
 import * as THREE from 'three';
-import { rand, TAU } from './utils.js';
+import { rand, randInt, TAU } from './utils.js';
 import { GUN_Y } from './config.js';
 
 const _m = new THREE.Matrix4();
@@ -33,7 +33,7 @@ class ParticlePool {
   spawn(o) {
     let p;
     if (this.n < this.max) p = this.items[this.n++];
-    else p = this.items[(Math.random() * this.max) | 0];
+    else p = this.items[randInt(0, this.max - 1)];
     p.x = o.x;
     p.y = o.y;
     p.z = o.z;
@@ -404,7 +404,7 @@ export class FX {
     const base = Math.atan2(dx, dz);
     const fx = this;
     const land = (p) => {
-      if (Math.random() < 0.35) fx.decal(p.x, p.z, rand(0.15, 0.4), 0.22, 0.01, 0.02);
+      if (rand(0, 1) < 0.35) fx.decal(p.x, p.z, rand(0.15, 0.4), 0.22, 0.01, 0.02);
     };
     for (let i = 0; i < count; i++) {
       const a = base + rand(-0.6, 0.6);
@@ -506,7 +506,7 @@ export class FX {
     for (let i = 0; i < 46; i++) {
       const a = rand(0, TAU);
       const s = rand(2, 13);
-      const hot = Math.random();
+      const hot = rand(0, 1);
       this.glow.spawn({
         x,
         y: rand(0.3, 1.4),

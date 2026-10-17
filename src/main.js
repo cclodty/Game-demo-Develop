@@ -15,6 +15,7 @@ import { Pickups } from './pickups.js';
 import { Player } from './player.js';
 import { PostFX } from './postfx.js';
 import { readQuality } from './quality.js';
+import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
 import { Score } from './score.js';
 import { Thrown } from './thrown.js';
 import { clamp, damp, lerp } from './utils.js';
@@ -54,6 +55,12 @@ class Game {
     }
     this.camPitch = 1;
     this.camYaw = 0;
+
+    // Game logic draws from rng, reseeded every run (with ?seed=123 the same input
+    // plays the same run); effects draw from vfxRng and never touch the game (see rng.js).
+    this.fixedSeed = readSeed();
+    this.rng = new Rng(this.fixedSeed ?? randomSeed());
+    this.vfxRng = vfxRng;
 
     this.input = new Input();
     this.audio = new AudioSys();
@@ -222,6 +229,7 @@ class Game {
     } catch {
       /* storage unavailable */
     }
+    this.rng.reset(this.fixedSeed ?? randomSeed());
     this.resetWorld(MAPS[mapIndex]);
     this.score.reset();
     this.waves.reset();
@@ -273,6 +281,8 @@ class Game {
       this.level.resetProps();
     }
     this.player.reset();
+    // the camera looks ahead toward the aim: start every run aiming the same way, not where the last one ended
+    this.aimPoint.set(this.player.x, GUN_Y, this.player.z - 5);
     this.focusActive = false;
     this.focusAmt = 0;
     this.focusMeter = 1;
@@ -285,6 +295,10 @@ class Game {
     this.deathT = 0;
     this.worldTime = 0;
     this.lastKillAt = -9;
+    // the run's own clocks: camera shake moves the aim, so it has to replay the same way
+    this.time = 0;
+    this.trauma = 0;
+    this.lastCloseCall = -9;
     this.audio.setSlow(0);
   }
 

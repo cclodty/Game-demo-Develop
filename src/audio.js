@@ -68,7 +68,7 @@ export class AudioSys {
     const len = ctx.sampleRate * 2;
     this.noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
     const data = this.noiseBuf.getChannelData(0);
-    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    for (let i = 0; i < len; i++) data[i] = rand(-1, 1);
 
     this.step = 0;
     this.nextStep = ctx.currentTime + 0.1;
@@ -140,7 +140,7 @@ export class AudioSys {
     src.connect(f);
     f.connect(g);
     g.connect(this.out(bus, pan));
-    src.start(t, Math.random() * 1.5);
+    src.start(t, rand(0, 1.5));
     src.stop(t + dur + 0.05);
   }
 

@@ -30,7 +30,14 @@ const browser = {
   navigator: 'readonly',
   URL: 'readonly',
   Blob: 'readonly',
+  crypto: 'readonly',
   globalThis: 'readonly',
+};
+
+// The game must replay from a seed: logic draws from game.rng, effects from
+// rand / randInt / pick in utils.js (the effects RNG). See src/rng.js.
+const seededOnly = {
+  'no-restricted-properties': ['error', { object: 'Math', property: 'random', message: 'Use game.rng for game logic, or rand / randInt / pick from utils.js for effects (src/rng.js).' }],
 };
 
 const node = {
@@ -48,7 +55,7 @@ export default [
   {
     files: ['src/**/*.js'],
     languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: browser },
-    rules,
+    rules: { ...rules, ...seededOnly },
   },
   {
     files: ['scripts/**/*.mjs', 'test/**/*.mjs', 'eslint.config.mjs'],

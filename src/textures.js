@@ -1,7 +1,7 @@
 // Procedural canvas textures, so the game ships without image assets.
 
 import * as THREE from 'three';
-import { rand } from './utils.js';
+import { pick, rand } from './utils.js';
 
 function canvas(w, h) {
   const c = document.createElement('canvas');
@@ -27,7 +27,7 @@ export function floorTexture() {
   g.fillRect(0, 0, 512, 512);
   const img = g.getImageData(0, 0, 512, 512);
   for (let i = 0; i < img.data.length; i += 4) {
-    const n = (Math.random() - 0.5) * 18;
+    const n = rand(-9, 9);
     img.data[i] += n;
     img.data[i + 1] += n;
     img.data[i + 2] += n;
@@ -116,8 +116,8 @@ export function windowTexture(lit = 0.35) {
   const palette = ['#ffd79a', '#ffc46b', '#9ae7ff', '#ff8ad8', '#c9b8ff'];
   for (let y = 4; y < 512; y += 12) {
     for (let x = 4; x < 128; x += 10) {
-      if (Math.random() < lit) {
-        g.fillStyle = palette[(Math.random() * palette.length) | 0];
+      if (rand(0, 1) < lit) {
+        g.fillStyle = pick(palette);
         g.globalAlpha = rand(0.35, 1);
         g.fillRect(x, y, 6, 7);
       }
@@ -203,7 +203,7 @@ export function asphaltTexture() {
   g.fillRect(0, 0, 512, 512);
   const img = g.getImageData(0, 0, 512, 512);
   for (let i = 0; i < img.data.length; i += 4) {
-    const n = (Math.random() - 0.5) * 30;
+    const n = rand(-15, 15);
     img.data[i] += n;
     img.data[i + 1] += n;
     img.data[i + 2] += n;
