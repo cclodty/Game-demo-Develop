@@ -196,8 +196,8 @@ export class Player {
     if (il > 0) {
       ix /= il;
       iz /= il;
-      // W always means "up the screen", whichever way the camera faces
-      const yaw = g.camYaw;
+      // W always means "up the screen", whichever way the camera faces (the step's input carries its yaw)
+      const yaw = input.yaw;
       if (yaw) {
         const c = Math.cos(yaw);
         const s = Math.sin(yaw);
@@ -273,7 +273,7 @@ export class Player {
     this.collide();
 
     // --- aim
-    const aim = g.aimPoint;
+    const aim = input.aim;
     const aimDist = Math.hypot(aim.x - this.x, aim.z - this.z);
     if (aimDist > 0.35) this.facing = angleTo(this.x, this.z, aim.x, aim.z);
 
@@ -370,7 +370,7 @@ export class Player {
   fire() {
     const g = this.game;
     const w = this.weapon;
-    const aim = g.aimPoint;
+    const aim = g.cmd.aim;
     const shots = [];
     if (w.dual) {
       const target = this.splitTarget && this.splitTarget.alive ? this.splitTarget : null;
@@ -637,7 +637,7 @@ export class Player {
   updateLasers() {
     const g = this.game;
     const w = this.weapon;
-    const aim = g.aimPoint;
+    const aim = g.cmd.aim;
     let m;
     if (this.rig.hold === 'dual') {
       m = this.muzzle(-1, this.facing + this.rig.armR.rotation.y);

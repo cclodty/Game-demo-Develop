@@ -137,12 +137,8 @@ test('E swaps the held weapon for the one on the floor, deterministically', asyn
     p.giveWeapon('shotgun', 10);
     g.pickups.spawn('sniper', p.x, p.z, { ammo: 7 });
     window.step(1, { god: true });
-    const clear0 = g.input.pressed.clear.bind(g.input.pressed);
-    g.input.pressed.clear = () => {};
-    g.input.pressed.add('KeyE');
+    g.input.pressed.add('KeyE'); // one press: the frame's first logic step takes it, the second must not swap back
     g.updatePlay(1 / 60);
-    g.input.pressed.clear = clear0;
-    g.input.pressed.clear();
     const out = { special: p.special && p.special.id, ammo: p.special && p.special.ammo, floor: g.pickups.list.map((q) => `${q.kind}:${q.ammo}`) };
     g.pickups.clear();
     p.special = null;

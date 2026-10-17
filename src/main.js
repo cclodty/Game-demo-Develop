@@ -2,11 +2,11 @@ import * as THREE from 'three';
 import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
 import { buildCharacter, disposeRig } from './characters.js';
-import { CAMERA, FOCUS, GUN_Y, PLAYER, VIEWS } from './config.js';
+import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PLAYER, VIEWS } from './config.js';
 import { Enemies } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
-import { Input } from './input.js';
+import { Input, StepInput } from './input.js';
 import { Level } from './level.js';
 import { MAPS } from './maps.js';
 import { loadedCharacters, loadModels } from './models.js';
@@ -15,6 +15,7 @@ import { Pickups } from './pickups.js';
 import { Player } from './player.js';
 import { PostFX } from './postfx.js';
 import { readQuality } from './quality.js';
+import { InputRecord } from './replay.js';
 import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
 import { Score } from './score.js';
 import { Thrown } from './thrown.js';
@@ -25,6 +26,7 @@ import { Grenades } from './weapons.js';
 const MAP_KEY = 'bullet-ballet.map';
 const VIEW_KEY = 'bullet-ballet.view';
 const DEFAULT_VIEW = VIEWS.findIndex((v) => v.id === 'iso');
+const STEP = 1 / LOGIC_HZ;
 
 const $ = (id) => document.getElementById(id);
 const TOGGLES = new Set(['checkbox', 'radio', 'range', 'button']);
@@ -62,7 +64,19 @@ class Game {
     this.rng = new Rng(this.fixedSeed ?? randomSeed());
     this.vfxRng = vfxRng;
 
+    // The logic advances in fixed steps of 1/LOGIC_HZ s. Each step reads one
+    // StepInput (cmd), latched from the keyboard and mouse, or handed in by
+    // feed when set (tests; later, replays), and appends it to the run's record.
     this.input = new Input();
+    this.cmd = new StepInput();
+    this.feed = null;
+    this.record = new InputRecord();
+    this.acc = 0;
+    this.stepCount = 0;
+    this.frameSteps = 0;
+    this.aimFresh = true; // updateAim() resampled the cursor since a step last took it
+    this.aimStep = -2;
+    this.aimEvery = 1;
     this.audio = new AudioSys();
     this.fx = new FX(this);
     this.maps = MAPS;
@@ -117,8 +131,8 @@ class Game {
     this.overAt = 0;
     this.worldTime = 0;
     this.lastKillAt = -9;
-    this.lastCloseCall = 0;
-    this.time = 0;
+    this.lastCloseCall = -LOGIC_HZ; // a logic step number
+    this.time = 0; // real time for what is only shown (camera shake, title sway, pulses)
     this.last = performance.now();
     this.notes = new Notes(this);
 
@@ -230,6 +244,7 @@ class Game {
       /* storage unavailable */
     }
     this.rng.reset(this.fixedSeed ?? randomSeed());
+    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, hz: LOGIC_HZ });
     this.resetWorld(MAPS[mapIndex]);
     this.score.reset();
     this.waves.reset();
@@ -295,10 +310,16 @@ class Game {
     this.deathT = 0;
     this.worldTime = 0;
     this.lastKillAt = -9;
-    // the run's own clocks: camera shake moves the aim, so it has to replay the same way
+    this.cmd = new StepInput();
+    this.acc = 0;
+    this.stepCount = 0;
+    this.aimFresh = true;
+    this.aimStep = -2;
+    this.lastCloseCall = -LOGIC_HZ;
+    this.input.dropEdges();
+    // camera shake moves what the cursor points at: same seed, same mouse, same run
     this.time = 0;
     this.trauma = 0;
-    this.lastCloseCall = -9;
     this.audio.setSlow(0);
   }
 
@@ -494,8 +515,8 @@ class Game {
   }
 
   onCloseCall(spin) {
-    if (this.time - this.lastCloseCall < 0.25) return;
-    this.lastCloseCall = this.time;
+    if (this.stepCount - this.lastCloseCall < LOGIC_HZ / 4) return;
+    this.lastCloseCall = this.stepCount;
     this.notes.log(spin ? '旋轉中子彈穿身（DODGE）' : '子彈擦身（CLOSE CALL）');
     if (spin) {
       this.score.style('DODGE', 40);
@@ -600,7 +621,8 @@ class Game {
       if (this.state === 'playing' || this.state === 'dying') this.updatePlay(realDt);
       else this.updateIdle(realDt);
     }
-    this.input.endFrame();
+    // in a run the logic steps take the presses (a fast frame may hold one over to the next step)
+    if (this.state !== 'playing' && this.state !== 'dying') this.input.dropEdges();
     this.notes.update(realDt, rawDt);
     this.render();
   }
@@ -610,63 +632,103 @@ class Game {
     this.ndc.set((m.x / innerWidth) * 2 - 1, -(m.y / innerHeight) * 2 + 1);
     this.raycaster.setFromCamera(this.ndc, this.camera);
     this.raycaster.ray.intersectPlane(this.aimPlane, this.aimPoint);
+    this.aimFresh = true;
   }
 
+  /** One displayed frame of a run: as many fixed logic steps as realDt covers, then what is only shown. */
   updatePlay(realDt) {
-    const input = this.input;
-    if (this.state === 'playing' && input.hit('ShiftLeft', 'ShiftRight', 'KeyQ')) this.toggleFocus();
+    this.acc += realDt;
+    this.frameSteps = 0;
+    // A frame of 1/60 s or more takes the cursor on its first step. Faster screens
+    // (0-1 steps a frame) take it every other step: a 60 Hz aim on any screen,
+    // which keeps the input record small.
+    this.aimEvery = this.acc > 2 * STEP - 1e-9 ? 1 : 2;
+    // a hair of slack, so float rounding never turns a 60 Hz frame into one step and the next into three
+    while (this.acc > STEP - 1e-9 && (this.state === 'playing' || this.state === 'dying')) {
+      this.acc -= STEP;
+      this.step();
+      this.frameSteps++;
+    }
+    this.present(realDt);
+  }
+
+  /** One fixed logic step: take this step's input (latched or fed), record it, move the game 1/LOGIC_HZ s. */
+  step() {
+    const p = this.player;
+    // the cursor is resampled once a frame (updateAim); see updatePlay for how often a step takes it
+    let aim = null;
+    if (this.aimFresh && this.stepCount - this.aimStep >= this.aimEvery) {
+      aim = this.aimPoint;
+      this.aimFresh = false;
+      this.aimStep = this.stepCount;
+    }
+    this.cmd = this.feed ? this.feed(this) : this.input.latch(this.cmd, aim, p.x, p.z, this.camYaw);
+    this.record.push(this.cmd);
+    this.stepCount++;
+    this.logic(STEP);
+  }
+
+  /** The game itself for h seconds of real time: bullet time, everyone's moves, waves and score. */
+  logic(h) {
+    const cmd = this.cmd;
+    if (this.state === 'playing' && cmd.hit('ShiftLeft', 'ShiftRight', 'KeyQ')) this.toggleFocus();
     if (this.focusActive) {
-      this.focusMeter -= FOCUS.drain * realDt;
+      this.focusMeter -= FOCUS.drain * h;
       if (this.focusMeter <= 0) {
         this.focusMeter = 0;
         this.setFocus(false);
       }
-      this.heartT -= realDt;
+      this.heartT -= h;
       if (this.heartT <= 0) {
         this.heartT = 0.85;
         this.audio.heartbeat();
       }
     } else {
-      this.focusMeter = Math.min(1, this.focusMeter + FOCUS.regen * realDt);
+      this.focusMeter = Math.min(1, this.focusMeter + FOCUS.regen * h);
     }
 
-    this.focusAmt = damp(this.focusAmt, this.focusActive ? 1 : 0, 9, realDt);
+    this.focusAmt = damp(this.focusAmt, this.focusActive ? 1 : 0, 9, h);
     let ts = lerp(1, FOCUS.worldScale, this.focusAmt);
     let ps = lerp(1, FOCUS.playerScale, this.focusAmt);
     if (this.killcamT > 0) {
-      this.killcamT -= realDt;
+      this.killcamT -= h;
       const k = this.killcamT > 0.35 ? 0.07 : lerp(1, 0.07, this.killcamT / 0.35);
       ts = Math.min(ts, k);
       ps = Math.min(ps, k);
     }
     if (this.state === 'dying') {
-      this.deathT += realDt;
+      this.deathT += h;
       ts = ps = 0.14;
       if (this.deathT > 2.3) this.gameOver();
     }
     this.audio.setSlow(clamp((1 - ts) / (1 - FOCUS.worldScale), 0, 1));
     if (this.hitstopT > 0) {
-      this.hitstopT -= realDt;
+      this.hitstopT -= h;
       ts *= 0.1;
       ps *= 0.1;
     }
     this.timeScale = ts;
     this.playerVelScale = ts > 0 ? ps / ts : 1;
-    const dt = realDt * ts;
-    const pdt = realDt * ps;
+    const dt = h * ts;
+    const pdt = h * ps;
     this.worldTime += dt;
 
-    if (this.transition) this.updateTransition(realDt);
-    this.player.update(pdt, input);
+    if (this.transition) this.updateTransition(h);
+    this.player.update(pdt, cmd);
     this.enemies.update(dt);
     this.level.updateProps(dt);
     this.bullets.update(dt);
     this.grenades.update(dt);
     this.thrown.update(dt);
-    this.pickups.update(dt, realDt, input);
-    this.fx.update(dt);
-    this.waves.update(dt, realDt);
+    this.pickups.update(dt, h, cmd);
+    this.waves.update(dt, h);
     this.score.update(dt);
+  }
+
+  /** What a frame shows but the logic never reads: effects, ambient life, screen flashes, camera, HUD. */
+  present(realDt) {
+    const dt = realDt * this.timeScale;
+    this.fx.update(dt);
     this.level.updateAmbient(realDt, dt, this.camTarget.x, this.camTarget.z);
 
     this.hurtFx = Math.max(0, this.hurtFx - realDt * 1.8);
