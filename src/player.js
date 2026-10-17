@@ -38,6 +38,7 @@ export class Player {
     this.alive = true;
     this.spinT = 0;
     this.spinCd = 0;
+    this.spinReload = false;
     this.spinDirX = 0;
     this.spinDirZ = -1;
     this.fireCd = 0;
@@ -97,6 +98,7 @@ export class Player {
     if (slot === this.slot && this.rig.model === this.weapon.model) return;
     this.slot = slot;
     this.reloadT = 0;
+    this.spinReload = false;
     this.fireCd = Math.max(this.fireCd, 0.12);
     if (!this.weapon.dual) this.splitTarget = null;
     attachWeapon(this.rig, this.weapon.model);
@@ -198,6 +200,12 @@ export class Player {
     if (input.hit('Space') && this.spinCd <= 0 && this.spinT <= 0) {
       this.spinT = PLAYER.spinDuration;
       g.notes.log('旋轉閃避');
+      // a spin finishes a reload: what is left of it (or a fresh one for an empty magazine) ends with the spin
+      if (this.slot === 'pistols' && (this.reloadT > 0 || this.ammo <= 0)) {
+        if (this.reloadT <= 0) g.audio.reload();
+        this.reloadT = Math.min(this.reloadT > 0 ? this.reloadT : PLAYER_WEAPONS.pistols.reload, PLAYER.spinDuration);
+        this.spinReload = true;
+      }
       if (il > 0) {
         this.spinDirX = ix;
         this.spinDirZ = iz;
@@ -253,6 +261,11 @@ export class Player {
       if (this.reloadT <= 0) {
         this.ammo = PLAYER_WEAPONS.pistols.mag;
         g.audio.reloadDone();
+        if (this.spinReload) {
+          this.spinReload = false;
+          g.score.style('SPIN RELOAD', 20, false);
+          g.notes.log('旋轉中換彈');
+        }
       }
     } else if (input.hit('KeyR') && this.slot === 'pistols' && this.ammo < PLAYER_WEAPONS.pistols.mag) {
       this.startReload();

@@ -88,6 +88,30 @@ test('holding fire while spinning sprays a ring; aimed fire still goes to the cu
   assert.deepEqual(problems(logs), []);
 });
 
+test('a spin finishes the reload with the spin', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const p = g.player;
+    p.special = null;
+    p.equip('pistols');
+    p.ammo = 0;
+    p.reloadT = 0;
+    p.startReload();
+    const plain = p.reloadT;
+    p.reloadT = 0;
+    p.spinCd = 0;
+    p.spinT = 0;
+    window.step(1, { space: true });
+    const atSpin = { reloadT: p.reloadT, spinT: p.spinT };
+    window.step(34);
+    return { plain, atSpin, ammo: p.ammo, events: g.notes.events.slice(-4).map((e) => e.text) };
+  });
+  assert.ok(r.plain > 1, `a normal reload takes ${r.plain} s`);
+  assert.ok(r.atSpin.reloadT > 0 && r.atSpin.reloadT <= r.atSpin.spinT + 1e-6, `the reload (${r.atSpin.reloadT}) ends with the spin (${r.atSpin.spinT})`);
+  assert.equal(r.ammo, 30);
+  assert.ok(r.events.includes('旋轉中換彈'), r.events.join(' | '));
+});
+
 test('a spin-shot kill is a PIROUETTE and a kill on a kicked enemy is a JUGGLE', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
