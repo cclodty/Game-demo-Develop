@@ -1002,8 +1002,97 @@ body.playing * {
 }
 
 #gameover:not(.cleared) .clear-only,
-#gameover.cleared .over-only {
+#gameover.cleared .over-only,
+#gameover:not(.graded) .go-grade,
+#gameover:not(.graded) .go-hint {
   display: none;
+}
+
+/* the arcade grade: a big letter beside its three parts */
+.go-grade {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  margin-top: 14px;
+}
+
+.grade {
+  font-family: var(--display);
+  font-size: 96px;
+  line-height: 0.9;
+  width: 82px;
+  text-align: center;
+  color: var(--ink);
+}
+
+.grade[data-grade='S'] {
+  color: var(--gold);
+  text-shadow:
+    0 0 28px rgba(255, 200, 97, 0.7),
+    3px 3px 0 rgba(255, 63, 164, 0.5);
+}
+
+.grade[data-grade='A'] {
+  color: var(--cyan);
+  text-shadow: 0 0 22px rgba(46, 232, 255, 0.5);
+}
+
+.grade[data-grade='C'] {
+  color: var(--dim);
+}
+
+.grade[data-grade='D'] {
+  color: var(--red);
+}
+
+.grade-parts {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+}
+
+.grade-parts > div {
+  display: grid;
+  grid-template-columns: 76px 120px 52px;
+  align-items: center;
+  gap: 10px;
+}
+
+.grade-parts span {
+  font-size: 12px;
+  color: var(--dim);
+  letter-spacing: 2px;
+}
+
+.grade-parts i {
+  display: block;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.grade-parts em {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--gold);
+  border-radius: 3px;
+}
+
+.grade-parts b {
+  font-family: var(--display);
+  font-weight: normal;
+  font-size: 20px;
+  text-align: right;
+}
+
+.go-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--gold);
+  letter-spacing: 1px;
 }
 
 @media (max-width: 720px) {

@@ -56,6 +56,27 @@ export const BULLET = {
 
 export const COMBO_WINDOW = 3.2;
 
+/**
+ * The grade at the end of an arcade run (S, A, B, C, D). Three parts add up
+ * to 100 points: the run's Style score against a par, the waves cleared
+ * without a hit, and how fast a cleared run was. A run that falls gets no
+ * time points. The god-mode bot clears 12 waves with about 206,000 points.
+ */
+export const RATING = {
+  style: 50, // points for the Style score, all of them at stylePar or more
+  clean: 30, // points for waves cleared without a hit, all of them when every wave of the run is clean
+  time: 20, // points for a cleared run's time: all at timePar seconds or faster, none at timeSlow
+  stylePar: 250000,
+  timePar: 480,
+  timeSlow: 960,
+  grades: [
+    ['S', 85],
+    ['A', 70],
+    ['B', 55],
+    ['C', 40],
+  ], // the lowest total for each grade; below the last one is D
+};
+
 export const CAMERA = {
   dist: 22.7, // camera distance from the point it looks at
   pitch: 59.25, // degrees above the horizon (maps can override both)

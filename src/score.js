@@ -1,8 +1,27 @@
 // Score, combo multiplier and "style" bonuses.
 
-import { COMBO_WINDOW } from './config.js';
+import { COMBO_WINDOW, RATING } from './config.js';
 
 const KEY = 'bullet-ballet.best';
+
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+/**
+ * The grade for a finished run: { grade, total, parts: { style, clean, time } },
+ * each part in points out of its RATING weight. `waves` is the mode's length,
+ * so a run that falls early cannot score every clean wave.
+ */
+export function rate({ score, cleanWaves, waves, seconds, cleared }) {
+  const R = RATING;
+  const parts = {
+    style: R.style * clamp01(score / R.stylePar),
+    clean: R.clean * clamp01(cleanWaves / waves),
+    time: cleared ? R.time * clamp01((R.timeSlow - seconds) / (R.timeSlow - R.timePar)) : 0,
+  };
+  const total = parts.style + parts.clean + parts.time;
+  const grade = R.grades.find(([, min]) => total >= min)?.[0] ?? 'D';
+  return { grade, total, parts };
+}
 
 export class Score {
   constructor(game) {

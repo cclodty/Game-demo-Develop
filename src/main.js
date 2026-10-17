@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
 import { buildCharacter, disposeRig } from './characters.js';
-import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PLAYER, VIEWS } from './config.js';
+import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PLAYER, RATING, VIEWS } from './config.js';
 import { Enemies } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
@@ -17,7 +17,7 @@ import { PostFX } from './postfx.js';
 import { readQuality } from './quality.js';
 import { InputRecord } from './replay.js';
 import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
-import { Score } from './score.js';
+import { rate, Score } from './score.js';
 import { Style } from './style.js';
 import { Thrown } from './thrown.js';
 import { clamp, damp, lerp } from './utils.js';
@@ -463,9 +463,36 @@ class Game {
     $('go-kills').textContent = String(s.kills);
     $('go-combo').textContent = `x${Math.max(1, s.maxCombo)}`;
     $('go-clean').textContent = `${this.waves.cleanWaves} / ${this.waves.wave}`;
+    const graded = !!this.waves.rules.graded;
+    $('gameover').classList.toggle('graded', graded);
+    if (graded) this.showGrade(cleared);
     $('gameover').classList.remove('hidden');
     document.body.classList.remove('playing');
     this.hud.show(false);
+  }
+
+  /** The arcade grade on the end screen: the letter, its three parts, and a hint at the weakest one. */
+  showGrade(cleared) {
+    const w = this.waves;
+    const r = rate({ score: this.score.score, cleanWaves: w.cleanWaves, waves: w.rules.waves, seconds: this.stepCount / LOGIC_HZ, cleared });
+    const grade = $('go-grade');
+    grade.textContent = r.grade;
+    grade.dataset.grade = r.grade;
+    for (const key of ['style', 'clean', 'time']) {
+      const row = document.querySelector(`#go-parts [data-part=${key}]`);
+      row.querySelector('em').style.width = `${(100 * r.parts[key]) / RATING[key]}%`;
+      row.querySelector('b').textContent = `${Math.round(r.parts[key])} / ${RATING[key]}`;
+    }
+    // a run that fell needs to get further first; a cleared one hears about its weakest part
+    const weakest = ['style', 'clean', 'time'].reduce((a, b) => (r.parts[b] / RATING[b] < r.parts[a] / RATING[a] ? b : a));
+    const hints = {
+      style: '下次：多用花式、保住連擊，Style 分佔最多',
+      clean: '下次：少捱打，多幾波無傷',
+      time: `下次：打快一點，${Math.round(RATING.timePar / 60)} 分鐘內用時滿分`,
+    };
+    $('go-hint').textContent = cleared ? hints[weakest] : `下次：撐到第 ${w.rules.waves} 波，通關才有用時分`;
+    const p = r.parts;
+    this.notes.log(`評級 ${r.grade}（Style ${Math.round(p.style)}/${RATING.style} · 無傷 ${Math.round(p.clean)}/${RATING.clean} · 用時 ${Math.round(p.time)}/${RATING.time}）`);
   }
 
   resize() {

@@ -15,6 +15,7 @@ let logs;
 before(async () => {
   h = await gameHarness();
   ({ page, logs } = await h.open('?seed=5'));
+  await installGradeReader();
 });
 after(async () => {
   await h.close();
@@ -59,6 +60,36 @@ async function watchRun() {
   });
 }
 
+/** Define window.gradeShown() in the page: what the end screen shows of the grade. */
+async function installGradeReader() {
+  await page.evaluate(() => {
+    window.gradeShown = () => {
+      const box = document.querySelector('#gameover .go-grade');
+      return {
+        gradeVisible: !document.getElementById('gameover').classList.contains('hidden') && window.getComputedStyle(box).display !== 'none',
+        grade: document.getElementById('go-grade').textContent,
+        parts: [...document.querySelectorAll('#go-parts > div')].map((d) => [d.dataset.part, d.querySelector('b').textContent]),
+        hint: document.getElementById('go-hint').textContent,
+        gradeLogged: (window.game.notes.events.findLast((e) => e.text.startsWith('評級')) || { text: '' }).text,
+      };
+    };
+  });
+}
+
+/** The grade the formula gives for the run on screen. */
+const expectedGrade = (cleared) =>
+  page.evaluate(async (cleared) => {
+    const { rate } = await import('/src/score.js');
+    const g = window.game;
+    return rate({ score: g.score.score, cleanWaves: g.waves.cleanWaves, waves: 12, seconds: g.stepCount / 120, cleared });
+  }, cleared);
+
+const partTexts = (want) => [
+  ['style', `${Math.round(want.parts.style)} / 50`],
+  ['clean', `${Math.round(want.parts.clean)} / 30`],
+  ['time', `${Math.round(want.parts.time)} / 20`],
+];
+
 /** Play 10 s chunks until `done` (evaluated in the page) holds, or the cap. */
 async function playUntil(done, maxChunks) {
   for (let c = 0; c < maxChunks; c++) {
@@ -94,6 +125,7 @@ test('a god-mode bot plays an arcade run to the RUN CLEAR screen', { timeout: 15
     const text = (id) => document.getElementById(id).textContent;
     const shown = [...document.querySelectorAll('#gameover .go-stats > div')].filter((d) => window.getComputedStyle(d).display !== 'none');
     return {
+      ...window.gradeShown(),
       ...window.run,
       errors: window.stats.errors,
       state: g.state,
@@ -128,6 +160,38 @@ test('a god-mode bot plays an arcade run to the RUN CLEAR screen', { timeout: 15
   ]);
   assert.ok(r.start.startsWith('開局：霓虹天台（街機'), r.start);
   assert.ok(r.cleared, 'the feedback log records the clear');
+  // the grade: what the formula gives for this run's numbers, its three parts, and a hint
+  const want = await expectedGrade(true);
+  console.log(`arcade grade: ${r.grade} (${want.total.toFixed(1)} points: style ${want.parts.style.toFixed(1)}, clean ${want.parts.clean.toFixed(1)}, time ${want.parts.time.toFixed(1)})`);
+  assert.equal(r.gradeVisible, true);
+  assert.equal(r.grade, want.grade);
+  assert.deepEqual(r.parts, partTexts(want));
+  assert.ok(r.hint.startsWith('下次：'), r.hint);
+  assert.ok(r.gradeLogged.startsWith(`評級 ${want.grade}（`), r.gradeLogged);
+  assert.deepEqual(problems(logs), []);
+});
+
+test('an arcade run that falls is graded too, with no time points and a hint to get further', async () => {
+  await page.evaluate(() => {
+    const g = window.game;
+    g.frame = () => {};
+    g.startRun(0);
+    const p = g.player;
+    delete p.hurt; // watchRun's god mode
+    p.invuln = 0;
+    p.spinT = 0;
+    p.hurt(500, 0, 1);
+    for (let i = 0; i < 600 && g.state !== 'over'; i++) g.updatePlay(1 / 60);
+  });
+  const r = await page.evaluate(() => ({ state: window.game.state, ...window.gradeShown() }));
+  assert.equal(r.state, 'over');
+  const want = await expectedGrade(false);
+  assert.equal(want.parts.time, 0);
+  assert.equal(r.gradeVisible, true);
+  assert.equal(r.grade, want.grade);
+  assert.deepEqual(r.parts, partTexts(want));
+  assert.equal(r.hint, '下次：撐到第 12 波，通關才有用時分');
+  await snap(page, 'arcade-fell.png');
   assert.deepEqual(problems(logs), []);
 });
 
@@ -148,5 +212,18 @@ test('endless keeps the old rhythm: a new map every three waves, the old wave si
   assert.deepEqual(r.maps, ['club', 'docks', 'senado']);
   r.sizes.forEach((n, i) => assert.equal(n, 3 + Math.floor((i + 1) * 1.7), `wave ${i + 1} size`));
   assert.equal(r.label, `WAVE ${r.wave}`, 'no "/ 12" in endless');
+  // endless has no end to grade: its game over shows no grade
+  await page.evaluate(() => {
+    const g = window.game;
+    const p = g.player;
+    delete p.hurt; // watchRun's god mode
+    p.invuln = 0;
+    p.spinT = 0;
+    p.hurt(500, 0, 1);
+    for (let i = 0; i < 600 && g.state !== 'over'; i++) g.updatePlay(1 / 60);
+  });
+  const over = await page.evaluate(() => ({ state: window.game.state, ...window.gradeShown() }));
+  assert.equal(over.state, 'over');
+  assert.equal(over.gradeVisible, false, 'no grade in endless');
   assert.deepEqual(problems(logs), []);
 });
