@@ -59,20 +59,32 @@ const begin = (page) =>
   });
 
 test('a first run plays the three warm-up steps, then wave 1 starts at once', { timeout: 180000 }, async () => {
-  const { page, logs } = await h.open('?tutorial=0'); // nothing stored: a first visit
+  const { page, logs } = await h.open('?tutorial=0&seed=17'); // nothing stored: a first visit
   await begin(page);
-  await page.evaluate(() => window.play(30));
+  await page.evaluate(() => window.play(1));
   let s = await page.evaluate(() => window.look());
   assert.equal(s.active, true, 'the first run starts with the warm-up');
   assert.equal(s.step, 0);
   assert.equal(s.enemy.type, 'grunt');
   assert.equal(s.wave, 0, 'no wave yet');
-  // step 1: the Shift hint waits for the enemy to aim
-  assert.equal(s.hint, '');
-  await page.evaluate(() => {
-    for (let i = 0; i < 600 && !window.game.tutorial.hint; i++) window.play(1);
+  // step 1: the Shift hint waits for the enemy to aim. Frame by frame: empty while he
+  // is not aiming, there from the step he starts (when that is depends on his random cooldown)
+  const watch = await page.evaluate(() => {
+    const t = window.game.tutorial;
+    const aiming = () => ['aim', 'fire'].includes(t.enemy.state);
+    let early = 0;
+    let frames = 0;
+    while (!aiming() && frames < 600) {
+      if (t.hint) early++;
+      window.play(1);
+      frames++;
+    }
     window.game.hud.update(1 / 60);
+    return { early, frames, hint: t.hint };
   });
+  assert.equal(watch.early, 0, 'no hint before he aims');
+  assert.ok(watch.frames < 600, 'he aims within ten seconds');
+  assert.ok(watch.hint, 'the hint comes up as he aims');
   s = await page.evaluate(() => window.look());
   assert.ok(['aim', 'fire'].includes(s.enemy.state), s.enemy.state);
   assert.match(s.shown, /Shift/);
