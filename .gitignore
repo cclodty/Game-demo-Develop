@@ -3,3 +3,6 @@ node_modules/
 senado/reference/*.jpg
 senado/reference/tiles/
 __pycache__/
+# game test output and single-file builds
+test/.out/
+dist/

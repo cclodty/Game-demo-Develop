@@ -1,0 +1,2503 @@
+{
+  "format": 1,
+  "note": "Generated from src/asset-manifest.js by scripts/asset-docs.mjs. Units metres; Y up; models face +Z (glTF conventions). Paths are relative to assets/.",
+  "units": "metres",
+  "up": "+Y",
+  "forward": "+Z",
+  "animations": {
+    "required": [
+      "idle",
+      "run",
+      "death"
+    ],
+    "recommended": [
+      "walk",
+      "strafe_left",
+      "strafe_right",
+      "run_backward",
+      "kick",
+      "hit_react",
+      "dodge_roll",
+      "dive",
+      "climb_up",
+      "reload",
+      "melee_slash"
+    ]
+  },
+  "assets": [
+    {
+      "id": "hero",
+      "kind": "character",
+      "group": "characters",
+      "name_zh": "主角",
+      "priority": 1,
+      "size": {
+        "x": 0.55,
+        "y": 1.78,
+        "z": 0.35
+      },
+      "origin": "on the ground between the feet",
+      "budgets": {
+        "master": {
+          "tris": 50000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 10000,
+          "texture": 1024
+        }
+      },
+      "animations": [
+        "idle",
+        "run",
+        "death",
+        "walk",
+        "strafe_left",
+        "strafe_right",
+        "run_backward",
+        "kick",
+        "hit_react",
+        "dodge_roll",
+        "dive",
+        "climb_up",
+        "reload",
+        "melee_slash"
+      ],
+      "files": {
+        "master": "source/hero/hero.glb",
+        "textures": "source/hero/textures/",
+        "reference": "source/hero/reference/",
+        "fbx": "source/hero/hero.fbx",
+        "web": "models/hero.glb"
+      },
+      "prompt": "the player character, a young agent in a teal bomber jacket with cyan piping, dark navy slim trousers, white sneakers, fingerless gloves, short black hair, with a confident athletic build"
+    },
+    {
+      "id": "grunt",
+      "kind": "character",
+      "group": "characters",
+      "name_zh": "打手 THUG",
+      "priority": 2,
+      "size": {
+        "x": 0.55,
+        "y": 1.78,
+        "z": 0.35
+      },
+      "origin": "on the ground between the feet",
+      "budgets": {
+        "master": {
+          "tris": 40000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 6000,
+          "texture": 1024
+        }
+      },
+      "animations": [
+        "idle",
+        "run",
+        "death",
+        "walk",
+        "strafe_left",
+        "strafe_right",
+        "run_backward",
+        "kick",
+        "hit_react",
+        "dodge_roll",
+        "dive",
+        "climb_up",
+        "reload",
+        "melee_slash"
+      ],
+      "files": {
+        "master": "source/grunt/grunt.glb",
+        "textures": "source/grunt/textures/",
+        "reference": "source/grunt/reference/",
+        "fbx": "source/grunt/grunt.fbx",
+        "web": "models/grunt.glb"
+      },
+      "prompt": "street gang thug in a charcoal hoodie, dark jeans, worn trainers, red bandana around the neck, short dyed dark-red hair"
+    },
+    {
+      "id": "shotgun",
+      "kind": "character",
+      "group": "characters",
+      "name_zh": "散彈手 SHOTGUNNER",
+      "priority": 2,
+      "size": {
+        "x": 0.62,
+        "y": 1.78,
+        "z": 0.4
+      },
+      "origin": "on the ground between the feet",
+      "budgets": {
+        "master": {
+          "tris": 40000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 6000,
+          "texture": 1024
+        }
+      },
+      "animations": [
+        "idle",
+        "run",
+        "death",
+        "walk",
+        "strafe_left",
+        "strafe_right",
+        "run_backward",
+        "kick",
+        "hit_react",
+        "dodge_roll",
+        "dive",
+        "climb_up",
+        "reload",
+        "melee_slash"
+      ],
+      "files": {
+        "master": "source/shotgun/shotgun.glb",
+        "textures": "source/shotgun/textures/",
+        "reference": "source/shotgun/reference/",
+        "fbx": "source/shotgun/shotgun.fbx",
+        "web": "models/shotgun.glb"
+      },
+      "prompt": "stocky gang enforcer in a worn brown leather jacket over a vest, dark brown trousers, boots, orange cap, broad shoulders"
+    },
+    {
+      "id": "rifle",
+      "kind": "character",
+      "group": "characters",
+      "name_zh": "步槍手 RIFLEMAN",
+      "priority": 2,
+      "size": {
+        "x": 0.55,
+        "y": 1.78,
+        "z": 0.35
+      },
+      "origin": "on the ground between the feet",
+      "budgets": {
+        "master": {
+          "tris": 40000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 6000,
+          "texture": 1024
+        }
+      },
+      "animations": [
+        "idle",
+        "run",
+        "death",
+        "walk",
+        "strafe_left",
+        "strafe_right",
+        "run_backward",
+        "kick",
+        "hit_react",
+        "dodge_roll",
+        "dive",
+        "climb_up",
+        "reload",
+        "melee_slash"
+      ],
+      "files": {
+        "master": "source/rifle/rifle.glb",
+        "textures": "source/rifle/textures/",
+        "reference": "source/rifle/reference/",
+        "fbx": "source/rifle/rifle.fbx",
+        "web": "models/rifle.glb"
+      },
+      "prompt": "mercenary in a dark purple-grey tactical jacket with pouches, cargo trousers, combat boots, violet armband, beret"
+    },
+    {
+      "id": "rusher",
+      "kind": "character",
+      "group": "characters",
+      "name_zh": "刀手 BLADE",
+      "priority": 2,
+      "size": {
+        "x": 0.5,
+        "y": 1.78,
+        "z": 0.3
+      },
+      "origin": "on the ground between the feet",
+      "budgets": {
+        "master": {
+          "tris": 40000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 6000,
+          "texture": 1024
+        }
+      },
+      "animations": [
+        "idle",
+        "run",
+        "death",
+        "walk",
+        "strafe_left",
+        "strafe_right",
+        "run_backward",
+        "kick",
+        "hit_react",
+        "dodge_roll",
+        "dive",
+        "climb_up",
+        "reload",
+        "melee_slash"
+      ],
+      "files": {
+        "master": "source/rusher/rusher.glb",
+        "textures": "source/rusher/textures/",
+        "reference": "source/rusher/reference/",
+        "fbx": "source/rusher/rusher.fbx",
+        "web": "models/rusher.glb"
+      },
+      "prompt": "lean agile assassin in fitted black clothes, magenta scarf covering the lower face, light shoes, wrapped forearms"
+    },
+    {
+      "id": "brute",
+      "kind": "character",
+      "group": "characters",
+      "name_zh": "大隻佬 BRUTE",
+      "priority": 2,
+      "size": {
+        "x": 0.75,
+        "y": 1.78,
+        "z": 0.45
+      },
+      "origin": "on the ground between the feet",
+      "budgets": {
+        "master": {
+          "tris": 40000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 8000,
+          "texture": 1024
+        }
+      },
+      "animations": [
+        "idle",
+        "run",
+        "death",
+        "walk",
+        "strafe_left",
+        "strafe_right",
+        "run_backward",
+        "kick",
+        "hit_react",
+        "dodge_roll",
+        "dive",
+        "climb_up",
+        "reload",
+        "melee_slash"
+      ],
+      "files": {
+        "master": "source/brute/brute.glb",
+        "textures": "source/brute/textures/",
+        "reference": "source/brute/reference/",
+        "fbx": "source/brute/brute.fbx",
+        "web": "models/brute.glb"
+      },
+      "prompt": "huge heavy enforcer in a grey armoured vest over a black shirt, thick arms, heavy boots, buzz cut, red shoulder patches"
+    },
+    {
+      "id": "pigeon",
+      "kind": "env",
+      "group": "senado",
+      "name_zh": "白鴿（會飛的環境生物）",
+      "priority": 3,
+      "size": {
+        "x": 0.2,
+        "y": 0.25,
+        "z": 0.32
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "senado": 28
+      },
+      "budgets": {
+        "master": {
+          "tris": 3000,
+          "texture": 1024
+        },
+        "web": {
+          "tris": 400,
+          "texture": 512
+        }
+      },
+      "animations": [
+        "idle_peck",
+        "walk",
+        "takeoff",
+        "fly",
+        "glide",
+        "land"
+      ],
+      "files": {
+        "master": "source/pigeon/pigeon.glb",
+        "textures": "source/pigeon/textures/",
+        "reference": "source/pigeon/reference/",
+        "fbx": "source/pigeon/pigeon.fbx"
+      },
+      "prompt": "city rock pigeon, grey-blue with an iridescent green and purple neck, standing"
+    },
+    {
+      "id": "weapon_pistol",
+      "kind": "weapon",
+      "group": "weapons",
+      "name_zh": "手槍（主角雙槍、打手）",
+      "priority": 1,
+      "size": {
+        "x": 0.07,
+        "y": 0.16,
+        "z": 0.3
+      },
+      "origin": "at the main hand grip, with the barrel or blade pointing along +Z",
+      "budgets": {
+        "master": {
+          "tris": 12000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1200,
+          "texture": 512
+        }
+      },
+      "sockets": {
+        "socket_muzzle": {
+          "x": 0,
+          "y": 0.05,
+          "z": 0.3
+        }
+      },
+      "files": {
+        "master": "source/weapon_pistol/weapon_pistol.glb",
+        "textures": "source/weapon_pistol/textures/",
+        "reference": "source/weapon_pistol/reference/",
+        "fbx": "source/weapon_pistol/weapon_pistol.fbx"
+      },
+      "prompt": "compact modern semi-automatic pistol, matte black slide with a thin cyan accent line"
+    },
+    {
+      "id": "weapon_smg",
+      "kind": "weapon",
+      "group": "weapons",
+      "name_zh": "衝鋒槍（雙持）",
+      "priority": 2,
+      "size": {
+        "x": 0.09,
+        "y": 0.3,
+        "z": 0.42
+      },
+      "origin": "at the main hand grip, with the barrel or blade pointing along +Z",
+      "budgets": {
+        "master": {
+          "tris": 12000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1500,
+          "texture": 512
+        }
+      },
+      "sockets": {
+        "socket_muzzle": {
+          "x": 0,
+          "y": 0.05,
+          "z": 0.42
+        }
+      },
+      "files": {
+        "master": "source/weapon_smg/weapon_smg.glb",
+        "textures": "source/weapon_smg/textures/",
+        "reference": "source/weapon_smg/reference/",
+        "fbx": "source/weapon_smg/weapon_smg.fbx"
+      },
+      "prompt": "compact submachine gun with a straight magazine and folded stock, dark gunmetal with a small cyan accent"
+    },
+    {
+      "id": "weapon_shotgun",
+      "kind": "weapon",
+      "group": "weapons",
+      "name_zh": "散彈槍",
+      "priority": 1,
+      "size": {
+        "x": 0.12,
+        "y": 0.22,
+        "z": 1.3
+      },
+      "origin": "at the main hand grip, with the barrel or blade pointing along +Z",
+      "budgets": {
+        "master": {
+          "tris": 12000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 2000,
+          "texture": 512
+        }
+      },
+      "sockets": {
+        "socket_muzzle": {
+          "x": 0,
+          "y": 0.12,
+          "z": 0.94
+        },
+        "socket_support": {
+          "x": 0,
+          "y": 0.01,
+          "z": 0.44
+        }
+      },
+      "files": {
+        "master": "source/weapon_shotgun/weapon_shotgun.glb",
+        "textures": "source/weapon_shotgun/textures/",
+        "reference": "source/weapon_shotgun/reference/",
+        "fbx": "source/weapon_shotgun/weapon_shotgun.fbx"
+      },
+      "prompt": "pump-action shotgun with a wooden pump and stock, dark steel barrel and magazine tube"
+    },
+    {
+      "id": "weapon_rifle",
+      "kind": "weapon",
+      "group": "weapons",
+      "name_zh": "突擊步槍",
+      "priority": 1,
+      "size": {
+        "x": 0.11,
+        "y": 0.3,
+        "z": 1.15
+      },
+      "origin": "at the main hand grip, with the barrel or blade pointing along +Z",
+      "budgets": {
+        "master": {
+          "tris": 12000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 2000,
+          "texture": 512
+        }
+      },
+      "sockets": {
+        "socket_muzzle": {
+          "x": 0,
+          "y": 0.15,
+          "z": 0.78
+        },
+        "socket_support": {
+          "x": 0,
+          "y": 0.08,
+          "z": 0.32
+        }
+      },
+      "files": {
+        "master": "source/weapon_rifle/weapon_rifle.glb",
+        "textures": "source/weapon_rifle/textures/",
+        "reference": "source/weapon_rifle/reference/",
+        "fbx": "source/weapon_rifle/weapon_rifle.fbx"
+      },
+      "prompt": "modern assault rifle with a short scope rail, curved magazine and adjustable stock, black with a violet accent"
+    },
+    {
+      "id": "weapon_sniper",
+      "kind": "weapon",
+      "group": "weapons",
+      "name_zh": "狙擊槍",
+      "priority": 2,
+      "size": {
+        "x": 0.1,
+        "y": 0.25,
+        "z": 1.6
+      },
+      "origin": "at the main hand grip, with the barrel or blade pointing along +Z",
+      "budgets": {
+        "master": {
+          "tris": 12000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 2500,
+          "texture": 512
+        }
+      },
+      "sockets": {
+        "socket_muzzle": {
+          "x": 0,
+          "y": 0.06,
+          "z": 1.31
+        },
+        "socket_support": {
+          "x": 0,
+          "y": 0.02,
+          "z": 0.4
+        },
+        "socket_scope": {
+          "x": 0,
+          "y": 0.13,
+          "z": 0.15
+        }
+      },
+      "files": {
+        "master": "source/weapon_sniper/weapon_sniper.glb",
+        "textures": "source/weapon_sniper/textures/",
+        "reference": "source/weapon_sniper/reference/",
+        "fbx": "source/weapon_sniper/weapon_sniper.fbx"
+      },
+      "prompt": "long bolt-action sniper rifle with a large scope and a long fluted barrel, dark green-grey"
+    },
+    {
+      "id": "weapon_launcher",
+      "kind": "weapon",
+      "group": "weapons",
+      "name_zh": "榴彈發射器",
+      "priority": 2,
+      "size": {
+        "x": 0.28,
+        "y": 0.3,
+        "z": 0.9
+      },
+      "origin": "at the main hand grip, with the barrel or blade pointing along +Z",
+      "budgets": {
+        "master": {
+          "tris": 12000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 2000,
+          "texture": 512
+        }
+      },
+      "sockets": {
+        "socket_muzzle": {
+          "x": 0,
+          "y": 0.03,
+          "z": 0.78
+        },
+        "socket_support": {
+          "x": 0,
+          "y": -0.02,
+          "z": 0.4
+        }
+      },
+      "files": {
+        "master": "source/weapon_launcher/weapon_launcher.glb",
+        "textures": "source/weapon_launcher/textures/",
+        "reference": "source/weapon_launcher/reference/",
+        "fbx": "source/weapon_launcher/weapon_launcher.fbx"
+      },
+      "prompt": "single-shot grenade launcher with a wide barrel, pistol grip and folding stock, olive drab with an orange muzzle ring"
+    },
+    {
+      "id": "weapon_minigun",
+      "kind": "weapon",
+      "group": "weapons",
+      "name_zh": "機槍（大隻佬）",
+      "priority": 2,
+      "size": {
+        "x": 0.34,
+        "y": 0.34,
+        "z": 1.2
+      },
+      "origin": "at the main hand grip, with the barrel or blade pointing along +Z",
+      "budgets": {
+        "master": {
+          "tris": 12000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 3000,
+          "texture": 512
+        }
+      },
+      "sockets": {
+        "socket_muzzle": {
+          "x": 0.16,
+          "y": 0.1,
+          "z": 1
+        },
+        "socket_support": {
+          "x": 0.32,
+          "y": 0.1,
+          "z": 0.3
+        }
+      },
+      "files": {
+        "master": "source/weapon_minigun/weapon_minigun.glb",
+        "textures": "source/weapon_minigun/textures/",
+        "reference": "source/weapon_minigun/reference/",
+        "fbx": "source/weapon_minigun/weapon_minigun.fbx"
+      },
+      "prompt": "heavy six-barrel rotary minigun with a rear handle and a top carry handle, gunmetal with a red ring at the muzzle"
+    },
+    {
+      "id": "weapon_blade",
+      "kind": "weapon",
+      "group": "weapons",
+      "name_zh": "刀（刀手）",
+      "priority": 2,
+      "size": {
+        "x": 0.05,
+        "y": 0.08,
+        "z": 0.8
+      },
+      "origin": "at the main hand grip, with the barrel or blade pointing along +Z",
+      "budgets": {
+        "master": {
+          "tris": 12000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 800,
+          "texture": 512
+        }
+      },
+      "sockets": {
+        "socket_tip": {
+          "x": 0,
+          "y": 0,
+          "z": 0.62
+        }
+      },
+      "files": {
+        "master": "source/weapon_blade/weapon_blade.glb",
+        "textures": "source/weapon_blade/textures/",
+        "reference": "source/weapon_blade/reference/",
+        "fbx": "source/weapon_blade/weapon_blade.fbx"
+      },
+      "prompt": "short straight machete-like blade with a wrapped handle, the edge catching a magenta glint"
+    },
+    {
+      "id": "weapon_grenade",
+      "kind": "weapon",
+      "group": "weapons",
+      "name_zh": "榴彈（發射器的彈）",
+      "priority": 3,
+      "size": {
+        "x": 0.08,
+        "y": 0.08,
+        "z": 0.12
+      },
+      "origin": "at the main hand grip, with the barrel or blade pointing along +Z",
+      "budgets": {
+        "master": {
+          "tris": 12000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 300,
+          "texture": 256
+        }
+      },
+      "files": {
+        "master": "source/weapon_grenade/weapon_grenade.glb",
+        "textures": "source/weapon_grenade/textures/",
+        "reference": "source/weapon_grenade/reference/",
+        "fbx": "source/weapon_grenade/weapon_grenade.fbx"
+      },
+      "prompt": "40 mm grenade round with an orange tip band"
+    },
+    {
+      "id": "crate",
+      "kind": "prop",
+      "group": "props",
+      "name_zh": "木箱（掩體，可被打出木屑）",
+      "priority": 1,
+      "size": {
+        "x": 1.4,
+        "y": 1.3,
+        "z": 1.4
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "rooftop": 7,
+        "docks": 5,
+        "senado": 6
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 800,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/crate/crate.glb",
+        "textures": "source/crate/textures/",
+        "reference": "source/crate/reference/",
+        "web": "models/crate.glb"
+      },
+      "prompt": "weathered wooden shipping crate made of planks with dark metal corner brackets and stencilled markings"
+    },
+    {
+      "id": "barrel",
+      "kind": "prop",
+      "group": "props",
+      "name_zh": "紅色油桶（一槍爆炸）",
+      "priority": 1,
+      "size": {
+        "x": 0.9,
+        "y": 1.23,
+        "z": 0.9
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "rooftop": 7,
+        "club": 3,
+        "docks": 5,
+        "senado": 2
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 800,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/barrel/barrel.glb",
+        "textures": "source/barrel/textures/",
+        "reference": "source/barrel/reference/",
+        "web": "models/barrel.glb"
+      },
+      "prompt": "bright red 200 litre steel oil drum with ribbed bands, a yellow-black hazard stripe and a flammable warning label"
+    },
+    {
+      "id": "gas",
+      "kind": "prop",
+      "group": "props",
+      "name_zh": "大氣罐（大爆炸）",
+      "priority": 1,
+      "size": {
+        "x": 1.16,
+        "y": 1.8,
+        "z": 1.16
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "club": 2,
+        "docks": 4,
+        "senado": 2
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1000,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/gas/gas.glb",
+        "textures": "source/gas/textures/",
+        "reference": "source/gas/reference/",
+        "web": "models/gas.glb"
+      },
+      "prompt": "large white industrial compressed gas tank, a wide vertical cylinder with a red band, a valve and pressure gauge on top and hazard labels"
+    },
+    {
+      "id": "pan",
+      "kind": "prop",
+      "group": "props",
+      "name_zh": "平底鑊（子彈打中會反彈）",
+      "priority": 1,
+      "size": {
+        "x": 0.82,
+        "y": 0.1,
+        "z": 1.31
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "offset": {
+        "x": 0,
+        "y": 0.245,
+        "z": 0
+      },
+      "uses": {
+        "rooftop": 6,
+        "docks": 5,
+        "senado": 8
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 600,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/pan/pan.glb",
+        "textures": "source/pan/textures/",
+        "reference": "source/pan/reference/",
+        "web": "models/pan.glb"
+      },
+      "prompt": "black cast iron frying pan with a long straight handle, lying flat, polished steel rim"
+    },
+    {
+      "id": "concrete",
+      "kind": "prop",
+      "group": "props",
+      "name_zh": "混凝土路障（一節）",
+      "priority": 1,
+      "size": {
+        "x": 2,
+        "y": 1.1,
+        "z": 0.6
+      },
+      "origin": "at the bottom centre",
+      "fit": "tile",
+      "module": 2,
+      "uses": {
+        "rooftop": 3,
+        "senado": 2
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 500,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/concrete/concrete.glb",
+        "textures": "source/concrete/textures/",
+        "reference": "source/concrete/reference/",
+        "web": "models/concrete.glb"
+      },
+      "prompt": "one 2 m section of a grey concrete jersey road barrier with chipped edges, lifting slots and faded reflective strips"
+    },
+    {
+      "id": "pillar",
+      "kind": "prop",
+      "group": "props",
+      "name_zh": "霓虹柱",
+      "priority": 2,
+      "size": {
+        "x": 1,
+        "y": 3.4,
+        "z": 1
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "rooftop": 2,
+        "club": 4
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 800,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/pillar/pillar.glb",
+        "textures": "source/pillar/textures/",
+        "reference": "source/pillar/reference/",
+        "web": "models/pillar.glb"
+      },
+      "prompt": "square concrete column with steel corner guards and a glowing neon cap ring at the top"
+    },
+    {
+      "id": "unit",
+      "kind": "prop",
+      "group": "rooftop",
+      "name_zh": "天台冷氣機",
+      "priority": 2,
+      "size": {
+        "x": 2.8,
+        "y": 1.5,
+        "z": 1.8
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "rooftop": 4
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1000,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/unit/unit.glb",
+        "textures": "source/unit/textures/",
+        "reference": "source/unit/reference/",
+        "web": "models/unit.glb"
+      },
+      "prompt": "rooftop air conditioning condenser unit, a galvanised metal box with louvred sides, a large round fan grill on top and pipes running out of one side"
+    },
+    {
+      "id": "hut",
+      "kind": "prop",
+      "group": "rooftop",
+      "name_zh": "天台樓梯屋（敵人從門出）",
+      "priority": 2,
+      "size": {
+        "x": 4,
+        "y": 2.9,
+        "z": 3
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "rooftop": 2
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1500,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/hut/hut.glb",
+        "textures": "source/hut/textures/",
+        "reference": "source/hut/reference/",
+        "web": "models/hut.glb"
+      },
+      "prompt": "small rooftop stairwell hut, painted concrete walls with grime streaks, a steel door on the front face, a flat roof with a small overhang and a caged lamp above the door"
+    },
+    {
+      "id": "rooftop_parapet",
+      "kind": "env",
+      "group": "rooftop",
+      "name_zh": "天台矮牆（一節）",
+      "priority": 2,
+      "size": {
+        "x": 4,
+        "y": 1,
+        "z": 0.4
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "rooftop": 37
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 400,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/rooftop_parapet/rooftop_parapet.glb",
+        "textures": "source/rooftop_parapet/textures/",
+        "reference": "source/rooftop_parapet/reference/"
+      },
+      "prompt": "one 4 m section of a rooftop parapet wall, rough concrete with a metal coping on top and a thin neon strip along the inner face"
+    },
+    {
+      "id": "rooftop_billboard",
+      "kind": "env",
+      "group": "rooftop",
+      "name_zh": "天台霓虹廣告牌架",
+      "priority": 3,
+      "size": {
+        "x": 13.4,
+        "y": 5,
+        "z": 0.6
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "rooftop": 1
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 3000,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/rooftop_billboard/rooftop_billboard.glb",
+        "textures": "source/rooftop_billboard/textures/",
+        "reference": "source/rooftop_billboard/reference/"
+      },
+      "prompt": "large rooftop billboard frame: a steel truss structure on two legs holding a 13 m by 3.5 m sign panel, with service catwalk and lamps"
+    },
+    {
+      "id": "rooftop_lightmast",
+      "kind": "env",
+      "group": "rooftop",
+      "name_zh": "天台角落燈柱",
+      "priority": 3,
+      "size": {
+        "x": 0.6,
+        "y": 4.3,
+        "z": 0.3
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "rooftop": 4
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 500,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/rooftop_lightmast/rooftop_lightmast.glb",
+        "textures": "source/rooftop_lightmast/textures/",
+        "reference": "source/rooftop_lightmast/reference/"
+      },
+      "prompt": "slim steel light mast with a horizontal cyan neon light bar on top"
+    },
+    {
+      "id": "door_single",
+      "kind": "env",
+      "group": "rooftop",
+      "name_zh": "鐵門（天台、夜店的敵人出生門）",
+      "priority": 2,
+      "size": {
+        "x": 1.3,
+        "y": 2.1,
+        "z": 0.2
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "rooftop": 2,
+        "club": 4
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 500,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/door_single/door_single.glb",
+        "textures": "source/door_single/textures/",
+        "reference": "source/door_single/reference/"
+      },
+      "prompt": "single steel service door in a frame, scuffed paint, push bar, small wired-glass window and a red exit lamp above"
+    },
+    {
+      "id": "city_tower",
+      "kind": "env",
+      "group": "rooftop",
+      "name_zh": "背景高樓（三款）",
+      "priority": 3,
+      "size": {
+        "x": 10,
+        "y": 60,
+        "z": 10
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "rooftop": 80
+      },
+      "budgets": {
+        "master": {
+          "tris": 10000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 2000,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/city_tower/city_tower.glb",
+        "textures": "source/city_tower/textures/",
+        "reference": "source/city_tower/reference/"
+      },
+      "prompt": "set of three simple background skyscraper blocks of different styles (glass curtain wall, concrete with balconies, tiled residential), with night window lights as an emissive texture"
+    },
+    {
+      "id": "tray",
+      "kind": "prop",
+      "group": "club",
+      "name_zh": "酒吧托盤（子彈打中會反彈）",
+      "priority": 2,
+      "size": {
+        "x": 0.82,
+        "y": 0.1,
+        "z": 0.82
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "club": 6
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 300,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/tray/tray.glb",
+        "textures": "source/tray/textures/",
+        "reference": "source/tray/reference/",
+        "web": "models/tray.glb"
+      },
+      "prompt": "round polished stainless steel bar serving tray lying flat"
+    },
+    {
+      "id": "speaker",
+      "kind": "prop",
+      "group": "club",
+      "name_zh": "夜店喇叭",
+      "priority": 2,
+      "size": {
+        "x": 1.2,
+        "y": 2.2,
+        "z": 1.2
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "club": 4
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 800,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/speaker/speaker.glb",
+        "textures": "source/speaker/textures/",
+        "reference": "source/speaker/reference/",
+        "web": "models/speaker.glb"
+      },
+      "prompt": "tall black nightclub speaker stack with two large woofers, a horn tweeter, metal grilles and corner protectors"
+    },
+    {
+      "id": "bar",
+      "kind": "prop",
+      "group": "club",
+      "name_zh": "吧枱（一節）",
+      "priority": 2,
+      "size": {
+        "x": 2.5,
+        "y": 1.2,
+        "z": 1.2
+      },
+      "origin": "at the bottom centre",
+      "fit": "tile",
+      "module": 2.5,
+      "uses": {
+        "club": 3
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1000,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/bar/bar.glb",
+        "textures": "source/bar/textures/",
+        "reference": "source/bar/reference/",
+        "web": "models/bar.glb"
+      },
+      "prompt": "one 2.5 m section of a nightclub bar counter: dark wood front with a pink neon strip near the top, polished metal top, a footrail"
+    },
+    {
+      "id": "sofa",
+      "kind": "prop",
+      "group": "club",
+      "name_zh": "卡位沙發（一節）",
+      "priority": 3,
+      "size": {
+        "x": 2.4,
+        "y": 0.9,
+        "z": 1.4
+      },
+      "origin": "at the bottom centre",
+      "fit": "tile",
+      "module": 2.4,
+      "uses": {
+        "club": 3
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1000,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/sofa/sofa.glb",
+        "textures": "source/sofa/textures/",
+        "reference": "source/sofa/reference/",
+        "web": "models/sofa.glb"
+      },
+      "prompt": "one 2.4 m section of a nightclub booth sofa, tufted purple leather seat and low backrest, chrome base"
+    },
+    {
+      "id": "table",
+      "kind": "prop",
+      "group": "club",
+      "name_zh": "酒枱",
+      "priority": 3,
+      "size": {
+        "x": 1,
+        "y": 0.8,
+        "z": 1.2
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "club": 3
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 800,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/table/table.glb",
+        "textures": "source/table/textures/",
+        "reference": "source/table/reference/",
+        "web": "models/table.glb"
+      },
+      "prompt": "small square nightclub cocktail table with a dark top, a few bottles, glasses and an ice bucket"
+    },
+    {
+      "id": "dj",
+      "kind": "prop",
+      "group": "club",
+      "name_zh": "DJ 台",
+      "priority": 3,
+      "size": {
+        "x": 4,
+        "y": 1.3,
+        "z": 1.6
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "club": 1
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 2000,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/dj/dj.glb",
+        "textures": "source/dj/textures/",
+        "reference": "source/dj/reference/",
+        "web": "models/dj.glb"
+      },
+      "prompt": "nightclub DJ booth: a wide desk with two turntables, a mixer, laptop, and a glowing cyan LED front panel facing the crowd"
+    },
+    {
+      "id": "mirror_ball",
+      "kind": "env",
+      "group": "club",
+      "name_zh": "鏡面球（連吊桿）",
+      "priority": 3,
+      "size": {
+        "x": 1.5,
+        "y": 1.5,
+        "z": 1.5
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "club": 1
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1500,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/mirror_ball/mirror_ball.glb",
+        "textures": "source/mirror_ball/textures/",
+        "reference": "source/mirror_ball/reference/"
+      },
+      "prompt": "disco mirror ball made of small square mirror tiles, hanging from a short chain"
+    },
+    {
+      "id": "led_floor_tile",
+      "kind": "env",
+      "group": "club",
+      "name_zh": "舞池 LED 地磚",
+      "priority": 3,
+      "size": {
+        "x": 1,
+        "y": 0.05,
+        "z": 1
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "club": 96
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 100,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/led_floor_tile/led_floor_tile.glb",
+        "textures": "source/led_floor_tile/textures/",
+        "reference": "source/led_floor_tile/reference/"
+      },
+      "prompt": "one 1 m square LED dance floor tile: a frosted glass diffuser in a thin metal frame"
+    },
+    {
+      "id": "back_bar_shelf",
+      "kind": "env",
+      "group": "club",
+      "name_zh": "酒架（一節）",
+      "priority": 3,
+      "size": {
+        "x": 3,
+        "y": 2,
+        "z": 0.35
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "club": 3
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 800,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/back_bar_shelf/back_bar_shelf.glb",
+        "textures": "source/back_bar_shelf/textures/",
+        "reference": "source/back_bar_shelf/reference/"
+      },
+      "prompt": "one 3 m section of a back-bar shelf with three glass shelves, under-shelf strip lights and a mirrored back"
+    },
+    {
+      "id": "bottle_set",
+      "kind": "env",
+      "group": "club",
+      "name_zh": "酒瓶（四款）",
+      "priority": 3,
+      "size": {
+        "x": 0.1,
+        "y": 0.34,
+        "z": 0.1
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "club": 100
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 200,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/bottle_set/bottle_set.glb",
+        "textures": "source/bottle_set/textures/",
+        "reference": "source/bottle_set/reference/"
+      },
+      "prompt": "set of four different liquor bottles (green, amber, clear, pink glass) with labels"
+    },
+    {
+      "id": "club_wall",
+      "kind": "env",
+      "group": "club",
+      "name_zh": "夜店牆身（一節）",
+      "priority": 3,
+      "size": {
+        "x": 4,
+        "y": 3.2,
+        "z": 0.3
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "club": 34
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 400,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/club_wall/club_wall.glb",
+        "textures": "source/club_wall/textures/",
+        "reference": "source/club_wall/reference/"
+      },
+      "prompt": "one 4 m section of a nightclub wall: dark acoustic foam panels with a violet neon strip at waist height"
+    },
+    {
+      "id": "container",
+      "kind": "prop",
+      "group": "docks",
+      "name_zh": "貨櫃（一個模型，遊戲染四種顏色）",
+      "priority": 1,
+      "size": {
+        "x": 6,
+        "y": 2.6,
+        "z": 2.4
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "docks": 7
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1200,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/container/container.glb",
+        "textures": "source/container/textures/",
+        "reference": "source/container/reference/",
+        "web": "models/container.glb"
+      },
+      "prompt": "20 foot steel shipping container with corrugated walls, cargo doors with locking bars at one end, corner castings, light grey paint with rust streaks"
+    },
+    {
+      "id": "forklift",
+      "kind": "prop",
+      "group": "docks",
+      "name_zh": "叉車",
+      "priority": 3,
+      "size": {
+        "x": 1.6,
+        "y": 2.2,
+        "z": 2.6
+      },
+      "origin": "at the bottom centre",
+      "fit": "footprint",
+      "uses": {
+        "docks": 1
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 2500,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/forklift/forklift.glb",
+        "textures": "source/forklift/textures/",
+        "reference": "source/forklift/reference/",
+        "web": "models/forklift.glb"
+      },
+      "prompt": "yellow warehouse forklift truck with the forks lowered, overhead guard, black tyres"
+    },
+    {
+      "id": "guardhut",
+      "kind": "prop",
+      "group": "docks",
+      "name_zh": "碼頭看守亭",
+      "priority": 3,
+      "size": {
+        "x": 2.4,
+        "y": 2.4,
+        "z": 2.4
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "docks": 1
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1200,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/guardhut/guardhut.glb",
+        "textures": "source/guardhut/textures/",
+        "reference": "source/guardhut/reference/",
+        "web": "models/guardhut.glb"
+      },
+      "prompt": "small prefab harbour guard hut with windows on all sides, a door, a flat roof with a warning beacon"
+    },
+    {
+      "id": "warehouse_wall",
+      "kind": "env",
+      "group": "docks",
+      "name_zh": "倉庫外牆（一節，含捲閘版本）",
+      "priority": 3,
+      "size": {
+        "x": 6,
+        "y": 9,
+        "z": 1
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "docks": 8
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1500,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/warehouse_wall/warehouse_wall.glb",
+        "textures": "source/warehouse_wall/textures/",
+        "reference": "source/warehouse_wall/reference/"
+      },
+      "prompt": "one 6 m section of a harbour warehouse facade: corrugated steel cladding on a concrete plinth, a gutter at the top; plus a second version with a 2.4 by 2.6 m roller shutter door"
+    },
+    {
+      "id": "fence_panel",
+      "kind": "env",
+      "group": "docks",
+      "name_zh": "鐵絲網圍欄（一節）",
+      "priority": 3,
+      "size": {
+        "x": 4,
+        "y": 2.2,
+        "z": 0.1
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "docks": 15
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 300,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/fence_panel/fence_panel.glb",
+        "textures": "source/fence_panel/textures/",
+        "reference": "source/fence_panel/reference/"
+      },
+      "prompt": "one 4 m section of a chain-link security fence with steel posts and a barbed wire top"
+    },
+    {
+      "id": "quay_edge",
+      "kind": "env",
+      "group": "docks",
+      "name_zh": "碼頭岸邊（一節）連繫船柱",
+      "priority": 3,
+      "size": {
+        "x": 4,
+        "y": 1.7,
+        "z": 0.6
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "docks": 12
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 600,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/quay_edge/quay_edge.glb",
+        "textures": "source/quay_edge/textures/",
+        "reference": "source/quay_edge/reference/"
+      },
+      "prompt": "one 4 m section of a concrete harbour quay edge with a black rubber fender, a yellow painted edge line, and a cast iron mooring bollard"
+    },
+    {
+      "id": "gantry_crane",
+      "kind": "env",
+      "group": "docks",
+      "name_zh": "龍門吊（背景）",
+      "priority": 3,
+      "size": {
+        "x": 8,
+        "y": 26,
+        "z": 10
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "docks": 2
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 6000,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/gantry_crane/gantry_crane.glb",
+        "textures": "source/gantry_crane/textures/",
+        "reference": "source/gantry_crane/reference/"
+      },
+      "prompt": "harbour container gantry crane, red painted steel lattice legs and boom, operator cabin, a blinking red aircraft warning light on top"
+    },
+    {
+      "id": "sodium_lamp",
+      "kind": "env",
+      "group": "docks",
+      "name_zh": "鈉燈燈柱",
+      "priority": 3,
+      "size": {
+        "x": 1.2,
+        "y": 8,
+        "z": 0.5
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "docks": 4
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 500,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/sodium_lamp/sodium_lamp.glb",
+        "textures": "source/sodium_lamp/textures/",
+        "reference": "source/sodium_lamp/reference/"
+      },
+      "prompt": "tall steel yard lamp mast with an orange sodium floodlight head"
+    },
+    {
+      "id": "lpg",
+      "kind": "prop",
+      "group": "senado",
+      "name_zh": "石油氣罐（會爆）",
+      "priority": 1,
+      "size": {
+        "x": 0.6,
+        "y": 1.2,
+        "z": 0.6
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "senado": 5
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 600,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/lpg/lpg.glb",
+        "textures": "source/lpg/textures/",
+        "reference": "source/lpg/reference/",
+        "web": "models/lpg.glb"
+      },
+      "prompt": "orange LPG gas cylinder like the ones beside Macau street food stalls, rounded body, a protective valve collar and a regulator hose"
+    },
+    {
+      "id": "streetlamp",
+      "kind": "prop",
+      "group": "senado",
+      "name_zh": "葡式路燈",
+      "priority": 1,
+      "size": {
+        "x": 0.9,
+        "y": 4,
+        "z": 0.4
+      },
+      "origin": "at the bottom centre",
+      "fit": "height",
+      "uses": {
+        "senado": 8
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1500,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/streetlamp/streetlamp.glb",
+        "textures": "source/streetlamp/textures/",
+        "reference": "source/streetlamp/reference/",
+        "web": "models/streetlamp.glb"
+      },
+      "prompt": "Portuguese colonial cast iron street lamp of Macau, black, a fluted post on a decorated base, two lanterns hanging from a curved scrolled arm"
+    },
+    {
+      "id": "stall",
+      "kind": "prop",
+      "group": "senado",
+      "name_zh": "熟食檔",
+      "priority": 1,
+      "size": {
+        "x": 2.8,
+        "y": 2.4,
+        "z": 1.6
+      },
+      "origin": "at the bottom centre",
+      "fit": "footprint",
+      "uses": {
+        "senado": 5
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 3000,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/stall/stall.glb",
+        "textures": "source/stall/textures/",
+        "reference": "source/stall/reference/",
+        "web": "models/stall.glb"
+      },
+      "prompt": "Macau street food stall cart: stainless steel counter (1.1 m high) with pots, skewers and a menu board, a red-and-white striped canopy on four poles"
+    },
+    {
+      "id": "planter",
+      "kind": "prop",
+      "group": "senado",
+      "name_zh": "花槽",
+      "priority": 2,
+      "size": {
+        "x": 1.4,
+        "y": 1.5,
+        "z": 1.4
+      },
+      "origin": "at the bottom centre",
+      "fit": "footprint",
+      "uses": {
+        "senado": 3
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1500,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/planter/planter.glb",
+        "textures": "source/planter/textures/",
+        "reference": "source/planter/reference/",
+        "web": "models/planter.glb"
+      },
+      "prompt": "square cream-coloured stone planter box (0.9 m high) with a rounded clipped shrub, Portuguese style mouldings"
+    },
+    {
+      "id": "car",
+      "kind": "prop",
+      "group": "senado",
+      "name_zh": "的士",
+      "priority": 2,
+      "size": {
+        "x": 4.2,
+        "y": 1.5,
+        "z": 1.8
+      },
+      "origin": "at the bottom centre",
+      "fit": "footprint",
+      "uses": {
+        "senado": 2
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 3000,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/car/car.glb",
+        "textures": "source/car/textures/",
+        "reference": "source/car/reference/",
+        "web": "models/car.glb"
+      },
+      "prompt": "compact black Macau taxi sedan with a roof sign, doors closed, chrome details"
+    },
+    {
+      "id": "kiosk",
+      "kind": "prop",
+      "group": "senado",
+      "name_zh": "報紙亭",
+      "priority": 2,
+      "size": {
+        "x": 1.8,
+        "y": 2.3,
+        "z": 1.4
+      },
+      "origin": "at the bottom centre",
+      "fit": "footprint",
+      "uses": {
+        "senado": 1
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 2000,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/kiosk/kiosk.glb",
+        "textures": "source/kiosk/textures/",
+        "reference": "source/kiosk/reference/",
+        "web": "models/kiosk.glb"
+      },
+      "prompt": "small dark green metal newspaper kiosk with magazines and newspapers on display, a little overhanging roof"
+    },
+    {
+      "id": "utilitybox",
+      "kind": "prop",
+      "group": "senado",
+      "name_zh": "電箱",
+      "priority": 3,
+      "size": {
+        "x": 1.2,
+        "y": 1.3,
+        "z": 0.8
+      },
+      "origin": "at the bottom centre",
+      "fit": "box",
+      "uses": {
+        "senado": 1
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 400,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/utilitybox/utilitybox.glb",
+        "textures": "source/utilitybox/textures/",
+        "reference": "source/utilitybox/reference/",
+        "web": "models/utilitybox.glb"
+      },
+      "prompt": "grey metal street utility cabinet with two doors, vents and a warning sticker"
+    },
+    {
+      "id": "fountain",
+      "kind": "env",
+      "group": "senado",
+      "name_zh": "噴水池與渾天儀（地標）",
+      "priority": 1,
+      "size": {
+        "x": 14.2,
+        "y": 2.8,
+        "z": 14.2
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "senado": 1
+      },
+      "budgets": {
+        "master": {
+          "tris": 40000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 8000,
+          "texture": 2048
+        }
+      },
+      "files": {
+        "master": "source/fountain/fountain.glb",
+        "textures": "source/fountain/textures/",
+        "reference": "source/fountain/reference/"
+      },
+      "prompt": "the Largo do Senado fountain in Macau: a sunken round plaza 14.2 m across with three steps down (0.16 m each), a circular stone pool 9 m across and 0.42 m high, a raised inner basin 5.8 m across, and a bronze armillary sphere 1.7 m across on a pedestal at the centre"
+    },
+    {
+      "id": "senado_tree",
+      "kind": "env",
+      "group": "senado",
+      "name_zh": "廣場樹",
+      "priority": 3,
+      "size": {
+        "x": 6,
+        "y": 8,
+        "z": 6
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "senado": 2
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 4000,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/senado_tree/senado_tree.glb",
+        "textures": "source/senado_tree/textures/",
+        "reference": "source/senado_tree/reference/"
+      },
+      "prompt": "subtropical street tree with a thick trunk and a broad leafy crown, planted in a square stone tree pit"
+    },
+    {
+      "id": "bus_shelter",
+      "kind": "env",
+      "group": "senado",
+      "name_zh": "巴士站",
+      "priority": 3,
+      "size": {
+        "x": 3.8,
+        "y": 2.3,
+        "z": 1.6
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "senado": 1
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 1500,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/bus_shelter/bus_shelter.glb",
+        "textures": "source/bus_shelter/textures/",
+        "reference": "source/bus_shelter/reference/"
+      },
+      "prompt": "modern Macau bus shelter: a slim metal frame with a flat roof, a glass back panel and a route map board"
+    },
+    {
+      "id": "police_barrier",
+      "kind": "env",
+      "group": "senado",
+      "name_zh": "路邊鐵馬（一節）",
+      "priority": 3,
+      "size": {
+        "x": 2,
+        "y": 1,
+        "z": 0.5
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "senado": 20
+      },
+      "budgets": {
+        "master": {
+          "tris": 8000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 400,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/police_barrier/police_barrier.glb",
+        "textures": "source/police_barrier/textures/",
+        "reference": "source/police_barrier/reference/"
+      },
+      "prompt": "one 2 m section of a white portable crowd-control barrier with red stripes and flat feet"
+    },
+    {
+      "id": "facade_kit",
+      "kind": "env",
+      "group": "senado",
+      "name_zh": "騎樓立面組件（一套）",
+      "priority": 2,
+      "size": {
+        "x": 4,
+        "y": 4.5,
+        "z": 1.2
+      },
+      "origin": "at the bottom centre",
+      "uses": {
+        "senado": 60
+      },
+      "budgets": {
+        "master": {
+          "tris": 20000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 3000,
+          "texture": 2048
+        }
+      },
+      "files": {
+        "master": "source/facade_kit/facade_kit.glb",
+        "textures": "source/facade_kit/textures/",
+        "reference": "source/facade_kit/reference/"
+      },
+      "prompt": "modular facade kit for the arcaded shophouses around Largo do Senado: a ground-floor arcade bay with a round arch and shopfront, an upper-floor bay with tall windows, green wooden shutters and a small wrought iron balcony, a cornice and parapet piece; pastel plaster walls with white mouldings; each bay 4 m wide and 4.5 m tall"
+    },
+    {
+      "id": "leal_senado",
+      "kind": "landmark",
+      "group": "landmarks",
+      "name_zh": "市政署大樓",
+      "priority": 2,
+      "size": {
+        "x": 57.7,
+        "y": 16.8,
+        "z": 46.4
+      },
+      "origin": "at the centre of the footprint, at ground level",
+      "budgets": {
+        "master": {
+          "tris": 150000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 20000,
+          "texture": 2048
+        }
+      },
+      "files": {
+        "master": "source/leal_senado/leal_senado.glb",
+        "textures": "source/leal_senado/textures/",
+        "reference": "source/leal_senado/reference/"
+      },
+      "prompt": "the Leal Senado Building in Macau: a neoclassical two-storey civic building with a white and grey facade, rows of tall arched windows, a central entrance portico and a balustraded parapet"
+    },
+    {
+      "id": "sao_domingos",
+      "kind": "landmark",
+      "group": "landmarks",
+      "name_zh": "玫瑰堂",
+      "priority": 2,
+      "size": {
+        "x": 53.5,
+        "y": 17.9,
+        "z": 30.9
+      },
+      "origin": "at the centre of the footprint, at ground level",
+      "budgets": {
+        "master": {
+          "tris": 150000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 20000,
+          "texture": 2048
+        }
+      },
+      "files": {
+        "master": "source/sao_domingos/sao_domingos.glb",
+        "textures": "source/sao_domingos/textures/",
+        "reference": "source/sao_domingos/reference/"
+      },
+      "prompt": "St. Dominic's Church in Macau: a baroque church facade in yellow with white stucco ornament and green shuttered windows, a triangular pediment, three levels of columns"
+    },
+    {
+      "id": "santa_casa",
+      "kind": "landmark",
+      "group": "landmarks",
+      "name_zh": "仁慈堂大樓",
+      "priority": 2,
+      "size": {
+        "x": 22.5,
+        "y": 16.5,
+        "z": 18.4
+      },
+      "origin": "at the centre of the footprint, at ground level",
+      "budgets": {
+        "master": {
+          "tris": 150000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 15000,
+          "texture": 2048
+        }
+      },
+      "files": {
+        "master": "source/santa_casa/santa_casa.glb",
+        "textures": "source/santa_casa/textures/",
+        "reference": "source/santa_casa/reference/"
+      },
+      "prompt": "the Holy House of Mercy in Macau: a white neoclassical building with arched ground-floor loggia, upper-floor colonnade and balustrades"
+    },
+    {
+      "id": "correios",
+      "kind": "landmark",
+      "group": "landmarks",
+      "name_zh": "郵政局大樓",
+      "priority": 3,
+      "size": {
+        "x": 44.1,
+        "y": 25.4,
+        "z": 34.4
+      },
+      "origin": "at the centre of the footprint, at ground level",
+      "budgets": {
+        "master": {
+          "tris": 150000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 15000,
+          "texture": 2048
+        }
+      },
+      "files": {
+        "master": "source/correios/correios.glb",
+        "textures": "source/correios/textures/",
+        "reference": "source/correios/reference/"
+      },
+      "prompt": "the General Post Office building in Macau: a beige early-20th-century building with a corner clock tower, pilasters and tall windows"
+    },
+    {
+      "id": "mgto",
+      "kind": "landmark",
+      "group": "landmarks",
+      "name_zh": "澳門商務旅遊中心（議事亭前地 9 號）",
+      "priority": 3,
+      "size": {
+        "x": 30.8,
+        "y": 18.7,
+        "z": 18.6
+      },
+      "origin": "at the centre of the footprint, at ground level",
+      "budgets": {
+        "master": {
+          "tris": 150000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 12000,
+          "texture": 2048
+        }
+      },
+      "files": {
+        "master": "source/mgto/mgto.glb",
+        "textures": "source/mgto/textures/",
+        "reference": "source/mgto/reference/"
+      },
+      "prompt": "a cream-coloured colonial building on Largo do Senado with an arcaded ground floor, tall shuttered windows and a decorative cornice"
+    },
+    {
+      "id": "shun_tak",
+      "kind": "landmark",
+      "group": "landmarks",
+      "name_zh": "信德堡",
+      "priority": 3,
+      "size": {
+        "x": 32.6,
+        "y": 17.7,
+        "z": 20.8
+      },
+      "origin": "at the centre of the footprint, at ground level",
+      "budgets": {
+        "master": {
+          "tris": 150000,
+          "texture": 4096
+        },
+        "web": {
+          "tris": 12000,
+          "texture": 2048
+        }
+      },
+      "files": {
+        "master": "source/shun_tak/shun_tak.glb",
+        "textures": "source/shun_tak/textures/",
+        "reference": "source/shun_tak/reference/"
+      },
+      "prompt": "a pale yellow colonial building on Largo do Senado with an arcaded ground floor, balconies with iron railings and a parapet"
+    },
+    {
+      "id": "mat_rooftop_concrete",
+      "kind": "material",
+      "group": "materials",
+      "name_zh": "天台濕混凝土地面",
+      "priority": 2,
+      "size": {
+        "x": 4,
+        "y": 0,
+        "z": 4
+      },
+      "origin": "at the bottom centre",
+      "budgets": {
+        "master": {
+          "tris": 0,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 0,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/mat_rooftop_concrete/mat_rooftop_concrete.glb",
+        "textures": "source/mat_rooftop_concrete/textures/",
+        "reference": "source/mat_rooftop_concrete/reference/"
+      },
+      "prompt": "wet rooftop concrete slab with expansion joints, stains and small puddles"
+    },
+    {
+      "id": "mat_club_floor",
+      "kind": "material",
+      "group": "materials",
+      "name_zh": "夜店地板",
+      "priority": 3,
+      "size": {
+        "x": 4,
+        "y": 0,
+        "z": 4
+      },
+      "origin": "at the bottom centre",
+      "budgets": {
+        "master": {
+          "tris": 0,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 0,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/mat_club_floor/mat_club_floor.glb",
+        "textures": "source/mat_club_floor/textures/",
+        "reference": "source/mat_club_floor/reference/"
+      },
+      "prompt": "dark polished nightclub floor tiles with subtle scuffs"
+    },
+    {
+      "id": "mat_asphalt",
+      "kind": "material",
+      "group": "materials",
+      "name_zh": "碼頭濕瀝青",
+      "priority": 3,
+      "size": {
+        "x": 6,
+        "y": 0,
+        "z": 6
+      },
+      "origin": "at the bottom centre",
+      "budgets": {
+        "master": {
+          "tris": 0,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 0,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/mat_asphalt/mat_asphalt.glb",
+        "textures": "source/mat_asphalt/textures/",
+        "reference": "source/mat_asphalt/reference/"
+      },
+      "prompt": "wet harbour asphalt with cracks, oil stains and patched areas"
+    },
+    {
+      "id": "mat_calcada",
+      "kind": "material",
+      "group": "materials",
+      "name_zh": "葡式碎石路（波浪紋）",
+      "priority": 1,
+      "size": {
+        "x": 4,
+        "y": 0,
+        "z": 4
+      },
+      "origin": "at the bottom centre",
+      "budgets": {
+        "master": {
+          "tris": 0,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 0,
+          "texture": 2048
+        }
+      },
+      "files": {
+        "master": "source/mat_calcada/mat_calcada.glb",
+        "textures": "source/mat_calcada/textures/",
+        "reference": "source/mat_calcada/reference/"
+      },
+      "prompt": "Portuguese calcada pavement of Largo do Senado: small black and cream limestone cobbles forming the famous wave pattern"
+    },
+    {
+      "id": "mat_plaster",
+      "kind": "material",
+      "group": "materials",
+      "name_zh": "葡式灰泥牆",
+      "priority": 2,
+      "size": {
+        "x": 3,
+        "y": 0,
+        "z": 3
+      },
+      "origin": "at the bottom centre",
+      "budgets": {
+        "master": {
+          "tris": 0,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 0,
+          "texture": 1024
+        }
+      },
+      "files": {
+        "master": "source/mat_plaster/mat_plaster.glb",
+        "textures": "source/mat_plaster/textures/",
+        "reference": "source/mat_plaster/reference/"
+      },
+      "prompt": "weathered pastel lime plaster wall with subtle cracks and rain streaks, neutral light colour so it can be tinted"
+    }
+  ]
+}

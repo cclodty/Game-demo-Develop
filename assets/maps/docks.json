@@ -1,0 +1,408 @@
+{
+  "format": 1,
+  "id": "docks",
+  "name": "七號碼頭",
+  "en": "HARBOR 7",
+  "note": "Generated from src/maps.js by scripts/asset-docs.mjs. Metres; x east, y up, z south (towards the default camera); origin at the centre of the playable area. Boxes are axis-aligned: x, z = centre, w along x, d along z, h tall from the ground. \"asset\" is the id in assets/asset-list.json.",
+  "playable": {
+    "width": 48,
+    "depth": 30
+  },
+  "start": {
+    "x": 0,
+    "z": 2
+  },
+  "camera": {
+    "distance": 22.7,
+    "fov": 40,
+    "topDownPitch": 59.25,
+    "views": [
+      {
+        "id": "top",
+        "name": "俯視",
+        "en": "TOP-DOWN"
+      },
+      {
+        "id": "tilt",
+        "name": "45° 俯視",
+        "en": "45° TILT",
+        "pitch": 45,
+        "yaw": 0
+      },
+      {
+        "id": "iso",
+        "name": "45° 側俯視",
+        "en": "45° SIDE",
+        "pitch": 45,
+        "yaw": -45
+      }
+    ],
+    "defaultView": "iso"
+  },
+  "lighting": {
+    "background": "#050a10",
+    "fog": {
+      "color": "#0a1018",
+      "density": 0.012
+    },
+    "hemisphere": {
+      "sky": "#5a7aa0",
+      "ground": "#0e1216",
+      "intensity": 0.95
+    },
+    "sun": {
+      "color": "#a8c0ff",
+      "intensity": 1.25,
+      "direction": [
+        -14,
+        32,
+        16
+      ]
+    },
+    "points": [
+      {
+        "color": "#ff9a3c",
+        "x": -25.5,
+        "y": 8,
+        "z": -4,
+        "intensity": 130,
+        "distance": 42
+      },
+      {
+        "color": "#ff9a3c",
+        "x": 25.5,
+        "y": 8,
+        "z": -4,
+        "intensity": 130,
+        "distance": 42
+      },
+      {
+        "color": "#ff9a3c",
+        "x": -25.5,
+        "y": 8,
+        "z": 9,
+        "intensity": 120,
+        "distance": 42
+      },
+      {
+        "color": "#ff9a3c",
+        "x": 25.5,
+        "y": 8,
+        "z": 9,
+        "intensity": 120,
+        "distance": 42
+      }
+    ],
+    "rain": true
+  },
+  "floor": "asphalt",
+  "edges": {
+    "n": {
+      "height": 3.6,
+      "kind": "warehouse",
+      "trim": null
+    },
+    "s": {
+      "height": 0.45,
+      "kind": "curb",
+      "trim": null
+    },
+    "w": {
+      "height": 2.2,
+      "kind": "fence",
+      "trim": null
+    },
+    "e": {
+      "height": 2.2,
+      "kind": "fence",
+      "trim": null
+    }
+  },
+  "solids": [
+    {
+      "kind": "containerRed",
+      "asset": "container",
+      "tint": "#b8432f",
+      "x": -14,
+      "z": -6,
+      "w": 6,
+      "d": 2.4,
+      "h": 2.6
+    },
+    {
+      "kind": "containerBlue",
+      "asset": "container",
+      "tint": "#2f5f9e",
+      "x": -14,
+      "z": -3.6,
+      "w": 6,
+      "d": 2.4,
+      "h": 2.6
+    },
+    {
+      "kind": "containerGreen",
+      "asset": "container",
+      "tint": "#3d7a45",
+      "x": 0,
+      "z": -7.5,
+      "w": 2.4,
+      "d": 6,
+      "h": 2.6
+    },
+    {
+      "kind": "containerOrange",
+      "asset": "container",
+      "tint": "#d7832b",
+      "x": 13,
+      "z": -5,
+      "w": 6,
+      "d": 2.4,
+      "h": 2.6
+    },
+    {
+      "kind": "containerBlue",
+      "asset": "container",
+      "tint": "#2f5f9e",
+      "x": -6,
+      "z": 5,
+      "w": 6,
+      "d": 2.4,
+      "h": 2.6
+    },
+    {
+      "kind": "containerRed",
+      "asset": "container",
+      "tint": "#b8432f",
+      "x": 9,
+      "z": 6,
+      "w": 2.4,
+      "d": 6,
+      "h": 2.6
+    },
+    {
+      "kind": "containerGreen",
+      "asset": "container",
+      "tint": "#3d7a45",
+      "x": 18.5,
+      "z": 8,
+      "w": 6,
+      "d": 2.4,
+      "h": 2.6
+    },
+    {
+      "kind": "crate",
+      "asset": "crate",
+      "x": -19,
+      "z": 10,
+      "w": 1.6,
+      "d": 1.6,
+      "h": 1.3
+    },
+    {
+      "kind": "crate",
+      "asset": "crate",
+      "x": 5,
+      "z": -1.5,
+      "w": 1.4,
+      "d": 1.4,
+      "h": 1.2
+    },
+    {
+      "kind": "crate",
+      "asset": "crate",
+      "x": -4,
+      "z": -1.5,
+      "w": 1.4,
+      "d": 1.4,
+      "h": 1.2
+    },
+    {
+      "kind": "crate",
+      "asset": "crate",
+      "x": 20,
+      "z": -9,
+      "w": 1.6,
+      "d": 1.6,
+      "h": 1.4
+    },
+    {
+      "kind": "crate",
+      "asset": "crate",
+      "x": -21,
+      "z": -11,
+      "w": 1.6,
+      "d": 1.6,
+      "h": 1.4
+    },
+    {
+      "kind": "forklift",
+      "asset": "forklift",
+      "x": -8,
+      "z": -11,
+      "w": 1.6,
+      "d": 2.6,
+      "h": 1.5
+    },
+    {
+      "kind": "hut",
+      "asset": "guardhut",
+      "x": 21,
+      "z": -1.5,
+      "w": 2.4,
+      "d": 2.4,
+      "h": 2.4
+    }
+  ],
+  "glass": [
+    {
+      "x": 6,
+      "z": -3.6,
+      "w": 3.6,
+      "d": 0.25,
+      "h": 1.9
+    },
+    {
+      "x": -21.6,
+      "z": 4.5,
+      "w": 0.25,
+      "d": 3.4,
+      "h": 1.9
+    }
+  ],
+  "barrels": [
+    {
+      "asset": "gas",
+      "x": 4.5,
+      "z": -12
+    },
+    {
+      "asset": "gas",
+      "x": -21.5,
+      "z": -4
+    },
+    {
+      "asset": "gas",
+      "x": 21.5,
+      "z": 3
+    },
+    {
+      "asset": "gas",
+      "x": -1,
+      "z": 11.5
+    },
+    {
+      "asset": "barrel",
+      "x": -11,
+      "z": 1.5
+    },
+    {
+      "asset": "barrel",
+      "x": 13.5,
+      "z": -8.5
+    },
+    {
+      "asset": "barrel",
+      "x": 3,
+      "z": 3.5
+    },
+    {
+      "asset": "barrel",
+      "x": -16,
+      "z": 12.5
+    },
+    {
+      "asset": "barrel",
+      "x": 15,
+      "z": 12
+    }
+  ],
+  "pans": [
+    {
+      "asset": "pan",
+      "x": -4,
+      "z": -12.5
+    },
+    {
+      "asset": "pan",
+      "x": 7,
+      "z": 1.5
+    },
+    {
+      "asset": "pan",
+      "x": -12,
+      "z": 9
+    },
+    {
+      "asset": "pan",
+      "x": 17,
+      "z": -11
+    },
+    {
+      "asset": "pan",
+      "x": 3,
+      "z": 12.5
+    }
+  ],
+  "weaponPads": [
+    {
+      "x": -10,
+      "z": -0.5
+    },
+    {
+      "x": 12,
+      "z": 1.5
+    }
+  ],
+  "spawns": [
+    {
+      "x": -6,
+      "z": -14.4,
+      "ex": -6,
+      "ez": -12.2,
+      "kind": "door",
+      "door": [
+        2.4,
+        2.6
+      ]
+    },
+    {
+      "x": 8,
+      "z": -14.4,
+      "ex": 8,
+      "ez": -12.2,
+      "kind": "door",
+      "door": [
+        2.4,
+        2.6
+      ]
+    },
+    {
+      "x": -8,
+      "z": 14.4,
+      "ex": -8,
+      "ez": 12,
+      "kind": "ledge"
+    },
+    {
+      "x": 12,
+      "z": 14.4,
+      "ex": 12,
+      "ez": 12,
+      "kind": "ledge"
+    },
+    {
+      "x": -23.4,
+      "z": -8,
+      "ex": -21,
+      "ez": -8,
+      "kind": "gate"
+    },
+    {
+      "x": 23.4,
+      "z": -12,
+      "ex": 21,
+      "ez": -12,
+      "kind": "gate"
+    }
+  ]
+}
