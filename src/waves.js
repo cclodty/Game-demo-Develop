@@ -2,7 +2,6 @@
 // stairwell doors and over the roof ledges, telegraphing each spawn.
 
 import { TYPES } from './enemies.js';
-import { rand } from './utils.js';
 
 export class Waves {
   constructor(game) {
@@ -31,6 +30,7 @@ export class Waves {
   }
 
   compose(n) {
+    const rng = this.game.rng;
     const total = 3 + Math.floor(n * 1.7);
     const brutes = n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
     const weights = [
@@ -42,7 +42,7 @@ export class Waves {
     const sum = weights.reduce((a, w) => a + w[1], 0);
     const list = [];
     for (let i = 0; i < total - brutes; i++) {
-      let r = Math.random() * sum;
+      let r = rng.next() * sum;
       for (const [type, w] of weights) {
         r -= w;
         if (r <= 0) {
@@ -51,7 +51,7 @@ export class Waves {
         }
       }
     }
-    for (let b = 0; b < brutes; b++) list.splice(Math.floor(rand(list.length * 0.4, list.length)), 0, 'brute');
+    for (let b = 0; b < brutes; b++) list.splice(Math.floor(rng.range(list.length * 0.4, list.length)), 0, 'brute');
     return list;
   }
 
@@ -88,7 +88,7 @@ export class Waves {
   }
 
   pickSpawn() {
-    const { player, level } = this.game;
+    const { player, level, rng } = this.game;
     const dist = (sp) => Math.hypot(sp.ex - player.x, sp.ez - player.z);
     // Not on top of the player, but not a long walk away either (the Senado strip is 148 m long).
     let pool = level.spawns.filter((sp) => dist(sp) > 9 && dist(sp) < 45);
@@ -100,7 +100,7 @@ export class Waves {
     }
     if (!pool.length) pool = level.spawns;
     pool.sort((a, b) => a.lastUsed - b.lastUsed);
-    const choice = pool[Math.floor(Math.random() * Math.min(2, pool.length))];
+    const choice = pool[rng.int(0, Math.min(2, pool.length) - 1)];
     choice.lastUsed = this.clock;
     return choice;
   }
@@ -138,7 +138,7 @@ export class Waves {
     if (this.queue.length && this.spawnCd <= 0 && enemies.aliveCount + this.pending.length < this.maxAlive) {
       const type = this.queue.shift();
       this.pending.push({ type, sp: this.pickSpawn(), t: 0.9 });
-      this.spawnCd = rand(0.5, 1.3);
+      this.spawnCd = this.game.rng.range(0.5, 1.3);
     }
 
     if (!this.queue.length && !this.pending.length && enemies.aliveCount === 0) {

@@ -99,7 +99,7 @@ class Barrel {
   update(dt) {
     if (this.fuse >= 0) {
       this.fuse -= dt;
-      this.body.scale.setScalar(1 + Math.random() * 0.08);
+      this.body.scale.setScalar(rand(1, 1.08));
       if (this.fuse < 0) {
         this.alive = false;
         this.mesh.visible = false;
@@ -818,7 +818,10 @@ export class Level {
       s.alive = true;
       s.mesh.visible = true;
     }
-    for (const sp of this.spawns) sp.heat = 0;
+    for (const sp of this.spawns) {
+      sp.heat = 0;
+      sp.lastUsed = -99; // or a restart would pick spawns by the last run's history
+    }
     for (const pad of this.pads) pad.pickup = null;
     this.rebuildNav();
   }

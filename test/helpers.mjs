@@ -49,15 +49,25 @@ export const problems = (logs) => logs.filter((l) => !/GPU stall|SwiftShader|swi
  * and defines window.simStep(n) which plays n frames at 60 Hz — aiming at the
  * nearest enemy, wandering, using bullet time, dodging and kicking — and
  * window.stats with what happened. simStep returns false after an exception.
+ * With `seed` the bot's own choices (aim jitter, wandering) repeat exactly;
+ * without one they are random, so each test run explores a little differently.
  */
-export async function installBot(page, { map = 0, view = 2 } = {}) {
+export async function installBot(page, { map = 0, view = 2, seed = null } = {}) {
   await page.evaluate(
-    ([map, view]) => {
+    ([map, view, seed]) => {
       const g = window.game;
       g.frame = () => {};
+      g.view = view; // before startRun, so the camera starts in this view instead of easing into it
       g.startRun(map);
-      g.view = view;
+      let random = Math.random;
+      if (seed !== null) {
+        const r = new g.rng.constructor(seed);
+        random = () => r.next();
+      }
       const inp = g.input;
+      inp.mouse.x = innerWidth / 2;
+      inp.mouse.y = innerHeight / 2;
+      inp.mouse.left = inp.mouse.right = false;
       const stats = (window.stats = { kills: 0, deaths: 0, styles: {}, errors: [], enemyShots: 0, hits: 0, dmg: 0, frames: 0 });
       const kill0 = g.score.kill.bind(g.score);
       g.score.kill = (tags) => {
@@ -106,9 +116,9 @@ export async function installBot(page, { map = 0, view = 2 } = {}) {
             }
           }
           if (target) {
-            if (!target.jx || Math.random() < 0.03) {
-              target.jx = (Math.random() - 0.5) * 2.4;
-              target.jz = (Math.random() - 0.5) * 2.4;
+            if (!target.jx || random() < 0.03) {
+              target.jx = (random() - 0.5) * 2.4;
+              target.jz = (random() - 0.5) * 2.4;
             }
             const v = new g.aimPoint.constructor(target.x + target.jx, 1.35, target.z + target.jz).project(g.camera);
             inp.mouse.x = (v.x * 0.5 + 0.5) * innerWidth;
@@ -118,14 +128,14 @@ export async function installBot(page, { map = 0, view = 2 } = {}) {
           wanderT -= dt;
           if (wanderT <= 0) {
             wanderT = 0.8;
-            const a = Math.random() * 6.28;
+            const a = random() * 6.28;
             wanderX = Math.sin(a);
             wanderZ = Math.cos(a);
             if (Math.hypot(p.x - g.level.start.x, p.z - g.level.start.z) > 9) {
               wanderX = g.level.start.x - p.x;
               wanderZ = g.level.start.z - p.z;
             }
-            if (Math.random() < 0.3) wanderX = wanderZ = 0;
+            if (random() < 0.3) wanderX = wanderZ = 0;
           }
           if (wanderX > 0.3) inp.keys.add('KeyD');
           if (wanderX < -0.3) inp.keys.add('KeyA');
@@ -133,7 +143,7 @@ export async function installBot(page, { map = 0, view = 2 } = {}) {
           if (wanderZ < -0.3) inp.keys.add('KeyW');
           const aimers = g.enemies.list.filter((e) => e.aiming).length;
           if (aimers >= 2 && !g.focusActive && g.focusMeter > 0.4) inp.pressed.add('ShiftLeft');
-          if (aimers === 0 && g.focusActive && Math.random() < 0.02) inp.pressed.add('ShiftLeft');
+          if (aimers === 0 && g.focusActive && random() < 0.02) inp.pressed.add('ShiftLeft');
           if (i % 300 === 150) inp.pressed.add('Space');
           if (i % 420 === 200) inp.pressed.add('KeyF');
           if (i % 500 === 250) {
@@ -162,7 +172,7 @@ export async function installBot(page, { map = 0, view = 2 } = {}) {
         return true;
       };
     },
-    [map, view],
+    [map, view, seed],
   );
 }
 

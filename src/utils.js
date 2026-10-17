@@ -1,11 +1,15 @@
+import { vfxRng } from './rng.js';
+
 export const TAU = Math.PI * 2;
 
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export const lerp = (a, b, t) => a + (b - a) * t;
 export const damp = (a, b, lambda, dt) => lerp(a, b, 1 - Math.exp(-lambda * dt));
-export const rand = (a, b) => a + Math.random() * (b - a);
-export const randInt = (a, b) => Math.floor(a + Math.random() * (b - a + 1));
-export const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+// Effects only (particles, decals, sounds, set dressing): these draw from the
+// effects RNG. Anything that changes the game draws from game.rng (see rng.js).
+export const rand = (a, b) => vfxRng.range(a, b);
+export const randInt = (a, b) => vfxRng.int(a, b);
+export const pick = (arr) => vfxRng.pick(arr);
 export const smoothstep = (a, b, x) => {
   const t = clamp((x - a) / (b - a), 0, 1);
   return t * t * (3 - 2 * t);

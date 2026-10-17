@@ -11,7 +11,7 @@ import SENADO_DATA from './senado/data.js';
 import { buildSenado, FOUNTAIN } from './senado/model.js';
 import { SENADO, toGame } from './senado/transform.js';
 import { helipadTexture, neonSignTexture, windowTexture } from './textures.js';
-import { rand, TAU } from './utils.js';
+import { pick, rand, TAU } from './utils.js';
 
 // ------------------------------------------------------------ scenery helpers
 
@@ -60,8 +60,8 @@ function cityBackdrop(L, { facade = true, keepOut = [36, 28] } = {}) {
       const x = gx * 15 + rand(-4, 4);
       const z = gz * 15 + rand(-4, 4);
       if (Math.abs(x) < keepOut[0] && Math.abs(z) < keepOut[1]) continue;
-      if (Math.random() < 0.2) continue;
-      const tall = z < -40 && Math.random() < 0.5;
+      if (rand(0, 1) < 0.2) continue;
+      const tall = z < -40 && rand(0, 1) < 0.5;
       spots.push([x, z, rand(7, 13), rand(7, 13), tall ? rand(5, 35) : rand(-45, -6)]);
     }
   }
@@ -350,7 +350,7 @@ const club = {
         board.position.y = y - 0.2;
         shelf.mesh.add(board);
         for (let x = -shelf.w / 2 + 0.25; x < shelf.w / 2 - 0.1; x += rand(0.22, 0.4)) {
-          const b = new THREE.Mesh(bottleGeo, bottleMats[Math.floor(Math.random() * bottleMats.length)]);
+          const b = new THREE.Mesh(bottleGeo, pick(bottleMats));
           b.position.set(x, y - 0.02, rand(-0.05, 0.05));
           shelf.mesh.add(b);
         }

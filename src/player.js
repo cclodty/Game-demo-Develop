@@ -247,7 +247,7 @@ export class Player {
       tx = this.spinDirX * sp;
       tz = this.spinDirZ * sp;
       accel = 30;
-      if (Math.random() < 0.8) {
+      if (rand(0, 1) < 0.8) {
         g.fx.glow.spawn({ x: this.x + rand(-0.3, 0.3), y: rand(0.4, 1.8), z: this.z + rand(-0.3, 0.3), life: 0.3, size: rand(0.06, 0.12), r: 0.5, g: 2.6, b: 3.4 });
       }
       if (this.spinT <= 0) this.spinCd = PLAYER.spinCooldown;
@@ -258,7 +258,7 @@ export class Player {
       tx = this.slideDirX * sp;
       tz = this.slideDirZ * sp;
       accel = 40;
-      if (Math.random() < 0.6) {
+      if (rand(0, 1) < 0.6) {
         g.fx.smoke.spawn({ x: this.x - this.slideDirX * 0.4 + rand(-0.2, 0.2), y: 0.1, z: this.z - this.slideDirZ * 0.4 + rand(-0.2, 0.2), vy: 0.5, life: rand(0.3, 0.5), size: 0.22, r: 0.4, g: 0.4, b: 0.45, drag: 2, grow: 1.6 });
       }
       if (this.slideT <= 0) this.slideCd = PLAYER.slideCooldown;
@@ -433,7 +433,7 @@ export class Player {
       } else {
         const pellets = w.pellets || 1;
         for (let i = 0; i < pellets; i++) {
-          const a = pellets > 1 ? base + (i / (pellets - 1) - 0.5) * w.spread * 2 + rand(-0.03, 0.03) : base + rand(-1, 1) * w.spread;
+          const a = pellets > 1 ? base + (i / (pellets - 1) - 0.5) * w.spread * 2 + g.rng.range(-0.03, 0.03) : base + g.rng.range(-1, 1) * w.spread;
           dx = Math.sin(a);
           dz = Math.cos(a);
           g.bullets.spawn({
@@ -441,7 +441,7 @@ export class Player {
             z: origin.z,
             dx,
             dz,
-            speed: w.speed * (pellets > 1 ? rand(0.88, 1.08) : 1),
+            speed: w.speed * (pellets > 1 ? g.rng.range(0.88, 1.08) : 1),
             owner: 'player',
             damage: w.damage,
             split: s.split,

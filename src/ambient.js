@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { rand, TAU } from './utils.js';
+import { pick, rand, TAU } from './utils.js';
 
 const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
@@ -57,7 +57,7 @@ export class Pigeons {
   /** Pick a landing spot, away from the player when there is one. */
   spot(player) {
     for (let k = 0; k < 20; k++) {
-      const [x0, z0, x1, z1] = this.areas[Math.floor(Math.random() * this.areas.length)];
+      const [x0, z0, x1, z1] = pick(this.areas);
       const x = rand(x0, x1);
       const z = rand(z0, z1);
       if (!this.level.nav.isWalkable(x, z)) continue;

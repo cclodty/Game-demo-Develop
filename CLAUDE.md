@@ -60,6 +60,7 @@ src/weapons.js bullets.js    player weapon stats, drops, grenades; projectile st
 src/waves.js  pickups.js     wave composition and spawn pacing; floor weapons and pads
 src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 4 maps as data
 src/nav.js                   grid A* on 0.5 m cells
+src/rng.js                   seeded RNG: game.rng for logic (?seed=), vfxRng behind utils.js rand/pick for effects
 src/characters.js  skin.js   block rigs + weapon models; optional skinned models worn over the rig (IK hands)
 src/models.js                loads assets/models/*.glb, fits props to map boxes; src/models-index.js is generated
 src/asset-manifest.js        catalogue of every asset we want as a real model (sizes, budgets, prompts)
@@ -119,9 +120,13 @@ Conventions that matter:
    another engine would need must be exportable (see `assets/SPEC.md` §8).
 4. **No new dependencies at runtime.** The game ships as static files (and as
    one HTML file). Dev dependencies are fine; discuss first if one is large.
-5. **Determinism first.** Game logic must not read `Math.random` or wall-clock
-   time directly once the seeded RNG exists (see ROADMAP §8); visual-only
-   effects may use their own RNG.
+5. **Determinism first.** Game logic draws from `game.rng` (reseeded every
+   run; with `?seed=123` the same input plays the same run) and never reads `Math.random`
+   (eslint rejects it in `src/`) or wall-clock time. Effects use `rand` /
+   `randInt` / `pick` from `utils.js`, which draw from the separate effects
+   RNG, so they can change freely. Anything a run leaves behind must be reset
+   in `resetWorld` / `resetProps`, or a restart plays differently
+   (`test/seed.test.mjs` catches both mistakes).
 6. **Don't touch `senado/`** from game tasks; it is the developer's city-model
    project with its own tests (`npm test` runs them).
 7. **Git:** work on the branch you were given, small commits with clear

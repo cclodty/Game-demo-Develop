@@ -118,7 +118,7 @@ class Enemy {
     this.path = null;
     this.pathI = 0;
     this.repath = 0;
-    this.fireCd = rand(0.2, 0.8);
+    this.fireCd = this.game.rng.range(0.2, 0.8);
     this.aimT = 0;
     this.losLost = 0;
     this.los = false;
@@ -245,7 +245,7 @@ class Enemy {
 
   dropWeapon() {
     for (const [kind, chance] of DROPS[this.type] || []) {
-      if (Math.random() >= chance) continue;
+      if (this.game.rng.next() >= chance) continue;
       for (const m of this.rig.weaponParts) m.visible = false;
       this.game.pickups.drop(kind, this.x, this.z, this.type === 'brute' ? 1 : 0.6);
       return;
@@ -272,8 +272,8 @@ class Enemy {
     let best = null;
     let bestScore = -Infinity;
     for (let i = 0; i < 14; i++) {
-      const a = rand(0, TAU);
-      const r = rand(rmin, rmax);
+      const a = g.rng.range(0, TAU);
+      const r = g.rng.range(rmin, rmax);
       const x = p.x + Math.sin(a) * r;
       const z = p.z + Math.cos(a) * r;
       const B = g.level.bounds;
@@ -327,7 +327,7 @@ class Enemy {
     this.state = 'aim';
     this.aimT = 0;
     this.losLost = 0;
-    this.lead = rand(this.cfg.lead[0], this.cfg.lead[1]);
+    this.lead = this.game.rng.range(this.cfg.lead[0], this.cfg.lead[1]);
     const a = this.aimPoint();
     this.aimAngle = turnTowards(this.facing, angleTo(this.x, this.z, a.x, a.z), 0.6);
     this.game.audio.aimWarn(this.game.panFor(this.x));
@@ -335,19 +335,20 @@ class Enemy {
 
   shoot() {
     const g = this.game;
+    const rng = g.rng;
     const w = WEAPONS[this.cfg.weapon];
     const m = this.muzzle();
     const ox = this.x + Math.sin(this.aimAngle) * 0.35;
     const oz = this.z + Math.cos(this.aimAngle) * 0.35;
     for (let i = 0; i < w.pellets; i++) {
       const a =
-        w.pellets > 1 ? this.aimAngle + (i / (w.pellets - 1) - 0.5) * w.spread * 2 + rand(-0.03, 0.03) : this.aimAngle + rand(-w.spread, w.spread);
+        w.pellets > 1 ? this.aimAngle + (i / (w.pellets - 1) - 0.5) * w.spread * 2 + rng.range(-0.03, 0.03) : this.aimAngle + rng.range(-w.spread, w.spread);
       g.bullets.spawn({
         x: ox,
         z: oz,
         dx: Math.sin(a),
         dz: Math.cos(a),
-        speed: w.speed * rand(0.95, 1.05),
+        speed: w.speed * rng.range(0.95, 1.05),
         owner: 'enemy',
         damage: w.dmg,
         range: w.range || 70,
@@ -436,7 +437,7 @@ class Enemy {
           }
           this.repath -= dt;
           if (this.repath <= 0 || !this.path || this.pathI >= this.path.length) {
-            this.repath = rand(1.4, 2.6);
+            this.repath = g.rng.range(1.4, 2.6);
             const goal = this.pickGoal();
             this.path = g.level.nav.findPath(this.x, this.z, goal.x, goal.z);
             this.pathI = 0;
@@ -486,7 +487,7 @@ class Enemy {
             this.endAim();
             this.state = 'recover';
             this.timer = 0.35;
-            this.fireCd = rand(cfg.cooldown[0], cfg.cooldown[1]);
+            this.fireCd = g.rng.range(cfg.cooldown[0], cfg.cooldown[1]);
           }
           break;
         }
