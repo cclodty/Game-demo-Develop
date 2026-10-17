@@ -30,12 +30,12 @@ function script(n, seed) {
 
 test('every step reads back exactly as it was recorded, with the header', () => {
   const steps = script(20000, 5);
-  const rec = new InputRecord({ seed: 123, map: 3, mode: 1, hz: 120 });
+  const rec = new InputRecord({ seed: 123, map: 3, mode: 1, warmup: true, hz: 120 });
   for (const s of steps) rec.push(Object.assign(new StepInput(), s));
   const bytes = rec.encode();
   assert.equal(bytes.length, rec.size);
   const rd = new RecordReader(bytes);
-  assert.deepEqual([rd.seed, rd.map, rd.mode, rd.hz, rd.steps], [123, 3, 1, 120, steps.length]);
+  assert.deepEqual([rd.seed, rd.map, rd.mode, rd.warmup, rd.hz, rd.steps], [123, 3, 1, true, 120, steps.length]);
   for (let i = 0; i < steps.length; i++) {
     const c = rd.next(10, -4);
     const s = steps[i];

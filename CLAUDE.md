@@ -68,6 +68,7 @@ src/asset-manifest.js        catalogue of every asset we want as a real model (s
 src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
 src/ambient.js               pigeons
+src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
 src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export
 src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions
 src/senado/                  Largo do Senado data and model code extracted from the senado/ sub-project
@@ -174,6 +175,9 @@ merges `<id>@clip.glb` animations, writes `assets/models/` and
   frame: two logic steps); keep those entry points stable or update
   `test/helpers.mjs` with them. `game.feed` hands steps recorded input instead
   of the keyboard (`test/fixedstep.test.mjs`).
+- The first run in a fresh browser opens with the warm-up (`tutorial.js`). The
+  test harness marks it as seen before every page load unless the query
+  mentions `tutorial` (`?tutorial=1` forces it, `?tutorial=0` is a first visit).
 - `index.html` has `<div id="game">`, so `window.game` is that element until
   `main.js` assigns the real `Game` (after the optional models load). Check
   for `window.game.startRun` before using it.

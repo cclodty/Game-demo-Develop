@@ -20,6 +20,7 @@ import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
 import { rate, Score } from './score.js';
 import { Style } from './style.js';
 import { Thrown } from './thrown.js';
+import { Tutorial, wantWarmup } from './tutorial.js';
 import { clamp, damp, lerp } from './utils.js';
 import { MODE_IDS, MODES, Waves } from './waves.js';
 import { Grenades } from './weapons.js';
@@ -105,6 +106,7 @@ class Game {
     this.grenades = new Grenades(this);
     this.pickups = new Pickups(this);
     this.thrown = new Thrown(this);
+    this.tutorial = new Tutorial(this);
     this.enemies = new Enemies(this);
     this.player = new Player(this);
     this.score = new Score(this);
@@ -225,6 +227,7 @@ class Game {
     }
     addEventListener('keydown', (e) => {
       if (isTyping(e.target)) return; // the note box handles its own keys
+      if (e.code === 'Escape' && this.state === 'playing' && this.tutorial.active) return; // Esc skips the warm-up (a recorded control) instead of pausing
       if (e.code === 'Escape' || e.code === 'KeyP') {
         if (this.notes.noteOpen) this.notes.cancelNote();
         else if (this.state === 'playing') this.setPaused(true);
@@ -286,13 +289,19 @@ class Game {
       /* storage unavailable */
     }
     this.rng.reset(this.fixedSeed ?? randomSeed());
-    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), hz: LOGIC_HZ });
+    // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
+    const warmup = this.fixedWarmup ?? wantWarmup();
+    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, hz: LOGIC_HZ });
     this.resetWorld(MAPS[mapIndex]);
     this.score.useBest(this.mode);
     this.score.reset();
     this.waves.reset();
     this.hud.reset();
     this.notes.reset(MAPS[mapIndex]);
+    if (warmup) {
+      this.waves.startWarmup();
+      this.tutorial.start();
+    }
     this.state = 'playing';
     $('title').classList.add('hidden');
     $('gameover').classList.add('hidden');
@@ -323,6 +332,7 @@ class Game {
   /** Clear everything a run leaves behind and stand the player at the map's start. */
   resetWorld(map) {
     this.stage = 0;
+    this.tutorial.stop();
     this.transition = null;
     $('fade').classList.remove('on');
     this.enemies.clear();
@@ -812,6 +822,7 @@ class Game {
     this.grenades.update(dt);
     this.thrown.update(dt);
     this.pickups.update(dt, h, cmd);
+    this.tutorial.update(h);
     this.waves.update(dt, h);
     this.score.update(dt, h);
     if (this.clearT > 0) {

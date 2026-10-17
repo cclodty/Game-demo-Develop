@@ -266,6 +266,7 @@ class Enemy {
   }
 
   pickGoal() {
+    if (this.sp.stay) return { x: this.sp.ex, z: this.sp.ez }; // a warm-up enemy keeps its post
     const g = this.game;
     const p = g.player;
     const [rmin, rmax] = this.cfg.range;
@@ -702,6 +703,15 @@ export class Enemies {
     const e = new Enemy(this, type, sp);
     this.list.push(e);
     return e;
+  }
+
+  /** Take a live enemy away without a death (the warm-up ending early). */
+  remove(e) {
+    e.endAim();
+    e.alive = false;
+    this.list = this.list.filter((x) => x !== e);
+    this.game.fx.ring(e.x, e.z, 1.2, 0.4, 0xff3355, 2);
+    e.dispose();
   }
 
   clear() {

@@ -32,6 +32,7 @@ export class HUD {
       rank: $('rank'),
       rankLetter: $('rank-letter'),
       rankFill: $('rank-fill'),
+      tutorial: $('tutorial'),
       comboMult: $('combo-mult'),
       comboFill: $('combo-fill'),
       wave: $('wave-label'),
@@ -152,13 +153,18 @@ export class HUD {
     });
     this.set('rankFill', Math.round(rank.progress * 50) / 50, (v) => (e.rankFill.style.width = `${v * 100}%`));
 
+    this.set('tutorial', g.tutorial.hint, (v) => {
+      if (v) e.tutorial.innerHTML = v;
+      e.tutorial.classList.toggle('show', !!v);
+    });
+
     const last = g.waves.rules.waves; // arcade runs show how far there is to go
     const waveLabel = g.waves.wave > 0 ? `WAVE ${g.waves.wave}${Number.isFinite(last) ? ` / ${last}` : ''}` : '';
     this.set('wave', waveLabel, (v) => (e.wave.textContent = v));
     const wv = g.waves;
     const where = g.level.map.name;
     const sub =
-      wv.state === 'active' ? `剩餘敵人 ${wv.remaining} · ${where}` : wv.state === 'done' ? `全部 ${wv.wave} 波清空 · ${where}` : wv.wave > 0 ? `下一波準備中… · ${where}` : `準備… · ${where}`;
+      wv.state === 'warmup' ? `熱身 · ${where}` : wv.state === 'active' ? `剩餘敵人 ${wv.remaining} · ${where}` : wv.state === 'done' ? `全部 ${wv.wave} 波清空 · ${where}` : wv.wave > 0 ? `下一波準備中… · ${where}` : `準備… · ${where}`;
     this.set('waveSub', sub, (v) => (e.waveSub.textContent = v));
 
     const m = g.input.mouse;

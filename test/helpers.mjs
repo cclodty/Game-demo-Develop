@@ -27,6 +27,8 @@ export async function gameHarness() {
         if (m.type() === 'error' || m.type() === 'warning') logs.push(`[${m.type()}] ${m.text()}`);
       });
       page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}\n${e.stack}`));
+      // every test starts at wave 1 as if the warm-up had been seen, unless it asks about the warm-up (?tutorial=…)
+      if (!query.includes('tutorial')) await page.addInitScript(() => localStorage.setItem('bullet-ballet.tutorial', 'done'));
       await page.goto(`${server.url}/index.html${query}`);
       // index.html has <div id="game">, so window.game is that element until main.js
       // assigns the real Game (after the optional models load) — wait for the object.

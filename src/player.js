@@ -540,6 +540,7 @@ export class Player {
     this.vz += dz * 4;
     g.fx.blood(this.x, 1.2, this.z, dx, dz, 10);
     g.onPlayerHurt(dmg, source || (explosion ? '爆炸' : '子彈'));
+    if (this.hp <= 0 && g.tutorial.active) this.hp = 1; // the warm-up teaches; it does not end runs
     if (this.hp <= 0) this.die(dx, dz);
     return true;
   }

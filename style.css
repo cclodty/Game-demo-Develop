@@ -366,6 +366,32 @@ body.playing * {
   transform-origin: right center;
 }
 
+/* the warm-up's hint for its current step */
+#tutorial {
+  position: absolute;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  padding: 10px 22px;
+  border-left: 3px solid var(--gold);
+  background: rgba(10, 8, 22, 0.78);
+  color: var(--ink);
+  font-size: 18px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+
+#tutorial.show {
+  opacity: 1;
+}
+
+#tutorial b {
+  color: var(--gold);
+}
+
 #feed {
   position: absolute;
   right: 22px;

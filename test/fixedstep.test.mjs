@@ -44,6 +44,7 @@ function replay(bytes, dt) {
       const { MODE_IDS } = await import('/src/waves.js');
       const rd = new RecordReader(Uint8Array.from(bytes));
       g.fixedSeed = rd.seed;
+      g.fixedWarmup = rd.warmup;
       g.setMode(MODE_IDS[rd.mode]);
       g.startRun(rd.map);
       g.feed = (game) => rd.next(game.player.x, game.player.z);

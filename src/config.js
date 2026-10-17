@@ -78,6 +78,14 @@ export const RANK = {
   drain: 0.5,
 };
 
+/** The 60-second warm-up on a first run (src/tutorial.js). */
+export const WARMUP = {
+  limit: 60, // real seconds before it ends anyway and wave 1 starts
+  front: 8, // metres in front of the player for the first enemy
+  behindPan: 3.5, // metres beyond the nearest pan, seen from the player, for the second
+  besideBarrel: 1.6, // metres beyond the nearest barrel for the third: inside its blast
+};
+
 /**
  * The grade at the end of an arcade run (S, A, B, C, D). Three parts add up
  * to 100 points: the run's Style score against a par, the waves cleared

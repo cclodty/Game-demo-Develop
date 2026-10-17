@@ -24,7 +24,7 @@ export class Waves {
     this.wave = 0;
     this.queue = [];
     this.pending = [];
-    this.state = 'intermission'; // then 'active', 'transition', and 'done' once an arcade run is cleared
+    this.state = 'intermission'; // then 'active', 'transition', and 'done' once an arcade run is cleared; 'warmup' before wave 1 of a first run
     this.timer = 2.4;
     this.maxAlive = 3;
     this.spawnCd = 0;
@@ -133,8 +133,19 @@ export class Waves {
     return choice;
   }
 
+  /** The first run's warm-up holds wave 1 back until endWarmup(). */
+  startWarmup() {
+    this.state = 'warmup';
+  }
+
+  endWarmup() {
+    this.state = 'intermission';
+    this.timer = 1.5;
+  }
+
   update(dt, realDt) {
     this.clock += dt;
+    if (this.state === 'warmup') return;
     if (this.state === 'intermission') {
       this.timer -= realDt;
       if (this.timer <= 0 && this.game.player.alive) {
