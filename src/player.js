@@ -102,7 +102,7 @@ export class Player {
   // ------------------------------------------------------------ weapons
 
   equip(slot) {
-    if (slot === 'special' && !this.special) return;
+    if (slot === 'special' && (!this.special || this.special.empty)) return;
     if (slot === this.slot && this.rig.model === this.weapon.model) return;
     this.slot = slot;
     this.reloadT = 0;
@@ -118,8 +118,9 @@ export class Player {
     this.game.notes.log(`拿起 ${w.name}${replace ? '（交換）' : ''}`);
     if (this.special && this.special.id === kind && !replace) {
       this.special.ammo = Math.min(this.special.ammo + ammo, w.ammo * 2);
+      this.special.empty = false;
     } else {
-      this.special = { id: kind, ammo };
+      this.special = { id: kind, ammo, empty: false };
     }
     this.slot = 'pistols';
     this.equip('special');
@@ -185,7 +186,7 @@ export class Player {
     // --- weapon switching
     if (input.hit('Digit1')) this.equip('pistols');
     else if (input.hit('Digit2')) this.equip('special');
-    else if (input.wheel && this.special) this.equip(this.slot === 'pistols' ? 'special' : 'pistols');
+    else if (input.wheel && this.special && !this.special.empty) this.equip(this.slot === 'pistols' ? 'special' : 'pistols');
     const w = this.weapon;
 
     // --- movement (camera never rotates, so WASD maps to world axes)
@@ -301,7 +302,11 @@ export class Player {
     } else if (input.hit('KeyR') && this.slot === 'pistols' && this.ammo < PLAYER_WEAPONS.pistols.mag) {
       this.startReload();
     }
-    if (input.mouse.left && this.fireCd <= 0) {
+    // --- carry / throw (G); a carried thing is thrown with G or the left button
+    if (input.hit('KeyG')) g.thrown.action();
+    const carrying = !!g.thrown.carry;
+    if (carrying && input.mouse.leftPressed) g.thrown.throwCarried();
+    if (input.mouse.left && this.fireCd <= 0 && !carrying) {
       if (this.slot === 'pistols' && this.reloadT > 0) {
         if (input.mouse.leftPressed) g.audio.empty();
       } else if (this.slot === 'pistols' && this.ammo <= 0) {
@@ -326,7 +331,7 @@ export class Player {
     const g = this.game;
     const R = PLAYER.radius;
     for (const p of g.level.props) {
-      if (!p.alive) continue;
+      if (!p.alive || p.carried) continue;
       const dx = p.x - this.x;
       const dz = p.z - this.z;
       const rr = R + p.r;
@@ -475,9 +480,9 @@ export class Player {
     if (this.slot === 'pistols') {
       if (this.ammo <= 0) this.startReload();
     } else if (this.special.ammo <= 0) {
-      this.special = null;
+      this.special.empty = true; // kept in slot 2 so G can throw it
       this.equip('pistols');
-      g.hud.toast('彈藥用盡 <small>OUT OF AMMO</small>');
+      g.hud.toast('彈藥用盡 <small>OUT OF AMMO · G 擲出</small>');
     }
   }
 
@@ -611,6 +616,9 @@ export class Player {
       r.armL.rotation.y = pose.ly;
     }
     r.armR.rotation.y = pose.ry;
+    const carrying = !!(this.game.thrown && this.game.thrown.carry);
+    r.armL.rotation.x = carrying ? -2.7 : pose.lx;
+    r.armR.rotation.x = carrying ? -2.7 : pose.rx;
     if (r.hold === 'dual') {
       r.armL.position.z = -this.recoilL * 0.14;
       r.armR.position.z = -this.recoilR * 0.14;

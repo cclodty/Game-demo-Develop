@@ -58,7 +58,7 @@
   - [ ] npm run lint && npm test && npm run test:game 通過
 - 這次不做：飛撲、滑鏟踢人、滑鏟穿過盾牌手（盾牌手還沒有）
 
-### 擲物與擲槍（估計：一天）
+### ✅ 擲物與擲槍（估計：一天）— 2026-10-17 完成
 - 目標：按 G 拿起平底鑊或油桶舉過頭，再按 G 或左鍵擲向游標；特殊武器打空後按 G 把空槍丟向敵人擊暈。擲出的平底鑊在空中被子彈打中，子彈散射到附近三個敵人（SCATTER）
 - 涉及：新 `src/thrown.js`、`src/level.js`（道具的 carried／thrown 狀態與高度）、`src/player.js`（空槍保留在第二格、G 鍵）、`src/bullets.js`（空中平底鑊散射）、`src/enemies.js`（擊暈原因 throw、kick 的傷害參數）、`src/hud.js`（G 提示）、`src/main.js`（標籤）
 - 驗收：

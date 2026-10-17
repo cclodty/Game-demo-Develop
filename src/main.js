@@ -15,6 +15,7 @@ import { Pickups } from './pickups.js';
 import { Player } from './player.js';
 import { PostFX } from './postfx.js';
 import { Score } from './score.js';
+import { Thrown } from './thrown.js';
 import { clamp, damp, lerp } from './utils.js';
 import { Waves } from './waves.js';
 import { Grenades } from './weapons.js';
@@ -68,6 +69,7 @@ class Game {
     this.bullets = new Bullets(this);
     this.grenades = new Grenades(this);
     this.pickups = new Pickups(this);
+    this.thrown = new Thrown(this);
     this.enemies = new Enemies(this);
     this.player = new Player(this);
     this.score = new Score(this);
@@ -257,6 +259,7 @@ class Game {
     this.bullets.clear();
     this.grenades.clear();
     this.pickups.clear();
+    this.thrown.clear();
     this.fx.clear();
     if (this.level.map !== map) {
       this.level.load(map);
@@ -323,6 +326,7 @@ class Game {
       this.bullets.clear();
       this.grenades.clear();
       this.pickups.clear();
+      this.thrown.clear();
       this.fx.clear();
       this.level.load(this.stageMap);
       this.notes.log(`轉場 → ${this.stageMap.name}`);
@@ -436,7 +440,10 @@ class Game {
     if (p.alive && p.sliding) tags.push({ label: 'SLIDE KILL', pts: 100, cls: 'cyan' });
     if (info.juggle) tags.push({ label: 'JUGGLE', pts: 120, cls: 'gold' });
     if (info.split) tags.push({ label: 'SPLIT AIM', pts: 100, cls: 'pink' });
-    if (info.ricochet) {
+    if (info.bullet && info.bullet.scatter) {
+      tags.push({ label: 'SCATTER', pts: 150, cls: 'gold' });
+      refill += 0.08;
+    } else if (info.ricochet) {
       tags.push({ label: 'RICOCHET', pts: 200, cls: 'gold' });
       refill += 0.08;
     }
@@ -637,6 +644,7 @@ class Game {
     this.level.updateProps(dt);
     this.bullets.update(dt);
     this.grenades.update(dt);
+    this.thrown.update(dt);
     this.pickups.update(dt, realDt, input);
     this.fx.update(dt);
     this.waves.update(dt, realDt);

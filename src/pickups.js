@@ -108,7 +108,8 @@ export class Pickups {
       if (!player.alive) continue;
       const d = Math.hypot(q.x - player.x, q.z - player.z);
       if (d > 1.15) continue;
-      if (!player.special || player.special.id === q.kind) {
+      // nothing in slot 2, an emptied gun there, or more ammo for the same gun: just take it
+      if (!player.special || player.special.empty || player.special.id === q.kind) {
         player.giveWeapon(q.kind, q.ammo);
         this.remove(q);
         continue;

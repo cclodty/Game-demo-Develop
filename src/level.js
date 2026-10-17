@@ -73,6 +73,10 @@ class Barrel {
     this.vx = this.vz = 0;
     this.hp = this.maxHp;
     this.fuse = -1;
+    this.y = 0;
+    this.vy = 0;
+    this.carried = false;
+    this.thrown = false;
     this.alive = true;
     this.mesh.visible = true;
     this.body.scale.setScalar(1);
@@ -103,7 +107,20 @@ class Barrel {
         return;
       }
     }
-    this.mesh.position.set(this.x, 0, this.z);
+    if (this.carried) return;
+    if (this.y > 0 || this.vy !== 0) {
+      this.vy -= 22 * dt;
+      this.y += this.vy * dt;
+      if (this.y <= 0) {
+        this.y = 0;
+        this.vy = 0;
+        if (this.thrown) {
+          this.thrown = false;
+          this.ignite(0.02); // a thrown barrel is a bomb
+        }
+      }
+    }
+    this.mesh.position.set(this.x, this.y, this.z);
   }
 }
 
@@ -111,6 +128,7 @@ class Pan {
   constructor(level, x, z, variant = 'pan') {
     this.level = level;
     this.kind = 'pan';
+    this.variant = variant;
     this.home = [x, z];
     this.r = 0.46;
     const g = new THREE.Group();
@@ -153,6 +171,8 @@ class Pan {
     this.angle = rand(0, TAU);
     this.spin = 0;
     this.alive = true;
+    this.carried = false; // held over the player's head (see thrown.js)
+    this.thrown = false; // in flight after a throw
   }
 
   hit(dx, dz, power) {
@@ -163,11 +183,13 @@ class Pan {
   }
 
   update(dt, time) {
+    if (this.carried) return;
     this.vy -= 22 * dt;
     this.y += this.vy * dt;
     if (this.y < 0.05) {
       this.y = 0.05;
       this.vy = this.vy < -3 ? -this.vy * 0.35 : 0;
+      if (this.vy === 0) this.thrown = false;
     }
     this.angle += this.spin * dt;
     this.spin *= Math.exp(-2 * dt);
@@ -763,7 +785,7 @@ export class Level {
     let best = null;
     let bt = Infinity;
     for (const p of this.props) {
-      if (!p.alive || p === ignore || (skip && skip.length && skip.includes(p))) continue;
+      if (!p.alive || p.carried || p === ignore || (skip && skip.length && skip.includes(p))) continue;
       const t = segCircle(x0, z0, x1, z1, p.x, p.z, p.r);
       if (t >= 0 && t < bt) {
         bt = t;
@@ -807,10 +829,11 @@ export class Level {
     this.time += dt;
     const props = this.props;
     for (const p of props) {
-      if (!p.alive) continue;
+      if (!p.alive || p.carried) continue;
       p.x += p.vx * dt;
       p.z += p.vz * dt;
-      const fr = Math.exp(-(p.kind === 'pan' ? 2.2 : 3.2) * dt);
+      // nothing slows a thing that is in the air
+      const fr = (p.y || 0) > 0.1 ? 1 : Math.exp(-(p.kind === 'pan' ? 2.2 : 3.2) * dt);
       p.vx *= fr;
       p.vz *= fr;
       const ox = p.x;
@@ -832,10 +855,10 @@ export class Level {
     }
     for (let i = 0; i < props.length; i++) {
       const a = props[i];
-      if (!a.alive) continue;
+      if (!a.alive || a.carried) continue;
       for (let j = i + 1; j < props.length; j++) {
         const b = props[j];
-        if (!b.alive) continue;
+        if (!b.alive || b.carried) continue;
         const dx = b.x - a.x;
         const dz = b.z - a.z;
         const rr = a.r + b.r;

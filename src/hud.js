@@ -97,15 +97,17 @@ export class HUD {
       e.weaponName.innerHTML = `${w.name} <small>${w.en}</small>`;
       e.weaponName.classList.toggle('special', w.id !== 'pistols');
     });
-    this.set('slots', `${p.slot}|${p.special ? p.special.id : ''}`, () => {
+    this.set('slots', `${p.slot}|${p.special ? p.special.id : ''}|${p.special && p.special.empty ? 'e' : ''}`, () => {
       const sp = p.special ? PLAYER_WEAPONS[p.special.id] : null;
+      const empty = p.special && p.special.empty;
       e.slots.innerHTML =
         `<span class="slot ${p.slot === 'pistols' ? 'on' : ''}"><b>1</b>雙槍</span>` +
-        (sp ? `<span class="slot ${p.slot === 'special' ? 'on' : ''}"><b>2</b>${sp.name}</span>` : '<span class="slot empty"><b>2</b>—</span>');
+        (sp ? `<span class="slot ${p.slot === 'special' ? 'on' : ''} ${empty ? 'empty' : ''}"><b>2</b>${sp.name}${empty ? '（空）' : ''}</span>` : '<span class="slot empty"><b>2</b>—</span>');
     });
     const q = g.pickups.prompt;
-    this.set('prompt', q ? q.kind : '', (v) => {
-      e.prompt.innerHTML = v ? `<b>E</b> 交換為 ${PLAYER_WEAPONS[v].name}` : '';
+    const t = g.thrown.prompt;
+    this.set('prompt', q ? `e:${q.kind}` : t ? `t:${t}` : '', (v) => {
+      e.prompt.innerHTML = q ? `<b>E</b> 交換為 ${PLAYER_WEAPONS[q.kind].name}` : t || '';
       e.prompt.classList.toggle('show', !!v);
     });
     this.set('reload', reloading ? Math.round(p.reloadProgress * 50) / 50 : 0, (v) => {

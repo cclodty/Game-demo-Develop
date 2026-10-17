@@ -26,6 +26,8 @@ export const PLAYER = {
   slideCooldown: 0.5,
   slideSpeedMul: 1.6, // launch speed relative to run speed, decaying over the slide
   slideMinSpeed: 3, // m/s needed to start a slide
+  throwReach: 1.6, // metres: G picks up a pan or barrel this close
+  throwRange: 8, // metres a carried thing is thrown, at most
   kickRange: 2.1,
   kickArc: 1.25, // radians, total cone is twice this
   kickCooldown: 0.45,

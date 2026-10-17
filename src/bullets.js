@@ -89,6 +89,7 @@ export class Bullets {
     b.knock = o.knock || 1;
     b.weapon = o.weapon || null;
     b.spinShot = !!o.spinShot;
+    b.scatter = false;
     b.kills = 0;
     b.hits = [];
     b.trailLen = 0;
@@ -249,7 +250,8 @@ export class Bullets {
         } else b.alive = false;
         return;
       case 'pan':
-        this.ricochet(b, hit.prop);
+        if (b.owner === 'player' && hit.prop.y > 0.6) this.scatter(b, hit.prop);
+        else this.ricochet(b, hit.prop);
         return;
       case 'enemy':
         hit.enemy.hit(b);
@@ -309,6 +311,39 @@ export class Bullets {
     game.fx.sparks(b.x, GUN_Y, b.z, b.dx, b.dz, 12, [3, 6, 8], 10, 0.9);
     game.fx.flash(b.x, GUN_Y, b.z, 0x88ddff, 30, 0.25, 7);
     game.audio.ricochet(game.panFor(b.x));
+  }
+
+  /**
+   * A player bullet meets a pan in the air (thrown or kicked up): it becomes
+   * three, one at each of the nearest visible enemies, fanning out where
+   * there are fewer than three to aim at.
+   */
+  scatter(b, panProp) {
+    const game = this.game;
+    panProp.hit(b.dx, b.dz, 1.2);
+    const dirs = game.enemies.nearestVisibleN(b.x, b.z, 32, 3).map((e) => [e.x - b.x, e.z - b.z]);
+    const base = Math.atan2(b.dx, b.dz);
+    for (let k = dirs.length; k < 3; k++) {
+      const a = base + (k - 1) * 0.45;
+      dirs.push([Math.sin(a), Math.cos(a)]);
+    }
+    dirs.forEach(([nx, nz], k) => {
+      const l = Math.hypot(nx, nz) || 1;
+      const t = k === 0 ? b : this.spawn({ x: b.x, z: b.z, dx: nx / l, dz: nz / l, speed: b.speed, owner: 'player', damage: b.damage, weapon: b.weapon, knock: b.knock, range: 40 });
+      t.dx = nx / l;
+      t.dz = nz / l;
+      t.ignore = panProp;
+      t.trailLen = 0;
+      if (t === b) t.range = b.traveled + 40;
+      t.ricochet = true;
+      t.scatter = true;
+      t.speed = Math.max(t.speed, 70);
+      this.setLook(t, 'ricochet');
+    });
+    game.fx.sparks(b.x, GUN_Y, b.z, b.dx, b.dz, 18, [3, 6, 8], 11, 1.4);
+    game.fx.flash(b.x, GUN_Y, b.z, 0x88ddff, 40, 0.3, 8);
+    game.audio.ricochet(game.panFor(b.x));
+    game.hitstop(0.04);
   }
 
   checkCloseCall(b, sx, sz) {

@@ -179,7 +179,7 @@ class Enemy {
         ricochet: b.ricochet,
         bullet: b,
         knock,
-        juggle: this.stunT > 0 && this.stunCause === 'kick', // shot while still flying from the player's kick
+        juggle: this.stunT > 0 && (this.stunCause === 'kick' || this.stunCause === 'throw'), // shot while still flying from the player's kick or throw
       });
       return;
     }
@@ -187,7 +187,7 @@ class Enemy {
     if (!this.cfg.heavy && this.state === 'aim') this.aimT = Math.max(0, this.aimT - 0.22);
   }
 
-  kick(dx, dz, power, cause = 'kick') {
+  kick(dx, dz, power, cause = 'kick', dmg = 1) {
     if (!this.alive) return;
     const heavy = this.cfg.heavy;
     this.stunT = heavy ? 0.35 : 0.85;
@@ -198,7 +198,7 @@ class Enemy {
     this.endAim();
     if (this.state !== 'enter') this.state = this.cfg.weapon === 'blade' ? 'chase' : 'move';
     this.repath = 0;
-    this.hp -= 1;
+    this.hp -= dmg;
     this.flash = 1;
     this.game.fx.blood(this.x, 1.2, this.z, dx, dz, 5);
     if (this.hp <= 0) this.die(dx, dz, { cause });
@@ -593,7 +593,7 @@ class Enemy {
 
   pushProps() {
     for (const p of this.game.level.props) {
-      if (!p.alive) continue;
+      if (!p.alive || p.carried) continue;
       const dx = p.x - this.x;
       const dz = p.z - this.z;
       const rr = this.radius + p.r;
@@ -604,8 +604,8 @@ class Enemy {
       p.x += (dx / d) * push;
       p.z += (dz / d) * push;
       const sp = Math.hypot(p.vx, p.vz);
-      if (sp > 6 && this.stunT <= 0) {
-        // a kicked barrel or pan bowls the enemy over
+      if (sp > 6 && this.stunT <= 0 && !p.thrown) {
+        // a kicked barrel or pan bowls the enemy over (a thrown one is thrown.js's business)
         this.kick(p.vx / sp, p.vz / sp, sp * 0.6, 'strike');
         p.vx *= 0.3;
         p.vz *= 0.3;
@@ -738,6 +738,18 @@ export class Enemies {
       }
     }
     return best;
+  }
+
+  /** Up to n alive, visible enemies within maxD, nearest first. */
+  nearestVisibleN(x, z, maxD, n) {
+    const out = [];
+    for (const e of this.list) {
+      if (!e.alive || e.spawnLock > 0) continue;
+      const d = (e.x - x) ** 2 + (e.z - z) ** 2;
+      if (d < maxD * maxD && this.game.level.hasLOS(x, z, e.x, e.z)) out.push({ e, d });
+    }
+    out.sort((a, b) => a.d - b.d);
+    return out.slice(0, n).map((o) => o.e);
   }
 
   nearestVisible(x, z, maxD) {

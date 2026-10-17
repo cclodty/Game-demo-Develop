@@ -303,6 +303,12 @@ export class AudioSys {
     this.noise({ type: 'bandpass', freq: 500 * p, freqEnd: 2600 * p, q: 1.6, dur: 0.35 / p, vol: 0.22, attack: 0.04 });
   }
 
+  toss() {
+    if (!this.ready) return;
+    const p = this.pitch;
+    this.noise({ type: 'bandpass', freq: 400 * p, freqEnd: 1900 * p, q: 1.4, dur: 0.26 / p, vol: 0.18, attack: 0.02 });
+  }
+
   slide() {
     if (!this.ready) return;
     const p = this.pitch;
