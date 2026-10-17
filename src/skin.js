@@ -210,7 +210,8 @@ export function createSkin(tpl) {
   });
   const bones = {};
   for (const [k, name] of Object.entries(tpl.boneNames)) bones[k] = model.getObjectByName(name) || null;
-  // bones the game turns by hand go back to rest every frame before posing
+  // bones the game turns by hand go back to the clips' pose every frame before posing
+  // (poseSkin keeps it: the mixer only writes a value that changed since its last write)
   const rest = Object.values(bones)
     .filter(Boolean)
     .map((bone) => [bone, bone.quaternion.clone()]);
@@ -222,7 +223,7 @@ export function createSkin(tpl) {
     a.setEffectiveWeight(0);
     actions[state] = a;
   }
-  return { root, model, mixer, actions, bones, mats, rest };
+  return { tpl, root, model, mixer, actions, bones, mats, rest };
 }
 
 export function disposeSkin(skin) {
@@ -288,7 +289,52 @@ function reach(upper, lower, hand, target, pole) {
 const _grip = new THREE.Vector3();
 const _pole = new THREE.Vector3();
 const _back = new THREE.Vector3();
+const _l = new THREE.Vector3();
+const _r = new THREE.Vector3();
 const BLADE = 0.5; // how far a long gun turns the chest side-on (radians), so the support hand reaches
+const LEAN = 0.35; // the most the chest leans in (radians) to bring a hand to a grip it can't reach
+
+/** Turn the chest so the shoulders square up to the rig's side axis, whatever twist the clip puts in them. */
+function square(rig, side) {
+  const b = rig.skin.bones;
+  if (!b.spine || !b.upperArmL || !b.upperArmR) return;
+  b.upperArmL.getWorldPosition(_l);
+  b.upperArmR.getWorldPosition(_r);
+  const twist = wrapAngle(Math.atan2(_r.z - _l.z, _l.x - _r.x) - Math.atan2(-side.z, side.x));
+  turnBone(b.spine, UP, -twist);
+}
+
+/** World grip target of a hand (the wrist sits PALM behind the grip), as arm() aims it before any slide. */
+function gripTarget(holder, g, out) {
+  return holder.localToWorld(out.set(g[0], g[1], g[2] - PALM));
+}
+
+/** How far (metres) the arm on `side` falls short of `target`; 0 when it reaches. */
+function shortfall(rig, side, target) {
+  const b = rig.skin.bones;
+  const k = side > 0 ? 'L' : 'R';
+  const upper = b[`upperArm${k}`];
+  const lower = b[`foreArm${k}`];
+  const hand = b[`hand${k}`];
+  if (!upper || !lower || !hand) return 0;
+  const s = upper.getWorldPosition(_s);
+  const len = s.distanceTo(lower.getWorldPosition(_el)) + _el.distanceTo(hand.getWorldPosition(_h));
+  return Math.max(0, s.distanceTo(target) - len * 0.98);
+}
+
+/** Lean the chest forward until the main hands reach their grips (`reaches`: [side, target] pairs), at most LEAN. */
+function leanIn(rig, side, reaches) {
+  const b = rig.skin.bones;
+  if (!b.spine || !b.upperArmR) return;
+  const worst = () => Math.max(...reaches.map(([sd, t]) => shortfall(rig, sd, t)));
+  const short = worst();
+  if (short < 0.005) return;
+  const height = b.upperArmR.getWorldPosition(_l).y - b.spine.getWorldPosition(_r).y;
+  if (height <= 0.05) return;
+  const angle = Math.min(LEAN, Math.asin(Math.min(1, short / height)));
+  turnBone(b.spine, side, angle);
+  if (worst() >= short) turnBone(b.spine, side, -angle); // the grip is not ahead (an arm raised overhead): leaning would not help
+}
 
 /** `slide`: how far (holder metres) the hand may move back along the gun when the grip is out of reach. */
 function arm(rig, side, holder, gx, gy, gz, slide = 0) {
@@ -342,6 +388,7 @@ export function poseSkin(rig, time) {
     A.idle.setEffectiveWeight(A.run ? 1 - moving : 1);
   }
   skin.mixer.update(0);
+  for (const [bone, q] of skin.rest) q.copy(bone.quaternion);
   if (skin.afterMix) skin.afterMix(); // the style's proportions, which a clip's scale tracks would undo
   rig.root.updateMatrixWorld(true);
   rig.inner.getWorldQuaternion(_qi);
@@ -358,16 +405,23 @@ export function poseSkin(rig, time) {
     turnBone(b.hips, UP, yaw);
     turnBone(b.spine, UP, -yaw);
   }
-  // the block rig's kick, on the right thigh
-  const kick = rig.legR.rotation.x - an.swing;
+  // the block rig's kick, on the right thigh: how far its leg is past the gait's -swing
+  const kick = rig.legR.rotation.x + an.swing;
   if (Math.abs(kick) > 0.02 && b.upLegR) turnBone(b.upLegR, side, kick);
 
-  // hands on the weapons
+  // hands on the weapons: the chest squares up to the aim (an idle clip's twist would
+  // leave one hand short of its gun) and leans in when a grip is still out of reach
   const grips = rig.grips;
+  square(rig, side);
   if (rig.hold === 'dual') {
+    leanIn(rig, side, [
+      [1, gripTarget(rig.armL, [0, 0, GRIP], _grip)],
+      [-1, gripTarget(rig.armR, [0, 0, GRIP], _back)],
+    ]);
     arm(rig, 1, rig.armL, 0, 0, GRIP);
     arm(rig, -1, rig.armR, 0, 0, GRIP);
   } else if (rig.hold === 'right') {
+    leanIn(rig, side, [[-1, gripTarget(rig.armR, [0, 0, GRIP], _grip)]]);
     arm(rig, -1, rig.armR, 0, 0, GRIP);
   } else {
     // a gun at the shoulder turns the chest side-on, the head stays on the aim
@@ -376,6 +430,7 @@ export function poseSkin(rig, time) {
       if (b.head) turnBone(b.head, UP, BLADE);
     }
     const holder = rig.hold === 'center' ? rig.center : rig.anchor;
+    leanIn(rig, side, [[-1, gripTarget(holder, grips[0], _grip)]]);
     arm(rig, -1, holder, ...grips[0]);
     arm(rig, 1, holder, ...grips[1], grips[1][2] - grips[0][2] - 0.1);
   }

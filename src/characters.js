@@ -159,7 +159,7 @@ const GRIPS = {
 };
 
 const POSES = {
-  dual: { lx: 0, ly: 0.04, rx: 0, ry: -0.04 },
+  dual: { lx: 0, ly: -0.04, rx: 0, ry: 0.04 }, // toed in: the two guns cross about 7 m ahead, where the laser usually ends
   right: { lx: 1.3, ly: 0, rx: 0, ry: 0 },
   anchor: { lx: 0, ly: -0.62, rx: 0, ry: 0.28 },
   center: { lx: 0, ly: -0.3, rx: 0, ry: 0.3 },

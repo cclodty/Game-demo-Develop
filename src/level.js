@@ -504,6 +504,8 @@ export class Level {
       s.mesh.visible = false;
       model.position.set(x, 0, z);
       this.add(model);
+      s.model = model; // for test/calibration.test.mjs
+      s.modelKey = matKey;
       return s;
     }
     switch (matKey) {

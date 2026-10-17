@@ -311,7 +311,7 @@ export const ASSETS = {
     zh: '平底鑊（子彈打中會反彈）',
     priority: 1,
     size: [0.82, 1.31, 0.1],
-    offset: [0, 0, 0.245],
+    offset: [0, 0.245, -0.05], // the pan's centre is the middle of the disk (the handle sticks out), and it rests 5 cm up
     fit: 'box',
     tris: 600,
     texture: 512,
@@ -440,6 +440,7 @@ export const ASSETS = {
     zh: '酒吧托盤（子彈打中會反彈）',
     priority: 2,
     size: [0.82, 0.82, 0.1],
+    offset: [0, 0, -0.05], // rests 5 cm up, like the pan
     fit: 'box',
     tris: 300,
     texture: 512,

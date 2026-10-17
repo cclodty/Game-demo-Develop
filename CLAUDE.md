@@ -74,7 +74,7 @@ src/senado/                  Largo do Senado data and model code extracted from 
 scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, serve.mjs, senado-extract.mjs
 test/                        node:test + playwright; helpers.mjs has the bot
 assets/                      SPEC.md, PROMPTS.md, START_HERE.md, asset-list.*, maps/*.json, source/ (masters), models/ (web)
-docs/                        ROADMAP.md, TASKS.md, DECISIONS.md
+docs/                        ROADMAP.md, TASKS.md, DECISIONS.md; shots/ holds the screenshots PR descriptions show
 senado/                      the Largo do Senado city-model sub-project (own README, tests, scripts); don't edit from game tasks
 vendor/three/                three.js r186 + the addons we use; never modify
 ```

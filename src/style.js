@@ -28,6 +28,18 @@ const MAX_GHOSTS = 8;
 
 // bone name patterns (Mixamo-style names, lower-cased) for the proportions
 const BONE = { head: /head$/, hand: /hand$/, foot: /foot$/, upLeg: /upleg$/, leg: /(?<!up)leg$/ };
+const PLAIN = { head: 1, hand: 1, foot: 1, thigh: 1 };
+const lifts = new WeakMap(); // model template -> how far the proportions lift its soles (rig units, rest pose)
+const _box = new THREE.Box3();
+const _scale = new THREE.Vector3();
+
+function scaleBones(bones, k) {
+  for (const b of bones.head) b.scale.setScalar(k.head);
+  for (const b of bones.hand) b.scale.setScalar(k.hand);
+  for (const b of bones.foot) b.scale.setScalar(k.foot);
+  for (const b of bones.upLeg) b.scale.setScalar(k.thigh);
+  for (const b of bones.leg) b.scale.setScalar(1 / k.thigh);
+}
 
 const load = () => {
   try {
@@ -247,28 +259,37 @@ export class Style {
 
   // ------------------------------------------------------------ proportions
 
-  /** Bigger head, hands and feet and a shorter thigh on a worn model; the model drops so the feet still touch the ground. */
+  /**
+   * Bigger head, hands and feet and a shorter thigh on a worn model. The
+   * model moves down (shorter legs) or up (bigger feet sink) so the soles
+   * still touch the ground: measured once per model in its rest pose, since
+   * where the sole sits under the ankle differs from model to model.
+   */
   proportion(rig, on) {
     const skin = rig.skin;
     if (!skin) return;
-    const k = on ? STYLE : { head: 1, hand: 1, foot: 1, thigh: 1 };
+    const k = on ? STYLE : PLAIN;
     const bones = { head: [], hand: [], foot: [], upLeg: [], leg: [] };
     skin.model.traverse((o) => {
       if (!o.isBone) return;
       const n = o.name.toLowerCase();
       for (const key in BONE) if (BONE[key].test(n)) bones[key].push(o);
     });
-    const apply = () => {
-      for (const b of bones.head) b.scale.setScalar(k.head);
-      for (const b of bones.hand) b.scale.setScalar(k.hand);
-      for (const b of bones.foot) b.scale.setScalar(k.foot);
-      for (const b of bones.upLeg) b.scale.setScalar(k.thigh);
-      for (const b of bones.leg) b.scale.setScalar(1 / k.thigh);
-    };
+    let lift = lifts.get(skin.tpl);
+    if (on && lift === undefined) {
+      const sole = (kk) => {
+        scaleBones(bones, kk);
+        skin.model.updateMatrixWorld(true);
+        return _box.setFromObject(skin.model, true).min.y;
+      };
+      const plain = sole(PLAIN);
+      lift = (sole(STYLE) - plain) / skin.root.parent.getWorldScale(_scale).y;
+      lifts.set(skin.tpl, lift);
+    }
+    const apply = () => scaleBones(bones, k);
     apply();
     skin.afterMix = apply; // a clip with scale tracks would undo this every frame
-    const thigh = bones.leg[0] ? bones.leg[0].position.length() : 0;
-    skin.root.position.y = (k.thigh - 1) * thigh * skin.root.scale.y; // 0 (not -0) when the proportions are off
+    skin.root.position.y = on ? -lift : 0; // 0 (not -0) when the proportions are off
     skin.proportioned = true;
   }
 
