@@ -25,6 +25,8 @@ export const TUNABLES = [
   { path: 'PLAYER.spinDuration', label: '旋轉閃避時長 s', step: 0.02, min: 0.1, max: 1.5 },
   { path: 'PLAYER.spinCooldown', label: '旋轉閃避冷卻 s', step: 0.02, min: 0, max: 2 },
   { path: 'PLAYER.spinFireMul', label: '旋轉射擊射速倍率', step: 0.05, min: 0.2, max: 1.5 },
+  { path: 'PLAYER.slideDuration', label: '滑鏟時長 s', step: 0.05, min: 0.2, max: 1.5 },
+  { path: 'PLAYER.slideSpeedMul', label: '滑鏟速度倍率', step: 0.1, min: 1, max: 3 },
   { path: 'PLAYER.regenDelay', label: '回血延遲 s', step: 0.1, min: 0, max: 10 },
   { path: 'PLAYER.regenRate', label: '回血速度 / 秒', step: 1, min: 0, max: 100 },
   { path: 'CAMERA.focusZoom', label: '慢鏡鏡頭拉近', step: 0.01, min: 0.5, max: 1.2 },

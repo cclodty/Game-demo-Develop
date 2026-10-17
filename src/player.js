@@ -39,6 +39,10 @@ export class Player {
     this.spinT = 0;
     this.spinCd = 0;
     this.spinReload = false;
+    this.slideT = 0;
+    this.slideCd = 0;
+    this.slideDirX = 0;
+    this.slideDirZ = 1;
     this.spinDirX = 0;
     this.spinDirZ = -1;
     this.fireCd = 0;
@@ -77,6 +81,10 @@ export class Player {
     this.spinT = 0;
     this.splitTarget = null;
     this.syncRig(0);
+  }
+
+  get sliding() {
+    return this.slideT > 0;
   }
 
   get spinning() {
@@ -164,6 +172,7 @@ export class Player {
     }
     const g = this.game;
     this.spinCd -= dt;
+    this.slideCd -= dt;
     this.fireCd -= dt;
     this.kickCd -= dt;
     this.invuln -= dt;
@@ -197,8 +206,19 @@ export class Player {
       }
     }
 
+    // slide: only out of a run, locked to the direction of travel; a spin can cut it short
+    const curSp = Math.hypot(this.vx, this.vz);
+    if (input.hit('KeyC') && this.slideCd <= 0 && this.slideT <= 0 && this.spinT <= 0 && curSp >= PLAYER.slideMinSpeed) {
+      this.slideT = PLAYER.slideDuration;
+      this.slideDirX = this.vx / curSp;
+      this.slideDirZ = this.vz / curSp;
+      g.audio.slide();
+      g.notes.log('滑鏟');
+    }
+
     if (input.hit('Space') && this.spinCd <= 0 && this.spinT <= 0) {
       this.spinT = PLAYER.spinDuration;
+      this.slideT = 0;
       g.notes.log('旋轉閃避');
       // a spin finishes a reload: what is left of it (or a fresh one for an empty magazine) ends with the spin
       if (this.slot === 'pistols' && (this.reloadT > 0 || this.ammo <= 0)) {
@@ -230,6 +250,17 @@ export class Player {
         g.fx.glow.spawn({ x: this.x + rand(-0.3, 0.3), y: rand(0.4, 1.8), z: this.z + rand(-0.3, 0.3), life: 0.3, size: rand(0.06, 0.12), r: 0.5, g: 2.6, b: 3.4 });
       }
       if (this.spinT <= 0) this.spinCd = PLAYER.spinCooldown;
+    } else if (this.slideT > 0) {
+      this.slideT -= dt;
+      const k = Math.max(0, this.slideT / PLAYER.slideDuration); // 1 at launch, 0 at the end
+      const sp = speed * PLAYER.slideSpeedMul * (0.35 + 0.65 * k);
+      tx = this.slideDirX * sp;
+      tz = this.slideDirZ * sp;
+      accel = 40;
+      if (Math.random() < 0.6) {
+        g.fx.smoke.spawn({ x: this.x - this.slideDirX * 0.4 + rand(-0.2, 0.2), y: 0.1, z: this.z - this.slideDirZ * 0.4 + rand(-0.2, 0.2), vy: 0.5, life: rand(0.3, 0.5), size: 0.22, r: 0.4, g: 0.4, b: 0.45, drag: 2, grow: 1.6 });
+      }
+      if (this.slideT <= 0) this.slideCd = PLAYER.slideCooldown;
     } else {
       tx = ix * speed;
       tz = iz * speed;
@@ -555,6 +586,16 @@ export class Player {
     } else {
       r.inner.rotation.y = 0;
       r.inner.position.y = 0;
+    }
+    if (this.slideT > 0) {
+      // lie back along the slide: body low and tilted, legs out in front
+      const k = 1 - this.slideT / PLAYER.slideDuration;
+      const e = Math.min(1, k * 4) * Math.min(1, (1 - k) * 4);
+      r.inner.position.y = -0.38 * e;
+      r.inner.rotation.x = -0.75 * e;
+      r.legL.rotation.x = r.legR.rotation.x = -1.3 * e;
+    } else {
+      r.inner.rotation.x = 0;
     }
     if (this.kickT > 0) {
       const k = 1 - this.kickT / 0.28;

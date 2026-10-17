@@ -47,7 +47,7 @@
   - [ ] npm run lint && npm test 通過；`test/moves.test.mjs` 有測試
 - 這次不做：特殊武器（它們沒有換彈）、旋轉中射擊的射速
 
-### 滑鏟（估計：半天）
+### ✅ 滑鏟（估計：半天）— 2026-10-17 完成
 - 目標：跑動中按 C 低身滑行半秒多，敵人子彈從頭頂飛過，滑行中可開槍；滑行中擊殺 = SLIDE KILL
 - 涉及：`src/player.js`、`src/config.js`、`src/bullets.js`（滑行中不命中玩家）、`src/main.js`（標籤）、`src/audio.js`
 - 驗收：

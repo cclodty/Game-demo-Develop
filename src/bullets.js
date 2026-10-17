@@ -200,7 +200,7 @@ export class Bullets {
       }
     } else {
       const p = game.player;
-      if (p.alive && !p.spinning) {
+      if (p.alive && !p.spinning && !p.sliding) {
         const t = segCircle(x0, z0, x1, z1, p.x, p.z, PLAYER.hitRadius);
         if (t >= 0 && (!best || t < best.t)) best = { t, type: 'player' };
       }
@@ -317,7 +317,7 @@ export class Bullets {
     const d2 = pointSegDist2(p.x, p.z, sx, sz, b.x, b.z);
     if (d2 < 1.1 * 1.1) {
       b.near = true;
-      if (p.spinning && d2 < 0.5 * 0.5) b.dodgedSpin = true;
+      if ((p.spinning || p.sliding) && d2 < 0.5 * 0.5) b.dodgedSpin = true;
       return;
     }
     if (b.near && !b.awarded) {
