@@ -20,15 +20,17 @@ import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
 import { Score } from './score.js';
 import { Thrown } from './thrown.js';
 import { clamp, damp, lerp } from './utils.js';
-import { Waves } from './waves.js';
+import { MODE_IDS, MODES, Waves } from './waves.js';
 import { Grenades } from './weapons.js';
 
 const MAP_KEY = 'bullet-ballet.map';
+const MODE_KEY = 'bullet-ballet.mode';
 const VIEW_KEY = 'bullet-ballet.view';
 const DEFAULT_VIEW = VIEWS.findIndex((v) => v.id === 'iso');
 const STEP = 1 / LOGIC_HZ;
 
 const $ = (id) => document.getElementById(id);
+const clock = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const TOGGLES = new Set(['checkbox', 'radio', 'range', 'button']);
 const isTyping = (t) => !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !TOGGLES.has(t.type)) || t.isContentEditable);
 
@@ -85,6 +87,13 @@ class Game {
       this.startMap = Math.min(MAPS.length - 1, Math.max(0, Number(localStorage.getItem(MAP_KEY)) || 0));
     } catch {
       this.startMap = 0;
+    }
+    this.mode = 'arcade'; // see MODES in waves.js; the title screen switches it
+    try {
+      const saved = localStorage.getItem(MODE_KEY);
+      if (MODE_IDS.includes(saved)) this.mode = saved;
+    } catch {
+      /* storage unavailable */
     }
     this.stage = 0;
     this.transition = null;
@@ -165,6 +174,21 @@ class Game {
       this.audio.init();
       this.startRun(map);
     };
+    for (const id of MODE_IDS) {
+      const m = MODES[id];
+      const b = document.createElement('button');
+      b.className = 'mode-card';
+      b.type = 'button';
+      b.dataset.mode = id;
+      b.style.setProperty('--mode', m.color);
+      b.innerHTML = `<span class="mode-zh">${m.name}</span><span class="mode-en">${m.en}</span><span class="mode-desc">${m.desc}</span>`;
+      b.addEventListener('click', (e) => {
+        e.stopPropagation(); // choosing a mode is not starting a run
+        this.setMode(id);
+      });
+      $('mode-cards').appendChild(b);
+    }
+    this.markMode();
     const cards = $('map-cards');
     MAPS.forEach((m, i) => {
       const b = document.createElement('button');
@@ -235,6 +259,22 @@ class Game {
     [...$('map-cards').children].forEach((c, i) => c.classList.toggle('selected', i === this.startMap));
   }
 
+  setMode(id) {
+    this.mode = id;
+    try {
+      localStorage.setItem(MODE_KEY, id);
+    } catch {
+      /* storage unavailable */
+    }
+    this.markMode();
+  }
+
+  markMode() {
+    for (const c of $('mode-cards').children) c.classList.toggle('selected', c.dataset.mode === this.mode);
+    const r = MODES[this.mode];
+    $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結` : `每 ${r.perStage} 波換一個場景`;
+  }
+
   startRun(mapIndex = this.startMap) {
     this.startMap = mapIndex;
     this.markMapCard();
@@ -244,8 +284,9 @@ class Game {
       /* storage unavailable */
     }
     this.rng.reset(this.fixedSeed ?? randomSeed());
-    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, hz: LOGIC_HZ });
+    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), hz: LOGIC_HZ });
     this.resetWorld(MAPS[mapIndex]);
+    this.score.useBest(this.mode);
     this.score.reset();
     this.waves.reset();
     this.hud.reset();
@@ -308,6 +349,7 @@ class Game {
     this.hurtFx = 0;
     this.flashFx = 0;
     this.deathT = 0;
+    this.clearT = 0;
     this.worldTime = 0;
     this.lastKillAt = -9;
     this.cmd = new StepInput();
@@ -402,17 +444,22 @@ class Game {
     }
   }
 
-  gameOver() {
+  /** The end of a run: the player fell, or (cleared) the last arcade wave is down. */
+  gameOver(cleared = false) {
     this.state = 'over';
     this.overAt = performance.now();
     const isBest = this.score.saveBest();
     const s = this.score;
+    $('go-title').textContent = cleared ? 'RUN CLEAR' : 'GAME OVER';
+    $('gameover').classList.toggle('cleared', cleared);
     $('go-score').textContent = Math.round(s.score).toLocaleString('en-US');
     $('go-best').textContent = isBest ? 'NEW BEST!' : `BEST ${Math.round(s.best).toLocaleString('en-US')}`;
     $('go-best').classList.toggle('new', isBest);
     $('go-wave').textContent = String(this.waves.wave);
+    $('go-time').textContent = clock(this.stepCount / LOGIC_HZ);
     $('go-kills').textContent = String(s.kills);
     $('go-combo').textContent = `x${Math.max(1, s.maxCombo)}`;
+    $('go-clean').textContent = `${this.waves.cleanWaves} / ${this.waves.wave}`;
     $('gameover').classList.remove('hidden');
     document.body.classList.remove('playing');
     this.hud.show(false);
@@ -530,6 +577,7 @@ class Game {
   onPlayerHurt(dmg, source = '子彈') {
     this.notes.log(`被${source}打中 −${dmg}（HP ${Math.max(0, Math.ceil(this.player.hp))}）`);
     this.score.breakCombo();
+    this.waves.hurt = true;
     this.hurtFx = Math.min(1, this.hurtFx + 0.45 + dmg / 60);
     this.shake(0.35);
     this.audio.hurt();
@@ -554,6 +602,18 @@ class Game {
     this.player.hp = PLAYER.hp;
     const next = stageEnd ? ` · 下一站：${MAPS[(this.startMap + this.stage + 1) % MAPS.length].name}` : '';
     this.hud.banner(stageEnd ? 'STAGE CLEAR' : 'WAVE CLEAR', `+${bonus.toLocaleString('en-US')} · 生命值回滿${next}`, 'clear');
+    this.audio.waveClear();
+  }
+
+  /** The last wave of an arcade run is down: a moment to enjoy it, then the RUN CLEAR screen. */
+  onRunClear(n) {
+    if (!this.player.alive) return;
+    const bonus = 250 * n;
+    this.notes.log(`第 ${n} 波清空：通關（RUN CLEAR）`);
+    this.score.bonus('RUN CLEAR', bonus);
+    this.player.invuln = 99; // nothing still flying can take the run away now
+    this.clearT = 2.6;
+    this.hud.banner('RUN CLEAR', `全部 ${n} 波清空 · +${bonus.toLocaleString('en-US')}`, 'clear');
     this.audio.waveClear();
   }
 
@@ -723,6 +783,10 @@ class Game {
     this.pickups.update(dt, h, cmd);
     this.waves.update(dt, h);
     this.score.update(dt);
+    if (this.clearT > 0) {
+      this.clearT -= h;
+      if (this.clearT <= 0) this.gameOver(true);
+    }
   }
 
   /** What a frame shows but the logic never reads: effects, ambient life, screen flashes, camera, HUD. */
