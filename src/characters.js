@@ -143,6 +143,8 @@ export const MODELS = {
       [-0.16, -0.1, 0.15],
       [0.16, 0, 0.45],
     ],
+    // the left hand on the top carry handle (the model's own support socket is on the side of the barrels)
+    support: [0.15, 0.3, 0.42],
   },
   blade: { asset: 'weapon_blade', hold: 'right', end: 1.15, parts: [[0.05, 0.04, 0.55, 0, 0, 0.9, 'accent']] },
   grenade: {
@@ -197,6 +199,8 @@ export const KEY_POSES = {
   slide: { lift: -0.4, ahead: 0.5, lean: -0.8, chest: 0.5, footL: [0.06, 0.3, 0.3], footR: [0, 0.14, 0.62], kneeL: [0.2, 0.4, 1], kneeR: [0, 1, 0.3] },
   // a pirouette: up on the left foot, the right knee turned out and its foot at the left knee (retiré)
   spin: { lift: 0.05, ahead: 0, lean: 0, chest: 0.08, footL: [0, 0, 0], footR: [0.2, 0.4, 0.06], kneeL: [0, 0, 1], kneeR: [-1, 0.1, 0.5], block: { footR: [-0.35, 0.45, 0.35] } },
+  // a Spartan kick: leaning back, the right foot driven out straight at chest height, the left knee soft
+  kick: { lift: -0.005, ahead: 0.2, lean: -0.32, chest: -0.22, footL: [0.02, 0.03, -0.05], footR: [0, 0.65, 0.87], kneeL: [0, 0.2, 1], kneeR: [0, 0.6, 1] },
   // a weight overhead: feet planted wide, knees soft, the back arched
   carry: { lift: -0.03, ahead: 0, lean: -0.08, chest: -0.14, footL: [0.26, 0.03, 0.04], footR: [-0.26, 0.03, -0.04], kneeL: [0.4, 0, 1], kneeR: [-0.4, 0, 1], still: true },
 };
@@ -283,7 +287,7 @@ export function attachWeapon(rig, model) {
       end = grip[2] + tip.z;
       muzzleX = grip[0] + tip.x;
     }
-    const sup = tpl.sockets.support;
+    const sup = def.support ? new THREE.Vector3(...def.support) : tpl.sockets.support;
     if (sup && !handed) grips = [grip, [grip[0] + sup.x, grip[1] + sup.y, grip[2] + sup.z]];
   }
   const add = (parent, mirror = false) => {
@@ -488,6 +492,7 @@ export function animateRig(rig, phase, moveAmt, moveDir) {
   rig.legL.rotation.z = rig.legR.rotation.z = 0;
   an.legR = -swing; // where the right leg is before a kick moves it (skin.js copies the difference)
   an.key = null; // keyPose() sets one after this
+  an.carry = null; // hands on something carried overhead ({ half, y } in the root's space), set by player.js
   rig.torso.position.y = BODY.torsoY + bob;
   rig.head.position.y = BODY.headY + bob;
 }

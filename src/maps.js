@@ -200,6 +200,9 @@ const club = {
     rain: false,
   },
   floor: 'club',
+  // the last wave of a run that ends here (boss.js): the DJ behind the booth's glass, a speaker either side, the
+  // dance floor's tiles ([x, z] of its corner, columns, rows); `gaps` closes the ways round the speakers to the DJ's side for the fight
+  boss: { kind: 'dj', at: [6, -11.6], booth: [6, -10], speakers: [[2.6, -10.6], [9.4, -10.6]], gaps: [[3, -12.15, 2, 3.7], [9, -12.15, 2, 3.7]], floor: [-6, -5, 12, 8] },
   edges: { n: [3.2, 'clubWall', 'neonPink'], s: [0.9, 'clubWall', 'neonCyan'], w: [3.2, 'clubWall', 'neonCyan'], e: [3.2, 'clubWall', 'neonCyan'] },
   solids: [
     [-15, -10.2, 4, 1.2, 1.2, 'bar'],
@@ -297,7 +300,7 @@ const club = {
             on = hash(r, c, b) < 0.35;
             ci = Math.floor(hash(c, r, b) * 4);
           }
-          const k = on ? fade * 0.5 : 0.04;
+          const k = (on ? fade * 0.5 : 0.04) * (L.floorTaken ? 0.12 : 1); // the DJ's own tiles (boss.js) take the floor over
           const p = pal[ci];
           tiles.instanceColor.setXYZ(r * cols + c, p[0] * k, p[1] * k, p[2] * k);
         }
@@ -407,6 +410,9 @@ const docks = {
     rain: true,
   },
   floor: 'asphalt',
+  // the last wave of a run that ends here (boss.js): the armoured truck, driving in from the west round a loop
+  // that clears every container (barrels and pans in its way are shoved aside)
+  boss: { kind: 'truck', from: [-30, 0.8], loop: [[-16, 0.8], [16, 0.8], [13, 4.6], [13, 11.3], [-11, 11.3], [-12.5, 8.8], [-16, 5]] },
   edges: { n: [3.6, 'warehouse', null], s: [0.45, 'curb', null], w: [2.2, 'fence', null], e: [2.2, 'fence', null] },
   solids: [
     [-14, -6, 6, 2.4, 2.6, 'containerRed'],
@@ -432,7 +438,7 @@ const docks = {
   pans: [[-4, -12.5], [7, 1.5], [-12, 9], [17, -11], [3, 12.5]],
   tools: [[-4, 9, 'extinguisher']],
   water: [{ x: 0, z: 17, w: 52, d: 4 }], // the harbour beyond the south curb: whoever is knocked over it is gone
-  fixtures: [[-10, 8, 'lamp'], [16, -8, 'lamp'], [0, 10, 'lamp'], [-14, -9, 'sign', 90], [10.5, 7.2, 'shutter', 90, 5]], // a loading-bay shutter between two containers
+  fixtures: [[-10, 8, 'lamp'], [16, -8, 'lamp'], [0, 9, 'lamp'], [-14, -9, 'sign', 90], [10.5, 7.2, 'shutter', 90, 5]], // a loading-bay shutter between two containers; the lamps stand clear of the truck's loop (boss.js)
   pads: [[-10, -0.5], [12, 1.5]],
   spawns: [
     { x: -6, z: -14.4, ex: -6, ez: -12.2, kind: 'door', door: [2.4, 2.6] },
@@ -547,6 +553,16 @@ const senado = {
   start: [2, 54],
   camera: { dist: 31, pitch: 72, fov: 30 },
   cutaway: true,
+  // the buildings across the avenue, between the camera and the square: above 1.2 m, seen through
+  fade: { above: 1.2 },
+  // the last wave of a run that ends here (boss.js): the taxi convoy, in along the avenue from the east, then round
+  // the fountain on a loop that clears the buildings, the stalls and the lamps
+  boss: {
+    kind: 'convoy',
+    entry: [[31, 65.6], [3, 65.6], [-3.5, 46.7]],
+    loop: [[-8.9, 34.5], [-8.9, 41.5], [-3.5, 46.7], [4.5, 46.7], [11.7, 40.5], [11.7, 34.8], [8.6, 29.2], [-4, 29.2], [-7.6, 31]],
+  },
+  look: 'flat', // drawn like the characters (style.js), the trial of one look for maps and people
   theme: {
     bg: 0x9cc4e8,
     fog: [0xc9d8e6, 0.0042],
@@ -573,7 +589,7 @@ const senado = {
     [-5.8, 20, 2.4, 1.5, 1.1, 'stall'],
     [6, 12, 2.4, 1.5, 1.1, 'stall'],
     [-14, -66, 2.8, 1.6, 1.1, 'stall'],
-    [-9, 44, 1.4, 1.4, 0.9, 'planter'],
+    [-11, 44.5, 1.4, 1.4, 0.9, 'planter'], // these three stand clear of the convoy's road round the fountain (boss.js)
     [14, 44, 1.4, 1.4, 0.9, 'planter'],
     [-5, -60, 1.4, 1.4, 0.9, 'planter'],
     [-6, 6, 0.3, 0.3, 4, 'streetlamp'],
@@ -606,7 +622,7 @@ const senado = {
   flocks: [[-6, 46], [8, 44], [0, 22], [-10, -64]],
   tools: [[-3, 52, 'extinguisher']],
   // four of the square's lamps can be shot out; two shop signs hang over the pavement
-  fixtures: [[-15, 60, 'lamp'], [16, 58, 'lamp'], [-9, 31, 'lamp'], [9, 30, 'lamp'], [-14, 55, 'sign', 90], [12, 42, 'sign', 270]],
+  fixtures: [[-15, 60, 'lamp'], [16, 58, 'lamp'], [-11, 31, 'lamp'], [13, 31.5, 'lamp'], [-14, 55, 'sign', 90], [14.5, 41, 'sign', 270]], // the two by the fountain and the east sign stand clear of the convoy's road (boss.js)
   pads: [[-4, 48], [1, -34], [-10, -62]],
   spawns: [
     { x: -24.5, z: 68, ex: -17, ez: 64, kind: 'gate' },
@@ -700,6 +716,7 @@ const senado = {
       [24.6, -42, 0.3, 3],
       [-25.6, -62, 0.3, 8],
       [-6, -73.7, 7, 0.3],
+      [0, 73.75, 52, 0.3], // across the avenue: shots fly over it, people stop at it
     ]) {
       L.deco(x, 0, z, w, 1.0, d, barrier, true);
       L.deco(x, 0.62, z, w + 0.02, 0.16, d + 0.02, stripe);

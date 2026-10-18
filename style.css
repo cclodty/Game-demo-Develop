@@ -664,6 +664,12 @@ body:not(.pad) .pad-only {
   display: none;
 }
 
+/* the pad in use, on the title's pad line */
+.pad-name {
+  margin-left: 6px;
+  color: var(--cyan);
+}
+
 #hint b,
 #hint-pad b {
   color: var(--ink);
@@ -1547,6 +1553,148 @@ body:not(.pad) .pad-only {
   outline: none;
 }
 
+/* the title's rules line: what is picked, folding the picks away (main.js showRules) */
+.rules-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 7px 12px;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+}
+
+.rules-line:hover,
+.rules-line:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.rules-zh {
+  font-weight: 900;
+}
+
+.rules-en {
+  font-family: var(--display);
+  letter-spacing: 3px;
+  color: var(--cyan);
+}
+
+#rules-summary {
+  flex: 1 1 10em;
+  min-width: 0;
+  font-size: 14px;
+  color: #c9cae6;
+}
+
+.rules-more {
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.rules-more::after {
+  content: ' ▾';
+}
+
+.rules-line[aria-expanded='true'] .rules-more::after {
+  content: ' ▴';
+}
+
+.rules-fold .mode-row {
+  margin-top: 10px;
+}
+
+/* the title's one line of controls: keyboard, or the pad in use */
+.title-keys {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.title-keys b {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 3px;
+  padding: 0 5px;
+}
+
+/* the title fits a 1280×720 window without scrolling, with room to spare for a line that wraps in
+   another browser's text (a mode card's blurb did on CI); shorter windows lose the map blurbs */
+#title {
+  padding-block: 8px;
+}
+
+#title .panel {
+  padding: 20px 36px 18px;
+}
+
+#title .logo-en {
+  font-size: clamp(48px, 7vw, 66px);
+}
+
+#title .tagline {
+  margin: 4px 0 8px;
+}
+
+#title .daily-card {
+  margin-top: 8px;
+  padding-block: 8px;
+}
+
+#title .mode-row {
+  margin-top: 10px;
+}
+
+#title .maps-title {
+  margin: 10px 0 6px;
+}
+
+#title .mode-row .maps-title {
+  margin: 0;
+}
+
+#title .rules-line {
+  margin-top: 8px;
+  padding-block: 6px;
+}
+
+#title .map-card {
+  padding: 8px 14px 10px;
+}
+
+#title .start {
+  margin-top: 8px;
+  font-size: 26px;
+}
+
+#title .title-keys {
+  margin-top: 2px;
+}
+
+#title .title-links {
+  margin-top: 8px;
+}
+
+#title .telemetry-switch {
+  margin-top: 10px;
+  padding: 5px 12px;
+}
+
+@media (max-height: 680px) {
+  #title .map-desc {
+    display: none;
+  }
+  #title .logo-en {
+    font-size: 56px;
+  }
+}
+
 .replay-list {
   display: flex;
   flex-direction: column;
@@ -1783,6 +1931,10 @@ body:not(.pad) .pad-only {
     grid-template-columns: 1fr;
     gap: 14px;
   }
+  .title-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
   #feed {
     display: none;
   }
@@ -1858,6 +2010,16 @@ body:not(.pad) .pad-only {
 @keyframes blink {
   to {
     opacity: 0.4;
+  }
+}
+
+/* asked for less motion: the looping pulses play once. The browser tests ask too: under
+   software compositing a looping animation redraws the whole page at 60 Hz and starves WebGL */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-iteration-count: 1 !important;
   }
 }
 

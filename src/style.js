@@ -2,9 +2,12 @@
 // toon shading with two steps on characters and three on the world, a black
 // inverted-hull outline on characters and props, cyan afterimages behind the
 // player's moves, character poses held at 12 fps while everything else runs
-// smooth, and comic proportions on worn models. Rendering only: nothing here
-// changes play. Each part has a switch in the stats panel, remembered in
-// localStorage; ?style=off turns everything off for the session.
+// smooth, and comic proportions on worn models. A map can ask for the flat
+// look (`look: 'flat'` in maps.js): its world drawn like the characters, with
+// two light steps, colours cut into a few bands and ink lines from the edge
+// pass (postfx.js). Rendering only: nothing here changes play. Each part has
+// a switch in the stats panel, remembered in localStorage; ?style=off turns
+// everything off for the session.
 
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
@@ -22,8 +25,9 @@ export const SWITCHES = {
   stepped: '12 格頓格',
   proportion: '漫畫比例',
   worldOutline: '世界描邊',
+  flatWorld: '平塗地圖（議事亭試作）',
 };
-const DEFAULTS = { toon: true, outline: true, ghosts: true, stepped: true, proportion: true, worldOutline: false };
+const DEFAULTS = { toon: true, outline: true, ghosts: true, stepped: true, proportion: true, worldOutline: false, flatWorld: true };
 const MAX_GHOSTS = 8;
 
 // bone name patterns (Mixamo-style names, lower-cased) for the proportions
@@ -80,6 +84,34 @@ function hullMaterial(width) {
   return m;
 }
 
+/**
+ * The flat look's colours: textures read a little blurred (no pebble noise to
+ * speckle at the band edges), saturation up, then the brightness cut into
+ * bands (in sRGB, so the bands look even).
+ */
+function flatten(mat) {
+  const before = mat.onBeforeCompile;
+  mat.onBeforeCompile = (shader, renderer) => {
+    before.call(mat, shader, renderer);
+    const blurred = THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', `texture2D( map, vMapUv, ${STYLE.flatBlur.toFixed(2)} )`);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', blurred).replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+      {
+        vec3 c = max(diffuseColor.rgb, vec3(0.0));
+        float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+        c = max(mix(vec3(l), c, ${STYLE.flatSat.toFixed(3)}), vec3(0.0));
+        float s = pow(max(l, 1e-4), 1.0 / 2.2);
+        float q = (floor(s * ${STYLE.flatBands.toFixed(1)}) + 0.5) / ${STYLE.flatBands.toFixed(1)};
+        diffuseColor.rgb = c * (pow(q, 2.2) / max(l, 1e-4));
+      }`,
+    );
+  };
+  const key = mat.customProgramCacheKey();
+  mat.customProgramCacheKey = () => `${key}flat${STYLE.flatSat}/${STYLE.flatBands}/${STYLE.flatBlur}`;
+  mat.needsUpdate = true;
+}
+
 const isLit = (m) => !!m && (m.isMeshStandardMaterial || m.isMeshLambertMaterial || m.isMeshPhongMaterial);
 const eachMaterial = (o, fn) => {
   o.material = Array.isArray(o.material) ? o.material.map(fn) : fn(o.material);
@@ -92,9 +124,12 @@ export class Style {
     this.session = off; // ?style=off: everything off, and choices made now are not remembered
     this.on = { ...DEFAULTS, ...(off ? {} : load()) };
     if (off) for (const k in this.on) this.on[k] = false;
-    this.ramps = { char: ramp(STYLE.charSteps, 0.41), world: ramp(STYLE.worldSteps, 0.27) };
+    this.ramps = { char: ramp(STYLE.charSteps, 0.41), world: ramp(STYLE.worldSteps, 0.27), flat: ramp(STYLE.flatSteps, STYLE.flatFloor) };
     this.hullMats = { char: hullMaterial(STYLE.charLine), world: hullMaterial(STYLE.worldLine) };
     this.twins = new WeakMap(); // original lit material -> its toon twin
+    this.flats = new WeakMap(); // and its flat-look twin
+    this.origins = new WeakMap(); // twin -> the lit material it stands in for
+    this.litOf = new WeakMap(); // level mesh -> its lit material(s) (not in userData: clones copy that through JSON)
     this.hulls = { char: new Set(), world: new Set() };
     this.rigs = new Set();
     this.level = null;
@@ -113,6 +148,14 @@ export class Style {
   }
   get ghostsOn() {
     return this.on.ghosts && !this.lowQuality;
+  }
+  /** The loaded map is drawn in the flat look. */
+  get flatOn() {
+    return this.on.flatWorld && this.on.toon && !!this.level && this.level.map.look === 'flat';
+  }
+  /** Ink lines from the edge pass: with the flat look, not on low quality (like the outlines). */
+  get edgesOn() {
+    return this.flatOn && !this.lowQuality;
   }
 
   // ------------------------------------------------------------ switches
@@ -135,6 +178,7 @@ export class Style {
       for (const h of this.hulls.world) h.visible = on && !this.lowQuality;
     }
     if (key === 'ghosts' && !on) this.clearGhosts();
+    if (key === 'flatWorld' && this.level) this.retoneLevel(this.level);
     if (key === 'proportion') for (const rig of this.rigs) this.proportion(rig, on);
   }
 
@@ -145,10 +189,28 @@ export class Style {
     if (!mat || !this.on.toon || !isLit(mat)) return mat;
     let t = this.twins.get(mat);
     if (t) return t;
-    t = new THREE.MeshToonMaterial({
+    t = this.twin(mat, this.ramps[kind], cut);
+    this.twins.set(mat, t);
+    return t;
+  }
+
+  /** The flat-look twin of a lit material (cached): the flat ramp, and its colours banded. */
+  flat(mat, cut = null) {
+    if (!mat || !this.on.toon || !isLit(mat)) return mat;
+    let t = this.flats.get(mat);
+    if (t) return t;
+    t = this.twin(mat, this.ramps.flat, cut);
+    flatten(t);
+    this.flats.set(mat, t);
+    return t;
+  }
+
+  /** A toon material standing in for a lit one, with the level's cutaway where the original had it. */
+  twin(mat, gradientMap, cut) {
+    const t = new THREE.MeshToonMaterial({
       color: mat.color,
       map: mat.map,
-      gradientMap: this.ramps[kind],
+      gradientMap,
       emissive: mat.emissive,
       emissiveMap: mat.emissiveMap,
       emissiveIntensity: mat.emissiveIntensity,
@@ -171,8 +233,13 @@ export class Style {
     });
     t.userData = { ...mat.userData, cutaway: false }; // e0/ei0 for the skin flash come along
     if (mat.userData.cutaway && cut) addCutaway(t, cut);
-    this.twins.set(mat, t);
+    this.origins.set(t, mat);
     return t;
+  }
+
+  /** The lit material behind a twin (the level's material table keeps its twins from map to map). */
+  lit(mat) {
+    return this.origins.get(mat) || mat;
   }
 
   /** Toon every lit material under `root`, with the level's cutaway where the original had it. */
@@ -241,11 +308,37 @@ export class Style {
     for (const h of this.hulls.world) this.hulls.world.delete(h);
     for (const h of this.hulls.char) if (!this.inScene(h)) this.hulls.char.delete(h);
     if (this.on.toon) {
-      for (const k in level.mat) level.mat[k] = this.toon(level.mat[k], 'world', cut);
-      this.retone(level.root, 'world', cut);
+      const flat = this.flatOn;
+      for (const k in level.mat) level.mat[k] = flat ? this.flat(level.mat[k], cut) : this.toon(level.mat[k], 'world', cut);
+      this.retoneLevel(level);
     }
     for (const p of level.props) this.outline(p.mesh, 'char');
     if (this.on.worldOutline) this.outlineLevel(level);
+  }
+
+  /** Before a level builds: its material table back to the lit materials (dressLevel twins them again). */
+  undress(level) {
+    for (const k in level.mat) level.mat[k] = this.lit(level.mat[k]);
+  }
+
+  /**
+   * Every mesh under the level's root in the world's toon, or in the flat look on a map that asks for it.
+   * Each mesh's lit materials are kept (litOf), so the flatWorld switch can swap them live.
+   */
+  retoneLevel(level) {
+    if (!this.on.toon) return;
+    const flat = this.flatOn;
+    level.cut.uCutSoft.value = flat ? 0 : 1;
+    level.root.traverse((o) => {
+      if (!o.isMesh || o.userData.hull || o.userData.ghost) return;
+      let lit = this.litOf.get(o);
+      if (!lit) {
+        lit = Array.isArray(o.material) ? o.material.map((m) => this.lit(m)) : this.lit(o.material);
+        this.litOf.set(o, lit);
+      }
+      const pick = (m) => (flat ? this.flat(m, level.cut) : this.toon(m, 'world', level.cut));
+      o.material = Array.isArray(lit) ? lit.map(pick) : pick(lit);
+    });
   }
 
   outlineLevel(level) {

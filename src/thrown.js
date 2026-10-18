@@ -12,6 +12,24 @@ import { PLAYER_WEAPONS } from './weapons.js';
 
 const GRAVITY = 22;
 const CARRY_Y = 2.15;
+/**
+ * How a carried thing is shown (look only: a throw still starts from CARRY_Y): its height, just over
+ * the head (the comic proportions' head tops out at 1.75 m and their arms reach about 1.85 m), and
+ * where the hands go, `half` to each side at `hand` above the ground, in the carrier's space (for a
+ * barrel `half` is a share of its radius). A pan held up from under it; a barrel on the head, by its base.
+ */
+const CARRY_SHOWN = {
+  pan: { y: 1.82, hand: 1.79, half: 0.3 },
+  barrel: { y: 1.77, hand: 1.8, half: 0.8 },
+};
+
+/** Where the carrier's hands go on `prop` ({ half, y } in its space), for player.js syncRig. */
+export function carryHands(prop) {
+  const s = CARRY_SHOWN[prop.kind];
+  if (!s) return null;
+  // a big gas cylinder is held nearer its middle: the arms reach no wider
+  return { half: prop.kind === 'barrel' ? Math.min(prop.r * s.half, 0.38) : s.half, y: s.hand };
+}
 
 /** Launch so that something released at height y0 lands at `dist` after about T seconds. */
 function launch(obj, x, z, y0, dx, dz, dist, T) {
@@ -169,7 +187,7 @@ export class Thrown {
       c.z = p.z;
       c.y = CARRY_Y + Math.sin(g.worldTime * 6) * 0.04;
       c.vx = c.vz = c.vy = 0;
-      c.mesh.position.set(c.x, c.y, c.z);
+      c.mesh.position.set(c.x, c.y - CARRY_Y + (CARRY_SHOWN[c.kind]?.y ?? CARRY_Y), c.z);
       c.mesh.rotation.y = p.facing;
     }
 

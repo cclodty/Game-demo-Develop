@@ -459,6 +459,7 @@ test('unlocked: the SMG start, 油桶節 and the coat take effect; locked, they 
       const g = window.game;
       g.setRules('normal', ['smgStart', 'barrelFest']);
       g.toTitle();
+      g.showRules(true); // the picks fold away under the rules line
       document.getElementById('coat-row').scrollIntoView({ block: 'center' });
       g.render();
     });

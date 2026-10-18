@@ -1,4 +1,4 @@
-// Key poses (風格第二批): the slide, the spin and a carry overhead are held
+// Key poses (風格第二批): the slide, the spin, the kick and a carry overhead are held
 // shapes (characters.js KEY_POSES), on the block rig and on a worn model alike,
 // in place of a body tilted by code. The worn models are measured bone by bone;
 // the player's own rig is checked through syncRig, where the style's 12 fps step
@@ -26,7 +26,7 @@ const POSE_RIG = async (name, worn, opts = {}) => {
   C.keyPose(rig, name, opts.w ?? 1);
   // the arms as player.js syncRig sets them: overhead with a carry, level with the aim however the body leans
   const level = -rig.inner.rotation.x;
-  rig.armL.rotation.x = rig.armR.rotation.x = (name === 'carry' ? -2.7 : 0) + level;
+  rig.armL.rotation.x = rig.armR.rotation.x = (name === 'carry' ? -1.5 : 0) + level;
   C.finishRig(rig, 0.4);
   rig.root.updateMatrixWorld(true);
   return rig;
@@ -51,7 +51,7 @@ test('the three key poses, measured: block legs and body as the data says; worn 
         });
         return f;
       };
-      for (const name of ['slide', 'spin', 'carry']) {
+      for (const name of ['slide', 'spin', 'kick', 'carry']) {
         const k = C.KEY_POSES[name];
         const b = await poseRig(name, false);
         const kb = { ...k, ...k.block };
@@ -79,6 +79,7 @@ test('the three key poses, measured: block legs and body as the data says; worn 
           feet: feet(w),
           idleFeet: feet(idle),
           hips: bones.hips.getWorldPosition(v).toArray(),
+          head: bones.head.getWorldPosition(v).toArray(),
           kneeL: bones.lowLegL.getWorldPosition(v).toArray(),
           kneeR: bones.lowLegR.getWorldPosition(v).toArray(),
           sole: box.setFromObject(w.skin.model, true).min.y,
@@ -108,7 +109,7 @@ test('the three key poses, measured: block legs and body as the data says; worn 
     });
 
     const near = (a, b, what) => assert.ok(Math.abs(a - b) < 1e-6, `${what}: ${a} (want ${b})`);
-    for (const name of ['slide', 'spin', 'carry']) {
+    for (const name of ['slide', 'spin', 'kick', 'carry']) {
       const b = r[name].block;
       near(b.lift, b.want.lift, `${name}: block body height`);
       near(b.lean, b.want.lean, `${name}: block body lean`);
@@ -119,7 +120,7 @@ test('the three key poses, measured: block legs and body as the data says; worn 
     assert.ok(Math.abs(r.carryWalk.legL - r.carryWalk.swing) < 1e-6 && r.carryWalk.legZ === 0, 'walking with a carry: the legs keep the gait');
     assert.ok(r.carryWalk.lean < 0, 'walking with a carry: the back still arches');
     if (!r.worn) return; // ?models=off or no hero model: the block rig is all there is
-    const { slide, spin, carry } = r;
+    const { slide, spin, kick, carry } = r;
     const at = (p) => p.map((x) => x.toFixed(2)).join(', ');
     assert.ok(/leg$/i.test(slide.worn.knees[0]) && /foot$/i.test(slide.worn.knees[2]), `the knee and foot bones are found (${slide.worn.knees})`);
     // slide: the right leg straight out in front along the floor, the left knee up (folded), the hips near the floor
@@ -132,6 +133,11 @@ test('the three key poses, measured: block legs and body as the data says; worn 
     assert.ok(spin.worn.feet.R[1] > 0.3, `spin: right foot raised (${spin.worn.feet.R[1].toFixed(2)} m)`);
     assert.ok(toKnee < 0.2, `spin: right foot at the left knee (${toKnee.toFixed(2)} m from it)`);
     assert.ok(spin.worn.feet.L[1] < spin.worn.feet.R[1] - 0.25, 'spin: standing on the left foot');
+    // kick: the right foot driven out at chest height, well ahead of the hips, the head back behind them, the left foot down
+    assert.ok(kick.worn.feet.R[1] > 0.85, `kick: right foot up at ${kick.worn.feet.R[1].toFixed(2)} m`);
+    assert.ok(kick.worn.feet.R[2] - kick.worn.hips[2] > 0.55, `kick: right foot ${(kick.worn.feet.R[2] - kick.worn.hips[2]).toFixed(2)} m ahead of the hips`);
+    assert.ok(kick.worn.head[2] < kick.worn.hips[2], 'kick: leaning back, the head behind the hips');
+    assert.ok(Math.abs(kick.worn.sole) < 0.035, `kick: the standing foot on the floor (${kick.worn.sole.toFixed(3)} m)`);
     // carry: both feet down, further apart than standing
     const apart = (f) => Math.abs(f.L[0] - f.R[0]);
     assert.ok(Math.abs(carry.worn.sole) < 0.035, `carry: soles on the floor (${carry.worn.sole.toFixed(3)} m)`);
@@ -173,12 +179,17 @@ test('the player: slide, spin and carry hold their key poses when the style step
       out.spin = look();
       out.spinYaw = rig.inner.rotation.y;
       p.spinT = 0;
+      p.kickT = 0.14;
+      out.kick = look();
+      p.kickT = 0;
       const pan = g.level.props.find((q) => q.kind === 'pan' || q.kind === 'barrel');
       g.thrown.carry = pan;
       out.carry = look();
       out.arms = rig.armL.rotation.x;
+      out.gunsAway = rig.weaponParts.every((m) => !m.visible);
       g.thrown.carry = null;
       out.none = look();
+      out.gunsBack = rig.weaponParts.every((m) => m.visible);
       // shot down mid-slide: the body falls from standing, not from the slide's lean and reach
       p.slideT = PLAYER.slideDuration * 0.5;
       look();
@@ -190,9 +201,11 @@ test('the player: slide, spin and carry hold their key poses when the style step
     assert.ok(Math.abs(r.slideArm) < 1e-6, `lying back, the guns stay level (${r.slideArm})`);
     assert.deepEqual([r.slideIn.key, r.slideIn.w], ['slide', 0.5], 'its first step: half way in');
     assert.deepEqual([r.spin.key, r.spin.w], ['spin', 1]);
+    assert.deepEqual([r.kick.key, r.kick.w], ['kick', 1], 'mid-kick: the Spartan kick, held');
     assert.ok(Math.abs(r.spinYaw) > 1, 'the spin still turns the body');
     assert.equal(r.carry.key, 'carry');
-    assert.ok(r.arms < -2.5, 'arms overhead');
+    assert.ok(r.arms < -1.2 && r.arms > -1.75, `arms up to it (${r.arms.toFixed(2)})`);
+    assert.deepEqual([r.gunsAway, r.gunsBack], [true, true], 'the guns put away while carrying, back after');
     assert.deepEqual(r.none, { key: null, w: r.none.w, y: 0, lean: 0 }, 'standing straight after');
     assert.deepEqual(r.dead, { y: 0, z: 0, lean: 0, legZ: 0 }, 'shot down mid-slide: the fall starts from standing');
     assert.deepEqual(problems(logs), []);
@@ -217,7 +230,7 @@ const lineup = (page, view, close) =>
       p.aimLaser.hide();
       g.aimPoint.set(p.x, 0, p.z);
       const cells = [];
-      for (const name of ['slide', 'spin', 'carry']) for (const worn of [false, true]) cells.push([name, worn]);
+      for (const name of ['slide', 'spin', 'kick', 'carry']) for (const worn of [false, true]) cells.push([name, worn]);
       window.lineupRigs = [];
       for (const [i, [name, worn]] of cells.entries()) {
         const rig = await poseRig(name, worn);

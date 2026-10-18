@@ -219,6 +219,7 @@ test('the title screen offers the picks, remembers them, and a run records them'
     await p2.evaluate(() => {
       window.game.frame = () => {};
     });
+    await p2.click('#open-rules'); // the picks fold away under the title's rules line
     await p2.click('#difficulty-cards [data-rule="ballet"]');
     await p2.click('#variant-cards [data-rule="glassCity"]');
     await p2.click('#variant-cards [data-rule="noSlowmo"]');
@@ -227,9 +228,10 @@ test('the title screen offers the picks, remembers them, and a run records them'
       const g = window.game;
       g.render();
       const sel = (id) => [...document.querySelectorAll(`#${id} .selected`)].map((b) => b.dataset.rule);
-      return { state: g.state, difficulty: sel('difficulty-cards'), variants: sel('variant-cards') };
+      return { state: g.state, difficulty: sel('difficulty-cards'), variants: sel('variant-cards'), summary: document.getElementById('rules-summary').textContent };
     });
     assert.equal(shown.state, 'title', 'picking a rule does not start a run');
+    assert.equal(shown.summary, '芭蕾 · 玻璃之城', 'the rules line says what is picked');
     assert.deepEqual(shown.difficulty, ['ballet']);
     assert.deepEqual(shown.variants, ['glassCity']);
     await snap(p2, 'rules-title.png');

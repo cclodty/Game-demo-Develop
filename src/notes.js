@@ -507,6 +507,7 @@ export class Notes {
       `- 最佳片段錄影：${this.clipState()}`,
       `- 排行榜：${g.boards.online ? `線上（${g.boards.url}）` : '離線（後端網址未設定）'} · 暱稱 ${g.boards.me.name || '未取'}${g.boards.last ? ` · 最近一次：${g.boards.last.online ? `第 ${g.boards.last.online.rank} 名` : g.boards.last.error || `本機第 ${g.boards.last.local.rank} 名`}` : ''}`,
       `- 最近的重播：${g.replays.list.slice(0, 3).map((r) => r.name).join('、') || '沒有'}（存在這部電腦，標題畫面「重播」可下載）`,
+      `- 手掣：${g.input.pads.length ? g.input.pads.map((p) => `${g.input.pad && g.input.pad.index === p.index ? '使用中 ' : ''}#${p.index}「${p.id}」（${p.mapping === 'standard' ? '標準佈局' : '非標準'}）`).join('；') : '沒有接上'}`,
       `- 風格：${Object.entries(SWITCHES).map(([k, l]) => `${l.replace(/（.*$/, '')} ${g.style.on[k] ? '開' : '關'}`).join('、')}`,
       `- 調整過的手感數字：${diff.length ? diffLine(diff) : '無（全部預設）'}`,
       '',

@@ -8,7 +8,7 @@ import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, VIEWS } from
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
-import { Input, StepInput } from './input.js';
+import { Input, padLabel, StepInput } from './input.js';
 import { Level } from './level.js';
 import { MAPS } from './maps.js';
 import { loadedCharacters, loadModels } from './models.js';
@@ -30,7 +30,7 @@ import { Tutorial, wantWarmup } from './tutorial.js';
 import { clamp, damp, lerp } from './utils.js';
 import { MODE_IDS, MODES, Waves } from './waves.js';
 import { Grenades } from './weapons.js';
-import { Boss } from './boss.js';
+import { BOSSES, Bosses } from './boss.js';
 
 const MAP_KEY = 'bullet-ballet.map';
 const MODE_KEY = 'bullet-ballet.mode';
@@ -133,7 +133,8 @@ class Game {
     if (this.startMap) this.level.load(MAPS[this.startMap]);
     this.bullets = new Bullets(this);
     this.grenades = new Grenades(this);
-    this.boss = new Boss(this); // the last wave's boss on a map that has one (boss.js)
+    this.bosses = new Bosses(this); // the last wave's boss on a map that has one (boss.js)
+    this.boss = this.bosses.view; // whichever boss this run has, as one object
     this.pickups = new Pickups(this);
     this.thrown = new Thrown(this);
     this.tutorial = new Tutorial(this);
@@ -271,6 +272,19 @@ class Game {
     });
     $('achievements').addEventListener('click', (e) => e.stopPropagation());
     $('achievements-close').addEventListener('click', () => this.showAchievements(false));
+    // difficulty, variants and coat fold away under one line that says what is picked
+    $('open-rules').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.showRules($('rules-fold').classList.contains('hidden'));
+    });
+    $('rules-fold').addEventListener('click', (e) => e.stopPropagation()); // the gaps between cards are not a start
+    // the controls and tips have a page of their own
+    $('open-help').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.showHelp(true);
+    });
+    $('help').addEventListener('click', (e) => e.stopPropagation());
+    $('help-close').addEventListener('click', () => this.showHelp(false));
     this.markRules();
     if (this.achievements.coatOpen) this.player.setCoat(COATS.find((c) => c.id === this.achievements.coat));
     // the first visit: the local records switch (on unless turned off)
@@ -294,6 +308,9 @@ class Game {
         e.stopPropagation();
         start(i);
       });
+      // pointing at a card shows its route
+      for (const ev of ['mouseenter', 'focus']) b.addEventListener(ev, () => this.markRoute(i));
+      for (const ev of ['mouseleave', 'blur']) b.addEventListener(ev, () => this.markRoute());
       cards.appendChild(b);
     });
     this.markMapCard();
@@ -371,7 +388,7 @@ class Game {
       note: () => this.notes.openNote(),
       export: () => this.notes.download(),
     };
-    for (const b of document.querySelectorAll('.menu button')) {
+    for (const b of document.querySelectorAll('.menu button[data-act]')) { // the pause menu's (the pages' back buttons have their own)
       b.addEventListener('click', (e) => {
         e.stopPropagation();
         menu[b.dataset.act]();
@@ -398,6 +415,10 @@ class Game {
         this.showAchievements(false);
         return;
       }
+      if (e.code === 'Escape' && !$('help').classList.contains('hidden')) {
+        this.showHelp(false);
+        return;
+      }
       if (e.code === 'Escape' && this.state === 'playing' && this.tutorial.active) return; // Esc skips the warm-up (a recorded control) instead of pausing
       if (e.code === 'Escape' || e.code === 'KeyP') {
         if (this.notes.noteOpen) this.notes.cancelNote();
@@ -419,11 +440,12 @@ class Game {
         const on = this.audio.toggleMusic();
         if (this.state === 'playing') this.hud.feed(on ? 'MUSIC ON' : 'MUSIC OFF', 0, 'dim');
       } else if (e.code === 'Enter') {
-        if (this.state === 'title') start();
-        else if (this.clipOn) this.endClip();
+        if (this.state === 'title') {
+          if (!$('title').classList.contains('hidden')) start(); // not from a page over it (help, boards…)
+        } else if (this.clipOn) this.endClip();
         else if (this.state === 'over' && (this.replay || this.dailyRun)) this.toTitle();
         else if (this.state === 'over' && performance.now() - this.overAt > 700) start();
-      } else if (this.state === 'title' && /^Digit[1-9]$/.test(e.code)) {
+      } else if (this.state === 'title' && !$('title').classList.contains('hidden') && /^Digit[1-9]$/.test(e.code)) {
         const i = Number(e.code.slice(5)) - 1;
         if (i < MAPS.length) start(i);
       }
@@ -436,6 +458,7 @@ class Game {
 
   markMapCard() {
     [...$('map-cards').children].forEach((c, i) => c.classList.toggle('selected', i === this.startMap));
+    this.markRoute();
   }
 
   setMode(id) {
@@ -450,8 +473,13 @@ class Game {
 
   markMode() {
     for (const c of $('mode-cards').children) c.classList.toggle('selected', c.dataset.mode === this.mode);
+    this.markRoute();
+  }
+
+  /** The maps note: how the mode goes, and in arcade the route from the map card picked (or pointed at). */
+  markRoute(start = this.startMap) {
     const r = MODES[this.mode];
-    $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結` : `每 ${r.perStage} 波換一個場景`;
+    $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結：${this.routeText(start, this.mode)}` : `每 ${r.perStage} 波換一個場景`;
   }
 
   /** Whether a variant is on offer: open from the start, or its achievement is done. */
@@ -481,6 +509,23 @@ class Game {
     const ach = this.achievements;
     $('coat-row').classList.toggle('hidden', !ach.coatOpen);
     for (const c of $('coat-cards').children) c.classList.toggle('selected', c.dataset.coat === ach.coat);
+    const coat = ach.coatOpen && COATS.find((c) => c.id === ach.coat);
+    const picked = [DIFFICULTIES[this.difficulty].name, this.variants.length ? this.variants.map((v) => VARIANTS[v].name).join('、') : '沒有變體'];
+    if (coat) picked.push(`${coat.name}色外套`);
+    $('rules-summary').textContent = picked.join(' · ');
+  }
+
+  /** Open or fold the title's difficulty, variant and coat picks. */
+  showRules(on) {
+    $('rules-fold').classList.toggle('hidden', !on);
+    $('open-rules').setAttribute('aria-expanded', String(on));
+  }
+
+  /** The controls and tips page, over the title. */
+  showHelp(on) {
+    $('help').classList.toggle('hidden', !on);
+    $('title').classList.toggle('hidden', on);
+    if (on) $('help-close').focus();
   }
 
   /** An achievement is done: say so, with what it opens, and put the opened picks on the title. */
@@ -550,6 +595,10 @@ class Game {
     this.hud.reset();
     this.notes.reset(MAPS[mapIndex]);
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
+    // the music: the first stage's song from its start, on its base (audio.js)
+    this.audio.setStage(0, true);
+    this.audio.setLevel(0);
+    this.notes.log(`音樂：${this.audio.song.name}`);
     this.telemetry.confirm(); // the switch was on the title screen: playing is leaving it as it is
     $('telemetry-switch').classList.add('hidden');
     if (!this.replay) this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup, input: this.padOn ? 'pad' : 'keyboard', daily: !!this.dailyRun });
@@ -643,7 +692,7 @@ class Game {
     const day = utcDay(now);
     const d = dailyFor(day);
     const rules = rulesFor(d.difficulty, d.variants).label || '正常';
-    $('daily-what').textContent = `${day}（UTC） · ${MAPS[d.map].name} · ${rules}`;
+    $('daily-what').textContent = `${day}（UTC） · ${this.routeText(d.map, 'daily')} · ${rules}`;
     const done = this.daily.days[day];
     $('daily-start').classList.toggle('hidden', !!done);
     $('daily-done').classList.toggle('hidden', !done);
@@ -966,7 +1015,7 @@ class Game {
     this.enemies.clear();
     this.bullets.clear();
     this.grenades.clear();
-    this.boss.reset();
+    this.bosses.reset();
     this.pickups.clear();
     this.thrown.clear();
     this.style.clearGhosts();
@@ -1032,6 +1081,17 @@ class Game {
     $('view-name').textContent = VIEWS[this.view].name;
   }
 
+  /** Where a run of `mode` from map `start` goes: its maps in order, the last with its boss. '' in endless (no last stage). */
+  routeText(start, mode) {
+    const r = MODES[mode];
+    if (!Number.isFinite(r.waves)) return '';
+    const stages = Math.ceil(r.waves / r.perStage);
+    const maps = Array.from({ length: stages }, (_, i) => MAPS[(start + i) % MAPS.length]);
+    const last = maps.at(-1).boss;
+    const boss = last && BOSSES[last.kind];
+    return `${maps.map((m) => m.name).join(' → ')}${boss ? `（頭目：${boss.cfg.name}）` : ''}`;
+  }
+
   get stageMap() {
     return MAPS[(this.startMap + this.stage) % MAPS.length];
   }
@@ -1055,6 +1115,9 @@ class Game {
       this.fx.clear();
       this.level.load(this.stageMap);
       this.notes.log(`轉場 → ${this.stageMap.name}`);
+      this.audio.setStage(this.stage); // the next song comes in on the bar line
+      this.audio.setLevel(0);
+      this.notes.log(`音樂：${this.audio.upcoming.name}`);
       this.applyMapView();
       this.player.placeAtStart();
       this.updateCamera(1, true);
@@ -1379,7 +1442,7 @@ class Game {
 
   explode(x, z, r, opts = {}) {
     const p = this.player;
-    this.boss.blast(x, z, opts); // right under the helicopter, a barrel or a grenade hurts it
+    this.boss.blast(x, z, opts); // a blast can hurt a boss (boss.js: right under the helicopter, a barrel or a grenade)
     this.fx.explosion(x, z, r);
     this.audio.explosion(this.panFor(x));
     this.level.noise(x, z, 20);
@@ -1456,6 +1519,13 @@ class Game {
     if (this.input.padStart) {
       if (this.state === 'playing') this.setPaused(true);
       else if (this.state === 'paused') this.setPaused(false);
+    }
+    // the title names the pad in use, so a wrong one (a second pad, a device that only looks like one) shows
+    const used = pad ? `${pad.index}:${pad.id}` : '';
+    if (used !== this.padUsed) {
+      if (pad && this.padOn) this.notes.log(`改用手掣：${padLabel(pad.id)}`);
+      this.padUsed = used;
+      $('pad-name').textContent = pad ? `使用中：${padLabel(pad.id)}` : '';
     }
     if (!!pad === this.padOn) return;
     this.padOn = !!pad;
@@ -1660,7 +1730,7 @@ class Game {
     let zoom = 1;
     if (this.state === 'playing') {
       // holding right mouse with a sniper rifle pushes the view out along the aim
-      const scoped = p.alive && p.weapon.scope && this.input.mouse.right;
+      const scoped = p.alive && p.weapon.scope && this.cmd.mouse.right; // the step's input: the right button or a pad's LT
       const ahead = scoped ? 0.55 : CAMERA.lookAhead;
       const aheadMax = scoped ? 13 : CAMERA.lookAheadMax;
       let lx = (this.aimPoint.x - p.x) * ahead;
@@ -1674,7 +1744,7 @@ class Game {
       tx += lx;
       tz += lz;
       zoom *= lerp(1, CAMERA.focusZoom, this.focusAmt);
-      if (this.boss.active) {
+      if (this.boss.active && this.boss.cfg.pull) {
         // a boss in the air: pull back and lean towards it, so it is in the picture
         tx = lerp(tx, this.boss.x, CAMERA.bossPull);
         tz = lerp(tz, this.boss.z, CAMERA.bossPull);
@@ -1723,6 +1793,14 @@ class Game {
     const tilted = view.pitch !== undefined;
     const radius = this.level.map.cutaway ? (tilted ? 5.5 : 4.2) : tilted ? 2.2 : 0;
     cut.uCutR.value = radius;
+    // a map's fade: what stands outside the play area on the camera's side shows the street behind it
+    const fade = this.level.map.fade;
+    cut.uFadeOn.value = fade ? 1 : 0;
+    if (fade) {
+      cut.uFadeY.value = fade.above;
+      cut.uFadeBox.value.set(this.level.bounds.halfW, this.level.bounds.halfD);
+      cut.uFadeDir.value.set(Math.sin(this.camYaw), Math.cos(this.camYaw));
+    }
     if (radius > 0) {
       this.camera.updateMatrixWorld();
       cut.uCutA.value.copy(this.camera.position);
@@ -1746,6 +1824,7 @@ class Game {
     u.uRipple.value = this.ripple;
     u.uCenter.value.copy(this.rippleCenter);
     this.post.bloom.strength = this.level.bloom.strength + focus * 0.25;
+    this.post.edges.enabled = this.style.edgesOn;
     this.post.render();
   }
 }

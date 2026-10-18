@@ -2,18 +2,9 @@
 // with the game's time scale: slow motion drops pitch, muffles the mix and
 // slows the music down like a tape deck.
 
+import { MUSIC } from './config.js';
+import { playStep, SONGS } from './music.js';
 import { clamp, lerp, rand } from './utils.js';
-
-const BPM = 124;
-// A minor: Am - F - C - G, one bar each. Values are semitones from A.
-const CHORDS = [
-  [0, 3, 7],
-  [-4, 0, 3],
-  [3, 7, 10],
-  [-2, 2, 5],
-];
-const BASS_STEPS = new Set([0, 3, 6, 8, 10, 11, 14]);
-const ARP = [0, 1, 2, 1, 2, 0, 1, 2, 0, 2, 1, 2, 0, 1, 2, 1];
 
 const noteHz = (semi, base = 440) => base * Math.pow(2, semi / 12);
 
@@ -25,6 +16,50 @@ export class AudioSys {
     this.musicRate = 1;
     this.slow = 0;
     this.last = new Map();
+    // the background songs (music.js): config.js MUSIC.playlist, one a stage, or ?music=<id> for just that one
+    const asked = new URLSearchParams(location.search).get('music');
+    this.playlist = SONGS[asked] ? [asked] : MUSIC.playlist.filter((id) => SONGS[id]);
+    if (!this.playlist.length) this.playlist = ['classic'];
+    this.song = SONGS[this.playlist[0]];
+    this.nextSong = null; // the stage's song, waiting for the bar line
+    this.musicLevel = 0; // how much of the song plays (music.js): 0 the base, 1 its later layers, 2 its boss section
+  }
+
+  /** The song for stage `i` of a run. */
+  songFor(i) {
+    return SONGS[this.playlist[i % this.playlist.length]];
+  }
+
+  /** The song playing now, or the one it changes to at the next bar line. */
+  get upcoming() {
+    return this.nextSong || this.song;
+  }
+
+  /** Stage `i`'s song: at the next bar line, or `now` from its start (a new run). */
+  setStage(i, now = false) {
+    const song = this.songFor(i);
+    if (now) {
+      this.nextSong = null;
+      this.useSong(song);
+      this.step = 0;
+      if (this.ctx) this.nextStep = this.ctx.currentTime + 0.05;
+    } else this.nextSong = song === this.song ? null : song;
+  }
+
+  /** 0 the base of the song, 1 with its later layers, 2 its boss section (waves.js sets it each wave). */
+  setLevel(n) {
+    this.musicLevel = n;
+  }
+
+  /** A song takes over the music: its echo's timing and its hall. */
+  useSong(song) {
+    this.song = song;
+    if (!this.delay) return;
+    const dl = song.delay || { steps: 3, send: 0, feedback: 0 };
+    this.delay.delayTime.value = (60 / song.bpm / 4) * dl.steps;
+    this.delaySend.gain.value = dl.send;
+    this.delayFb.gain.value = dl.feedback;
+    if (this.hallSend) this.hallSend.gain.value = song.hall ? song.hall.send : 0;
   }
 
   init() {
@@ -34,8 +69,15 @@ export class AudioSys {
     }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
-    const ctx = (this.ctx = new AC());
+    this.build(new AC());
+    this.step = 0;
+    this.nextStep = this.ctx.currentTime + 0.1;
+    this.timer = setInterval(() => this.scheduleMusic(), 25);
+  }
 
+  /** The mixing graph on `ctx` (a live AudioContext, or an OfflineAudioContext to render the music to a file). */
+  build(ctx) {
+    this.ctx = ctx;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -16;
     comp.knee.value = 12;
@@ -64,15 +106,49 @@ export class AudioSys {
     this.music = ctx.createGain();
     this.music.gain.value = this.musicOn ? 0.32 : 0;
     this.music.connect(this.musicFilter);
+    // the song's echo: what goes to musicWet also repeats through a filtered feedback delay
+    const dl = this.song.delay || { steps: 3, send: 0, feedback: 0 };
+    this.musicWet = ctx.createGain();
+    this.musicWet.connect(this.music);
+    const send = ctx.createGain();
+    send.gain.value = dl.send;
+    const delay = ctx.createDelay(2);
+    delay.delayTime.value = (60 / this.song.bpm / 4) * dl.steps;
+    const tone = ctx.createBiquadFilter();
+    tone.type = 'lowpass';
+    tone.frequency.value = 2600;
+    const fb = ctx.createGain();
+    fb.gain.value = dl.feedback;
+    this.musicWet.connect(send);
+    send.connect(delay);
+    delay.connect(tone);
+    tone.connect(fb);
+    fb.connect(delay);
+    tone.connect(this.music);
+    Object.assign(this, { delay, delaySend: send, delayFb: fb, hallSend: null });
+    // a song may ask for a hall (song.hall): what goes to musicWet also rings out in a made-up room (one for every song played here)
+    const hall = this.song.hall || this.playlist.map((id) => SONGS[id].hall).find(Boolean);
+    if (hall) {
+      const n = Math.ceil(ctx.sampleRate * hall.seconds);
+      const ir = ctx.createBuffer(2, n, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = ir.getChannelData(ch);
+        for (let i = 0; i < n; i++) d[i] = rand(-1, 1) * Math.pow(1 - i / n, 2.6);
+      }
+      const room = ctx.createConvolver();
+      room.buffer = ir;
+      const hs = ctx.createGain();
+      hs.gain.value = this.song.hall ? this.song.hall.send : 0;
+      this.musicWet.connect(hs);
+      hs.connect(room);
+      room.connect(this.music);
+      this.hallSend = hs;
+    }
 
     const len = ctx.sampleRate * 2;
     this.noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
     const data = this.noiseBuf.getChannelData(0);
     for (let i = 0; i < len; i++) data[i] = rand(-1, 1);
-
-    this.step = 0;
-    this.nextStep = ctx.currentTime + 0.1;
-    this.timer = setInterval(() => this.scheduleMusic(), 25);
   }
 
   get ready() {
@@ -144,7 +220,8 @@ export class AudioSys {
     src.stop(t + dur + 0.05);
   }
 
-  tone({ type = 'sine', f0, f1 = 0, dur, vol, attack = 0.003, delay = 0, pan = 0, bus = this.sfx, at = 0, filter = 0 }) {
+  // `filter` a lowpass (or `filterType`) at that frequency, opening (or closing) to `filterTo` over `sweep` s (the whole note if 0)
+  tone({ type = 'sine', f0, f1 = 0, dur, vol, attack = 0.003, delay = 0, pan = 0, bus = this.sfx, at = 0, filter = 0, filterTo = 0, sweep = 0, filterType = 'lowpass', q = 1 }) {
     const c = this.ctx;
     const t = (at || c.currentTime) + delay;
     const o = c.createOscillator();
@@ -158,8 +235,10 @@ export class AudioSys {
     let node = o;
     if (filter) {
       const f = c.createBiquadFilter();
-      f.type = 'lowpass';
-      f.frequency.value = filter;
+      f.type = filterType;
+      f.Q.value = q;
+      f.frequency.setValueAtTime(filter, t);
+      if (filterTo) f.frequency.exponentialRampToValueAtTime(filterTo, t + (sweep || dur));
       o.connect(f);
       node = f;
     }
@@ -453,42 +532,22 @@ export class AudioSys {
     if (!c || c.state !== 'running') return;
     if (this.nextStep < c.currentTime - 0.1) this.nextStep = c.currentTime + 0.02;
     while (this.nextStep < c.currentTime + 0.15) {
-      if (this.musicOn) this.playStep(this.step, this.nextStep);
-      this.nextStep += 60 / BPM / 4 / this.musicRate;
-      this.step = (this.step + 1) % 64;
+      // a new stage's song comes in on the bar line, from its start
+      if (this.nextSong && this.step % 16 === 0) {
+        this.useSong(this.nextSong);
+        this.nextSong = null;
+        this.step = 0;
+      }
+      if (this.musicOn) playStep(this, this.song, this.step, this.nextStep, this.musicRate);
+      this.nextStep += 60 / this.song.bpm / 4 / this.musicRate;
+      this.step++;
     }
   }
 
-  playStep(step, at) {
-    const r = this.musicRate;
-    const bus = this.music;
-    const bar = Math.floor(step / 16);
-    const s = step % 16;
-    const chord = CHORDS[bar];
-    const stepDur = 60 / BPM / 4 / r;
-
-    if (s % 4 === 0) {
-      this.tone({ type: 'sine', f0: 150 * r, f1: 42 * r, dur: 0.28 / r, vol: 0.7, at, bus });
-    }
-    if (s === 4 || s === 12) {
-      this.noise({ type: 'bandpass', freq: 1800 * r, q: 0.7, dur: 0.2 / r, vol: 0.28, at, bus });
-      this.tone({ type: 'triangle', f0: 210 * r, f1: 120 * r, dur: 0.1 / r, vol: 0.12, at, bus });
-    }
-    if (s % 2 === 0) {
-      this.noise({ type: 'highpass', freq: 8000 * r, dur: (s % 4 === 2 ? 0.08 : 0.03) / r, vol: s % 4 === 2 ? 0.09 : 0.04, at, bus });
-    }
-    if (BASS_STEPS.has(s)) {
-      const semi = chord[0] + (s === 14 ? 12 : 0);
-      this.tone({ type: 'sawtooth', f0: noteHz(semi, 55) * r, dur: stepDur * 1.6, vol: 0.2, at, bus, filter: 520 * r + 120 });
-    }
-    const arpNote = chord[ARP[s]] + (s >= 8 ? 12 : 0);
-    this.tone({ type: 'square', f0: noteHz(arpNote, 440) * r, dur: stepDur * 0.9, vol: 0.028, at, bus, filter: 2600 * r });
-
-    if (s === 0) {
-      for (const semi of chord) {
-        this.tone({ type: 'sawtooth', f0: noteHz(semi, 220) * r * 1.003, dur: stepDur * 16, vol: 0.022, attack: 0.4 / r, at, bus, filter: 900 * r });
-        this.tone({ type: 'sawtooth', f0: noteHz(semi, 220) * r * 0.997, dur: stepDur * 16, vol: 0.022, attack: 0.4 / r, at, bus, filter: 900 * r });
-      }
-    }
+  /** Schedule `seconds` of the song from the start, at music `level`, on an offline graph (build() first); ctx.startRendering() then plays it out. */
+  scheduleSong(seconds, level = 1) {
+    this.musicLevel = level;
+    const dt = 60 / this.song.bpm / 4;
+    for (let n = 0, t = 0.05; t < seconds; n++, t += dt) playStep(this, this.song, n, t, 1);
   }
 }
