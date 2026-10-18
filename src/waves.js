@@ -59,20 +59,21 @@ export class Waves {
       total = Math.round(total * finale.size);
       brutes += finale.brutes;
     }
-    const weights = [
-      ['grunt', 6],
-      ['shotgun', n >= 2 ? 2.5 : 0],
-      ['rifle', n >= 2 ? 2 : 0],
-      ['rusher', n >= 3 ? 2.2 : 0],
-    ];
+    // who can come, and how often: TYPES[type].spawn (from which wave, weight, most per wave)
+    const weights = Object.entries(TYPES)
+      .filter(([, t]) => t.spawn)
+      .map(([type, t]) => [type, n >= t.spawn.from ? t.spawn.weight : 0, t.spawn.max ?? Infinity]);
     const sum = weights.reduce((a, w) => a + w[1], 0);
     const list = [];
+    const count = {};
     for (let i = 0; i < total - brutes; i++) {
       let r = rng.next() * sum;
-      for (const [type, w] of weights) {
+      for (const [type, w, max] of weights) {
         r -= w;
         if (r <= 0) {
-          list.push(type);
+          const pick = (count[type] || 0) < max ? type : weights[0][0]; // over its cap: a thug instead
+          count[pick] = (count[pick] || 0) + 1;
+          list.push(pick);
           break;
         }
       }

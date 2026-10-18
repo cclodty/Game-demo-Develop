@@ -266,6 +266,18 @@ export const ASSETS = {
     prompt: '40 mm grenade round with an orange tip band',
   },
 
+  weapon_shield: {
+    kind: 'weapon',
+    group: 'weapons',
+    zh: '防暴盾（盾牌手）',
+    priority: 2,
+    size: [0.62, 0.06, 1.05],
+    tris: 600,
+    texture: 512,
+    prompt: 'clear dark polycarbonate riot shield with a yellow reflective rim, a horizontal yellow band and a grip on the back',
+    notes: '盾牌手左手持在身前；遊戲現在用一塊方塊盾，模型做好就換上。',
+  },
+
   // ------------------------------------------------- props on several maps
   crate: {
     kind: 'prop',

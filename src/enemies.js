@@ -22,6 +22,7 @@ export const TYPES = {
     lead: [0.2, 0.9],
     turn: 5,
     look: { body: 0x2a2a33, pants: 0x1b1b22, accent: 0xff2d4a, hair: 0x8a1020, weapon: 'pistol' },
+    spawn: { from: 1, weight: 6 },
   },
   shotgun: {
     label: 'SHOTGUNNER',
@@ -36,6 +37,7 @@ export const TYPES = {
     lead: [0.3, 0.8],
     turn: 4.5,
     look: { body: 0x3a2a1e, pants: 0x1e1a18, accent: 0xff8a1f, hair: 0xd06a10, weapon: 'shotgun' },
+    spawn: { from: 2, weight: 2.5 },
   },
   rifle: {
     label: 'RIFLEMAN',
@@ -50,6 +52,7 @@ export const TYPES = {
     lead: [0.5, 1.0],
     turn: 3.5,
     look: { body: 0x2a2440, pants: 0x1a1830, accent: 0xb36bff, hair: 0x3a2466, weapon: 'rifle' },
+    spawn: { from: 2, weight: 2 },
   },
   rusher: {
     label: 'BLADE',
@@ -60,6 +63,7 @@ export const TYPES = {
     score: 120,
     turn: 10,
     look: { body: 0x141418, pants: 0x101014, accent: 0xff2bd0, hair: 0x0a0a0a, weapon: 'blade' },
+    spawn: { from: 3, weight: 2.2 },
   },
   brute: {
     label: 'BRUTE',
@@ -75,6 +79,23 @@ export const TYPES = {
     turn: 2.2,
     heavy: true,
     look: { body: 0x3b3e48, pants: 0x22242c, accent: 0xff3a2a, hair: 0x55585f, weapon: 'minigun', scale: 1.25 },
+  },
+  shield: {
+    label: 'SHIELD',
+    model: 'grunt', // the thug's model behind a riot shield
+    hp: 4,
+    speed: 2.3, // walks in slowly behind the shield
+    radius: 0.4,
+    aimTime: 0.9,
+    cooldown: [1.8, 2.6],
+    range: [2.5, 6],
+    weapon: 'pistol',
+    score: 200,
+    lead: [0.2, 0.7],
+    turn: 3,
+    shield: { arc: 60, down: 1.5 }, // stops bullets coming from within ±arc degrees of his facing; a kick drops it for `down` s
+    look: { body: 0x1f2a36, pants: 0x161c24, accent: 0xffc21a, hair: 0x2a2a2a, weapon: 'pistol' },
+    spawn: { from: 3, weight: 1.6, max: 2 },
   },
 };
 
@@ -96,7 +117,9 @@ class Enemy {
     this.type = type;
     this.cfg = TYPES[type];
     const cfg = this.cfg;
-    this.rig = buildCharacter({ ...cfg.look, ring: 0.35, model: type });
+    this.rig = buildCharacter({ ...cfg.look, ring: 0.35, model: cfg.model || type });
+    this.shieldDownT = 0;
+    if (cfg.shield) this.buildShield();
     this.idleOffset = rand(0, 10);
     this.game.scene.add(this.rig.root);
     const lc = LASER_COLOR[cfg.weapon] || LASER_COLOR.pistol;
@@ -152,7 +175,39 @@ class Enemy {
     return this.alive && (this.state === 'aim' || this.state === 'windup');
   }
 
+  /** The riot shield, held in front on the left: a dark clear panel with a yellow rim. */
+  buildShield() {
+    const g = new THREE.Group();
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(0.62, 1.05, 0.04), new THREE.MeshStandardMaterial({ color: 0x223040, roughness: 0.25, metalness: 0.3, transparent: true, opacity: 0.82 }));
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.06, 0.05), new THREE.MeshStandardMaterial({ color: 0xffc21a, emissive: 0xffa400, emissiveIntensity: 0.8 }));
+    rim.position.y = 0.5;
+    const band = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.05), rim.material);
+    band.position.y = -0.1;
+    g.add(panel, rim, band);
+    for (const m of g.children) m.castShadow = true;
+    g.position.set(0.1, 0.95, 0.42);
+    this.rig.inner.add(g);
+    this.game.style.dress(g);
+    this.shieldMesh = g;
+  }
+
+  get shieldUp() {
+    return !!this.cfg.shield && this.alive && this.shieldDownT <= 0;
+  }
+
+  /** True when a bullet travelling along (dx, dz) meets the raised shield: it comes from within the arc in front. */
+  blocks(dx, dz) {
+    if (!this.shieldUp) return false;
+    const fx = Math.sin(this.facing);
+    const fz = Math.cos(this.facing);
+    return -(dx * fx + dz * fz) >= Math.cos((this.cfg.shield.arc * Math.PI) / 180);
+  }
+
   dispose() {
+    for (const m of this.shieldMesh ? this.shieldMesh.children : []) {
+      m.geometry.dispose();
+      m.material.dispose();
+    }
     this.game.scene.remove(this.rig.root);
     disposeRig(this.rig);
     this.laser.dispose(this.game.scene);
@@ -160,9 +215,15 @@ class Enemy {
 
   // ----------------------------------------------------------- damage
 
+  /** A bullet arrives; returns 'blocked' when the shield stopped it. */
   hit(b) {
-    if (!this.alive) return;
+    if (!this.alive) return undefined;
     const g = this.game;
+    if (this.blocks(b.dx, b.dz)) {
+      g.fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 10, [7, 6, 3], 7);
+      g.audio.deflect(g.panFor(this.x));
+      return 'blocked';
+    }
     const fromPlayer = b.owner === 'player';
     this.hp -= fromPlayer ? b.damage : 3;
     this.flash = 1;
@@ -199,6 +260,10 @@ class Enemy {
 
   kick(dx, dz, power, cause = 'kick', dmg = 1) {
     if (!this.alive) return;
+    if (this.cfg.shield) {
+      if (this.shieldDownT <= 0) this.game.notes.log('盾牌手的盾被踢開');
+      this.shieldDownT = this.cfg.shield.down;
+    }
     const heavy = this.cfg.heavy;
     this.stunT = heavy ? 0.35 : 0.85;
     this.stunCause = cause;
@@ -383,6 +448,7 @@ class Enemy {
     this.flash = Math.max(0, this.flash - dt * 6);
     this.fireCd -= dt;
     this.blindT = Math.max(0, this.blindT - dt);
+    this.shieldDownT = Math.max(0, this.shieldDownT - dt);
     this.spawnLock -= dt;
     this.losT -= dt;
     if (this.losT <= 0) {
@@ -634,6 +700,12 @@ class Enemy {
     r.ring.material.color.setRGB(this.aiming ? 1.6 : 0.35, 0.05, 0.08);
     if (!this.game.style.poseDue(r, this.game.worldTime + this.idleOffset)) return; // the pose holds between the style's steps
     animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
+    if (this.shieldMesh) {
+      // kicked aside: the shield swings down and out
+      const down = this.shieldDownT > 0;
+      this.shieldMesh.rotation.set(down ? 1.1 : 0, down ? 0.9 : 0, 0);
+      this.shieldMesh.position.set(down ? 0.35 : 0.1, down ? 0.55 : 0.95, down ? 0.2 : 0.42);
+    }
     if (this.cfg.weapon === 'blade') {
       const raise = this.state === 'windup' ? -1.6 : this.state === 'strike' ? 0.9 : 0.5;
       r.armR.rotation.x = damp(r.armR.rotation.x, raise, 25, 1 / LOGIC_HZ); // once per logic step

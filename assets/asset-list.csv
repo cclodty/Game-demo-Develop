@@ -15,6 +15,7 @@ weapon_launcher,weapon,weapons,榴彈發射器,2,0.28,0.9,0.3,0,12000,2048,2000,
 weapon_minigun,weapon,weapons,機槍（大隻佬）,2,0.34,1.2,0.34,0,12000,2048,3000,512,source/weapon_minigun/weapon_minigun.glb,"heavy six-barrel rotary minigun with a rear handle and a top carry handle, gunmetal with a red ring at the muzzle"
 weapon_blade,weapon,weapons,刀（刀手）,2,0.05,0.8,0.08,0,12000,2048,800,512,source/weapon_blade/weapon_blade.glb,"short straight machete-like blade with a wrapped handle, the edge catching a magenta glint"
 weapon_grenade,weapon,weapons,榴彈（發射器的彈）,3,0.08,0.12,0.08,0,12000,2048,300,256,source/weapon_grenade/weapon_grenade.glb,40 mm grenade round with an orange tip band
+weapon_shield,weapon,weapons,防暴盾（盾牌手）,2,0.62,0.06,1.05,0,12000,2048,600,512,source/weapon_shield/weapon_shield.glb,"clear dark polycarbonate riot shield with a yellow reflective rim, a horizontal yellow band and a grip on the back"
 crate,prop,props,木箱（掩體，可被打出木屑）,1,1.4,1.4,1.3,18,8000,2048,800,512,source/crate/crate.glb,weathered wooden shipping crate made of planks with dark metal corner brackets and stencilled markings
 barrel,prop,props,紅色油桶（一槍爆炸）,1,0.9,0.9,1.23,17,8000,2048,800,512,source/barrel/barrel.glb,"bright red 200 litre steel oil drum with ribbed bands, a yellow-black hazard stripe and a flammable warning label"
 gas,prop,props,大氣罐（大爆炸）,1,1.16,1.16,1.8,8,8000,2048,1000,512,source/gas/gas.glb,"large white industrial compressed gas tank, a wide vertical cylinder with a red band, a valve and pressure gauge on top and hazard labels"

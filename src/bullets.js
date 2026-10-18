@@ -257,7 +257,10 @@ export class Bullets {
         else this.ricochet(b, hit.prop);
         return;
       case 'enemy':
-        hit.enemy.hit(b);
+        if (hit.enemy.hit(b) === 'blocked') {
+          b.alive = false;
+          return;
+        }
         if (b.pierce > 0) {
           b.pierce--;
           b.hits.push(hit.enemy);

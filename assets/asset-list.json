@@ -705,6 +705,36 @@
       "prompt": "40 mm grenade round with an orange tip band"
     },
     {
+      "id": "weapon_shield",
+      "kind": "weapon",
+      "group": "weapons",
+      "name_zh": "防暴盾（盾牌手）",
+      "priority": 2,
+      "size": {
+        "x": 0.62,
+        "y": 1.05,
+        "z": 0.06
+      },
+      "origin": "at the main hand grip, with the barrel or blade pointing along +Z",
+      "budgets": {
+        "master": {
+          "tris": 12000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 600,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/weapon_shield/weapon_shield.glb",
+        "textures": "source/weapon_shield/textures/",
+        "reference": "source/weapon_shield/reference/",
+        "fbx": "source/weapon_shield/weapon_shield.fbx"
+      },
+      "prompt": "clear dark polycarbonate riot shield with a yellow reflective rim, a horizontal yellow band and a grip on the back"
+    },
+    {
       "id": "crate",
       "kind": "prop",
       "group": "props",
