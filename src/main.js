@@ -1721,7 +1721,7 @@ class Game {
       tx += lx;
       tz += lz;
       zoom *= lerp(1, CAMERA.focusZoom, this.focusAmt);
-      if (this.boss.active) {
+      if (this.boss.active && this.boss.cfg.pull) {
         // a boss in the air: pull back and lean towards it, so it is in the picture
         tx = lerp(tx, this.boss.x, CAMERA.bossPull);
         tz = lerp(tz, this.boss.z, CAMERA.bossPull);

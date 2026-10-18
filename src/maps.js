@@ -196,6 +196,9 @@ const club = {
     rain: false,
   },
   floor: 'club',
+  // the last wave of a run that ends here (boss.js): the DJ behind the booth's glass, a speaker either side, the
+  // dance floor's tiles ([x, z] of its corner, columns, rows); `gaps` closes the ways round the speakers to the DJ's side for the fight
+  boss: { kind: 'dj', at: [6, -11.6], booth: [6, -10], speakers: [[2.6, -10.6], [9.4, -10.6]], gaps: [[3, -12.15, 2, 3.7], [9, -12.15, 2, 3.7]], floor: [-6, -5, 12, 8] },
   edges: { n: [3.2, 'clubWall', 'neonPink'], s: [0.9, 'clubWall', 'neonCyan'], w: [3.2, 'clubWall', 'neonCyan'], e: [3.2, 'clubWall', 'neonCyan'] },
   solids: [
     [-12, -10.2, 10, 1.2, 1.2, 'bar'],
@@ -290,7 +293,7 @@ const club = {
             on = hash(r, c, b) < 0.35;
             ci = Math.floor(hash(c, r, b) * 4);
           }
-          const k = on ? fade * 0.5 : 0.04;
+          const k = (on ? fade * 0.5 : 0.04) * (L.floorTaken ? 0.12 : 1); // the DJ's own tiles (boss.js) take the floor over
           const p = pal[ci];
           tiles.instanceColor.setXYZ(r * cols + c, p[0] * k, p[1] * k, p[2] * k);
         }

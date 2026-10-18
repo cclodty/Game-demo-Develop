@@ -791,11 +791,11 @@ export class Level {
   }
 
   /** Nearest static hit along a segment; `edges` false lets it through an invisible map edge (shots, lasers). */
-  raycast(x0, z0, x1, z1, ignoreGlass = false, over = 0, edges = true) {
+  raycast(x0, z0, x1, z1, ignoreGlass = false, over = 0, edges = true, pass = null) {
     let best = null;
     let bt = Infinity;
     for (const s of this.solids) {
-      if (!s.alive || s.h <= over) continue; // `over`: from that high up, lower cover is no obstacle
+      if (!s.alive || s.h <= over || s === pass) continue; // `over`: from that high up, lower cover is no obstacle; `pass`: a solid this ray flies over (a boss's: boss.js)
       if (!edges && s.edge) continue;
       if (ignoreGlass && s.kind === 'glass') continue;
       if (this.segSolid(x0, z0, x1, z1, s, _hit) && _hit.t < bt) {

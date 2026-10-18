@@ -185,7 +185,7 @@ export class Bullets {
   findHit(b, x0, z0, x1, z1) {
     const game = this.game;
     let best = null;
-    const solid = game.level.raycast(x0, z0, x1, z1, false, b.over, false);
+    const solid = game.level.raycast(x0, z0, x1, z1, false, b.over, false, b.owner === 'player' ? game.boss.pass : null);
     if (solid) best = { t: solid.t, type: 'solid', solid: solid.solid, nx: solid.nx, nz: solid.nz };
 
     const prop = b.over ? null : game.level.raycastProps(x0, z0, x1, z1, b.ignore, b.hits);
@@ -202,6 +202,9 @@ export class Bullets {
         const t = segCircle(x0, z0, x1, z1, o.x, o.z, 0.28);
         if (t >= 0 && (!best || t < best.t)) best = { t, type: 'bullet', other: o };
       }
+      // the boss: its glass, its body (boss.js)
+      const bh = game.boss.shotAt(x0, z0, x1, z1);
+      if (bh && (!best || bh.t <= best.t)) best = { t: bh.t, type: 'boss', part: bh.part };
       // an enemy grenade in the air: met where it is over the floor, whatever its height
       for (const gr of game.grenades.list) {
         if (gr.owner !== 'enemy' || gr.landed) continue;
@@ -233,6 +236,7 @@ export class Bullets {
     switch (hit.type) {
       case 'solid': {
         const s = hit.solid;
+        if (b.owner === 'player') game.boss.shotSolid(s, b); // one of the boss's (the DJ's speakers)
         if (s.kind === 'glass') {
           game.level.breakGlass(s, b.dx, b.dz);
           return;
@@ -274,6 +278,9 @@ export class Bullets {
           b.pierce--;
           b.hits.push(hit.enemy);
         } else b.alive = false;
+        return;
+      case 'boss':
+        if (game.boss.shot(b, hit.part)) b.alive = false;
         return;
       case 'grenade':
         game.grenades.airburst(hit.grenade);
