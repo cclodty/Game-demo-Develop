@@ -1130,6 +1130,126 @@ body.playing * {
   margin-top: 14px;
 }
 
+/* a replay's end screen: back to the title instead of a new run (replays, main.js) */
+#gameover .replay-only,
+#gameover.replay .start:not(.replay-only) {
+  display: none;
+}
+
+#gameover.replay .replay-only {
+  display: block;
+}
+
+.title-links {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.title-links button {
+  padding: 6px 16px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+}
+
+.title-links button small {
+  font-family: var(--display);
+  letter-spacing: 2px;
+  color: var(--dim);
+}
+
+.title-links button:hover,
+.title-links button:focus-visible {
+  background: rgba(255, 63, 164, 0.14);
+  outline: none;
+}
+
+.replay-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  text-align: left;
+}
+
+.replay-row {
+  display: grid;
+  grid-template-columns: 7em minmax(0, 1fr) 13em 7em auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.replay-when,
+.replay-how {
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.replay-score {
+  font-family: var(--display);
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-align: right;
+}
+
+.replay-row button,
+.replay-row a.button {
+  padding: 4px 10px;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+}
+
+.replay-empty {
+  color: var(--dim);
+  text-align: center;
+}
+
+#replays .menu label.button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  font-weight: 700;
+  font-size: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 3px solid var(--pink);
+  cursor: pointer;
+}
+
+#replay-badge {
+  margin-top: 6px;
+  font-family: var(--display);
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: #ff4fa3;
+  animation: breathe 0.8s ease-in-out infinite alternate;
+}
+
+#replay-badge b {
+  color: var(--ink);
+}
+
+#replay-badge small {
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--dim);
+}
+
 /* the best kill plays before the score (clip.js) */
 .go-clip {
   display: none;

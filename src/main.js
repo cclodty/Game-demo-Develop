@@ -16,9 +16,9 @@ import { Pickups } from './pickups.js';
 import { Player } from './player.js';
 import { PostFX } from './postfx.js';
 import { readQuality } from './quality.js';
-import { InputRecord } from './replay.js';
+import { InputRecord, RecordReader, ReplayStore } from './replay.js';
 import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
-import { DIFFICULTIES, DIFFICULTY_IDS, packRules, rulesFor, VARIANT_IDS, VARIANTS } from './rules.js';
+import { DIFFICULTIES, DIFFICULTY_IDS, packRules, rulesFor, unpackRules, VARIANT_IDS, VARIANTS } from './rules.js';
 import { rate, Score } from './score.js';
 import { Style } from './style.js';
 import { Telemetry } from './telemetry.js';
@@ -79,6 +79,8 @@ class Game {
     this.cmd = new StepInput();
     this.feed = null;
     this.record = new InputRecord();
+    this.replays = new ReplayStore(); // the last ten runs' records, for the replay list
+    this.replay = null; // while a record plays back: { rd, speed, meta, mode }
     this.acc = 0;
     this.stepCount = 0;
     this.frameSteps = 0;
@@ -258,7 +260,23 @@ class Game {
     $('title').addEventListener('click', () => start());
     $('gameover').addEventListener('click', () => {
       if (this.clipOn) this.endClip(); // a click skips the clip
+      else if (this.replay) this.toTitle(); // a replay's end goes back to the title
       else if (performance.now() - this.overAt > 700) start();
+    });
+    // the replay list
+    $('open-replays').addEventListener('click', (e) => {
+      e.stopPropagation(); // not a start
+      this.showReplays(true);
+    });
+    $('replays').addEventListener('click', (e) => e.stopPropagation());
+    $('replays-close').addEventListener('click', () => this.showReplays(false));
+    $('replay-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const err = this.playReplay(bytes, { name: file.name });
+      if (err) this.renderReplays(`無法播放 ${file.name}：${err}`);
     });
     $('go-clip-save').addEventListener('click', (e) => e.stopPropagation()); // saving is not restarting
     $('pause').addEventListener('click', () => this.setPaused(false));
@@ -277,6 +295,17 @@ class Game {
     }
     addEventListener('keydown', (e) => {
       if (isTyping(e.target)) return; // the note box handles its own keys
+      if (this.replay && (this.state === 'playing' || this.state === 'dying')) {
+        // a replay: 1 / 2 / 3 for half, normal and double speed, Esc to leave; the game's own keys do nothing
+        const speed = { Digit1: 0.5, Digit2: 1, Digit3: 2 }[e.code];
+        if (speed) this.setReplaySpeed(speed);
+        else if (e.code === 'Escape') this.toTitle();
+        return;
+      }
+      if (e.code === 'Escape' && !$('replays').classList.contains('hidden')) {
+        this.showReplays(false);
+        return;
+      }
       if (e.code === 'Escape' && this.state === 'playing' && this.tutorial.active) return; // Esc skips the warm-up (a recorded control) instead of pausing
       if (e.code === 'Escape' || e.code === 'KeyP') {
         if (this.notes.noteOpen) this.notes.cancelNote();
@@ -299,6 +328,7 @@ class Game {
       } else if (e.code === 'Enter') {
         if (this.state === 'title') start();
         else if (this.clipOn) this.endClip();
+        else if (this.state === 'over' && this.replay) this.toTitle();
         else if (this.state === 'over' && performance.now() - this.overAt > 700) start();
       } else if (this.state === 'title' && /^Digit[1-9]$/.test(e.code)) {
         const i = Number(e.code.slice(5)) - 1;
@@ -350,7 +380,7 @@ class Game {
 
   startRun(mapIndex = this.startMap) {
     // a run left from the pause menu (restart) ends as a quit
-    if (this.state === 'paused' || this.state === 'playing') this.telemetry.end({ result: 'quit', wave: this.waves.wave, score: this.score.score }, this.stepCount / LOGIC_HZ);
+    if (this.state === 'paused' || this.state === 'playing') this.endAsQuit();
     this.startMap = mapIndex;
     this.markMapCard();
     try {
@@ -375,7 +405,9 @@ class Game {
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
     this.telemetry.confirm(); // the switch was on the title screen: playing is leaving it as it is
     $('telemetry-switch').classList.add('hidden');
-    this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup });
+    if (!this.replay) this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup });
+    $('replay-badge').classList.toggle('hidden', !this.replay);
+    document.body.classList.toggle('replaying', !!this.replay);
     this.deathCause = '';
     if (warmup) {
       this.waves.startWarmup();
@@ -395,8 +427,145 @@ class Game {
   }
 
   /** Abandon the run (from pause or game over) and go back to the map select. */
+  /** A run left before its end (restart or the title from the pause menu): recorded as a quit, and kept as a replay. */
+  endAsQuit() {
+    this.telemetry.end({ result: 'quit', wave: this.waves.wave, score: this.score.score }, this.stepCount / LOGIC_HZ);
+    this.saveReplay('quit');
+  }
+
+  /** Keep the run's input record in this browser (the last ten), unless the run was itself a replay or under a second long. */
+  saveReplay(result, grade = '') {
+    if (this.replay || this.record.steps < LOGIC_HZ) return null;
+    return this.replays.add(
+      {
+        at: new Date().toISOString(), // when it was played, for the list (not the game)
+        map: MAPS[this.record.map].name,
+        mapId: MAPS[this.record.map].id,
+        mode: MODES[this.mode].name,
+        rules: this.ruleset.label,
+        result,
+        wave: this.waves.wave,
+        score: Math.round(this.score.score),
+        grade,
+        seconds: Math.round(this.record.steps / LOGIC_HZ),
+      },
+      this.record.encode(),
+    );
+  }
+
+  /**
+   * Play an input record back: its seed, map, mode, rules and warm-up, and every step's input
+   * from the record instead of the keyboard. Returns null, or why the record cannot be played.
+   */
+  playReplay(bytes, meta = {}) {
+    let rd;
+    try {
+      RecordReader.check(bytes);
+      rd = new RecordReader(bytes);
+    } catch (err) {
+      const why = String(err.message);
+      if (why.includes('version')) return `這個重播檔是另一個版本的遊戲錄的（${why.replace(/^.*version (\d+).*$/, '第 $1 版')}），讀不到`;
+      if (why.includes('not an input record')) return '這不是子彈芭蕾的重播檔';
+      return '檔案不完整或已損壞';
+    }
+    if (rd.map >= MAPS.length || !MODE_IDS[rd.mode]) return '檔案裡的地圖或模式這個版本沒有';
+    if (this.replay) this.endReplay();
+    const keep = { seed: this.fixedSeed, warmup: this.fixedWarmup, rules: this.fixedRules };
+    this.fixedSeed = rd.seed;
+    this.fixedWarmup = rd.warmup;
+    this.fixedRules = unpackRules(rd.rules);
+    this.replay = { rd, speed: 1, meta, mode: this.mode };
+    this.mode = MODE_IDS[rd.mode]; // for the run (waves read it); the title's pick comes back after
+    this.showReplays(false);
+    this.startRun(rd.map);
+    Object.assign(this, { fixedSeed: keep.seed, fixedWarmup: keep.warmup, fixedRules: keep.rules });
+    this.feed = (game) => rd.next(game.player.x, game.player.z);
+    this.setReplaySpeed(1);
+    this.notes.log(`重播 ${meta.name || ''}`.trim());
+    return null;
+  }
+
+  /** A frame's real time as the run sees it: a replay plays at its own speed. */
+  playDt(realDt) {
+    return this.replay ? realDt * this.replay.speed : realDt;
+  }
+
+  setReplaySpeed(speed) {
+    if (!this.replay) return;
+    this.replay.speed = speed;
+    $('replay-speed').textContent = `${speed}×`;
+  }
+
+  /** Leave playback: the keyboard drives the game again and the title's mode comes back. */
+  endReplay() {
+    if (!this.replay) return;
+    this.mode = this.replay.mode;
+    this.replay = null;
+    this.feed = null;
+    $('replay-badge').classList.add('hidden');
+    document.body.classList.remove('replaying');
+  }
+
+  /** The record ran out before the run ended (that run was left from the pause menu). */
+  replayRanOut() {
+    this.toTitle();
+    this.renderReplays('重播完：那一局是中途離開的。');
+    this.showReplays(true);
+  }
+
+  showReplays(on) {
+    $('replays').classList.toggle('hidden', !on);
+    $('title').classList.toggle('hidden', on);
+    if (on) this.renderReplays();
+  }
+
+  /** The replay list: newest first, each to play or download. */
+  renderReplays(msg = '') {
+    const list = $('replay-list');
+    list.textContent = '';
+    const result = { death: '倒下', clear: '通關', quit: '中途離開' };
+    const cell = (cls, text) => {
+      const s = document.createElement('span');
+      s.className = cls;
+      s.textContent = text;
+      return s;
+    };
+    for (const r of this.replays.list) {
+      const row = document.createElement('div');
+      row.className = 'replay-row';
+      const d = new Date(r.at);
+      row.append(
+        cell('replay-when', `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`),
+        cell('replay-what', [r.map, r.mode, r.rules].filter(Boolean).join(' · ')),
+        cell('replay-how', `${result[r.result] || ''} · 第 ${r.wave} 波 · ${clock(r.seconds)}`),
+        cell('replay-score', `${Number(r.score).toLocaleString('en-US')}${r.grade ? ` ${r.grade}` : ''}`),
+      );
+      const play = document.createElement('button');
+      play.type = 'button';
+      play.textContent = '播放';
+      play.addEventListener('click', () => {
+        const err = this.playReplay(this.replays.bytes(r), r);
+        if (err) this.renderReplays(`無法播放：${err}`);
+      });
+      const save = document.createElement('a');
+      save.className = 'button';
+      save.textContent = '下載 .bbr';
+      save.download = r.name;
+      save.href = '#';
+      save.addEventListener('click', () => {
+        save.href = URL.createObjectURL(new Blob([this.replays.bytes(r)], { type: 'application/octet-stream' }));
+        setTimeout(() => URL.revokeObjectURL(save.href), 2000);
+      });
+      row.append(play, save);
+      list.appendChild(row);
+    }
+    if (!this.replays.list.length) list.appendChild(cell('replay-empty', '還沒有重播。打完一局就會自動存在這裡（最近 10 局）。'));
+    $('replay-msg').textContent = msg;
+  }
+
   toTitle() {
-    if (this.state === 'paused') this.telemetry.end({ result: 'quit', wave: this.waves.wave, score: this.score.score }, this.stepCount / LOGIC_HZ);
+    if (this.state === 'paused' && !this.replay) this.endAsQuit();
+    this.endReplay();
     this.resetWorld(this.level.map);
     this.state = 'title';
     this.notes.hideNote();
@@ -544,7 +713,7 @@ class Game {
   gameOver(cleared = false) {
     this.state = 'over';
     this.overAt = performance.now();
-    const isBest = this.score.saveBest();
+    const isBest = !this.replay && this.score.saveBest(); // a replay sets no records
     const s = this.score;
     $('go-title').textContent = cleared ? 'RUN CLEAR' : 'GAME OVER';
     $('gameover').classList.toggle('cleared', cleared);
@@ -559,14 +728,16 @@ class Game {
     const graded = !!this.waves.rules.graded;
     $('gameover').classList.toggle('graded', graded);
     if (graded) this.showGrade(cleared);
-    this.telemetry.end(
+    $('gameover').classList.toggle('replay', !!this.replay);
+    this.saveReplay(cleared ? 'clear' : 'death', graded ? $('go-grade').textContent : '');
+    if (!this.replay) this.telemetry.end(
       { result: cleared ? 'clear' : 'death', wave: this.waves.wave, cause: cleared ? undefined : this.deathCause || '不明', score: s.score, grade: graded ? $('go-grade').textContent : undefined },
       this.stepCount / LOGIC_HZ,
     );
     $('gameover').classList.remove('hidden');
     document.body.classList.remove('playing');
     this.hud.show(false);
-    this.showClip();
+    if (!this.replay) this.showClip();
   }
 
   /** The end screen opens on the run's best kill when there is a recording of it, then shows the score. */
@@ -861,14 +1032,14 @@ class Game {
     this.time += realDt;
     if (this.state !== 'paused') {
       this.updateAim();
-      if (this.state === 'playing' || this.state === 'dying') this.updatePlay(realDt);
+      if (this.state === 'playing' || this.state === 'dying') this.updatePlay(this.playDt(realDt));
       else this.updateIdle(realDt);
     }
     // in a run the logic steps take the presses (a fast frame may hold one over to the next step)
     if (this.state !== 'playing' && this.state !== 'dying') this.input.dropEdges();
     this.notes.update(realDt, rawDt);
     this.render();
-    if (this.state === 'playing' || this.state === 'dying') this.clip.frame(realDt); // after the frame is drawn
+    if ((this.state === 'playing' || this.state === 'dying') && !this.replay) this.clip.frame(realDt); // after the frame is drawn
   }
 
   updateAim() {
@@ -906,7 +1077,12 @@ class Game {
       this.aimFresh = false;
       this.aimStep = this.stepCount;
     }
-    this.cmd = this.feed ? this.feed(this) : this.input.latch(this.cmd, aim, p.x, p.z, this.camYaw);
+    const cmd = this.feed ? this.feed(this) : this.input.latch(this.cmd, aim, p.x, p.z, this.camYaw);
+    if (!cmd) {
+      this.replayRanOut();
+      return;
+    }
+    this.cmd = cmd;
     this.record.push(this.cmd);
     this.stepCount++;
     this.logic(STEP);

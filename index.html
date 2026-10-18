@@ -38,6 +38,7 @@
       <div id="hud-top">
         <div id="wave-label"></div>
         <div id="wave-sub"></div>
+        <div id="replay-badge" class="hidden">REPLAY <b id="replay-speed">1×</b> <small>1／2／3 速度 · Esc 離開</small></div>
       </div>
       <div id="focus-label">BULLET TIME</div>
 
@@ -136,7 +137,24 @@
           <label><input type="checkbox" id="telemetry-on" checked /> 在這部電腦記錄每局的事件（開局、每波、死因、時長、有沒有再開一局），匯出回饋時一併帶上。不會上傳。</label>
           <button type="button" id="telemetry-ok">知道了</button>
         </div>
+        <div class="title-links">
+          <button type="button" id="open-replays">重播 <small>REPLAYS</small></button>
+        </div>
         <div class="start">點擊開始 <span>/ Enter · 1–4 選場景</span></div>
+      </div>
+    </div>
+
+    <div id="replays" class="screen hidden">
+      <div class="panel">
+        <div class="logo-en go-title">REPLAYS</div>
+        <p class="tagline">最近 10 局自動存在這部電腦。播放中 1／2／3 切換 0.5×、1×、2×，Esc 離開。</p>
+        <div id="replay-list" class="replay-list"></div>
+        <p id="replay-msg" class="notes-msg"></p>
+        <div class="menu">
+          <label class="button" for="replay-file">匯入 .bbr 重播檔 <kbd>⇧</kbd></label>
+          <input type="file" id="replay-file" accept=".bbr,application/octet-stream" hidden />
+          <button type="button" id="replays-close">返回 <kbd>Esc</kbd></button>
+        </div>
       </div>
     </div>
 
@@ -193,6 +211,7 @@
           <div class="clear-only"><span>無傷波數</span><b id="go-clean">0</b></div>
         </div>
         <div class="start">點擊重新開始 <span>/ Enter</span></div>
+        <div class="start replay-only">重播完 <span>/ 點擊或 Enter 返回</span></div>
         <div class="menu">
           <button type="button" data-act="title">返回主畫面 · 換地圖 <kbd>T</kbd></button>
           <button type="button" data-act="export">匯出回饋 <small class="notes-count"></small> <kbd>⇩</kbd></button>
