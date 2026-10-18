@@ -1,8 +1,9 @@
 // Gamepads (手掣): a pad in the standard layout drives the same controls as
 // the keyboard and mouse. The left stick moves (as WASD), the right stick aims
-// (the aim offset, pulled onto the nearest enemy within 6°), RT fires, LT is
-// bullet time, A spin, B slide, X kick, Y throw, LB reload, RB the other
-// weapon, the d-pad's up swaps for a floor weapon, Start pauses. All of it
+// (the aim offset, pulled onto the nearest enemy within 6°), RT fires, LB and RB
+// together toggle bullet time, LT is the right mouse button (split aim), A spin,
+// B slide, X kick, Y throw, LB alone reloads and RB alone takes the other weapon
+// (when let go), the d-pad's up swaps for a floor weapon, Start pauses. All of it
 // goes through StepInput, so a pad run records and replays like any other.
 // While a pad is connected the hint bar, the warm-up and the prompts name the
 // pad's buttons. The tests hand the page a fake navigator.getGamepads.
@@ -130,16 +131,56 @@ test('the sticks move and aim, RT fires, the aim leans onto an enemy within 6°,
       out.noAssist = window.rel();
       g.enemies.clear();
       window.stick(0, 0, true);
-      // LT toggles bullet time; A spins; Start pauses and resumes
-      window.press(6);
+      // what each step was handed: bullet time, reload, the other weapon, the right button
+      const seen = [];
+      const step0 = g.step.bind(g);
+      g.step = (...a) => {
+        for (const [k, c] of [['both', 'KeyQ'], ['lb', 'KeyR'], ['rb', 'WheelDown']]) if (g.cmd.hit(c)) seen.push(k);
+        step0(...a);
+      };
+      const took = () => seen.splice(0);
+      // LB, then RB while LB is down: bullet time, and neither LB's nor RB's own job when they are let go
+      g.player.ammo = 5;
+      window.press(4);
       window.frames(2);
-      window.press(6, false);
+      window.press(5);
+      window.frames(2);
+      window.press(4, false);
+      window.press(5, false);
       window.frames(2);
       out.focus = g.focusActive;
+      out.chord = took();
+      window.press(4);
+      window.press(5);
+      window.frames(2);
+      window.press(4, false);
+      window.press(5, false);
+      window.frames(2);
+      out.focusOff = g.focusActive;
+      took();
+      // LB alone: reload, when let go; RB alone: the other weapon, when let go
+      window.press(4);
+      window.frames(3);
+      out.lbHeld = took();
+      window.press(4, false);
+      window.frames(1);
+      out.lbLetGo = took();
+      out.reloading = g.player.reloadT > 0;
+      window.press(5);
+      window.frames(3);
+      out.rbHeld = took();
+      window.press(5, false);
+      window.frames(1);
+      out.rbLetGo = took();
+      // LT: the right mouse button, held
       window.press(6);
       window.frames(2);
+      out.lt = g.cmd.mouse.right;
       window.press(6, false);
-      out.focusOff = g.focusActive;
+      window.frames(2);
+      out.ltOff = g.cmd.mouse.right;
+      g.step = step0;
+      // A spins; Start pauses and resumes
       window.press(0);
       window.frames(2);
       window.press(0, false);
@@ -166,8 +207,12 @@ test('the sticks move and aim, RT fires, the aim leans onto an enemy within 6°,
     assert.ok(r.fired > 0 && r.bullets > 0, `RT fired (${r.fired} rounds)`);
     near(r.assist.aim, r.assist.enemy, 'within 6°: on the enemy');
     near(r.noAssist, r.up, 'at 10°: straight on');
-    assert.equal(r.focus, true, 'LT: bullet time');
-    assert.equal(r.focusOff, false, 'and off again');
+    assert.equal(r.focus, true, 'LB+RB: bullet time');
+    assert.deepEqual(r.chord, ['both'], 'together: bullet time only, no reload, no weapon switch');
+    assert.equal(r.focusOff, false, 'LB+RB again: off');
+    assert.deepEqual([r.lbHeld, r.lbLetGo, r.reloading], [[], ['lb'], true], 'LB alone: reload when let go');
+    assert.deepEqual([r.rbHeld, r.rbLetGo], [[], ['rb']], 'RB alone: the other weapon when let go');
+    assert.deepEqual([r.lt, r.ltOff], [true, false], 'LT: the right mouse button while held');
     assert.equal(r.spin, true, 'A: spin');
     assert.equal(r.paused, 'paused', 'Start: pause');
     assert.equal(r.resumed, 'playing', 'Start again: on');
@@ -190,14 +235,16 @@ test('a pad run is recorded through StepInput and replays step for step', { time
         window.trace.push([g.score.score, g.player.x, g.player.z, g.player.ammo]);
       };
       g.startRun(0);
-      // 20 s: the left stick circles, the right stick sweeps, RT in bursts, A and LT now and then
+      // 20 s: the left stick circles, the right stick sweeps, RT in bursts, A, LB+RB and LT now and then
       for (let f = 0; f < 1200 && g.state === 'playing'; f++) {
         const t = f / 60;
         window.stick(Math.cos(t * 0.9), Math.sin(t * 0.9));
         window.stick(Math.cos(t * 2.3), Math.sin(t * 2.3), true);
         window.press(7, f % 50 < 30);
         window.press(0, f % 240 === 100);
-        window.press(6, f % 400 === 200);
+        window.press(4, f % 400 === 200); // LB+RB: bullet time
+        window.press(5, f % 400 === 200);
+        window.press(6, f % 300 > 250); // LT: split aim now and then
         window.frames(1, false);
       }
       return { trace: window.trace, bytes: Array.from(g.record.encode()), steps: g.stepCount };
@@ -269,8 +316,8 @@ test('connecting a pad switches the hints to its buttons; unplugging switches th
     });
     const pad = await read();
     assert.deepEqual([pad.pad, pad.keysBar, pad.padBar], [true, false, true]);
-    assert.match(pad.tutorial, /按 LT 進入子彈時間/);
-    assert.equal(pad.focusKey, 'LT');
+    assert.match(pad.tutorial, /按 LB\+RB 進入子彈時間/);
+    assert.equal(pad.focusKey, 'LB+RB');
     await page.evaluate(() => window.game.render());
     await page.screenshot({ path: new URL('pad-hints.png', OUT).pathname });
     // a prompt: by a pan
@@ -310,6 +357,90 @@ test('connecting a pad switches the hints to its buttons; unplugging switches th
       ['keyboard', ['pad']],
       ['pad', []],
     ]);
+    assert.deepEqual(problems(logs), []);
+  } finally {
+    await page.close();
+  }
+});
+
+test('the pad in use is the last one touched: not a device listed first that only looks like a pad, not a second pad left alone; the title and the export name them', async () => {
+  const { page, logs } = await h.open('?seed=25');
+  try {
+    await install(page);
+    const r = await page.evaluate(() => {
+      const g = window.game;
+      const make = (index, id, mapping, axes, n = 17) => ({ id, index, connected: true, mapping, axes, buttons: Array.from({ length: n }, () => ({ pressed: false, value: 0 })) });
+      // what a browser on a gaming PC may list: a mouse with a thumb stick (no standard layout, its
+      // triggers resting at -1, one button held all along), a virtual pad a driver left (never
+      // moves), then the two real pads
+      const mouse = make(0, 'Gaming mouse thumb stick', '', [-1, -1, 0, 0, 0, 0], 8);
+      mouse.buttons[0] = { pressed: true, value: 1 };
+      const ghost = make(1, 'Virtual pad (STANDARD GAMEPAD Vendor: 0000 Product: 0001)', 'standard', [0, 0, 0, 0]);
+      const first = make(2, 'Wireless Controller (STANDARD GAMEPAD Vendor: 1234 Product: 5678)', 'standard', [0, 0, 0, 0]);
+      const second = make(3, '1234-9abc-Second Controller', 'standard', [0, 0, 0, 0]);
+      const used = () => (g.input.pad ? g.input.pad.index : null);
+      const out = {};
+      window.pads = [mouse, ghost, first];
+      window.run(0);
+      window.frames(2);
+      out.untouched = { used: used(), title: document.getElementById('pad-name').textContent };
+      // the real pad's left stick: it is now the pad in use, and the player walks
+      const x0 = g.player.x;
+      const z0 = g.player.z;
+      first.axes[0] = 0.9;
+      window.frames(30);
+      out.walked = { used: used(), moved: Math.hypot(g.player.x - x0, g.player.z - z0), title: document.getElementById('pad-name').textContent };
+      // its trigger fires
+      const ammo = g.player.ammo;
+      first.buttons[7] = { pressed: true, value: 1 };
+      window.frames(10);
+      first.buttons[7] = { pressed: false, value: 0 };
+      out.fired = ammo - g.player.ammo;
+      // a second pad joins and has A pressed: it takes over; the first's stick, pushed all along, does not take it back
+      window.pads = [mouse, ghost, first, second];
+      window.frames(1);
+      second.buttons[0] = { pressed: true, value: 1 };
+      window.frames(1);
+      second.buttons[0] = { pressed: false, value: 0 };
+      window.frames(5);
+      out.second = { used: used(), keys: [...g.input.padKeys], title: document.getElementById('pad-name').textContent };
+      // the first pad's stick let go and pushed again: back to the first
+      first.axes[0] = 0;
+      window.frames(1);
+      first.axes[0] = -0.9;
+      window.frames(1);
+      out.back = used();
+      first.axes[0] = 0;
+      // the pad in use unplugged: the first standard pad left stands in, never the mouse
+      window.pads = [mouse, ghost, second];
+      window.frames(1);
+      out.unplugged = used();
+      // a new device in the unplugged pad's slot is not used until it is touched
+      window.pads = [mouse, ghost, make(2, 'Another pad (STANDARD GAMEPAD)', 'standard', [0, 0, 0, 0]), second];
+      window.frames(2);
+      out.newInSlot = used();
+      out.log = g.notes.events.map((e) => e.text).filter((t) => t.startsWith('改用手掣'));
+      out.md = g.notes.exportText();
+      g.toTitle();
+      second.buttons[0] = { pressed: true, value: 1 };
+      window.frames(1);
+      g.render();
+      out.titleName = document.getElementById('pad-name').textContent;
+      return out;
+    });
+    assert.deepEqual(r.untouched, { used: 1, title: '使用中：Virtual pad' }, 'nothing touched yet: the first pad in the standard layout');
+    assert.equal(r.walked.used, 2, 'the pad touched is the pad in use');
+    assert.ok(r.walked.moved > 1.5, `its stick walks the player (${r.walked.moved.toFixed(2)} m)`);
+    assert.equal(r.walked.title, '使用中：Wireless Controller');
+    assert.ok(r.fired > 0, `its trigger fires (${r.fired} shots)`);
+    assert.deepEqual(r.second, { used: 3, keys: [], title: '使用中：Second Controller' }, 'the second pad, touched last, is in use; the first pad’s held stick does not walk');
+    assert.equal(r.back, 2, 'a new push on the first pad takes it back');
+    assert.equal(r.unplugged, 1, 'unplugged: the first standard pad left, not the mouse');
+    assert.equal(r.newInSlot, 1, 'a new pad in the unplugged one’s slot waits to be touched');
+    assert.deepEqual(r.log, ['改用手掣：Wireless Controller', '改用手掣：Second Controller', '改用手掣：Wireless Controller', '改用手掣：Virtual pad']);
+    assert.match(r.md, /- 手掣：#0「Gaming mouse thumb stick」（非標準）；使用中 #1「Virtual pad \(STANDARD GAMEPAD Vendor: 0000 Product: 0001\)」（標準佈局）；#2「Another pad \(STANDARD GAMEPAD\)」（標準佈局）；#3「1234-9abc-Second Controller」（標準佈局）/);
+    assert.equal(r.titleName, '使用中：Second Controller');
+    await page.screenshot({ path: new URL('pad-name.png', OUT).pathname });
     assert.deepEqual(problems(logs), []);
   } finally {
     await page.close();

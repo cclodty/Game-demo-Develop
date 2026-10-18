@@ -2,8 +2,11 @@ import * as THREE from 'three';
 import { GUN_Y, PLAYER } from './config.js';
 import { animateRig, attachWeapon, buildCharacter, deathPose, finishRig, keyPose, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
 import { Laser } from './fx.js';
+import { carryHands } from './thrown.js';
 import { angleTo, clamp, damp, rand, wrapAngle } from './utils.js';
 import { PLAYER_WEAPONS } from './weapons.js';
+
+const KICK_TIME = 0.28; // s a kick takes, for its key pose (characters.js KEY_POSES.kick)
 
 /**
  * Turn the hero texture's teal jacket to `hue` (degrees), or back to the original (null). The
@@ -585,7 +588,7 @@ export class Player {
   kick() {
     const g = this.game;
     this.kickCd = PLAYER.kickCooldown;
-    this.kickT = 0.28;
+    this.kickT = KICK_TIME;
     let hit = false;
     const inCone = (x, z, reach) => {
       const dx = x - this.x;
@@ -694,11 +697,8 @@ export class Player {
     const held = (k) => (k < 0.12 || k > 0.88 ? 0.5 : 1);
     if (this.slideT > 0) keyPose(r, 'slide', held(1 - this.slideT / PLAYER.slideDuration));
     else if (this.spinT > 0) keyPose(r, 'spin', held(1 - this.spinT / PLAYER.spinDuration));
+    else if (this.kickT > 0) keyPose(r, 'kick', held(1 - this.kickT / KICK_TIME));
     else keyPose(r, carrying ? 'carry' : null);
-    if (this.kickT > 0) {
-      const k = 1 - this.kickT / 0.28;
-      r.legR.rotation.x = -1.7 * Math.sin(k * Math.PI);
-    }
     if (this.execT > 0) {
       // the execution: leaning in, a stamp down on him (the kick's leg, so a worn model shows it too)
       const k = 1 - this.execT / PLAYER.execTime;
@@ -715,10 +715,19 @@ export class Player {
       r.armL.rotation.y = pose.ly;
     }
     r.armR.rotation.y = pose.ry;
+    // something carried overhead: the guns put away, the hands up on it (a worn model's reach it, skin.js)
+    const prop = carrying ? this.game.thrown.carry : null;
+    r.anim.carry = prop ? carryHands(prop) : null;
+    for (const m of r.weaponParts) m.visible = !prop;
     // the guns stay level with the aim however the body leans (a slide lies back, an execution leans in)
     const level = -r.inner.rotation.x;
-    r.armL.rotation.x = (carrying ? -2.7 : pose.lx) + level;
-    r.armR.rotation.x = (carrying ? -2.7 : pose.rx) + level;
+    r.armL.rotation.x = (carrying ? -1.5 : pose.lx) + level;
+    r.armR.rotation.x = (carrying ? -1.5 : pose.rx) + level;
+    if (prop) {
+      // block arms cannot bend: straight up and a little out, beside its rim rather than through it
+      r.armL.rotation.y = 0.45;
+      r.armR.rotation.y = -0.45;
+    }
     r.anchor.rotation.x = r.center.rotation.x = level;
     if (r.hold === 'dual') {
       r.armL.position.z = -this.recoilL * 0.14;

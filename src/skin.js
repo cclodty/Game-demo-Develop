@@ -299,7 +299,8 @@ const _pole = new THREE.Vector3();
 const _back = new THREE.Vector3();
 const _l = new THREE.Vector3();
 const _r = new THREE.Vector3();
-const BLADE = 0.5; // how far a long gun turns the chest side-on (radians), so the support hand reaches
+const BLADE = 0.5; // how far a gun at the shoulder turns the chest side-on (radians), so the support hand reaches
+const BLADE_CENTER = 0.3; // and a big gun held in front (the minigun): the body a little side-on, not square behind it
 const LEAN = 0.35; // the most the chest leans in (radians) to bring a hand to a grip it can't reach
 
 /** Turn the chest so the shoulders square up to the rig's side axis, whatever twist the clip puts in them. */
@@ -439,6 +440,21 @@ export function poseSkin(rig, time) {
 
   // hands on the weapons: the chest squares up to the aim (an idle clip's twist would
   // leave one hand short of its gun) and leans in when a grip is still out of reach
+  // carrying something overhead (player.js: an.carry, in the root's space): both hands on it, the guns put away
+  if (an.carry) {
+    square(rig, side);
+    for (const s of [1, -1]) {
+      const k = s > 0 ? 'L' : 'R';
+      const upper = b[`upperArm${k}`];
+      const lower = b[`foreArm${k}`];
+      const hand = b[`hand${k}`];
+      if (!upper || !lower || !hand) continue;
+      rig.root.localToWorld(_grip.set(s * an.carry.half, an.carry.y, 0.04));
+      rig.inner.localToWorld(_pole.set(s * 1.2, 1.1, -0.3));
+      reach(upper, lower, hand, _grip, _pole);
+    }
+    return;
+  }
   const grips = rig.grips;
   square(rig, side);
   if (rig.hold === 'dual') {
@@ -452,10 +468,11 @@ export function poseSkin(rig, time) {
     leanIn(rig, side, [[-1, gripTarget(rig.armR, [0, 0, GRIP], _grip)]]);
     arm(rig, -1, rig.armR, 0, 0, GRIP);
   } else {
-    // a gun at the shoulder turns the chest side-on, the head stays on the aim
-    if (rig.hold === 'anchor' && b.spine) {
-      turnBone(b.spine, UP, -BLADE);
-      if (b.head) turnBone(b.head, UP, BLADE);
+    // a gun at the shoulder turns the chest side-on (a big one in front, a little), the head stays on the aim
+    const blade = rig.hold === 'anchor' ? BLADE : BLADE_CENTER;
+    if (b.spine) {
+      turnBone(b.spine, UP, -blade);
+      if (b.head) turnBone(b.head, UP, blade);
     }
     const holder = rig.hold === 'center' ? rig.center : rig.anchor;
     leanIn(rig, side, [[-1, gripTarget(holder, grips[0], _grip)]]);

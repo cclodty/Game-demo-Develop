@@ -21,28 +21,39 @@ const BIT = new Map(BUTTONS.map((c, i) => [c, 1 << i]));
 /**
  * A gamepad in the standard layout (the Gamepad API's 'standard' mapping): each button stands for
  * one of the controls above, so a pad run is recorded like any other. The left stick holds WASD;
- * the right stick aims (main.js padAim); Start pauses (not a recorded control).
+ * the right stick aims (main.js padAim); Start pauses (not a recorded control). LB and RB are read
+ * apart (PAD_SHOULDERS).
  */
 export const PAD_BUTTONS = [
   [0, 'Space'], // A: spin
   [1, 'KeyC'], // B: slide
   [2, 'KeyF'], // X: kick
   [3, 'KeyG'], // Y: throw
-  [4, 'KeyR'], // LB: reload
-  [5, 'WheelDown'], // RB: the other weapon
-  [6, 'KeyQ'], // LT: bullet time
+  [6, 'Mouse2'], // LT: the right mouse button (split aim with two guns, the scope with a rifle)
   [7, 'Mouse0'], // RT: fire
   [12, 'KeyE'], // d-pad up: swap for the weapon on the floor
 ];
 const PAD_START = 9;
+/**
+ * The shoulder buttons: LB and RB down together toggle bullet time; alone, LB reloads and RB takes
+ * the other weapon, when let go, so reaching for both at once never reloads first.
+ */
+const PAD_SHOULDERS = { lb: 4, rb: 5, both: 'KeyQ', lbAlone: 'KeyR', rbAlone: 'WheelDown' };
 
 /** How hints name a control, on the keyboard and on a pad: `{name}` in a hint becomes one of these. */
 export const CONTROL_LABELS = {
-  focus: ['<b>Shift</b> 或 <b>Q</b>', '<b>LT</b>'],
+  focus: ['<b>Shift</b> 或 <b>Q</b>', '<b>LB</b>+<b>RB</b>'],
   throw: ['<b>G</b>', '<b>Y</b>'],
   fire: ['<b>左鍵</b>', '<b>RT</b>'],
   swap: ['<b>E</b>', '<b>十字鍵 ↑</b>'],
 };
+
+/** A pad's name as the browser gives it, shortened: no vendor numbers, no "(STANDARD GAMEPAD …)". */
+export const padLabel = (id) =>
+  String(id || '')
+    .replace(/\s*\([^)]*(STANDARD GAMEPAD|Vendor:)[^)]*\)\s*/gi, ' ')
+    .replace(/^[0-9a-f]{4}-[0-9a-f]{4}-/i, '')
+    .trim() || '手掣';
 
 /** A hint (HTML) with its `{control}` names filled in for the keyboard, or for a pad. */
 export const withLabels = (html, pad) => html.replace(/\{(\w+)\}/g, (m, k) => (CONTROL_LABELS[k] ? CONTROL_LABELS[k][pad ? 1 : 0] : m));
@@ -111,12 +122,16 @@ const editable = (t) => !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELEC
 export class Input {
   constructor() {
     // a gamepad, read once a display frame (poll): its held controls, the right stick, Start
-    this.pad = null; // the connected pad, or null
+    this.pad = null; // the pad in use, or null
+    this.padIndex = -1; // its slot in navigator.getGamepads(): the last pad touched (-1: none yet)
+    this.padTouch = new Map(); // slot → the buttons down and sticks pushed at the last poll, to see a new touch
+    this.pads = []; // every pad the browser lists ({ index, id, mapping }), for the feedback export
     this.usingPad = false; // the pad aims: its right stick moved more recently than the mouse or the keyboard
     this.padKeys = new Set();
     this.padStick = { x: 0, y: 0 };
     this.padStart = false; // Start pressed since the last poll
     this.padStartWas = false;
+    this.padShoulder = { lb: false, rb: false, both: false }; // the shoulder buttons at the last poll, and whether both went down together
     this.keys = new Set();
     this.pressed = new Set();
     this.mouse = {
@@ -185,22 +200,41 @@ export class Input {
   }
 
   /**
-   * Read the first connected gamepad (once a display frame). Its buttons and left stick join the
-   * keyboard's controls, held and pressed since the last poll; the right stick and Start are kept
-   * for main.js. Returns the pad, or null.
+   * Read the gamepad in use (once a display frame). Its buttons and left stick join the keyboard's
+   * controls, held and pressed since the last poll; the right stick and Start are kept for main.js.
+   * The pad in use is the last one touched (a button pressed, a stick pushed past half way), so a
+   * second pad, or a keyboard, mouse or driver the browser also lists as a gamepad, never stands in
+   * its way; until one is touched, the first in the standard layout. Returns the pad, or null.
    */
   poll() {
-    let pad = null;
+    let list = [];
     try {
-      for (const p of navigator.getGamepads ? navigator.getGamepads() : []) {
-        if (p && p.connected) {
-          pad = p;
-          break;
-        }
-      }
+      list = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter((p) => p && p.connected) : [];
     } catch {
-      pad = null; // not allowed here (a frame without the permission)
+      list = []; // not allowed here (a frame without the permission)
     }
+    this.pads = list.map((p) => ({ index: p.index, id: p.id, mapping: p.mapping }));
+    const seen = new Map();
+    for (const p of list) {
+      const down = new Set();
+      p.buttons.forEach((b, i) => {
+        if (b && (b.pressed || b.value > 0.5)) down.add(`b${i}`);
+      });
+      // a non-standard device's axes may rest anywhere (triggers at -1): only its buttons count
+      if (p.mapping === 'standard') {
+        p.axes.forEach((a, i) => {
+          if (Math.abs(a) > 0.5) down.add(`a${i}${a > 0 ? '+' : '-'}`);
+        });
+      }
+      // a touch is something newly down since the pad was last seen (a button held all along is not)
+      const was = this.padTouch.get(p.index);
+      if (was && [...down].some((k) => !was.has(k))) this.padIndex = p.index;
+      seen.set(p.index, down);
+    }
+    this.padTouch = seen;
+    // unplugged: forget it, so whatever takes its slot later has to be touched first
+    if (!list.some((p) => p.index === this.padIndex)) this.padIndex = -1;
+    const pad = list.find((p) => p.index === this.padIndex) || list.find((p) => p.mapping === 'standard') || null;
     this.pad = pad;
     const held = new Set();
     let start = false;
@@ -216,12 +250,30 @@ export class Input {
       this.padStick.y = ry;
       start = on(PAD_START);
       if (Math.hypot(rx, ry) > PAD.deadzone) this.usingPad = true;
+      this.shoulders(on(PAD_SHOULDERS.lb), on(PAD_SHOULDERS.rb));
+    } else {
+      this.shoulders(false, false);
     }
     for (const c of held) if (!this.padKeys.has(c)) this.pressed.add(c);
     this.padKeys = held;
     this.padStart = start && !this.padStartWas;
     this.padStartWas = start;
     return pad;
+  }
+
+  /** LB and RB (PAD_SHOULDERS): together a press of bullet time; alone, their own press when let go. */
+  shoulders(lb, rb) {
+    const S = this.padShoulder;
+    const P = PAD_SHOULDERS;
+    if (lb && rb && !S.both) {
+      S.both = true;
+      this.pressed.add(P.both);
+    }
+    if (S.lb && !lb && !S.both) this.pressed.add(P.lbAlone);
+    if (S.rb && !rb && !S.both) this.pressed.add(P.rbAlone);
+    if (!lb && !rb) S.both = false;
+    S.lb = lb;
+    S.rb = rb;
   }
 
   /**
