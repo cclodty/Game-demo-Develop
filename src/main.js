@@ -1225,6 +1225,10 @@ class Game {
     const d = Math.hypot(e.x - p.x, e.z - p.z);
     const tags = [{ label: e.cfg.label, pts: e.cfg.score }];
     let refill = FOCUS.killRefill;
+    if (info.cause === 'execution') {
+      tags.push({ label: 'EXECUTION', pts: 200, cls: 'gold' });
+      refill = FOCUS.executeRefill;
+    }
     if (this.focusActive) tags.push({ label: 'SLOW-MO', pts: 50, cls: 'cyan' });
     if (info.bullet && info.bullet.spinShot) tags.push({ label: 'PIROUETTE', pts: 150, cls: 'pink' });
     else if (p.alive && p.spinning) tags.push({ label: 'SPIN KILL', pts: 100, cls: 'cyan' });

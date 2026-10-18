@@ -35,6 +35,9 @@ export const PLAYER = {
   kickRange: 2.1,
   kickArc: 1.25, // radians, total cone is twice this
   kickCooldown: 0.45,
+  execRange: 1.2, // m: F by an enemy kicked down or hit by something thrown, still dazed, finishes him
+  execTime: 0.6, // s the execution takes, standing
+  execInvuln: 0.3, // s untouchable at its start
 };
 
 export const FOCUS = {
@@ -44,6 +47,7 @@ export const FOCUS = {
   regen: 0.022,
   minToEnter: 0.1,
   killRefill: 0.12,
+  executeRefill: 0.25, // an execution's refill (instead of killRefill)
   closeCallRefill: 0.05,
 };
 
