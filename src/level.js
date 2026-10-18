@@ -776,6 +776,19 @@ export class Level {
     for (const f of this.flocks) if (f.away <= 0 && Math.hypot(f.x - x, f.z - z) < r) this.startle(f, x, z);
   }
 
+  /** The wave is cleared: fixtures that hold for a wave (shutters) let go. */
+  waveEnd() {
+    for (const f of this.fixtures) if (f.waveEnd) f.waveEnd();
+  }
+
+  /** An enemy walking into a closed door pushes it open (fixtures.js). */
+  openDoorsFor(e) {
+    for (const f of this.fixtures) {
+      if (f.kind !== 'door' || f.open) continue;
+      if (Math.hypot(f.x - e.x, f.z - e.z) < f.w / 2 + e.radius + 0.25) f.push();
+    }
+  }
+
   /** In the dark pool of a lamp shot out (fixtures.js): nobody aims from there. */
   darkAt(x, z) {
     for (const f of this.fixtures) if (f.darkAt(x, z)) return true;

@@ -1271,6 +1271,8 @@ class Game {
     if (info.cause === 'kick') tags.push({ label: 'KICK', pts: 150, cls: 'gold' });
     if (info.cause === 'strike') tags.push({ label: 'STRIKE!', pts: 200, cls: 'gold' });
     if (info.cause === 'crushed') tags.push({ label: 'CRUSHED', pts: 200, cls: 'gold' });
+    if (info.cause === 'slam') tags.push({ label: 'SLAM', pts: 120, cls: 'gold' });
+    if (info.cause === 'shutter') tags.push({ label: 'SHUTTER', pts: 200, cls: 'gold' });
     if (this.level.darkAt(e.x, e.z)) tags.push({ label: 'BLACKOUT', pts: 100, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });
     if (e.blindT > 0) tags.push({ label: 'PIGEON STRIKE', pts: 80, cls: 'gold' });
@@ -1349,6 +1351,7 @@ class Game {
     this.achievements.wave(!this.waves.hurt);
     this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt });
     this.score.bonus('WAVE CLEAR', bonus);
+    this.level.waveEnd(); // shutters roll back up
     this.addFocus(0.35);
     this.player.hp = PLAYER.hp;
     const next = stageEnd ? ` · 下一站：${MAPS[(this.startMap + this.stage + 1) % MAPS.length].name}` : '';

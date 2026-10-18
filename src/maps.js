@@ -109,7 +109,8 @@ const rooftop = {
     [-18, 10, 1.6, 1.6, 1.4, 'crate'],
     [18, 10, 1.6, 1.6, 1.4, 'crate'],
     [-2.5, 11.5, 1.4, 1.4, 1.3, 'crate'],
-    [0, -8, 7, 0.6, 1.25, 'concrete'],
+    [-2.25, -8, 2.5, 0.6, 1.25, 'concrete'],
+    [2.25, -8, 2.5, 0.6, 1.25, 'concrete'],
     [-10.5, 9, 0.6, 4.5, 1.25, 'concrete'],
     [10.5, 9, 0.6, 4.5, 1.25, 'concrete'],
     [-4.5, 2.5, 1, 1, 3.4, 'pillar'],
@@ -130,7 +131,7 @@ const rooftop = {
   barrels: [[-6, -3.4], [11.8, 6.2], [-12, -2], [3.5, -10], [-19.5, 13], [5.2, 12.4], [15.5, -9.5]],
   pans: [[-2.5, -1.5], [2.5, -1.5], [-12.5, -8.5], [12.5, -8.5], [-16, 7], [16, 7]],
   // fixtures (fixtures.js): street lamps that go dark when shot out, hanging signs that drop on whoever is under them
-  fixtures: [[-6, 7, 'lamp'], [6, 7, 'lamp'], [12, -3, 'sign', 180], [-12, 11, 'sign', 0]],
+  fixtures: [[-6, 7, 'lamp'], [6, 7, 'lamp'], [12, -3, 'sign', 180], [-12, 11, 'sign', 0], [0, -8, 'door', 0, 2, 1.25]], // a gate in the barrier (an opening needs 2 m for a path through: nav inflates cover by 0.5 m)
   pads: [[-9, 1], [9, 1]],
   // the last wave of a run that ends here (boss.js): the helicopter, over the helipad, flying in from the north-west
   boss: { kind: 'heli', pad: [0, -1.5], from: [-34, -30] },
@@ -200,7 +201,8 @@ const club = {
   floor: 'club',
   edges: { n: [3.2, 'clubWall', 'neonPink'], s: [0.9, 'clubWall', 'neonCyan'], w: [3.2, 'clubWall', 'neonCyan'], e: [3.2, 'clubWall', 'neonCyan'] },
   solids: [
-    [-12, -10.2, 10, 1.2, 1.2, 'bar'],
+    [-15, -10.2, 4, 1.2, 1.2, 'bar'],
+    [-9, -10.2, 4, 1.2, 1.2, 'bar'],
     [6, -10, 4, 1.6, 1.3, 'dj'],
     [2.6, -10.6, 1.2, 1.2, 2.2, 'speaker'],
     [9.4, -10.6, 1.2, 1.2, 2.2, 'speaker'],
@@ -226,7 +228,7 @@ const club = {
   ],
   barrels: [[-5.5, -12.2, 'gas'], [12.5, -12, 'gas'], [11.5, 12], [-17.5, 12], [17.5, -11.5]],
   pans: [[-3, -1.5, 'tray'], [3, -1.5, 'tray'], [0, 4, 'tray'], [-15, -7, 'tray'], [15, -8.5, 'tray'], [-2.5, 12, 'tray']],
-  fixtures: [[-6, 0, 'lamp'], [-4, -7.5, 'sign', 180]],
+  fixtures: [[-6, 0, 'lamp'], [-4, -7.5, 'sign', 180], [-12, -10.2, 'door', 0, 2, 1.2]], // the bar's flap
   pads: [[-3, 7.5], [13, -3.5]],
   spawns: [
     { x: -3, z: -13.4, ex: -3, ez: -11.2, kind: 'door' },
@@ -426,7 +428,7 @@ const docks = {
   ],
   barrels: [[4.5, -12, 'gas'], [-21.5, -4, 'gas'], [21.5, 3, 'gas'], [-1, 11.5, 'gas'], [-11, 1.5], [13.5, -8.5], [3, 3.5], [-16, 12.5], [15, 12]],
   pans: [[-4, -12.5], [7, 1.5], [-12, 9], [17, -11], [3, 12.5]],
-  fixtures: [[-10, 8, 'lamp'], [16, -8, 'lamp'], [0, 10, 'lamp'], [-14, -9, 'sign', 90]],
+  fixtures: [[-10, 8, 'lamp'], [16, -8, 'lamp'], [0, 10, 'lamp'], [-14, -9, 'sign', 90], [10.5, 7.2, 'shutter', 90, 5]], // a loading-bay shutter between two containers
   pads: [[-10, -0.5], [12, 1.5]],
   spawns: [
     { x: -6, z: -14.4, ex: -6, ez: -12.2, kind: 'door', door: [2.4, 2.6] },

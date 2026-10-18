@@ -601,6 +601,11 @@ export class Player {
       if (d > 0.3 && Math.abs(wrapAngle(Math.atan2(dx, dz) - this.facing)) > PLAYER.kickArc) return null;
       return d > 0.01 ? { x: dx / d, z: dz / d } : { x: Math.sin(this.facing), z: Math.cos(this.facing) };
     };
+    // a door in front swings open on whoever is behind it; a shutter's lock post gives (fixtures.js)
+    for (const f of g.level.fixtures) {
+      if (f.kind === 'door' && !f.open && inCone(f.x, f.z, PLAYER.kickRange + f.w / 2)) hit = f.kick(this.x, this.z) || hit;
+      else if (f.kind === 'shutter' && inCone(f.x, f.z, PLAYER.kickRange + f.r)) hit = f.drop('kick') || hit;
+    }
     for (const e of g.enemies.list) {
       if (!e.alive || e.spawnLock > 0 || e.cfg.fly) continue;
       const dir = inCone(e.x, e.z, PLAYER.kickRange + e.radius);

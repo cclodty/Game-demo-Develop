@@ -142,6 +142,11 @@ export const ENV = {
   signFall: 0.45, // s from the bracket breaking to the board on the floor
   signBlast: 1.2, // m: whoever stands this close to where it lands is CRUSHED
   signDamage: 60, // what the player takes under it
+  doorOpen: 4, // s a door stays open before it swings shut (if nobody stands in it)
+  doorSlam: 2, // damage a kicked-open door does to whoever stands behind it (and a stun: an execution follows)
+  slamPower: 12, // how hard the door throws him
+  shutterFall: 0.5, // s from the lock giving to the shutter on the ground
+  shutterDamage: 60, // what the player takes under a shutter
 };
 
 /** The 60-second warm-up on a first run (src/tutorial.js). */

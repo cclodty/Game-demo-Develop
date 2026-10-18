@@ -1140,6 +1140,7 @@ class Enemy {
       this.z = clamp(this.z, -B.halfD + 1, B.halfD - 1);
     } else if (collide) {
       this.pushProps();
+      if (this.state !== 'enter') g.level.openDoorsFor(this); // a closed door in his way opens
       // a kicked bomber charging into a wall gives up the turn and comes for the player again
       if (g.level.collideCircle(this, this.radius) && this.turnT > 0 && this.stunT <= 0) this.turnT = 0;
     }

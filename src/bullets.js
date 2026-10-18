@@ -267,6 +267,7 @@ export class Bullets {
         return;
       case 'lamp':
       case 'sign':
+      case 'shutter':
         // a fixture (fixtures.js): the player's bullets work it, anyone else's just stop
         if (b.owner === 'player') hit.prop.shot(b);
         else fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 4, [6, 1.4, 0.6], 5);
