@@ -258,6 +258,7 @@ export class Level {
       uCutA: { value: new THREE.Vector3() },
       uCutB: { value: new THREE.Vector3() },
       uCutR: { value: 0 },
+      uCutSoft: { value: 1 }, // 1: the hole's rim dissolves in noise; 0: a clean rim (the flat look, whose edge pass would ink the noise)
       // the map's fade (maps.js `fade`): outside the play area on the camera's side
       uFadeOn: { value: 0 },
       uFadeY: { value: 1.2 },
@@ -399,6 +400,7 @@ export class Level {
 
   load(map) {
     this.unload();
+    if (this.game.style) this.game.style.undress(this); // build from the lit materials (clones of a twin would keep the last map's look)
     this.map = map;
     this.root = new THREE.Group();
     this.scene.add(this.root);

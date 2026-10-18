@@ -539,6 +539,7 @@ const senado = {
   cutaway: true,
   // the buildings across the avenue, between the camera and the square: above 1.2 m, seen through
   fade: { above: 1.2 },
+  look: 'flat', // drawn like the characters (style.js), the trial of one look for maps and people
   theme: {
     bg: 0x9cc4e8,
     fog: [0xc9d8e6, 0.0042],

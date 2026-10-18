@@ -1780,6 +1780,7 @@ class Game {
     u.uRipple.value = this.ripple;
     u.uCenter.value.copy(this.rippleCenter);
     this.post.bloom.strength = this.level.bloom.strength + focus * 0.25;
+    this.post.edges.enabled = this.style.edgesOn;
     this.post.render();
   }
 }

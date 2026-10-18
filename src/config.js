@@ -191,4 +191,11 @@ export const STYLE = {
   hand: 1.35,
   foot: 1.2,
   thigh: 0.9,
+  // the flat look, on a map with `look: 'flat'` (議事亭前地 as the trial): the world drawn like the characters
+  flatSteps: 2, // toon ramp steps on the world (characters: charSteps)
+  flatFloor: 0.5, // the ramp's dark step
+  flatBands: 4, // brightness bands the world's colours are cut into
+  flatSat: 1.5, // colour saturation (1 = as modelled)
+  flatBlur: 2, // texture blur (mip levels) before the bands
+  edge: { from: 0.012, full: 0.05, ink: 0.85, step: 2, fadeFrom: 70, fadeTo: 150 }, // ink lines: depth bend (share of the distance) where a line starts and is full, its darkness, the sampling step in pixels, and the distances (m) over which lines fade out
 };

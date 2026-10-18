@@ -129,7 +129,9 @@ Conventions that matter:
   (pickups, thrown guns and grenades do). Character pose code runs only when
   `style.poseDue(rig, worldTime)` says so; root position and facing update
   every frame. Never make play depend on the style; `?style=off` must play
-  identically.
+  identically. A map with `look: 'flat'` (Senado, a trial) draws its world
+  like the characters: flat twins and ink lines from a post pass
+  (`postfx.js` `EdgePass`), not hulls, which would double its draw calls.
 
 ## Working rules
 
