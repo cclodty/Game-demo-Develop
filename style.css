@@ -1543,6 +1543,137 @@ body:not(.pad) .pad-only {
   outline: none;
 }
 
+/* the title's rules line: what is picked, folding the picks away (main.js showRules) */
+.rules-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 7px 12px;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+}
+
+.rules-line:hover,
+.rules-line:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.rules-zh {
+  font-weight: 900;
+}
+
+.rules-en {
+  font-family: var(--display);
+  letter-spacing: 3px;
+  color: var(--cyan);
+}
+
+#rules-summary {
+  flex: 1 1 10em;
+  min-width: 0;
+  font-size: 14px;
+  color: #c9cae6;
+}
+
+.rules-more {
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.rules-more::after {
+  content: ' ▾';
+}
+
+.rules-line[aria-expanded='true'] .rules-more::after {
+  content: ' ▴';
+}
+
+.rules-fold .mode-row {
+  margin-top: 10px;
+}
+
+/* the title's one line of controls: keyboard, or the pad in use */
+.title-keys {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.title-keys b {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 3px;
+  padding: 0 5px;
+}
+
+/* the title fits a 1280×720 window without scrolling; shorter windows lose the map blurbs */
+#title {
+  padding-block: 8px;
+}
+
+#title .panel {
+  padding: 20px 36px 18px;
+}
+
+#title .logo-en {
+  font-size: clamp(48px, 8vw, 76px);
+}
+
+#title .tagline {
+  margin: 6px 0 12px;
+}
+
+#title .daily-card {
+  margin-top: 10px;
+}
+
+#title .mode-row {
+  margin-top: 12px;
+}
+
+#title .maps-title {
+  margin: 14px 0 8px;
+}
+
+#title .mode-row .maps-title {
+  margin: 0;
+}
+
+#title .map-card {
+  padding: 10px 14px 12px;
+}
+
+#title .start {
+  margin-top: 12px;
+  font-size: 28px;
+}
+
+#title .title-links {
+  margin-top: 10px;
+}
+
+#title .telemetry-switch {
+  margin-top: 10px;
+  padding: 5px 12px;
+}
+
+@media (max-height: 680px) {
+  #title .map-desc {
+    display: none;
+  }
+  #title .logo-en {
+    font-size: 56px;
+  }
+}
+
 .replay-list {
   display: flex;
   flex-direction: column;
@@ -1778,6 +1909,10 @@ body:not(.pad) .pad-only {
   .cols {
     grid-template-columns: 1fr;
     gap: 14px;
+  }
+  .title-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
   #feed {
     display: none;

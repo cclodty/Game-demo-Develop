@@ -269,6 +269,19 @@ class Game {
     });
     $('achievements').addEventListener('click', (e) => e.stopPropagation());
     $('achievements-close').addEventListener('click', () => this.showAchievements(false));
+    // difficulty, variants and coat fold away under one line that says what is picked
+    $('open-rules').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.showRules($('rules-fold').classList.contains('hidden'));
+    });
+    $('rules-fold').addEventListener('click', (e) => e.stopPropagation()); // the gaps between cards are not a start
+    // the controls and tips have a page of their own
+    $('open-help').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.showHelp(true);
+    });
+    $('help').addEventListener('click', (e) => e.stopPropagation());
+    $('help-close').addEventListener('click', () => this.showHelp(false));
     this.markRules();
     if (this.achievements.coatOpen) this.player.setCoat(COATS.find((c) => c.id === this.achievements.coat));
     // the first visit: the local records switch (on unless turned off)
@@ -369,7 +382,7 @@ class Game {
       note: () => this.notes.openNote(),
       export: () => this.notes.download(),
     };
-    for (const b of document.querySelectorAll('.menu button')) {
+    for (const b of document.querySelectorAll('.menu button[data-act]')) { // the pause menu's (the pages' back buttons have their own)
       b.addEventListener('click', (e) => {
         e.stopPropagation();
         menu[b.dataset.act]();
@@ -396,6 +409,10 @@ class Game {
         this.showAchievements(false);
         return;
       }
+      if (e.code === 'Escape' && !$('help').classList.contains('hidden')) {
+        this.showHelp(false);
+        return;
+      }
       if (e.code === 'Escape' && this.state === 'playing' && this.tutorial.active) return; // Esc skips the warm-up (a recorded control) instead of pausing
       if (e.code === 'Escape' || e.code === 'KeyP') {
         if (this.notes.noteOpen) this.notes.cancelNote();
@@ -417,11 +434,12 @@ class Game {
         const on = this.audio.toggleMusic();
         if (this.state === 'playing') this.hud.feed(on ? 'MUSIC ON' : 'MUSIC OFF', 0, 'dim');
       } else if (e.code === 'Enter') {
-        if (this.state === 'title') start();
-        else if (this.clipOn) this.endClip();
+        if (this.state === 'title') {
+          if (!$('title').classList.contains('hidden')) start(); // not from a page over it (help, boards…)
+        } else if (this.clipOn) this.endClip();
         else if (this.state === 'over' && (this.replay || this.dailyRun)) this.toTitle();
         else if (this.state === 'over' && performance.now() - this.overAt > 700) start();
-      } else if (this.state === 'title' && /^Digit[1-9]$/.test(e.code)) {
+      } else if (this.state === 'title' && !$('title').classList.contains('hidden') && /^Digit[1-9]$/.test(e.code)) {
         const i = Number(e.code.slice(5)) - 1;
         if (i < MAPS.length) start(i);
       }
@@ -479,6 +497,23 @@ class Game {
     const ach = this.achievements;
     $('coat-row').classList.toggle('hidden', !ach.coatOpen);
     for (const c of $('coat-cards').children) c.classList.toggle('selected', c.dataset.coat === ach.coat);
+    const coat = ach.coatOpen && COATS.find((c) => c.id === ach.coat);
+    const picked = [DIFFICULTIES[this.difficulty].name, this.variants.length ? this.variants.map((v) => VARIANTS[v].name).join('、') : '沒有變體'];
+    if (coat) picked.push(`${coat.name}色外套`);
+    $('rules-summary').textContent = picked.join(' · ');
+  }
+
+  /** Open or fold the title's difficulty, variant and coat picks. */
+  showRules(on) {
+    $('rules-fold').classList.toggle('hidden', !on);
+    $('open-rules').setAttribute('aria-expanded', String(on));
+  }
+
+  /** The controls and tips page, over the title. */
+  showHelp(on) {
+    $('help').classList.toggle('hidden', !on);
+    $('title').classList.toggle('hidden', on);
+    if (on) $('help-close').focus();
   }
 
   /** An achievement is done: say so, with what it opens, and put the opened picks on the title. */
