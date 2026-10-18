@@ -49,6 +49,9 @@ export const PAN = {
   swing: 0.3, // s the swing shows (and, later, parries)
   barrelFly: 12, // m/s a barrel is batted off at; it goes off where it lands
   handY: 1.0, // m: where it rides in the hand
+  parry: 0.25, // s from the start of the swing in which an enemy bullet or grenade in the arc is batted back
+  batSpeed: 70, // m/s a batted bullet leaves at, towards the nearest enemy (HOME RUN when it kills)
+  batDamage: 3, // a thug has 3
 };
 
 export const FOCUS = {

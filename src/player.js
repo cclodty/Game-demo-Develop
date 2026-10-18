@@ -385,7 +385,10 @@ export class Player {
 
     // --- kick; by an enemy still dazed from a kick or a throw, F is an execution instead
     if (this.kickT > 0) this.kickT -= dt;
-    if (this.swingT > 0) this.swingT -= dt;
+    if (this.swingT > 0) {
+      this.swingT -= dt;
+      if (g.thrown.inHand && this.swingT > PAN.swing - PAN.parry) this.parry();
+    }
     if (input.hit('KeyF') && this.execT <= 0) {
       const down = this.executable();
       if (down) this.execute(down);
@@ -623,6 +626,17 @@ export class Player {
     return hit;
   }
 
+  /** The swing's first PAN.parry seconds: enemy bullets in the arc are batted back (bullets.js batBack), grenades in the air too. */
+  parry() {
+    const g = this.game;
+    const inCone = this.cone(PAN.arc);
+    for (const b of g.bullets.list) {
+      if (!b.alive || b.owner !== 'enemy' || !inCone(b.x, b.z, PAN.reach)) continue;
+      g.bullets.batBack(b);
+    }
+    g.grenades.kick(inCone, true);
+  }
+
   /**
    * With a pan in hand, F swings it (PAN): whoever is in the arc flies and is dazed (a kill is PAN SMASH, and an
    * execution follows), a barrel is batted off and goes off where it lands, a door or a shutter as from a kick.
@@ -661,7 +675,7 @@ export class Player {
       }
       hit = true;
     }
-    if (g.grenades.kick(inCone)) hit = true;
+    if (g.grenades.kick(inCone, true)) hit = true;
     g.audio.kick(hit);
     g.audio.impact(g.panFor(this.x));
     if (hit) {
