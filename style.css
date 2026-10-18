@@ -1992,6 +1992,16 @@ body:not(.pad) .pad-only {
   }
 }
 
+/* asked for less motion: the looping pulses play once. The browser tests ask too: under
+   software compositing a looping animation redraws the whole page at 60 Hz and starves WebGL */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-iteration-count: 1 !important;
+  }
+}
+
 /* ------------------------------------------------------- playtest notes */
 
 #tuned {

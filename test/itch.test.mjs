@@ -49,7 +49,7 @@ test('npm run itch: a zip with just index.html, under itch.io’s limits; unpack
   assert.deepEqual(files, ['index.html']);
   const size = fs.statSync(path.join(tmp, 'bullet-ballet-itch.zip')).size;
   assert.ok(size < 16 * 1048576, `${(size / 1048576).toFixed(1)} MB`);
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, reducedMotion: 'reduce' }); // as gameHarness
   const logs = [];
   page.on('console', (m) => {
     if (m.type() === 'error' || m.type() === 'warning') logs.push(`[${m.type()}] ${m.text()}`);
