@@ -2,8 +2,8 @@
 // whose `kind` is one of BOSSES), its final wave is that boss instead of the big last wave.
 // What every boss shares is in Boss: segments of health on the HUD bar, a HIT banner for each,
 // and once it is down the BOSS bonus, the run's clip and the end of the wave (`downed`). Each
-// kind brings its own moves. game.boss is the boss of this run (Bosses.current), so a test
-// reads its fields whatever its kind.
+// kind brings its own moves. game.boss always stands for the boss of the moment
+// (Bosses.view), so a test reads its fields whatever its kind.
 //
 // heli, the rooftop helicopter (頭目 ①②): it flies in from off the map and circles over the helipad, HELI.altitude m up, out of reach of
 // bullets. Its searchlight sweeps the roof and follows a player it comes near; a player who
@@ -324,7 +324,8 @@ class Heli extends Boss {
     const d = Math.hypot(dx, dz) || 1;
     dx /= d;
     dz /= d;
-    g.bullets.spawn({ x: tx - dx * G.from, z: tz - dz * G.from, dx, dz, speed: G.speed, owner: 'enemy', damage: G.dmg, range: G.from + 1.5, source: this, over: HELI.altitude });
+    // the source is the boss as the game sees it (game.boss): its label names the bullets that hit
+    g.bullets.spawn({ x: tx - dx * G.from, z: tz - dz * G.from, dx, dz, speed: G.speed, owner: 'enemy', damage: G.dmg, range: G.from + 1.5, source: g.boss, over: HELI.altitude });
     g.audio.shot('minigun', g.panFor(this.x));
   }
 
@@ -440,6 +441,21 @@ export class Bosses {
     this.none = new Boss(game);
     this.made = {};
     this.current = this.none;
+    // game.boss: one object that is always the current boss (its fields and methods), so whoever holds it
+    // (a test, from before the final wave) sees the boss of the moment
+    this.view = new Proxy(
+      {},
+      {
+        get: (_, key) => {
+          const v = this.current[key];
+          return typeof v === 'function' ? v.bind(this.current) : v;
+        },
+        set: (_, key, value) => {
+          this.current[key] = value;
+          return true;
+        },
+      },
+    );
   }
 
   /** The final wave on a map with a boss: `def` is the map's (maps.js `boss`). */

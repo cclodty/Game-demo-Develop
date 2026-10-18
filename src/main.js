@@ -132,7 +132,8 @@ class Game {
     if (this.startMap) this.level.load(MAPS[this.startMap]);
     this.bullets = new Bullets(this);
     this.grenades = new Grenades(this);
-    this.bosses = new Bosses(this); // the last wave's boss on a map that has one (boss.js); this.boss is it
+    this.bosses = new Bosses(this); // the last wave's boss on a map that has one (boss.js)
+    this.boss = this.bosses.view; // whichever boss this run has, as one object
     this.pickups = new Pickups(this);
     this.thrown = new Thrown(this);
     this.tutorial = new Tutorial(this);
@@ -1071,11 +1072,6 @@ class Game {
     this.post.bloom.threshold = this.level.bloom.threshold;
     $('map-credit').textContent = this.level.map.credit || '';
     $('view-name').textContent = VIEWS[this.view].name;
-  }
-
-  /** The run's boss (boss.js): a plain Boss, never active, until a final wave starts one. */
-  get boss() {
-    return this.bosses.current;
   }
 
   /** Where a run of `mode` from map `start` goes: its maps in order, the last with its boss. '' in endless (no last stage). */
