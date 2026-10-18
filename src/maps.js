@@ -545,6 +545,13 @@ const senado = {
   cutaway: true,
   // the buildings across the avenue, between the camera and the square: above 1.2 m, seen through
   fade: { above: 1.2 },
+  // the last wave of a run that ends here (boss.js): the taxi convoy, in along the avenue from the east, then round
+  // the fountain on a loop that clears the buildings, the stalls and the lamps
+  boss: {
+    kind: 'convoy',
+    entry: [[31, 65.6], [3, 65.6], [-3.5, 46.7]],
+    loop: [[-8.9, 34.5], [-8.9, 41.5], [-3.5, 46.7], [4.5, 46.7], [11.7, 40.5], [11.7, 34.8], [8.6, 29.2], [-4, 29.2], [-7.6, 31]],
+  },
   look: 'flat', // drawn like the characters (style.js), the trial of one look for maps and people
   theme: {
     bg: 0x9cc4e8,
@@ -572,13 +579,13 @@ const senado = {
     [-5.8, 20, 2.4, 1.5, 1.1, 'stall'],
     [6, 12, 2.4, 1.5, 1.1, 'stall'],
     [-14, -66, 2.8, 1.6, 1.1, 'stall'],
-    [-9, 44, 1.4, 1.4, 0.9, 'planter'],
+    [-11, 44.5, 1.4, 1.4, 0.9, 'planter'], // these three stand clear of the convoy's road round the fountain (boss.js)
     [14, 44, 1.4, 1.4, 0.9, 'planter'],
     [-5, -60, 1.4, 1.4, 0.9, 'planter'],
     [-15, 60, 0.3, 0.3, 4, 'streetlamp'],
     [16, 58, 0.3, 0.3, 4, 'streetlamp'],
-    [-9, 31, 0.3, 0.3, 4, 'streetlamp'],
-    [9, 30, 0.3, 0.3, 4, 'streetlamp'],
+    [-11, 31, 0.3, 0.3, 4, 'streetlamp'],
+    [13, 31.5, 0.3, 0.3, 4, 'streetlamp'],
     [-6, 6, 0.3, 0.3, 4, 'streetlamp'],
     [7, 6, 0.3, 0.3, 4, 'streetlamp'],
     [5, -24, 0.3, 0.3, 4, 'streetlamp'],

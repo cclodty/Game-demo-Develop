@@ -70,7 +70,7 @@ src/asset-manifest.js        catalogue of every asset we want as a real model (s
 src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
 src/music.js                 the songs as data (tempo, chords, step patterns), played by audio.js; config.js MUSIC.song picks one, ?music=<id> tries another
-src/boss.js                  the rooftop helicopter boss (the last wave on a map with `boss` in maps.js): flight, searchlight and burst, rappellers, health bar
+src/boss.js                  each map's boss, the last wave of a run that ends there (maps.js `boss.kind`): helicopter (rooftop), DJ (club), armoured truck (docks), taxi convoy (Senado); what they share (health bar, banners, BOSS bonus, clip) is Boss
 src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
 src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
 src/leaderboard.js           boards: local always, the back end's when config.js BACKEND.url is set (never waited on); nickname rule shared with backend/

@@ -30,6 +30,14 @@
 // blast beside it (a barrel, a grenade), and its back door: every TRUCK.unload.every s it stops
 // and lets two thugs out, and TRUCK.unload.hits shots into the open door take a segment.
 //
+// convoy, Senado's taxi convoy (議事亭頭目): three black taxis of the (fictional) gang drive in
+// along the avenue and round the fountain, nose to tail (`boss.entry`, `boss.loop`). Every
+// CONVOY.stop.every s they stop and each lets a thug out; from the lead's window a gunman fires
+// short bursts onto a red line. The two escorts are the way in: CONVOY.tyres hits (or a blast)
+// flatten an escort's tyres and it pulls aside for good. Until both are out the lead shrugs
+// everything off; alone, it slows down, and CONVOY.perSegment hits (or a blast beside it) take
+// a segment. A moving car runs into a player in its way (not one sliding or spinning).
+//
 // Logic: a boss runs in the fixed steps on game.rng and the world, and resets with the run.
 
 import * as THREE from 'three';
@@ -110,6 +118,31 @@ export const TRUCK = {
   // a blast of one of `kinds` within `radius` m of its side takes a segment; then `cool` s before the next can
   blast: { radius: 2.5, kinds: ['barrel', 'grenade'], cool: 1.5 },
   wreck: { burn: 1.6, radius: 4.5 }, // brought down: s burning, then the blast
+};
+
+export const CONVOY = {
+  label: 'TAXI CONVOY',
+  name: '的士車隊',
+  short: '頭車',
+  downed: '擊毀',
+  pull: false,
+  segments: 5,
+  bonus: 2000,
+  size: { w: 1.8, l: 4.2, h: 1.5 },
+  cars: 3, // the lead and two escorts behind it
+  gap: 7.5, // m between cars along the road
+  speed: 6, // m/s; the lead alone, once both escorts are out: `slow`
+  slow: 3.2,
+  turn: 5, // rad/s a car's nose follows the road (looks, and the box it pushes with)
+  tyres: 6, // hits (a blast: all of them) that flatten an escort's tyres: it pulls `aside` m off the road and stops
+  aside: 2.4,
+  perSegment: 5, // hits on the lead, once alone, that take a segment
+  blast: { radius: 2.2, kinds: ['barrel', 'grenade'], cool: 1.5 }, // a blast this close to a car's side
+  ram: { dmg: 12, cool: 1 }, // a moving car into the player (not one sliding or spinning): HP, then s before the next
+  stop: { first: 10, every: 18, wait: 3.5, thugs: 1 }, // on the loop the convoy stops, and each moving car lets thugs out
+  // the gunman in the lead's window: every `every` s a red line onto the player for `warn` s, then `shots` rounds
+  gun: { first: 5, every: 4.5, warn: 0.6, shots: 3, interval: 0.12, speed: 30, dmg: 8, range: 24 },
+  wreck: { burn: 1.6, radius: 4 }, // the lead brought down: s burning, then the blast
 };
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -1323,11 +1356,439 @@ class Truck extends Boss {
   }
 }
 
+/** A polyline walked by distance: point and direction at `s` m along it (looping if `loop`). */
+class Road {
+  constructor(points, loop) {
+    this.pts = points.map(([x, z]) => ({ x, z }));
+    this.loop = loop;
+    this.lens = [];
+    this.length = 0;
+    const n = loop ? this.pts.length : this.pts.length - 1;
+    for (let i = 0; i < n; i++) {
+      const a = this.pts[i];
+      const b = this.pts[(i + 1) % this.pts.length];
+      const d = Math.hypot(b.x - a.x, b.z - a.z);
+      this.lens.push(d);
+      this.length += d;
+    }
+  }
+
+  at(s, out) {
+    const n = this.lens.length;
+    if (this.loop) s = ((s % this.length) + this.length) % this.length;
+    let i = 0;
+    if (s < 0) i = 0; // before the start: on along the first leg, backwards
+    else {
+      while (i < n - 1 && s > this.lens[i]) {
+        s -= this.lens[i];
+        i++;
+      }
+    }
+    const a = this.pts[i];
+    const b = this.pts[(i + 1) % this.pts.length];
+    const k = s / this.lens[i];
+    out.x = a.x + (b.x - a.x) * k;
+    out.z = a.z + (b.z - a.z) * k;
+    out.heading = Math.atan2(b.x - a.x, b.z - a.z);
+    return out;
+  }
+}
+
+/** Senado's taxi convoy. */
+class Convoy extends Boss {
+  constructor(game) {
+    super(game, CONVOY);
+    this.cars = [];
+    this.laser = new Laser(game.scene, new THREE.Color(1, 0.05, 0.05));
+    this.reset();
+  }
+
+  reset() {
+    const g = this.game;
+    for (const c of this.cars) {
+      g.scene.remove(c.mesh);
+      c.mesh.traverse((m) => {
+        if (m.geometry) m.geometry.dispose();
+      });
+    }
+    this.cars = [];
+    super.reset();
+    this.laser.hide();
+    this.state = 'drive';
+  }
+
+  /** The final wave in Senado: `def` is the map's (maps.js `boss`: the road in, and the loop round the fountain). */
+  start(def) {
+    this.reset();
+    super.start(def);
+    this.entry = new Road(def.entry, false);
+    this.ring = new Road(def.loop, true);
+    // where the road in meets the loop
+    const end = def.entry[def.entry.length - 1];
+    const k = def.loop.findIndex(([x, z]) => x === end[0] && z === end[1]);
+    this.ringFrom = this.ring.lens.slice(0, Math.max(0, k)).reduce((a, b) => a + b, 0);
+    const C = CONVOY;
+    this.cars = Array.from({ length: C.cars }, (_, i) => ({ lead: i === 0, s: -i * C.gap, x: 0, z: 0, heading: 0, tyres: C.tyres, out: false, aside: null, ramT: 0, mesh: null }));
+    for (const c of this.cars) this.place(c, true);
+    this.state = 'drive'; // drive, stop, down
+    this.timer = 0;
+    this.stopT = C.stop.first;
+    this.gunState = 'idle';
+    this.gunT = C.gun.first;
+    this.blastT = 0;
+    this.taken = 0;
+    this.build();
+  }
+
+  /** A car where its distance along the road puts it; `snap` faces the road at once. */
+  place(c, snap = false, dt = 0) {
+    const p = this.pathAt(c.s);
+    c.x = p.x;
+    c.z = p.z;
+    c.heading = snap ? p.heading : wrapAngle(c.heading + clamp(wrapAngle(p.heading - c.heading), -CONVOY.turn * dt, CONVOY.turn * dt));
+  }
+
+  pathAt(s) {
+    const out = {};
+    return s < this.entry.length ? this.entry.at(s, out) : this.ring.at(this.ringFrom + s - this.entry.length, out);
+  }
+
+  get lead() {
+    return this.cars[0];
+  }
+
+  get alone() {
+    return this.cars.every((c) => c.lead || c.out);
+  }
+
+  /** The look: black block taxis, the lead with a red light on its roof. */
+  build() {
+    const g = this.game;
+    const L = g.level;
+    const { w, l, h } = CONVOY.size;
+    const box = (bw, bh, bd, x, y, z, rgb) => {
+      const geo = new THREE.BoxGeometry(bw, bh, bd).translate(x, y, z);
+      const col = new THREE.Color(rgb);
+      const n = geo.attributes.position.count;
+      const c = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) c.set([col.r, col.g, col.b], i * 3);
+      geo.setAttribute('color', new THREE.BufferAttribute(c, 3));
+      return geo;
+    };
+    for (const car of this.cars) {
+      const parts = [
+        box(w, h * 0.45, l, 0, 0.3 + (h * 0.45) / 2, 0, 0x15161a), // the body
+        box(w * 0.86, h * 0.35, l * 0.5, 0, 0.3 + h * 0.45 + (h * 0.35) / 2, -l * 0.05, 0x2a3540), // the cabin
+        box(0.5, 0.14, 0.22, 0, 0.3 + h * 0.8 + 0.07, -l * 0.05, car.lead ? 0xff2244 : 0xf2c94c), // the roof sign
+        box(w + 0.04, 0.08, l * 0.9, 0, 0.62, 0, car.lead ? 0xd9a530 : 0x1d1f24), // a stripe: gold on the lead
+      ];
+      for (const [sx, sz] of [
+        [-1, 1],
+        [1, 1],
+        [-1, -1],
+        [1, -1],
+      ]) {
+        const wheel = new THREE.CylinderGeometry(0.34, 0.34, 0.26, 10).rotateZ(Math.PI / 2).translate((sx * w) / 2, 0.34, sz * l * 0.32);
+        const col = new Float32Array(wheel.attributes.position.count * 3).fill(0.04);
+        wheel.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        parts.push(wheel);
+      }
+      const geo = mergeGeometries(parts);
+      const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0.3 });
+      addCutaway(mat, L.cut);
+      car.mesh = new THREE.Mesh(geo, mat);
+      car.mesh.castShadow = true;
+      g.style.retone(car.mesh, 'char', L.cut);
+      g.style.outline(car.mesh, 'char');
+      g.scene.add(car.mesh);
+    }
+    this.sync();
+  }
+
+  /** (x, z) in car `c`'s own frame: [right, forward]. */
+  local(c, x, z) {
+    const s = Math.sin(c.heading);
+    const k = Math.cos(c.heading);
+    const dx = x - c.x;
+    const dz = z - c.z;
+    return [dx * k - dz * s, dx * s + dz * k];
+  }
+
+  update(dt) {
+    if (!this.active) return;
+    const C = CONVOY;
+    this.t += dt;
+    if (this.blastT > 0) this.blastT -= dt;
+    if (this.state === 'down') {
+      this.updateWreck(dt);
+      return;
+    }
+    for (const c of this.cars) if (c.ramT > 0) c.ramT -= dt;
+    // the stops: on the loop only
+    const onRing = this.lead.s >= this.entry.length;
+    if (this.state === 'drive') {
+      if (onRing) this.stopT -= dt;
+      if (this.stopT <= 0) {
+        this.state = 'stop';
+        this.timer = C.stop.wait;
+        this.letOut();
+      }
+    } else if (this.state === 'stop') {
+      this.timer -= dt;
+      if (this.timer <= 0) {
+        this.state = 'drive';
+        this.stopT = C.stop.every;
+      }
+    }
+    const moving = this.state === 'drive';
+    const speed = this.alone ? C.slow : C.speed;
+    for (const c of this.cars) {
+      if (c.out) {
+        // pulling aside on flat tyres
+        if (c.aside && c.aside.k < 1) {
+          c.aside.k = Math.min(1, c.aside.k + dt / 0.6);
+          const k = smoothstep(0, 1, c.aside.k);
+          c.x = lerp(c.aside.x0, c.aside.x1, k);
+          c.z = lerp(c.aside.z0, c.aside.z1, k);
+          c.heading = c.aside.h0 + c.aside.turn * k;
+        }
+        continue;
+      }
+      if (moving) c.s += speed * dt;
+      this.place(c, false, dt);
+    }
+    this.updateGun(dt);
+    this.push(moving);
+    this.sync();
+  }
+
+  /** Each moving car lets thugs out of its right-hand door. */
+  letOut() {
+    const g = this.game;
+    let n = 0;
+    for (const c of this.cars) {
+      if (c.out) continue;
+      for (let i = 0; i < CONVOY.stop.thugs; i++) {
+        const rx = Math.cos(c.heading);
+        const rz = -Math.sin(c.heading);
+        const x = c.x + rx * (CONVOY.size.w / 2 + 0.6);
+        const z = c.z + rz * (CONVOY.size.w / 2 + 0.6);
+        g.enemies.spawn('grunt', { x, z, ex: x + rx * 1.2, ez: z + rz * 1.2 });
+        n++;
+      }
+    }
+    g.notes.log(`車隊停下，放出 ${n} 個打手`);
+  }
+
+  /** Nothing stands inside a car; a moving one runs into the player. */
+  push(moving) {
+    const g = this.game;
+    const { w, l } = CONVOY.size;
+    const p = g.player;
+    for (const c of this.cars) {
+      const sh = Math.sin(c.heading);
+      const ch = Math.cos(c.heading);
+      const shove = (o, r, speed) => {
+        const [rx, fw] = this.local(c, o.x, o.z);
+        const ox = w / 2 + r - Math.abs(rx);
+        const oz = l / 2 + r - Math.abs(fw);
+        if (ox <= 0 || oz <= 0) return false;
+        const side = ox < oz;
+        const sgn = (side ? rx : fw) >= 0 ? 1 : -1;
+        const ux = side ? ch * sgn : sh * sgn;
+        const uz = side ? -sh * sgn : ch * sgn;
+        const d = side ? ox : oz;
+        o.x += ux * d;
+        o.z += uz * d;
+        if (speed && o.vx !== undefined) {
+          o.vx += ux * speed;
+          o.vz += uz * speed;
+        }
+        return { ux, uz };
+      };
+      if (p.alive) {
+        const hit = shove(p, 0.35, 0);
+        if (hit && moving && !c.out && c.ramT <= 0 && !p.sliding && !p.spinning) {
+          c.ramT = CONVOY.ram.cool;
+          p.hurt(CONVOY.ram.dmg, hit.ux, hit.uz, true, c.lead ? '頭車' : '護衛車');
+        }
+      }
+      for (const e of g.enemies.list) if (e.alive) shove(e, e.radius, 0);
+      for (const o of g.level.props) if (o.alive && !o.carried && (o.y || 0) < 1) shove(o, o.r, 4);
+    }
+  }
+
+  /** The gunman in the lead's window: a red line onto the player, then a short burst. */
+  updateGun(dt) {
+    const g = this.game;
+    const p = g.player;
+    const G = CONVOY.gun;
+    const c = this.lead;
+    switch (this.gunState) {
+      case 'idle':
+        this.gunT -= dt;
+        if (this.gunT <= 0 && p.alive && Math.hypot(p.x - c.x, p.z - c.z) < G.range && g.level.hasLOS(c.x, c.z, p.x, p.z)) {
+          this.gunState = 'warn';
+          this.gunTimer = G.warn;
+          this.lock = { x: p.x, z: p.z };
+          g.audio.aimWarn(g.panFor(c.x));
+        }
+        break;
+      case 'warn':
+        this.gunTimer -= dt;
+        if (this.gunTimer <= 0) {
+          this.gunState = 'fire';
+          this.shots = G.shots;
+          this.gunTimer = 0;
+        }
+        break;
+      case 'fire':
+        this.gunTimer -= dt;
+        while (this.gunTimer <= 0 && this.shots > 0) {
+          const dx = this.lock.x - c.x;
+          const dz = this.lock.z - c.z;
+          const d = Math.hypot(dx, dz) || 1;
+          // the source is the boss as the game sees it (game.boss): its label names the bullets that hit
+          g.bullets.spawn({ x: c.x + (dx / d) * 1.2, z: c.z + (dz / d) * 1.2, dx: dx / d, dz: dz / d, speed: G.speed, owner: 'enemy', damage: G.dmg, range: G.range, source: g.boss });
+          g.audio.shot('pistol', g.panFor(c.x));
+          this.shots--;
+          this.gunTimer += G.interval;
+        }
+        if (this.shots <= 0) {
+          this.gunState = 'idle';
+          this.gunT = G.every;
+          this.lock = null;
+        }
+        break;
+    }
+  }
+
+  shotAt(x0, z0, x1, z1) {
+    if (!this.active || this.state === 'down') return null;
+    const { w, l } = CONVOY.size;
+    let best = null;
+    const out = {};
+    this.cars.forEach((c, i) => {
+      const [ax, az] = this.local(c, x0, z0);
+      const [bx, bz] = this.local(c, x1, z1);
+      if (segAABB(ax, az, bx, bz, { minX: -w / 2, maxX: w / 2, minZ: -l / 2, maxZ: l / 2 }, out) && (!best || out.t < best.t)) best = { t: out.t, part: i };
+    });
+    return best;
+  }
+
+  shot(b, i) {
+    const g = this.game;
+    const c = this.cars[i];
+    const armour = c.out || (c.lead && !this.alone);
+    g.fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, armour ? 5 : 8, armour ? [6, 4.5, 1.8] : [7, 3, 1], 7);
+    g.audio.impact(g.panFor(b.x));
+    if (armour) return true;
+    if (!c.lead) {
+      if (--c.tyres <= 0) this.flatten(c);
+      return true;
+    }
+    if (++this.taken >= CONVOY.perSegment) {
+      this.taken = 0;
+      this.hurt();
+    }
+    return true;
+  }
+
+  /** An escort's tyres go: it pulls aside, off the road, on the side with room, and stops for good. */
+  flatten(c) {
+    const g = this.game;
+    const L = g.level;
+    c.out = true;
+    c.tyres = 0;
+    const rx = Math.cos(c.heading);
+    const rz = -Math.sin(c.heading);
+    const free = (sx) => {
+      const x = c.x + rx * sx * CONVOY.aside;
+      const z = c.z + rz * sx * CONVOY.aside;
+      const fx = Math.sin(c.heading) * CONVOY.size.l * 0.4;
+      const fz = Math.cos(c.heading) * CONVOY.size.l * 0.4;
+      return [0, 1, -1].every((k) => L.nav.isWalkable(x + fx * k, z + fz * k));
+    };
+    const side = free(1) ? 1 : free(-1) ? -1 : 1;
+    c.aside = { k: 0, x0: c.x, z0: c.z, x1: c.x + rx * side * CONVOY.aside, z1: c.z + rz * side * CONVOY.aside, h0: c.heading, turn: side * 0.45 };
+    const left = this.cars.filter((x) => !x.lead && !x.out).length;
+    g.notes.log(`護衛車爆胎（剩 ${left} 架）`);
+    g.shake(0.25);
+    if (left > 0) g.hud.banner('TYRES OUT', `護衛車停下 · 剩 ${left} 架`, 'clear');
+    else g.hud.banner('LEAD EXPOSED', '頭車慢下來了，射它！', 'clear');
+  }
+
+  blast(x, z, opts = {}) {
+    if (!this.active || this.state === 'down' || !CONVOY.blast.kinds.includes(opts.kind)) return;
+    const { w, l } = CONVOY.size;
+    for (const c of this.cars) {
+      if (c.out) continue;
+      const [rx, fw] = this.local(c, x, z);
+      if (Math.hypot(Math.max(0, Math.abs(rx) - w / 2), Math.max(0, Math.abs(fw) - l / 2)) > CONVOY.blast.radius) continue;
+      if (!c.lead) this.flatten(c);
+      else if (this.alone && this.blastT <= 0) {
+        this.blastT = CONVOY.blast.cool;
+        this.taken = 0;
+        this.hurt();
+      }
+    }
+  }
+
+  /** Over a car's roof: a thrown barrel that comes down there goes off on it (thrown.js). */
+  under(x, z) {
+    if (!this.active || this.state === 'down') return false;
+    const { w, l } = CONVOY.size;
+    return this.cars.some((c) => {
+      if (c.out) return false;
+      const [rx, fw] = this.local(c, x, z);
+      return Math.abs(rx) <= w / 2 + 0.3 && Math.abs(fw) <= l / 2 + 0.3;
+    });
+  }
+
+  goDown() {
+    const g = this.game;
+    this.state = 'down';
+    this.timer = CONVOY.wreck.burn;
+    this.gunState = 'idle';
+    this.lock = null;
+    g.notes.log('頭車起火');
+    g.hud.banner('BOSS DOWN', '快離開頭車！', 'clear');
+  }
+
+  updateWreck(dt) {
+    const g = this.game;
+    const c = this.lead;
+    const before = Math.floor(this.timer * 12);
+    this.timer -= dt;
+    if (Math.floor(this.timer * 12) !== before) g.fx.sparks(c.x, CONVOY.size.h, c.z, 0, 0, 3, [6, 2.5, 0.8], 3, Math.PI); // burning
+    if (this.timer > 0) {
+      this.sync();
+      return;
+    }
+    g.explode(c.x, c.z, CONVOY.wreck.radius, { source: '爆炸的頭車', kind: 'taxi' });
+    c.mesh.visible = false;
+    this.laser.hide();
+    this.finish();
+  }
+
+  sync() {
+    for (const c of this.cars) {
+      c.mesh.position.set(c.x, 0, c.z);
+      c.mesh.rotation.y = c.heading;
+    }
+    const red = this.gunState === 'warn' || this.gunState === 'fire';
+    const c = this.lead;
+    if (red && this.lock) this.laser.set(c.x, c.z, this.lock.x, this.lock.z, 0.05, this.gunState === 'warn' ? 1.5 + 2 * clamp(1 - this.gunTimer / CONVOY.gun.warn, 0, 1) : 3, GUN_Y);
+    else this.laser.hide();
+  }
+}
+
 /** Every kind of boss, by the name a map's `boss.kind` uses. */
 export const BOSSES = {
   heli: { make: (game) => new Heli(game), cfg: HELI },
   dj: { make: (game) => new Dj(game), cfg: DJ },
   truck: { make: (game) => new Truck(game), cfg: TRUCK },
+  convoy: { make: (game) => new Convoy(game), cfg: CONVOY },
 };
 
 /** The run's boss: none until a final wave starts one; each kind is built once and reused. */
