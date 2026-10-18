@@ -325,6 +325,16 @@ body.playing * {
   overflow: hidden;
 }
 
+/* standing still with enemies about: the gauge is draining */
+#rank.camp #rank-bar {
+  animation: rank-camp 0.5s steps(2, end) infinite;
+}
+@keyframes rank-camp {
+  to {
+    box-shadow: 0 0 10px 2px #ff3a4a;
+  }
+}
+
 #rank-fill {
   height: 100%;
   width: 0;

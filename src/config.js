@@ -68,7 +68,10 @@ export const COMBO_WINDOW = 3.2;
  * same move again right after itself gains `repeat` times what it gained the
  * time before; a different move gains in full again. A hit drops `hit`
  * ranks; after `idle` seconds without a gain the gauge drains `drain` ranks a
- * second. Times are real seconds. The rank only shows: it changes no score.
+ * second. Standing still (under `campSpeed` m/s) for `camp` seconds with
+ * enemies about drains `campDrain` a second at once (Style 推進): the gauge
+ * wants you moving. A kill `roam` m or more from the last one is a ROAM.
+ * Times are real seconds. The rank only shows: it changes no score.
  */
 export const RANK = {
   names: ['D', 'C', 'B', 'A', 'S', 'SS', 'SSS'],
@@ -80,6 +83,11 @@ export const RANK = {
   hit: 1,
   idle: 5,
   drain: 0.5,
+  camp: 3, // s standing still before the gauge starts to go
+  campDrain: 1, // ranks a second while camping (twice the idle drain)
+  campSpeed: 1, // m/s: slower than this is standing still
+  roam: 8, // m from the last kill for a ROAM
+  roamPts: 60,
 };
 
 /**

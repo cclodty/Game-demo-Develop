@@ -427,10 +427,13 @@
   - [x] 截圖：拍子預告（亮燈）；npm run lint && npm test 通過
 - 這次不做：舞台重設計（後面兩張卡）、拍子間的對白、音樂跟拍子
 
-### Style 推進獎勵（估計：半天）
-- 目標：離上一個擊殺點 8 米以外的擊殺多一個 ROAM +60；原地不動 3 秒（速度 < 1 m/s）評級即時以兩倍速流失，HUD 評級條閃一下提醒；動起來就停
-- 涉及：`src/main.js`（ROAM 標籤）、`src/score.js`（StyleRank 加 camp 計時）、`src/config.js`（`RANK.roam 8`、`RANK.camp 3`、`RANK.campDrain 1.0`）、`src/hud.js`
-- 驗收：測試：兩個擊殺相距 9 米第二個有 ROAM；站着 3 秒後評級下降速度是 drain 的兩倍，移動後停止；`test/rank.test.mjs` 擴充；npm run lint && npm test 通過
+### ✅ Style 推進獎勵（估計：半天）— 2026-10-18 完成
+- 目標：離上一個擊殺點 8 米以外的擊殺多一個 ROAM +60；原地不動 3 秒（速度 < 1 m/s）評級即時以兩倍速流失，HUD 評級條閃紅提醒；動起來就停。只在有敵人在場時算
+- 涉及：`src/main.js`（ROAM 標籤、每步把「有沒有在動」交給 score）、`src/score.js`（StyleRank 加 camp 計時與 camping）、`src/config.js`（`RANK.roam 8`、`roamPts 60`、`camp 3`、`campDrain 1.0`、`campSpeed 1`）、`src/hud.js`／`style.css`（評級條閃紅）、`test/rank.test.mjs`
+- 驗收：
+  - [x] 測試：兩個擊殺相距 12 米第二個有 ROAM，2 米的沒有；站着 3 秒後評級以 drain 的兩倍流失，移動後即停；波與波之間不算
+  - [x] HUD：站着 4 秒評級條閃紅、數值下降（截圖）
+  - [x] `test/rank.test.mjs` 擴充兩個；npm run lint && npm test 通過
 - 這次不做：改 RANK 其他數字、鏡頭提示
 
 ### 環境互動件 ①：字彙、街燈與吊招牌（估計：一天）

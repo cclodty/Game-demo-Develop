@@ -157,6 +157,7 @@ export class HUD {
       );
     });
     this.set('rankFill', Math.round(rank.progress * 50) / 50, (v) => (e.rankFill.style.width = `${v * 100}%`));
+    this.set('rankCamp', rank.camping, (v) => e.rank.classList.toggle('camp', v)); // standing still: the gauge blinks red as it drains
 
     this.set('tutorial', withLabels(g.tutorial.hint, pad), (v) => {
       if (v) e.tutorial.innerHTML = v;

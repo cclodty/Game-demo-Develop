@@ -4,7 +4,7 @@ import { Bullets } from './bullets.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
-import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RATING, VIEWS } from './config.js';
+import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, VIEWS } from './config.js';
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
@@ -179,6 +179,7 @@ class Game {
     this.overAt = 0;
     this.worldTime = 0;
     this.lastKillAt = -9;
+    this.lastKillPos = null; // where the last kill fell (ROAM)
     this.lastCloseCall = -LOGIC_HZ; // a logic step number
     this.time = 0; // real time for what is only shown (camera shake, title sway, pulses)
     this.last = performance.now();
@@ -993,6 +994,7 @@ class Game {
     this.clearT = 0;
     this.worldTime = 0;
     this.lastKillAt = -9;
+    this.lastKillPos = null; // where the last kill fell (ROAM)
     this.cmd = new StepInput();
     this.acc = 0;
     this.stepCount = 0;
@@ -1275,7 +1277,9 @@ class Game {
       else if (d > 16) tags.push({ label: 'LONG SHOT', pts: 80 });
     }
     if (this.worldTime - this.lastKillAt < 0.5) tags.push({ label: 'MULTI KILL', pts: 100, cls: 'pink' });
+    if (this.lastKillPos && Math.hypot(e.x - this.lastKillPos.x, e.z - this.lastKillPos.z) >= RANK.roam) tags.push({ label: 'ROAM', pts: RANK.roamPts, cls: 'cyan' });
     this.lastKillAt = this.worldTime;
+    this.lastKillPos = { x: e.x, z: e.z };
     const last = this.waves.finishedSpawning && this.enemies.aliveCount === 0;
     if (info.bullet && info.bullet.kills >= 2) tags.push({ label: 'COLLATERAL', pts: 150 * (info.bullet.kills - 1), cls: 'gold' });
     if (last) tags.push({ label: 'LAST ONE', pts: 100 });
@@ -1592,7 +1596,9 @@ class Game {
     this.pickups.update(dt, h, cmd);
     this.tutorial.update(h);
     this.waves.update(dt, h);
-    this.score.update(dt, h);
+    // standing still while enemies are about drains the Style rank (RANK.camp)
+    const busy = this.waves.state === 'active' && this.enemies.aliveCount > 0 && this.player.alive;
+    this.score.update(dt, h, !busy || Math.hypot(this.player.vx, this.player.vz) >= RANK.campSpeed);
     // the Style rank changed (achievements only listen; nothing here feeds back into play)
     if (this.score.rank.index !== this.rankSeen) {
       this.rankSeen = this.score.rank.index;

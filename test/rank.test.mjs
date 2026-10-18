@@ -2,8 +2,10 @@
 // moves push it up, the same move straight after itself gains half as much
 // each time and a different one gains in full again, a hit drops a rank and
 // five idle seconds start a slide. The score itself is untouched: every kill
-// tag is worth what it was. The first tests drive Score directly in node; the
-// last one checks the HUD in the game. Run: npm test
+// tag is worth what it was. Standing still with enemies about drains the
+// gauge at twice the idle rate after three seconds (RANK.camp), and a kill
+// 8 m or more from the last is a ROAM (Style 推進). The first tests drive
+// Score directly in node; the last ones check the game. Run: npm test
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RANK } from '../src/config.js';
@@ -76,6 +78,31 @@ test('a hit drops one rank; five idle seconds start the slide', () => {
   assert.equal(s.rank.value, w);
 });
 
+test('standing still: nothing for three seconds, then twice the idle drain at once; a step stops it', () => {
+  const s = score();
+  kill(s, SLOWMO);
+  kill(s, KICK);
+  kill(s, JUGGLE);
+  const v = s.rank.value;
+  for (let i = 0; i < 3 * 120 - 1; i++) s.update(1 / 120, 1 / 120, false);
+  assert.equal(s.rank.value, v, 'no drain inside the first three seconds');
+  assert.equal(s.rank.camping, false);
+  for (let i = 0; i < 120; i++) s.update(1 / 120, 1 / 120, false);
+  assert.equal(s.rank.camping, true);
+  const lost = v - s.rank.value;
+  assert.ok(lost > RANK.campDrain * 0.9 && lost <= RANK.campDrain, `a second of camping drained ${lost}`);
+  assert.equal(RANK.campDrain, RANK.drain * 2, 'twice the idle drain');
+  // moving again: the camping stops at once (the idle slide has not begun: 4 s since the last gain)
+  const w = s.rank.value;
+  s.update(1 / 120, 1 / 120, true);
+  assert.equal(s.rank.camping, false);
+  for (let i = 0; i < 60; i++) s.update(1 / 120, 1 / 120, true);
+  assert.equal(s.rank.value, w, 'no drain once moving, before the idle five seconds');
+  // waiting between waves (moving = true by the game) never counts as camping
+  for (let i = 0; i < 10 * 120; i++) s.update(1 / 120, 1 / 120, true);
+  assert.equal(s.rank.camping, false);
+});
+
 test('the rank never changes the score: each kill adds its tags times the combo, as before', () => {
   const s = score();
   kill(s, KICK); // combo 1
@@ -138,5 +165,73 @@ test('the HUD shows the rank in the top-right corner and animates each change', 
     assert.deepEqual(problems(logs), []);
   } finally {
     await page.close();
+  }
+});
+
+test('in the game: a kill 8 m or more from the last is a ROAM; standing still with enemies about makes the gauge blink', { timeout: 120000 }, async () => {
+  const h = await gameHarness();
+  const { page, logs } = await h.open('?seed=3');
+  try {
+    const r = await page.evaluate(() => {
+      const g = window.game;
+      g.frame = () => {};
+      g.setMode('arcade');
+      g.startRun(0);
+      g.waves.state = 'active';
+      g.waves.queue = [];
+      g.enemies.clear();
+      const p = g.player;
+      p.x = 0;
+      p.z = 4;
+      const spawn = (x, z) => {
+        const e = g.enemies.spawn('grunt', { x, z, ex: x, ez: z + 0.1, stay: true });
+        e.spawnLock = 0;
+        e.state = 'move';
+        return e;
+      };
+      const tags = [];
+      const kill0 = g.score.kill.bind(g.score);
+      g.score.kill = (t) => {
+        tags.push(t.map((x) => x.label));
+        return kill0(t);
+      };
+      const a = spawn(-6, -2);
+      const b = spawn(6, -2); // 12 m from a
+      const c = spawn(8, -2); // 2 m from b
+      a.die(0, 1, { cause: 'bullet' });
+      b.die(0, 1, { cause: 'bullet' });
+      c.die(0, 1, { cause: 'bullet' });
+      // standing still with one enemy about: three seconds, then the gauge blinks and drains
+      const d = spawn(-6, -6);
+      d.update = () => {}; // he stays put and quiet
+      const step = (n) => {
+        for (let i = 0; i < n; i++) {
+          g.killcamT = 0;
+          g.hitstopT = 0;
+          p.hp = 100;
+          p.vx = p.vz = 0;
+          g.aimPoint.set(0, g.aimPoint.y, -1);
+          g.aimFresh = true;
+          g.updatePlay(1 / 120);
+        }
+      };
+      step(2 * 120);
+      g.hud.update(1 / 60);
+      const before = { camping: g.score.rank.camping, cls: document.getElementById('rank').classList.contains('camp'), value: g.score.rank.value };
+      step(2 * 120);
+      g.hud.update(1 / 60);
+      const after = { camping: g.score.rank.camping, cls: document.getElementById('rank').classList.contains('camp'), value: g.score.rank.value };
+      return { tags, before, after };
+    });
+    assert.ok(!r.tags[0].includes('ROAM'), `the first kill has nothing to roam from (${r.tags[0]})`);
+    assert.ok(r.tags[1].includes('ROAM'), `12 m from the last kill: ROAM (${r.tags[1]})`);
+    assert.ok(!r.tags[2].includes('ROAM'), `2 m from the last: no ROAM (${r.tags[2]})`);
+    assert.deepEqual([r.before.camping, r.before.cls], [false, false], 'two seconds still: nothing yet');
+    assert.deepEqual([r.after.camping, r.after.cls], [true, true], 'four seconds still: camping, and the gauge says so');
+    assert.ok(r.after.value < r.before.value, `the gauge drained (${r.before.value} → ${r.after.value})`);
+    await snap(page, 'rank-camp.png');
+    assert.deepEqual(problems(logs), []);
+  } finally {
+    await h.close();
   }
 });

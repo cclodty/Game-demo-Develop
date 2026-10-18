@@ -35,6 +35,12 @@ export class StyleRank {
     this.repeats = 0;
     this.lastGain = 0;
     this.idleT = 0;
+    this.campT = 0; // real seconds the player has stood still with enemies about
+  }
+
+  /** Standing still long enough for the gauge to drain (RANK.camp). */
+  get camping() {
+    return this.campT > RANK.camp;
   }
 
   get index() {
@@ -64,10 +70,12 @@ export class StyleRank {
     this.value = Math.max(0, this.value - RANK.hit);
   }
 
-  /** `h`: real seconds of this logic step. */
-  update(h) {
+  /** `h`: real seconds of this logic step; `moving`: false while the player stands still with enemies about. */
+  update(h, moving = true) {
     this.idleT += h;
-    if (this.idleT > RANK.idle) this.value = Math.max(0, this.value - RANK.drain * h);
+    this.campT = moving ? 0 : this.campT + h;
+    if (this.camping) this.value = Math.max(0, this.value - RANK.campDrain * h);
+    else if (this.idleT > RANK.idle) this.value = Math.max(0, this.value - RANK.drain * h);
   }
 }
 
@@ -103,9 +111,9 @@ export class Score {
     return Math.max(1, Math.min(this.combo, 16));
   }
 
-  /** `h`: real seconds of the logic step (the rank drains in real time, bullet time or not). */
-  update(dt, h = dt) {
-    this.rank.update(h);
+  /** `h`: real seconds of the logic step (the rank drains in real time, bullet time or not); `moving` as StyleRank.update. */
+  update(dt, h = dt, moving = true) {
+    this.rank.update(h, moving);
     if (this.comboT > 0) {
       this.comboT -= dt;
       if (this.comboT <= 0) this.combo = 0;
