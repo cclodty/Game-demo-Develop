@@ -1339,6 +1339,7 @@ class Game {
 
   explode(x, z, r, opts = {}) {
     const p = this.player;
+    this.boss.blast(x, z, opts); // right under the helicopter, a barrel or a grenade hurts it
     this.fx.explosion(x, z, r);
     this.audio.explosion(this.panFor(x));
     this.level.noise(x, z, 20);

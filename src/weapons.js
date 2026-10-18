@@ -164,7 +164,7 @@ export class Grenades {
     dx /= d;
     dz /= d;
     const { mesh, spin, blink } = this.build(dx, dz);
-    this.list.push({ owner: 'player', x, z, sx: x, sz: z, tx: x + dx * dist, tz: z + dz * dist, dist, t: 0, T: dist / speed, apex: 1.2 + dist * 0.12, y: GUN_Y, mesh, spin, blink, smoke: 0, r: 3.9, opts: { selfMul: 0.4 } });
+    this.list.push({ owner: 'player', x, z, sx: x, sz: z, tx: x + dx * dist, tz: z + dz * dist, dist, t: 0, T: dist / speed, apex: 1.2 + dist * 0.12, y: GUN_Y, mesh, spin, blink, smoke: 0, r: 3.9, opts: { selfMul: 0.4, kind: 'grenade' } });
   }
 
   /**
@@ -181,7 +181,7 @@ export class Grenades {
     shadow.position.set(x, 0.035, z);
     this.game.scene.add(ring, shadow);
     const dist = Math.hypot(tx - x, tz - z);
-    this.list.push({ owner: 'enemy', x, z, sx: x, sz: z, tx, tz, dist, t: 0, T: lob.flight, apex: lob.apex, y: GUN_Y, mesh, spin, blink, smoke: 0, r: lob.radius, ring, shadow, lob, source, landed: false, fuse: -1, opts: { source: `${source.cfg.label} 的榴彈` } });
+    this.list.push({ owner: 'enemy', x, z, sx: x, sz: z, tx, tz, dist, t: 0, T: lob.flight, apex: lob.apex, y: GUN_Y, mesh, spin, blink, smoke: 0, r: lob.radius, ring, shadow, lob, source, landed: false, fuse: -1, opts: { source: `${source.cfg.label} 的榴彈`, kind: 'grenade' } });
   }
 
   /** A grenade's look: the 40 mm round if there is a model, else a ball, with a blinking light. */
@@ -221,7 +221,7 @@ export class Grenades {
     this.remove(this.list.indexOf(g));
     game.notes.log('空中射爆榴彈（AIRBURST）');
     game.score.style('AIRBURST', g.lob.airburst);
-    game.explode(g.x, g.z, g.r, { source: '空中爆炸的榴彈' });
+    game.explode(g.x, g.z, g.r, { source: '空中爆炸的榴彈', kind: 'grenade' });
   }
 
   /**
@@ -235,7 +235,7 @@ export class Grenades {
       const dir = inCone(g.x, g.z, PLAYER.kickRange + 0.3);
       if (!dir) continue;
       this.game.scene.remove(g.ring);
-      Object.assign(g, { owner: 'kicked', ring: null, landed: false, sx: g.x, sz: g.z, tx: g.x + dir.x * g.lob.kickDistance, tz: g.z + dir.z * g.lob.kickDistance, dist: g.lob.kickDistance, t: 0, T: g.lob.kickFlight, apex: 1, opts: { source: '踢回的榴彈' } });
+      Object.assign(g, { owner: 'kicked', ring: null, landed: false, sx: g.x, sz: g.z, tx: g.x + dir.x * g.lob.kickDistance, tz: g.z + dir.z * g.lob.kickDistance, dist: g.lob.kickDistance, t: 0, T: g.lob.kickFlight, apex: 1, opts: { source: '踢回的榴彈', kind: 'grenade' } });
       this.game.notes.log('踢回榴彈');
       kicked = true;
     }

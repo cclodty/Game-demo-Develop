@@ -208,7 +208,9 @@ export class Waves {
       this.spawnCd = this.wr.range(0.5, 1.3);
     }
 
-    if (!this.queue.length && !this.pending.length && enemies.aliveCount === 0 && !this.game.boss.active) {
+    // a boss wave ends with the boss down, whoever is left; any other when nobody is
+    const bossDown = this.bossWave && this.game.boss.downed;
+    if (bossDown || (!this.queue.length && !this.pending.length && enemies.aliveCount === 0 && !this.game.boss.active)) {
       if (!this.hurt) this.cleanWaves++;
       if (this.isFinal) {
         this.state = 'done';

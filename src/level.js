@@ -106,7 +106,7 @@ class Barrel {
       if (this.fuse < 0) {
         this.alive = false;
         this.mesh.visible = false;
-        this.level.game.explode(this.x, this.z, this.blast);
+        this.level.game.explode(this.x, this.z, this.blast, { kind: 'barrel' });
         return;
       }
     }

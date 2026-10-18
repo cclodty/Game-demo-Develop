@@ -4,6 +4,10 @@
 // bullets. Its searchlight sweeps the roof and follows a player it comes near; a player who
 // stays in the light for light.lockAfter s draws a red line onto that spot for light.warn s and
 // then a machine-gun burst there. Every rappel.every s two thugs rope down onto the pad.
+// Only a blast right under it hurts it (頭目 ②): a thrown barrel (one that flies under it goes off
+// there) or a grenade going off within hit.radius m of where it is over the roof takes one
+// segment, and it reels for hit.reel s without firing. The fifth brings it down: it falls onto the
+// pad and bursts (crash.radius m: get clear), the BOSS bonus is paid and the run is cleared.
 // Logic: it runs in the fixed steps on game.rng and the world, and resets with the run.
 
 import * as THREE from 'three';
@@ -29,6 +33,10 @@ export const HELI = {
   // `count` thugs rope down onto the pad `first` s in and every `every` s after, `drop` s on the rope, while fewer than `maxAlive` are about
   rappel: { first: 5, every: 20, count: 2, drop: 1.4, maxAlive: 6 },
   segments: 5, // its health bar
+  // what hurts it: a blast of one of `kinds` within `radius` m of where it is over the roof; it then reels `reel` s without firing
+  hit: { radius: 3, kinds: ['barrel', 'grenade'], reel: 3 },
+  crash: { fall: 2.4, radius: 5.5 }, // brought down: s falling onto the pad, and the blast there
+  bonus: 2000, // BOSS: score for bringing it down
 };
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -48,8 +56,8 @@ export class Boss {
   /** Back to nothing: no boss on the roof (a new run, a restart, the title). */
   reset() {
     if (this.root) {
-      this.game.scene.remove(this.root, this.cone, this.spotMesh, this.ropes);
-      for (const o of [this.root, this.cone, this.spotMesh, this.ropes]) {
+      this.game.scene.remove(this.root, this.cone, this.spotMesh, this.ropes, this.crashRing);
+      for (const o of [this.root, this.cone, this.spotMesh, this.ropes, this.crashRing]) {
         o.traverse((m) => {
           if (m.geometry) m.geometry.dispose();
         });
@@ -57,6 +65,7 @@ export class Boss {
     }
     this.root = null;
     this.active = false;
+    this.downed = false;
     this.laser.hide();
     this.hp = 0;
     this.climbers = [];
@@ -84,6 +93,8 @@ export class Boss {
     this.lock = null;
     this.shots = 0;
     this.rappelT = HELI.rappel.first;
+    this.reelT = 0;
+    this.fallT = -1;
     this.build();
     g.notes.log(`頭目：${HELI.name}`);
   }
@@ -131,8 +142,14 @@ export class Boss {
     );
     this.ropes = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6 * 4), 3)), new THREE.LineBasicMaterial({ color: 0xc8c8c8 }));
     this.ropes.frustumCulled = false;
+    // where it will come down, once it is falling: a red ring of the crash's blast on the pad
+    this.crashRing = new THREE.Mesh(
+      new THREE.RingGeometry(HELI.crash.radius - 0.15, HELI.crash.radius, 64).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 0.2, 0.2), transparent: true, opacity: 0.8, depthWrite: false }),
+    );
+    this.crashRing.visible = false;
     this.root = root;
-    g.scene.add(root, this.cone, this.spotMesh, this.ropes);
+    g.scene.add(root, this.cone, this.spotMesh, this.ropes, this.crashRing);
     this.sync();
   }
 
@@ -142,6 +159,11 @@ export class Boss {
     const g = this.game;
     const p = g.player;
     this.t += dt;
+    if (this.fallT >= 0) {
+      this.updateFall(dt);
+      return;
+    }
+    if (this.reelT > 0) this.reelT -= dt;
     // flying in, then circling the pad
     if (this.t < HELI.enter) {
       const k = smoothstep(0, 1, this.t / HELI.enter);
@@ -182,7 +204,8 @@ export class Boss {
         s.z += ((tz - s.z) / d) * step;
       }
     }
-    const lit = p.alive && Math.hypot(p.x - s.x, p.z - s.z) < L.radius;
+    // reeling from a hit: no locking on, no firing
+    const lit = p.alive && Math.hypot(p.x - s.x, p.z - s.z) < L.radius && this.reelT <= 0;
     switch (this.state) {
       case 'search':
         this.litT = lit ? this.litT + dt : 0;
@@ -243,6 +266,65 @@ export class Boss {
     g.audio.shot('minigun', g.panFor(this.x));
   }
 
+  /** Whether (x, z) is right under it, where a blast hurts it. */
+  under(x, z) {
+    return this.active && this.fallT < 0 && this.t >= HELI.enter && Math.hypot(x - this.x, z - this.z) <= HELI.hit.radius;
+  }
+
+  /** A blast at (x, z) (main.js explode, `opts.kind` what went off): right under it, a barrel or a grenade takes a segment. */
+  blast(x, z, opts = {}) {
+    if (!this.under(x, z) || !HELI.hit.kinds.includes(opts.kind) || this.reelT > 0) return;
+    const g = this.game;
+    this.hp--;
+    this.reelT = HELI.hit.reel;
+    this.state = 'search';
+    this.litT = 0;
+    this.lock = null;
+    g.shake(0.5);
+    g.hitstop(0.08);
+    g.audio.explosion(g.panFor(this.x));
+    g.notes.log(`直升機中彈（剩 ${this.hp} 段）`);
+    if (this.hp <= 0) this.goDown();
+    else g.hud.banner('HIT', `直升機 · 剩 ${this.hp} 段`, 'clear');
+  }
+
+  /** The last segment: it falls onto the pad, the ring shows where. */
+  goDown() {
+    const g = this.game;
+    this.fallT = 0;
+    this.fallFrom = { x: this.x, z: this.z };
+    this.state = 'down';
+    this.crashRing.position.set(this.pad.x, 0.05, this.pad.z);
+    this.crashRing.visible = true;
+    g.notes.log('直升機被擊落');
+    g.hud.banner('BOSS DOWN', '快離開停機坪！', 'clear');
+  }
+
+  updateFall(dt) {
+    const g = this.game;
+    const C = HELI.crash;
+    this.fallT += dt;
+    const k = Math.min(1, this.fallT / C.fall);
+    this.x = lerp(this.fallFrom.x, this.pad.x, k);
+    this.z = lerp(this.fallFrom.z, this.pad.z, k);
+    this.y = HELI.altitude * (1 - k * k);
+    this.facing += dt * (2 + 6 * k); // spinning down
+    this.climbers = [];
+    if (k < 1) {
+      this.sync();
+      return;
+    }
+    // down: the blast, the bonus, the clip, the end of the wave
+    this.active = false;
+    this.downed = true;
+    this.root.visible = this.cone.visible = this.spotMesh.visible = this.crashRing.visible = false;
+    this.laser.hide();
+    g.explode(this.pad.x, this.pad.z, C.radius, { source: '墜毀的直升機', kind: 'heli' });
+    g.score.bonus('BOSS', HELI.bonus);
+    g.clip.kill(Number.MAX_SAFE_INTEGER); // the shoot-down is the run's clip, whatever else it had
+    g.notes.log(`擊落直升機：BOSS +${HELI.bonus}`);
+  }
+
   /** Every so often two thugs rope down onto the pad. */
   updateRappel(dt) {
     const g = this.game;
@@ -263,9 +345,11 @@ export class Boss {
 
   /** Where everything is drawn; the laser and ropes are only looks. */
   sync() {
-    const y = HELI.altitude;
+    const y = this.fallT >= 0 ? this.y : HELI.altitude;
     this.root.position.set(this.x, y, this.z);
     this.root.rotation.y = this.facing;
+    // a hit makes it reel (looks only)
+    this.root.rotation.z = this.reelT > 0 ? Math.sin(this.t * 14) * 0.25 * (this.reelT / HELI.hit.reel) : 0;
     this.rotor.rotation.y = this.t * 28;
     // the light: from under the nose to the spot
     _a.set(this.x, y - 0.6, this.z);

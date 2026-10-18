@@ -174,6 +174,11 @@ export class Thrown {
     // thrown props: hit enemies while in the air (their flight itself is the level's prop physics)
     for (const q of level.props) {
       if (!q.thrown || !q.alive || (q.y || 0) < 0.25) continue;
+      if (q.kind === 'barrel' && g.boss.under(q.x, q.z)) {
+        q.thrown = false;
+        q.ignite(0.02); // thrown at the helicopter: it goes off right under it
+        continue;
+      }
       for (const e of g.enemies.list) {
         if (!e.alive || e.spawnLock > 0) continue;
         if (Math.hypot(e.x - q.x, e.z - q.z) > e.radius + q.r) continue;
