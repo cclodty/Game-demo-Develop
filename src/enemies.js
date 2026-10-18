@@ -2,7 +2,7 @@
 // brightens while they aim, so a quick read (or bullet time) lets you dodge.
 
 import * as THREE from 'three';
-import { GUN_Y, LOGIC_HZ } from './config.js';
+import { AI, GUN_Y, LOGIC_HZ } from './config.js';
 import { animateRig, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { DROPS } from './weapons.js';
@@ -21,6 +21,7 @@ export const TYPES = {
     score: 100,
     lead: [0.2, 0.9],
     turn: 5,
+    tactic: 'cover', // how he closes in (config.js AI): behind cover, stepping out to shoot
     look: { body: 0x2a2a33, pants: 0x1b1b22, accent: 0xff2d4a, hair: 0x8a1020, weapon: 'pistol' },
     spawn: { from: 1, weight: 6 },
   },
@@ -36,6 +37,7 @@ export const TYPES = {
     score: 150,
     lead: [0.3, 0.8],
     turn: 4.5,
+    tactic: 'cover',
     look: { body: 0x3a2a1e, pants: 0x1e1a18, accent: 0xff8a1f, hair: 0xd06a10, weapon: 'shotgun' },
     spawn: { from: 2, weight: 2.5 },
   },
@@ -51,6 +53,7 @@ export const TYPES = {
     score: 150,
     lead: [0.5, 1.0],
     turn: 3.5,
+    tactic: 'cover',
     look: { body: 0x2a2440, pants: 0x1a1830, accent: 0xb36bff, hair: 0x3a2466, weapon: 'rifle' },
     spawn: { from: 2, weight: 2 },
   },
@@ -62,6 +65,7 @@ export const TYPES = {
     weapon: 'blade',
     score: 120,
     turn: 10,
+    tactic: 'flank', // a pair of them split up and come from two sides
     look: { body: 0x141418, pants: 0x101014, accent: 0xff2bd0, hair: 0x0a0a0a, weapon: 'blade' },
     spawn: { from: 3, weight: 2.2 },
   },
@@ -78,6 +82,7 @@ export const TYPES = {
     lead: [0.3, 0.8],
     turn: 2.2,
     heavy: true,
+    tactic: 'advance', // straight at you, as ever
     look: { body: 0x3b3e48, pants: 0x22242c, accent: 0xff3a2a, hair: 0x55585f, weapon: 'minigun', scale: 1.25 },
   },
   shield: {
@@ -94,6 +99,7 @@ export const TYPES = {
     lead: [0.2, 0.7],
     turn: 3,
     shield: { arc: 60, down: 1.5 }, // stops bullets coming from within ±arc degrees of his facing; a kick drops it for `down` s
+    tactic: 'advance',
     look: { body: 0x1f2a36, pants: 0x161c24, accent: 0xffc21a, hair: 0x2a2a2a, weapon: 'pistol' },
     spawn: { from: 3, weight: 1.6, max: 2 },
   },
@@ -109,6 +115,7 @@ export const TYPES = {
     // lights up within `reach` m of the player and goes off `fuse` s later with a barrel's `blast`;
     // shot dead he goes off `delay` s later; a kick sends his charge that way for `turned` s
     bomb: { reach: 1.5, fuse: 0.4, blast: 4.4, delay: 0.08, turned: 1.2 },
+    tactic: 'flank',
     look: { body: 0x2c2a1e, pants: 0x1c1a14, accent: 0xff5a1a, hair: 0x1a1a1a, weapon: 'detonator' },
     spawn: { from: 6, weight: 1.5, max: 2 },
   },
@@ -192,6 +199,14 @@ class Enemy {
     const cfg = this.cfg;
     this.rig = cfg.fly ? buildDrone({ ...cfg.look, ring: 0.35, height: cfg.fly.height }) : buildCharacter({ ...cfg.look, ring: 0.35, model: cfg.model || type });
     this.orbitDir = cfg.fly ? (this.game.rng.next() < 0.5 ? -1 : 1) : 0; // which way a drone circles
+    this.tactic = cfg.tactic || null; // 'cover' | 'flank' | 'advance' (config.js AI): how he closes in
+    this.cover = null; // a 'cover' gunner's spot to hide at and where he steps out from (findCover)
+    this.coverCheck = 0;
+    this.coverLogged = false;
+    this.peekAim = false; // aiming from behind the cover: he steps out to fire the moment the aim is done
+    this.coverShots = 0; // shots from the cover he has now (AI.peeks)
+    this.coverRest = 0; // s before he may look for cover again
+    this.flankSide = this.tactic === 'flank' ? (mgr.flankSeq++ % 2 ? 1 : -1) : 0; // flankers take turns at the two sides
     this.shieldDownT = 0;
     if (cfg.shield) this.buildShield();
     this.fuseT = -1; // a bomber's lit vest: seconds left, or -1
@@ -540,6 +555,85 @@ class Enemy {
     return { x: this.x + lx * Math.cos(f) + lz * Math.sin(f), z: this.z - lx * Math.sin(f) + lz * Math.cos(f) };
   }
 
+  /**
+   * A spot to hide behind (tactic 'cover'): by a face of a box of cover that stands between it and
+   * the player, walkable, within AI.coverSearch m of him and at a sensible distance from the player,
+   * with a place beside it to step out to that sees the player (peekFrom). Null when there is none.
+   */
+  findCover() {
+    const g = this.game;
+    const p = g.player;
+    const L = g.level;
+    const [rmin, rmax] = this.cfg.range;
+    const dmin = Math.max(2, rmin * 0.6);
+    const dmax = rmax + 3;
+    const ideal = (rmin + rmax) / 2;
+    const gap = AI.coverGap + this.radius;
+    let best = null;
+    let bestScore = -Infinity;
+    for (const s of L.solids) {
+      if (!s.alive || s.poly || s.kind === 'glass' || s.h < AI.coverHeight) continue;
+      const w = s.maxX - s.minX;
+      const d = s.maxZ - s.minZ;
+      if (w > 12 || d > 12) continue; // the walls of the map are not cover to hide behind
+      const cx = (s.minX + s.maxX) / 2;
+      const cz = (s.minZ + s.maxZ) / 2;
+      if (Math.hypot(cx - this.x, cz - this.z) > AI.coverSearch + Math.max(w, d) / 2) continue;
+      // the middle of each face, pushed out, and the quarter points of a long one
+      const spots = [];
+      for (const x of [s.minX - gap, s.maxX + gap]) {
+        spots.push([x, cz]);
+        if (d > 3) spots.push([x, cz - d / 4], [x, cz + d / 4]);
+      }
+      for (const z of [s.minZ - gap, s.maxZ + gap]) {
+        spots.push([cx, z]);
+        if (w > 3) spots.push([cx - w / 4, z], [cx + w / 4, z]);
+      }
+      for (const [x, z] of spots) {
+        if (!L.nav.isWalkable(x, z) || L.hasLOS(x, z, p.x, p.z)) continue;
+        const dp = Math.hypot(x - p.x, z - p.z);
+        if (dp < dmin || dp > dmax) continue;
+        const dm = Math.hypot(x - this.x, z - this.z);
+        if (dm > AI.coverSearch) continue;
+        let score = -dm * 0.5 - Math.abs(dp - ideal) * 0.15;
+        for (const o of this.mgr.list) if (o !== this && o.alive && o.cover && Math.hypot(o.cover.x - x, o.cover.z - z) < 1.5) score -= 4; // one man per spot
+        if (score <= bestScore) continue;
+        const peek = this.peekFrom(x, z, s, gap);
+        if (!peek) continue;
+        bestScore = score;
+        best = { x, z, peekX: peek.x, peekZ: peek.z, solid: s };
+      }
+    }
+    return best;
+  }
+
+  /** Where to step out from a cover spot to see the player: the nearest walkable point around it, or a corner of the cover, with a line of sight. */
+  peekFrom(x, z, s, gap) {
+    const g = this.game;
+    const p = g.player;
+    const L = g.level;
+    const cands = [];
+    for (const r of [1, 1.6, 2.2]) for (let i = 0; i < 8; i++) cands.push([x + Math.sin((i / 8) * TAU) * r, z + Math.cos((i / 8) * TAU) * r]);
+    for (const cx of [s.minX - gap, s.maxX + gap]) for (const cz of [s.minZ - gap, s.maxZ + gap]) cands.push([cx, cz]);
+    let best = null;
+    let bd = Infinity;
+    for (const [px, pz] of cands) {
+      const d = Math.hypot(px - x, pz - z);
+      if (d >= bd || !L.nav.isWalkable(px, pz) || !L.hasLOS(px, pz, p.x, p.z)) continue;
+      bd = d;
+      best = { x: px, z: pz };
+    }
+    return best;
+  }
+
+  /** The cover still hides him from where the player stands now. */
+  coverValid() {
+    const c = this.cover;
+    if (!c || !c.solid.alive) return false;
+    const p = this.game.player;
+    return Math.hypot(c.x - p.x, c.z - p.z) > Math.max(2, this.cfg.range[0] * 0.6) - 1 && !this.game.level.hasLOS(c.x, c.z, p.x, p.z);
+  }
+
   pickGoal() {
     if (this.sp.stay) return { x: this.sp.ex, z: this.sp.ez }; // a warm-up enemy keeps its post
     const g = this.game;
@@ -601,6 +695,7 @@ class Enemy {
 
   startAim() {
     this.state = 'aim';
+    this.peekAim = false;
     this.aimT = 0;
     this.losLost = 0;
     this.lead = this.game.rng.range(this.cfg.lead[0], this.cfg.lead[1]);
@@ -762,6 +857,50 @@ class Enemy {
             face = angleTo(this.x, this.z, p.x, p.z);
             break;
           }
+          this.coverRest -= dt;
+          if (this.tactic === 'cover' && !this.sp.stay && this.blindT <= 0 && this.coverRest <= 0 && this.mgr.aliveCount > 1) {
+            // a gunner with cover near goes there first, ducks, and fights by stepping out (peek); one holding
+            // a post keeps it, and the last man standing comes on instead of hiding
+            this.coverCheck -= dt;
+            if (this.coverCheck <= 0) {
+              this.coverCheck = 0.5;
+              if (!this.coverValid()) {
+                this.cover = this.findCover();
+                this.coverShots = 0;
+              }
+            }
+            if (this.cover) {
+              const c = this.cover;
+              const dx = c.x - this.x;
+              const dz = c.z - this.z;
+              const dc = Math.hypot(dx, dz);
+              if (dc < 0.3) {
+                this.state = 'duck';
+                this.timer = g.rng.range(AI.duck[0], AI.duck[1]);
+                this.path = null;
+                if (!this.coverLogged) {
+                  this.coverLogged = true;
+                  g.notes.log(`${cfg.label} 躲到掩體後`);
+                }
+                break;
+              }
+              if (dc < 1.2) {
+                // the last step is straight to the spot (a path only reaches the cell it is in)
+                const sp = Math.min(cfg.speed, dc * 4 + 0.4);
+                want = [(dx / dc) * sp, (dz / dc) * sp];
+              } else {
+                this.repath -= dt;
+                if (this.repath <= 0 || !this.path || this.pathI >= this.path.length) {
+                  this.repath = 0.6;
+                  this.path = g.level.nav.findPath(this.x, this.z, c.x, c.z);
+                  this.pathI = 0;
+                }
+                want = this.followPath(cfg.speed);
+              }
+              if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
+              break;
+            }
+          }
           // a grenadier throws over cover: he needs the distance, not a line of sight
           const inReach = cfg.lob ? distP < cfg.range[1] + 3 && distP > cfg.lob.radius + 1 : this.los && distP < cfg.range[1] + 3;
           if (inReach && this.fireCd <= 0 && this.mgr.requestToken(this)) {
@@ -780,12 +919,61 @@ class Enemy {
           if (this.los && cfg.reload) want = [0, 0]; // a sniper who can see the player stands his ground
           break;
         }
+        case 'duck': {
+          // hidden: still behind the cover until it is time to step out, unless the cover stopped working
+          this.timer -= dt;
+          want = [0, 0];
+          face = angleTo(this.x, this.z, p.x, p.z);
+          if (!this.coverValid() || distP < AI.flankClose || this.mgr.aliveCount <= 1) {
+            this.cover = null;
+            this.state = 'move';
+            this.repath = 0;
+            break;
+          }
+          if (this.timer <= 0 && this.fireCd <= 0 && distP < cfg.range[1] + 3 && this.mgr.requestToken(this)) {
+            // the aim happens behind the cover (its laser shows on the box: the warning); he steps out to fire
+            this.startAim();
+            this.peekAim = true;
+          }
+          break;
+        }
+        case 'peek': {
+          // aimed and stepping out beside the cover: fire the moment the player is in sight, else give the spot up
+          this.timer -= dt;
+          const c = this.cover;
+          face = this.aimAngle;
+          if (c && this.los) {
+            const w = WEAPONS[cfg.weapon];
+            this.aimAngle = angleTo(this.x, this.z, this.aimPoint().x, this.aimPoint().z);
+            this.coverShots++;
+            this.state = 'fire';
+            this.burst = w.shots;
+            this.burstT = 0;
+            want = [0, 0];
+            break;
+          }
+          if (c) {
+            const dx = c.peekX - this.x;
+            const dz = c.peekZ - this.z;
+            const d = Math.hypot(dx, dz);
+            const sp = Math.min(cfg.speed, d * 4 + 0.4);
+            want = d > 0.05 ? [(dx / d) * sp, (dz / d) * sp] : [0, 0];
+          }
+          if (!c || this.timer <= 0) {
+            this.endAim();
+            this.state = 'move';
+            this.coverCheck = 0;
+            this.cover = null; // the spot showed nothing: find another
+            this.repath = 0;
+          }
+          break;
+        }
         case 'aim': {
           this.aimT += dt;
           const a = this.aimPoint();
           this.aimAngle = turnTowards(this.aimAngle, angleTo(this.x, this.z, a.x, a.z), cfg.turn * dt);
           face = this.aimAngle;
-          if (!this.los && !cfg.lob) {
+          if (!this.los && !cfg.lob && !this.peekAim) {
             this.losLost += dt;
             if (this.losLost > 0.35) {
               this.endAim();
@@ -798,6 +986,12 @@ class Enemy {
           if (cfg.weapon === 'shotgun' && distP > 4) want = [(dxp / distP) * 1.2, (dzp / distP) * 1.2];
           if (this.aimT >= this.aimTime && cfg.lob) {
             this.throwGrenade();
+            break;
+          }
+          if (this.aimT >= this.aimTime && this.peekAim) {
+            this.peekAim = false;
+            this.state = 'peek';
+            this.timer = AI.peekTimeout;
             break;
           }
           if (this.aimT >= this.aimTime) {
@@ -824,7 +1018,7 @@ class Enemy {
           if (this.burst <= 0 && this.burstT <= 0) {
             this.endAim();
             this.state = 'recover';
-            this.timer = cfg.reload || 0.35; // a sniper's reload: rifle down, the window to get him
+            this.timer = cfg.reload || (this.cover ? AI.peek : 0.35); // a sniper's reload: rifle down, the window to get him; a cover gunner's moment out
             this.fireCd = g.rng.range(cfg.cooldown[0], cfg.cooldown[1]);
           }
           break;
@@ -835,6 +1029,12 @@ class Enemy {
           if (this.timer <= 0) {
             this.state = this.rushes ? 'chase' : 'move';
             this.repath = 0;
+            if (this.cover && this.coverShots >= AI.peeks) {
+              // enough from this spot: leave it and come on for a while
+              this.cover = null;
+              this.coverShots = 0;
+              this.coverRest = AI.rest;
+            }
           }
           break;
         case 'chase': {
@@ -847,6 +1047,25 @@ class Enemy {
           if (bomb && this.turnT > 0) {
             this.turnT -= dt;
             want = [this.dashX * cfg.speed, this.dashZ * cfg.speed];
+          } else if (this.tactic === 'flank' && distP > AI.flankClose && this.mgr.hasPartner(this)) {
+            // two of them split up: each closes in along an arc on his own side, so they arrive from two directions
+            const b = Math.atan2(this.x - p.x, this.z - p.z) + (this.flankSide * AI.flankAngle * Math.PI) / 180;
+            const r = clamp(distP * AI.flankSwing, 1.2, 7);
+            const tx = p.x + Math.sin(b) * r;
+            const tz = p.z + Math.cos(b) * r;
+            const dx = tx - this.x;
+            const dz = tz - this.z;
+            const d = Math.hypot(dx, dz) || 1;
+            if (g.level.nav.lineWalkable(this.x, this.z, tx, tz)) want = [(dx / d) * cfg.speed, (dz / d) * cfg.speed];
+            else {
+              if (this.repath <= 0 || !this.path) {
+                this.repath = 0.45;
+                const i = g.level.nav.nearestOpen(tx, tz);
+                this.path = g.level.nav.findPath(this.x, this.z, i >= 0 ? g.level.nav.centerX(i) : p.x, i >= 0 ? g.level.nav.centerZ(i) : p.z);
+                this.pathI = 0;
+              }
+              want = this.followPath(cfg.speed);
+            }
           } else if (this.los && g.level.nav.lineWalkable(this.x, this.z, p.x, p.z)) {
             want = [(dxp / distP) * cfg.speed, (dzp / distP) * cfg.speed];
           } else {
@@ -1067,6 +1286,12 @@ export class Enemies {
     this.list = [];
     this.corpses = [];
     this.tokens = 0;
+    this.flankSeq = 0; // flankers spawned so far: they take the two sides in turn
+  }
+
+  /** Another living flanker for `e` to split up with. */
+  hasPartner(e) {
+    return this.list.some((o) => o !== e && o.alive && o.tactic === 'flank');
   }
 
   get aliveCount() {
@@ -1096,6 +1321,7 @@ export class Enemies {
     this.list = [];
     this.corpses = [];
     this.tokens = 0;
+    this.flankSeq = 0;
   }
 
   maxTokens() {

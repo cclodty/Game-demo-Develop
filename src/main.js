@@ -5,7 +5,7 @@ import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
 import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RATING, VIEWS } from './config.js';
-import { Enemies } from './enemies.js';
+import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
 import { Input, StepInput } from './input.js';
@@ -99,6 +99,7 @@ class Game {
     this.fx = new FX(this);
     this.style = new Style(this); // the look; before the level, whose materials it converts as they load
     this.maps = MAPS;
+    this.enemyTypes = ENEMY_TYPES; // for the tests and the stats panel
     this.startMap = 0;
     try {
       this.startMap = Math.min(MAPS.length - 1, Math.max(0, Number(localStorage.getItem(MAP_KEY)) || 0));

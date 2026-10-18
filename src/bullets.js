@@ -174,7 +174,9 @@ export class Bullets {
     if (!b.alive) return;
 
     if (b.owner === 'enemy') this.checkCloseCall(b, sx, sz);
-    if (b.traveled > b.range || Math.abs(b.x) > 60 || Math.abs(b.z) > 60) {
+    // spent, or out past the edge of the map (the Senado strip is 148 m long: the edge is the level's, not a fixed 60 m)
+    const B = this.game.level.bounds;
+    if (b.traveled > b.range || Math.abs(b.x) > B.halfW + 6 || Math.abs(b.z) > B.halfD + 6) {
       if (b.traveled > b.range && b.owner === 'enemy') this.game.fx.sparks(b.x, GUN_Y, b.z, b.dx, b.dz, 3, [3, 0.6, 0.3], 3);
       b.alive = false;
     }

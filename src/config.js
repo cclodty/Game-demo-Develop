@@ -82,6 +82,27 @@ export const RANK = {
   drain: 0.5,
 };
 
+/**
+ * How enemies close in (敵人掩體與包抄; enemies.js, TYPES[type].tactic). A
+ * gunner with `tactic: 'cover'` goes behind a box that stands between him and
+ * the player, ducks there, and fights by stepping out (peek); a pair of
+ * rushers with 'flank' split up and arrive from two sides; 'advance' is the
+ * old straight approach.
+ */
+export const AI = {
+  coverSearch: 8, // m: how far a gunner looks for a box to hide behind
+  coverHeight: 0.9, // m: lower cover hides nobody
+  coverGap: 0.55, // m between the cover's face and where he stands
+  duck: [0.8, 1.4], // s hidden between peeks
+  peek: 0.6, // s he stays out after his shot before ducking again
+  peekTimeout: 1.5, // s stepped out without a shot before he gives the spot up
+  peeks: 3, // shots from one spot before he leaves it and comes on
+  rest: 6, // s after leaving a spot before he looks for another; the last man standing never hides
+  flankAngle: 60, // degrees off the straight line each of a pair of rushers takes
+  flankSwing: 0.9, // how wide the arc is: the point he heads for lies this × his distance from the player
+  flankClose: 3, // m: from here they just come straight at you
+};
+
 /** Things in the maps that play along (環境互動). */
 export const ENV = {
   crateHits: 6, // bullets a wooden crate takes before it breaks apart
