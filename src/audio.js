@@ -364,6 +364,13 @@ export class AudioSys {
     this.tone({ type: 'sine', f0: 1760 * p, dur: 0.07, vol: 0.035, pan });
   }
 
+  /** A bomber's vest lit: three quick rising beeps. */
+  fuse(pan = 0) {
+    if (!this.ready) return;
+    const p = this.pitch;
+    for (let i = 0; i < 3; i++) this.tone({ type: 'square', f0: (1500 + i * 260) * p, dur: 0.05, vol: 0.06, delay: (i * 0.11) / p, pan, filter: 5000 });
+  }
+
   slash() {
     if (!this.ready) return;
     const p = this.pitch;

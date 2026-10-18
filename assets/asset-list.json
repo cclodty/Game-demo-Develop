@@ -735,6 +735,36 @@
       "prompt": "clear dark polycarbonate riot shield with a yellow reflective rim, a horizontal yellow band and a grip on the back"
     },
     {
+      "id": "weapon_bomb_vest",
+      "kind": "weapon",
+      "group": "weapons",
+      "name_zh": "炸藥背心與引爆器（炸彈客）",
+      "priority": 2,
+      "size": {
+        "x": 0.5,
+        "y": 0.42,
+        "z": 0.32
+      },
+      "origin": "at the main hand grip, with the barrel or blade pointing along +Z",
+      "budgets": {
+        "master": {
+          "tris": 12000,
+          "texture": 2048
+        },
+        "web": {
+          "tris": 900,
+          "texture": 512
+        }
+      },
+      "files": {
+        "master": "source/weapon_bomb_vest/weapon_bomb_vest.glb",
+        "textures": "source/weapon_bomb_vest/textures/",
+        "reference": "source/weapon_bomb_vest/reference/",
+        "fbx": "source/weapon_bomb_vest/weapon_bomb_vest.fbx"
+      },
+      "prompt": "improvised explosive vest: dark canvas harness with a row of red cylindrical charges, taped wires and a small red lamp on the chest, plus a hand-held dead-man switch"
+    },
+    {
       "id": "crate",
       "kind": "prop",
       "group": "props",

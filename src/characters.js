@@ -144,6 +144,14 @@ export const MODELS = {
     ],
   },
   blade: { asset: 'weapon_blade', hold: 'right', end: 1.15, parts: [[0.05, 0.04, 0.55, 0, 0, 0.9, 'accent']] },
+  detonator: {
+    hold: 'right',
+    end: 0.7,
+    parts: [
+      [0.07, 0.12, 0.14, 0, 0.02, 0.62, 'gun'],
+      [0.04, 0.04, 0.04, 0, 0.1, 0.62, 'accent'],
+    ],
+  },
 };
 
 /** Where a skinned model's right and left hands go on a two-handed gun, in the gun's space. */

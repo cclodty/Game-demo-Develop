@@ -573,7 +573,7 @@ class Game {
       tags.push({ label: 'RICOCHET', pts: 200, cls: 'gold' });
       refill += 0.08;
     }
-    if (info.cause === 'explosion') tags.push({ label: 'BOOM', pts: 120, cls: 'gold' });
+    if (info.cause === 'explosion') tags.push(info.chain ? { label: 'CHAIN', pts: 120, cls: 'gold' } : { label: 'BOOM', pts: 120, cls: 'gold' });
     if (info.cause === 'kick') tags.push({ label: 'KICK', pts: 150, cls: 'gold' });
     if (info.cause === 'strike') tags.push({ label: 'STRIKE!', pts: 200, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });
@@ -674,7 +674,7 @@ class Game {
       const d = Math.hypot(e.x - x, e.z - z);
       if (d > r + e.radius || !this.level.hasLOS(x, z, e.x, e.z)) continue;
       const k = 1 / (d || 1);
-      e.blast((e.x - x) * k, (e.z - z) * k, d < r * 0.65 ? 20 : 5);
+      e.blast((e.x - x) * k, (e.z - z) * k, d < r * 0.65 ? 20 : 5, !!opts.chain);
     }
     for (const e of this.enemies.corpses) {
       const d = Math.hypot(e.x - x, e.z - z);
@@ -687,7 +687,7 @@ class Game {
       const dmg = Math.round(lerp(55, 15, dp / r));
       const k = 1 / (dp || 1);
       const mul = (p.spinning ? 0.5 : 1) * (opts.selfMul ?? 1);
-      p.hurt(Math.round(dmg * mul), (p.x - x) * k, (p.z - z) * k, true);
+      p.hurt(Math.round(dmg * mul), (p.x - x) * k, (p.z - z) * k, true, opts.source);
     }
     for (const b of this.level.barrels) {
       if (!b.alive) continue;

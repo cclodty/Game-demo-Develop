@@ -277,6 +277,17 @@ export const ASSETS = {
     prompt: 'clear dark polycarbonate riot shield with a yellow reflective rim, a horizontal yellow band and a grip on the back',
     notes: '盾牌手左手持在身前；遊戲現在用一塊方塊盾，模型做好就換上。',
   },
+  weapon_bomb_vest: {
+    kind: 'weapon',
+    group: 'weapons',
+    zh: '炸藥背心與引爆器（炸彈客）',
+    priority: 2,
+    size: [0.5, 0.32, 0.42],
+    tris: 900,
+    texture: 512,
+    prompt: 'improvised explosive vest: dark canvas harness with a row of red cylindrical charges, taped wires and a small red lamp on the chest, plus a hand-held dead-man switch',
+    notes: '炸彈客穿在胸前，右手拿引爆器；遊戲現在用方塊和圓柱，模型做好就換上。全是虛構道具，不要任何真實標誌。',
+  },
 
   // ------------------------------------------------- props on several maps
   crate: {
