@@ -9,6 +9,8 @@
     "test:game": "node --test --test-concurrency=1 test/game/*.test.mjs",
     "test:all": "npm test && npm run test:game",
     "build": "node scripts/build-single.mjs",
+    "itch": "node scripts/itch.mjs",
+    "itch:cover": "node scripts/itch-cover.mjs",
     "assets": "node scripts/assets.mjs",
     "assets:docs": "node scripts/asset-docs.mjs",
     "senado:data": "python3 senado/scripts/build_data.py",

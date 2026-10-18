@@ -380,10 +380,13 @@
   - [x] 有後端網址才問 `/stats`、一分鐘最多一次、失敗不顯示；npm run lint && npm test 通過
 - 這次不做：伺服器端留存分析
 
-### itch.io 發佈包（估計：半天）
+### ✅ itch.io 發佈包（估計：半天）— 2026-10-18 完成（上架待開發者）
 - 目標：`npm run itch` 產出可上傳的 zip（單檔版加 index.html）；`docs/itch/` 有封面 630×500、中英說明、六張截圖、標籤與分類建議；開發者上架
 - 涉及：`scripts/itch.mjs`、`docs/itch/`
-- 驗收：zip 解開後本機伺服器可玩；封面由現有截圖生成；文件列出開發者要填的欄位；npm run lint && npm test 通過
+- 驗收：
+  - [x] zip 解開後本機伺服器可玩（`test/itch.test.mjs`：打包、解壓、開伺服器、開一局）
+  - [x] 封面由現有截圖生成（`npm run itch:cover`）
+  - [x] 文件列出開發者要填的欄位（`docs/itch/README.md`）；npm run lint && npm test 通過
 - 這次不做：上架本身（開發者）、Steam 頁面
 
 - [ ] **部署後端**：照 `docs/BACKEND.md` 用自己的 Cloudflare 帳號部署，把網址填進 `config.js`（開發者）

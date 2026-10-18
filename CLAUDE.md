@@ -36,6 +36,7 @@ npm run lint                      # eslint on src/, scripts/, test/
 npm test                          # senado unit tests + smoke + map validator + asset pipeline + a short bot run (~2 min)
 npm run test:game                 # slow: every weapon fires, E-swap, a long looting run (~10 min)
 npm run build                     # single-file dist/bullet-ballet.html for sharing (must stay < 16 MB)
+npm run itch                      # that file as index.html in dist/bullet-ballet-itch.zip, for itch.io (docs/itch/README.md)
 npm run assets                    # masters in assets/source/<id>/ → web models in assets/models/
 npm run assets:docs               # regenerate assets/PROMPTS.md, asset-list.*, maps/*.json
 ```
@@ -80,10 +81,10 @@ src/notes.js                 playtest notes: event log, stats/tuning panel (`), 
 src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions
 src/senado/                  Largo do Senado data and model code extracted from the senado/ sub-project
 backend/                     the leaderboard Cloudflare Worker (worker.js), its D1 schema and a wrangler.toml template; deployed by the developer (docs/BACKEND.md)
-scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, serve.mjs, senado-extract.mjs
+scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, itch.mjs (+ itch-cover.mjs), serve.mjs, senado-extract.mjs
 test/                        node:test + playwright; helpers.mjs has the bot; fixtures/ holds a short recorded clip
 assets/                      SPEC.md, PROMPTS.md, START_HERE.md, asset-list.*, maps/*.json, source/ (masters), models/ (web)
-docs/                        ROADMAP.md, TASKS.md, DECISIONS.md, BACKEND.md (deploying the back end); shots/ holds the screenshots PR descriptions show
+docs/                        ROADMAP.md, TASKS.md, DECISIONS.md, BACKEND.md (deploying the back end); shots/ holds the screenshots PR descriptions show; itch/ the itch.io page
 senado/                      the Largo do Senado city-model sub-project (own README, tests, scripts); don't edit from game tasks
 vendor/three/                three.js r186 + the addons we use; never modify
 ```
