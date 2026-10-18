@@ -41,7 +41,8 @@ after(async () => {
  * 'shooter' shoots on the spot; 'busy' shoots, spins (a spin carries the player along) and strafes.
  */
 const playRun = (page, style) =>
-  page.evaluate((style) => {
+  page.evaluate(async (style) => {
+    const { TYPES } = await import('/src/enemies.js');
     const g = window.game;
     g.frame = () => {};
     g.startRun(0);
@@ -53,10 +54,11 @@ const playRun = (page, style) =>
       waves.push({ n: w.wave, map: g.level.map.id, roster: [...w.queue], order: [...w.order], doors: g.level.spawns.map((sp) => [sp.ex, sp.ez]), picks: [], pads: g.level.pads.map((p) => p.pickup && p.pickup.kind) });
     };
     const pick0 = g.waves.pickSpawn.bind(g.waves);
-    g.waves.pickSpawn = () => {
+    g.waves.pickSpawn = (type) => {
       const from = g.waves.orderI;
-      const sp = pick0();
-      waves.at(-1).picks.push({ from, at: g.level.spawns.indexOf(sp), px: g.player.x, pz: g.player.z });
+      const sp = pick0(type);
+      const min = (TYPES[type] && TYPES[type].spawn && TYPES[type].spawn.minDist) || 9; // a sniper wants a far door
+      waves.at(-1).picks.push({ from, min, at: g.level.spawns.indexOf(sp), px: g.player.x, pz: g.player.z });
       return sp;
     };
     const inp = g.input;
@@ -109,7 +111,7 @@ test('the same seed played three ways meets the same twelve waves: rosters, spaw
         `wave ${w.n}: the order, door by door`,
       );
     }
-    // walking about: each enemy takes the next door in the order that is 9–45 m from the player
+    // walking about: each enemy takes the next door in the order that is 9–45 m from the player (a sniper: 18–45 m)
     let moved = 0;
     for (const w of busy.waves) {
       for (const p of w.picks) {
@@ -117,7 +119,7 @@ test('the same seed played three ways meets the same twelve waves: rosters, spaw
         let want = -1;
         for (let k = 0; k < w.order.length && want < 0; k++) {
           const i = w.order[(p.from + k) % w.order.length];
-          if (d(i) > 9 && d(i) < 45) want = i;
+          if (d(i) > p.min && d(i) < 45) want = i;
         }
         if (want >= 0) assert.equal(p.at, want, `wave ${w.n}: the next door that suits`);
         if (p.at !== w.order[p.from % w.order.length]) moved++;

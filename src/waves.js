@@ -135,19 +135,21 @@ export class Waves {
    * walk away (the Senado strip is 148 m long); only a player standing by a door moves an
    * enemy on to the next one.
    */
-  pickSpawn() {
+  pickSpawn(type) {
     const { player, level } = this.game;
     const S = level.spawns;
     const dist = (sp) => Math.hypot(sp.ex - player.x, sp.ez - player.z);
+    const min = (TYPES[type] && TYPES[type].spawn && TYPES[type].spawn.minDist) || 9; // a sniper wants a far door
     for (let k = 0; k < S.length; k++) {
       const sp = S[this.order[(this.orderI + k) % S.length]];
       const d = dist(sp);
-      if (d > 9 && d < 45) {
+      if (d > min && d < 45) {
         this.orderI += k + 1;
         return sp;
       }
     }
-    // nowhere suits: the nearest point not on top of the player, or the next in order
+    // nowhere suits: the nearest point not on top of the player (the furthest, for one who wants a far door), or the next in order
+    if (min > 9) return [...S].sort((a, b) => dist(b) - dist(a))[0];
     const near = S.filter((sp) => dist(sp) > 7.5).sort((a, b) => dist(a) - dist(b))[0];
     return near || S[this.order[this.orderI++ % S.length]];
   }
@@ -195,7 +197,7 @@ export class Waves {
     this.spawnCd -= dt;
     if (this.queue.length && this.spawnCd <= 0 && enemies.aliveCount + this.pending.length < this.maxAlive) {
       const type = this.queue.shift();
-      this.pending.push({ type, sp: this.pickSpawn(), t: 0.9 });
+      this.pending.push({ type, sp: this.pickSpawn(type), t: 0.9 });
       this.spawnCd = this.wr.range(0.5, 1.3);
     }
 

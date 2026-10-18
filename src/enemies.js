@@ -133,6 +133,23 @@ export const TYPES = {
     look: { body: 0x2e3324, pants: 0x1c2016, accent: 0x9be22a, hair: 0x3a4422, weapon: 'grenade' },
     spawn: { from: 5, weight: 1.4, max: 2 },
   },
+  sniper: {
+    label: 'SNIPER',
+    model: 'rifle', // the rifleman's model with a long rifle
+    hp: 3,
+    speed: 3.0,
+    radius: 0.32,
+    aimTime: 2.4, // a long red line before the one shot
+    cooldown: [0.4, 0.8], // after the reload window
+    range: [18, 30], // he keeps his distance; standing still while he can see the player
+    weapon: 'sniper',
+    score: 250,
+    lead: [0, 0.25],
+    turn: 1.4, // slow to follow: moving while the line is on you throws it off
+    reload: 2, // s after the shot with the rifle down: the moment to get him
+    look: { body: 0x23262e, pants: 0x16181e, accent: 0xff2a2a, hair: 0x101216, weapon: 'sniper' },
+    spawn: { from: 7, weight: 1.2, max: 2, minDist: 18 }, // comes in by a door at least minDist m from the player
+  },
 };
 
 const WEAPONS = {
@@ -140,11 +157,12 @@ const WEAPONS = {
   shotgun: { shots: 1, interval: 0.1, speed: 17, dmg: 13, pellets: 6, spread: 0.28, range: 13, sound: 'shotgun' },
   rifle: { shots: 3, interval: 0.11, speed: 28, dmg: 16, pellets: 1, spread: 0.035, sound: 'rifle' },
   minigun: { shots: 14, interval: 0.09, speed: 18, dmg: 11, pellets: 1, spread: 0.07, sound: 'minigun', track: 1.1 },
+  sniper: { shots: 1, interval: 0.1, speed: 72, dmg: 40, pellets: 1, spread: 0, sound: 'sniper' },
 };
 
 const _aim = { x: 0, z: 0 };
 
-const LASER_COLOR = { pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05] };
+const LASER_COLOR = { pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05], sniper: [1, 0.02, 0.02] };
 
 class Enemy {
   constructor(mgr, type, sp) {
@@ -681,6 +699,7 @@ class Enemy {
           }
           want = this.followPath(cfg.speed);
           if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
+          if (this.los && cfg.reload) want = [0, 0]; // a sniper who can see the player stands his ground
           break;
         }
         case 'aim': {
@@ -727,7 +746,7 @@ class Enemy {
           if (this.burst <= 0 && this.burstT <= 0) {
             this.endAim();
             this.state = 'recover';
-            this.timer = 0.35;
+            this.timer = cfg.reload || 0.35; // a sniper's reload: rifle down, the window to get him
             this.fireCd = g.rng.range(cfg.cooldown[0], cfg.cooldown[1]);
           }
           break;

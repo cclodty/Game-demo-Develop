@@ -51,6 +51,7 @@ export class HUD {
     this.displayScore = 0;
     this.rankShown = 0;
     this.arrows = [];
+    this.snipeWarns = []; // the edge glows of snipers taking aim
     this.bannerTimer = 0;
     this.toastTimer = 0;
   }
@@ -176,6 +177,7 @@ export class HUD {
 
     this.updateLock();
     this.updateArrows();
+    this.updateSnipers();
   }
 
   project(x, y, z) {
@@ -225,6 +227,40 @@ export class HUD {
       a.classList.toggle('hot', en.aiming);
     }
     for (let i = used; i < this.arrows.length; i++) this.arrows[i].style.display = 'none';
+  }
+
+  /** A sniper taking aim at the player: a red glow on the screen's edge on his side, stronger as the shot comes. */
+  updateSnipers() {
+    const g = this.game;
+    const p = this.project(g.player.x, 1, g.player.z);
+    let used = 0;
+    for (const en of g.enemies.list) {
+      if (!en.alive || !en.cfg.reload || en.state !== 'aim') continue;
+      const s = this.project(en.x, 1, en.z);
+      let x = s.ndcX - p.ndcX;
+      let y = s.ndcY - p.ndcY;
+      if (s.behind) {
+        x = -x;
+        y = -y;
+      }
+      const k = Math.max(Math.abs(x), Math.abs(y)) || 1;
+      x /= k;
+      y /= k;
+      let w = this.snipeWarns[used];
+      if (!w) {
+        w = document.createElement('div');
+        w.className = 'snipe-warn';
+        this.el.indicators.appendChild(w);
+        this.snipeWarns.push(w);
+      }
+      used++;
+      const t = Math.min(1, en.aimT / en.aimTime);
+      w.style.display = 'block';
+      w.style.transform = `translate(${(x * 0.5 + 0.5) * innerWidth}px, ${(-y * 0.5 + 0.5) * innerHeight}px)`;
+      w.style.opacity = String(0.35 + 0.65 * t);
+      w.classList.toggle('hot', t > 0.78);
+    }
+    for (let i = used; i < this.snipeWarns.length; i++) this.snipeWarns[i].style.display = 'none';
   }
 
   // ------------------------------------------------------------ messages
