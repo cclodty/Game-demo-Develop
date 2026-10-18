@@ -52,7 +52,7 @@ test('every song renders: sound, no clipping; in the new songs bass, snare or cl
       }
       return out;
     });
-    assert.deepEqual(Object.keys(r).sort(), ['breaks', 'city', 'classic', 'neon']);
+    assert.deepEqual(Object.keys(r).sort(), ['breaks', 'city', 'classic', 'dream', 'neon', 'vendetta']);
     for (const [id, { all, parts, name }] of Object.entries(r)) {
       assert.ok(all.finite, `${name}: no broken samples`);
       assert.ok(all.peak < 1, `${name}: no clipping (peak ${all.peak.toFixed(2)})`);
@@ -87,5 +87,7 @@ test('the song the game plays: config.js MUSIC.song, or ?music=<id> for one visi
   assert.equal(plain.id, plain.configured);
   assert.equal((await pick('?music=neon')).id, 'neon');
   assert.equal((await pick('?music=city')).id, 'city');
+  assert.equal((await pick('?music=dream')).id, 'dream');
+  assert.equal((await pick('?music=vendetta')).id, 'vendetta');
   assert.equal((await pick('?music=nonsense')).id, plain.configured);
 });

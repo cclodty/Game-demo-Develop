@@ -8,6 +8,7 @@
 // taken bar by bar. Drums: x hit, X accent, g ghost. Bass: r root, o root an
 // octave up, 5 fifth, 3 and 7 the chord's second and fourth tones, - holds the
 // note before. Keys: x the chord, - holds. Arp: a digit picks a chord tone.
+// Toms fall in pitch through the bar, so a run of them is a fill.
 // A lead is a list of [bar, step, semitones above the key, steps long, slide].
 
 /** The chord of a bar: semitones above the key's root, the root first. */
@@ -129,7 +130,81 @@ const breaks = {
   },
 };
 
-export const SONGS = { classic, neon, city, breaks };
+/**
+ * 夢遊 DREAM: eighties synth-pop for slowed time (the developer: "something that brings Quicksilver's
+ * slow-motion scene to mind"). Its own tune: a cold drum machine, a sixteenth-note sequenced bass, a
+ * long, voice-like line over i–iv–VII–VI in G minor, a dreamy pad; bullet time slows it like tape.
+ */
+const dream = {
+  name: '夢遊 DREAM',
+  bpm: 124,
+  key: 196,
+  bars: 4,
+  chords: [CHORD.m(0), CHORD.m(5), CHORD.M(-2), CHORD.M(-4)],
+  delay: { steps: 3, send: 0.3, feedback: 0.42 },
+  drums: {
+    kick: ['x.....x.x.......', 'x.....x.x.....x.'],
+    snare: '....x.......x...',
+    clap: '....x.......x...',
+    hat: 'x.X.x.X.x.X.x.X.',
+  },
+  bass: { pattern: 'ro.ro.5.ro.ro.3.', type: 'square', filter: 700, vol: 0.28, len: 0.7, sub: 0.5 },
+  pad: { vol: 0.03, filter: 1200, from: 0 },
+  arp: { pattern: '0.2.1.2.0.2.1.2.', octave: 1, type: 'sine', vol: 0.05, filter: 4000, from: 2 },
+  lead: {
+    type: 'triangle',
+    vol: 0.26,
+    filter: 2400,
+    octave: 1,
+    from: 4,
+    notes: [
+      [0, 0, 7, 6], [0, 6, 10, 2], [0, 8, 7, 4], [0, 12, 5, 4],
+      [1, 0, 8, 6], [1, 6, 7, 2], [1, 8, 5, 8],
+      [2, 0, 17, 4], [2, 4, 14, 4], [2, 8, 10, 8, -2],
+      [3, 0, 12, 6], [3, 6, 10, 2], [3, 8, 8, 4], [3, 12, 7, 4, 0.5],
+    ],
+  },
+};
+
+/**
+ * 血債 VENDETTA: dark industrial pop for a vendetta (the developer: "something that brings John Wick to
+ * mind"). Its own tune: half-time drums at 140 with a tom fill, a rough bass, string-like stabs and a
+ * line that leans on the flat second (E Phrygian: E minor, F, E minor, D).
+ */
+const vendetta = {
+  name: '血債 VENDETTA',
+  bpm: 140,
+  key: 164.81,
+  bars: 4,
+  chords: [CHORD.m(0), CHORD.M(1), CHORD.m(0), CHORD.M(-2)],
+  delay: { steps: 2, send: 0.16, feedback: 0.3 },
+  drums: {
+    kick: ['x.........x.x...', 'x.x.......x...x.', 'x.........x.x...', 'x.x.......x.....'],
+    snare: '........X.......',
+    clap: '........x.......',
+    hat: 'x.x.x.x.x.x.x.x.',
+    open: '..............x.',
+    tom: ['................', '................', '................', '..........x.xxxx'],
+  },
+  bass: { pattern: 'r.r.rr.r.r.rr.r.', voice: 'grit', filter: 950, vol: 0.2, len: 0.75, sub: 0.6 },
+  pad: { vol: 0.024, filter: 700, from: 0 },
+  keys: { pattern: 'x.....x.....x...', voice: 'stab', octave: 1, vol: 0.27, from: 2 },
+  lead: {
+    type: 'square',
+    vol: 0.15,
+    filter: 2200,
+    octave: 1,
+    from: 4,
+    notes: [
+      [0, 0, 12, 2], [0, 2, 13, 2], [0, 4, 12, 2], [0, 6, 7, 2], [0, 8, 10, 4], [0, 12, 7, 4],
+      [1, 0, 13, 2], [1, 2, 12, 2], [1, 4, 13, 4], [1, 8, 17, 6], [1, 14, 15, 2],
+      [2, 0, 12, 2], [2, 2, 13, 2], [2, 4, 12, 2], [2, 6, 19, 2], [2, 8, 17, 4], [2, 12, 15, 4],
+      [3, 0, 14, 6], [3, 6, 12, 2], [3, 8, 10, 8, -1],
+    ],
+  },
+};
+
+export const SONGS = { classic, neon, city, breaks, dream, vendetta };
 
 const hz = (semi, base) => base * Math.pow(2, semi / 12);
 const at16 = (p, bar) => (Array.isArray(p) ? p[bar % p.length] : p);
@@ -163,12 +238,20 @@ const voice = {
     for (const d of [0, 0.011, 0.023]) a.noise({ type: 'bandpass', freq: 1400 * r, q: 0.6, dur: 0.02 / r, vol, at, delay: d / r, bus });
     a.noise({ type: 'bandpass', freq: 1500 * r, q: 0.5, dur: 0.26 / r, vol: vol * 0.7, at, delay: 0.03 / r, bus });
   },
+  tom(a, at, r, vol, bus, pitch = 1) {
+    a.tone({ type: 'sine', f0: 200 * pitch * r, f1: 72 * pitch * r, dur: 0.3 / r, vol, at, bus });
+    a.noise({ type: 'bandpass', freq: 900 * pitch * r, q: 0.8, dur: 0.05 / r, vol: vol * 0.25, at, bus });
+  },
   hat(a, at, r, vol, bus, open = false) {
     a.noise({ type: 'highpass', freq: (open ? 7000 : 8500) * r, dur: (open ? 0.22 : 0.035) / r, vol, at, bus });
   },
   bass(a, at, r, f, dur, b, bus) {
     if (b.voice === 'reese') {
       for (const k of [0.994, 1.006]) a.tone({ type: 'sawtooth', f0: f * k * r, dur, vol: b.vol, attack: 0.02 / r, at, bus, filter: b.filter * r });
+    } else if (b.voice === 'grit') {
+      // rough: a saw and a square a hair apart, through one filter
+      a.tone({ type: 'sawtooth', f0: f * r, dur, vol: b.vol, at, bus, filter: b.filter * r });
+      a.tone({ type: 'square', f0: f * 1.005 * r, dur, vol: b.vol * 0.7, at, bus, filter: b.filter * r });
     } else {
       a.tone({ type: b.type || 'sawtooth', f0: f * r, dur, vol: b.vol, at, bus, filter: b.filter * r + 100 });
     }
@@ -223,6 +306,8 @@ export function playStep(a, song, step, at, r = 1) {
     if (h !== '.') voice.hat(a, t, r, (h === 'X' ? 0.3 : 0.19) * mx.hat, dry);
     const o = hit(d.open);
     if (o !== '.') voice.hat(a, t, r, 0.09 * mx.hat, dry, true);
+    const tm = hit(d.tom);
+    if (tm !== '.') voice.tom(a, t, r, (tm === 'X' ? 0.95 : 0.75) * (mx.tom || 1), wet, 1.3 - (s / 16) * 0.6);
   }
 
   const b = song.bass;
