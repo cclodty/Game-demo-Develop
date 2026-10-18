@@ -43,7 +43,7 @@ test('every song renders: sound, no clipping; in the new songs bass, snare or cl
         const all = await render(song, 6);
         const parts = {};
         if (id !== 'classic') {
-          const only = (key, drum) => ({ ...song, drums: drum ? { [drum]: song.drums[drum] } : null, bass: null, keys: null, arp: null, pad: null, choir: null, lead: null, ...(key ? { [key]: { ...song[key], from: 0 } } : {}) });
+          const only = (key, drum) => ({ ...song, drums: drum ? { [drum]: song.drums[drum] } : null, bass: null, keys: null, arp: null, pad: null, choir: null, shepard: null, lead: null, ...(key ? { [key]: { ...song[key], from: 0 } } : {}) });
           parts.kick = (await render(only(null, 'kick'), 6)).db;
           for (const drum of ['snare', 'clap']) if (song.drums[drum]) parts[drum] = (await render(only(null, drum), 6)).db;
           for (const key of ['bass', 'keys', 'lead']) if (song[key]) parts[key] = (await render(only(key), 6)).db;
@@ -52,7 +52,7 @@ test('every song renders: sound, no clipping; in the new songs bass, snare or cl
       }
       return out;
     });
-    assert.deepEqual(Object.keys(r).sort(), ['breaks', 'city', 'classic', 'dream', 'legend', 'neon', 'undertow', 'vendetta']);
+    assert.deepEqual(Object.keys(r).sort(), ['abyss', 'breaks', 'city', 'classic', 'countdown', 'dream', 'neon', 'undertow', 'vendetta']);
     for (const [id, { all, parts, name }] of Object.entries(r)) {
       assert.ok(all.finite, `${name}: no broken samples`);
       assert.ok(all.peak < 1, `${name}: no clipping (peak ${all.peak.toFixed(2)})`);
@@ -89,7 +89,8 @@ test('the song the game plays: config.js MUSIC.song, or ?music=<id> for one visi
   assert.equal((await pick('?music=city')).id, 'city');
   assert.equal((await pick('?music=dream')).id, 'dream');
   assert.equal((await pick('?music=vendetta')).id, 'vendetta');
-  assert.equal((await pick('?music=legend')).id, 'legend');
+  assert.equal((await pick('?music=countdown')).id, 'countdown');
+  assert.equal((await pick('?music=abyss')).id, 'abyss');
   assert.equal((await pick('?music=undertow')).id, 'undertow');
   assert.equal((await pick('?music=nonsense')).id, plain.configured);
 });

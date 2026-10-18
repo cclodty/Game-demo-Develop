@@ -11,8 +11,9 @@
 // Toms fall in pitch through the bar, so a run of them is a fill. A swell rises
 // from its step to the end of the bar. With `kit: 'epic'` the kick is a taiko
 // and the snare a trailer hit, both through the hall (`hall`: a made-up room).
-// Parts may name a voice: strings (an arp, short bowed notes), brass (a pad,
-// its filter opening like a swell), horn (a lead); `choir` is a second pad.
+// Parts may name a voice: strings or organ (an arp), brass (a pad, its filter
+// opening like a swell) or organ (a pad), horn (a lead); `choir` is a second
+// pad. `shepard` is a tone that seems to rise for ever (`rise` semitones a bar).
 // A lead is a list of [bar, step, semitones above the key, steps long, slide].
 
 /** The chord of a bar: semitones above the key's root, the root first. */
@@ -209,45 +210,6 @@ const vendetta = {
 };
 
 /**
- * 傳說 LEGEND: a trailer-style heroic epic (the developer: "the big feel of Two Steps From Hell").
- * Taiko on a 3-3-2, sixteenth-note bowed strings, low brass, a choir and a horn line over the epic
- * i–VI–III–VII in D minor, a swell into each turn of the loop, all in a big hall.
- */
-const legend = {
-  name: '傳說 LEGEND',
-  bpm: 132,
-  key: 146.83,
-  bars: 4,
-  kit: 'epic',
-  hall: { seconds: 3.2, send: 0.55 },
-  chords: [CHORD.m(0), CHORD.M(-4), CHORD.M(3), CHORD.M(-2)],
-  delay: { steps: 3, send: 0.08, feedback: 0.2 },
-  mix: { snare: 1.6, swell: 4 }, // measured against the taiko: the hits about 6 dB under it, the swell about 12
-  drums: {
-    kick: ['x.....x...x.x...', 'x.....x...x.x...', 'x.....x...x.x...', 'x.x.x.x.x.xxxxxx'],
-    snare: '....x.......x...',
-    swell: ['................', '................', '................', 'x...............'],
-  },
-  bass: { pattern: 'r-------r-------', type: 'sawtooth', filter: 420, vol: 0.2, len: 1, sub: 0.8 },
-  arp: { pattern: '0102010201020102', voice: 'strings', octave: 0, vol: 0.28, filter: 3200 },
-  pad: { voice: 'brass', octave: -1, vol: 0.14, filter: 1500, from: 2 },
-  choir: { vol: 0.2, from: 4 },
-  lead: {
-    voice: 'horn',
-    vol: 0.4,
-    filter: 1800,
-    octave: 1,
-    from: 4,
-    notes: [
-      [0, 0, 7, 4], [0, 4, 12, 8], [0, 12, 10, 2], [0, 14, 12, 2],
-      [1, 0, 15, 6], [1, 6, 12, 2], [1, 8, 8, 8],
-      [2, 0, 10, 4], [2, 4, 15, 4], [2, 8, 19, 8],
-      [3, 0, 17, 6], [3, 6, 14, 2], [3, 8, 17, 4], [3, 12, 22, 4],
-    ],
-  },
-};
-
-/**
  * 暗湧 UNDERTOW: tension in the manner of a Hans Zimmer score (the developer's other pick). A low
  * drone, a sixteenth-note string ostinato, one brass braam a bar whose filter opens, a ticking clock,
  * a slow horn that climbs, over i–VI–iv–V in A minor.
@@ -286,7 +248,83 @@ const undertow = {
   },
 };
 
-export const SONGS = { classic, neon, city, breaks, dream, vendetta, legend, undertow };
+/**
+ * 倒數 COUNTDOWN: the undertow's sister, more urgent. Sixteenth-note ticking, a tone that seems to rise
+ * for ever, a pulsing bass and relentless strings over i–i–VI–V in D minor; a horn line that climbs.
+ */
+const countdown = {
+  name: '倒數 COUNTDOWN',
+  bpm: 126,
+  key: 146.83,
+  bars: 4,
+  kit: 'epic',
+  hall: { seconds: 3.2, send: 0.45 },
+  chords: [CHORD.m(0), CHORD.m(0), CHORD.M(-4), CHORD.M(7)],
+  delay: { steps: 3, send: 0.08, feedback: 0.2 },
+  mix: { tick: 5, swell: 4 },
+  drums: {
+    kick: ['x.......x.......', 'x.......x.......', 'x.......x.......', 'x...x...x.x.x.x.'],
+    tick: 'xxxxxxxxxxxxxxxx',
+    swell: ['................', '................', '................', '........x.......'],
+  },
+  bass: { pattern: 'r.r.r.r.r.r.r.r.', type: 'sawtooth', filter: 380, vol: 0.24, len: 0.5, sub: 0.7 },
+  arp: { pattern: '0101010101010101', voice: 'strings', octave: 0, vol: 0.25, filter: 2800 },
+  pad: { voice: 'brass', octave: -1, vol: 0.12, filter: 1600, from: 2 },
+  shepard: { vol: 0.1, rise: 2, from: 0 },
+  lead: {
+    voice: 'horn',
+    vol: 0.3,
+    filter: 1600,
+    octave: 1,
+    from: 4,
+    notes: [
+      [0, 0, 7, 8], [0, 8, 8, 8],
+      [1, 0, 10, 8], [1, 8, 12, 8],
+      [2, 0, 15, 8], [2, 8, 17, 8],
+      [3, 0, 19, 12], [3, 12, 18, 4],
+    ],
+  },
+};
+
+/**
+ * 深淵 ABYSS: the undertow's slow, deep sister. Organ chords and a slow organ arpeggio, a choir, a drone,
+ * a boom a bar and a quarter-note tick over i–iv–i–VI in E minor; a horn holds long notes above.
+ */
+const abyss = {
+  name: '深淵 ABYSS',
+  bpm: 96,
+  key: 164.81,
+  bars: 4,
+  kit: 'epic',
+  hall: { seconds: 4, send: 0.55 },
+  chords: [CHORD.m(0), CHORD.m(5), CHORD.m(0), CHORD.M(-4)],
+  delay: { steps: 4, send: 0.1, feedback: 0.3 },
+  mix: { tick: 5, swell: 4 },
+  drums: {
+    kick: ['x...............', 'x...............', 'x...............', 'x.......x.....x.'],
+    tick: 'x...x...x...x...',
+    swell: ['................', '................', '................', 'x...............'],
+  },
+  bass: { pattern: 'r---------------', type: 'sawtooth', filter: 260, vol: 0.24, len: 1, sub: 1 },
+  pad: { voice: 'organ', octave: 0, vol: 0.06, from: 0 },
+  arp: { pattern: '0.1.2.1.0.1.2.1.', voice: 'organ', octave: 1, vol: 0.1, from: 2 },
+  choir: { vol: 0.12, from: 4 },
+  lead: {
+    voice: 'horn',
+    vol: 0.3,
+    filter: 1400,
+    octave: 1,
+    from: 4,
+    notes: [
+      [0, 0, 7, 16],
+      [1, 0, 12, 16],
+      [2, 0, 11, 16],
+      [3, 0, 7, 8], [3, 8, 3, 8],
+    ],
+  },
+};
+
+export const SONGS = { classic, neon, city, breaks, dream, vendetta, undertow, countdown, abyss };
 
 const hz = (semi, base) => base * Math.pow(2, semi / 12);
 const at16 = (p, bar) => (Array.isArray(p) ? p[bar % p.length] : p);
@@ -373,6 +411,15 @@ const voice = {
       if (p.voice === 'brass') {
         // low brass: the filter opens over the first beat, a braam
         for (const d of [0.996, 1.004]) a.tone({ type: 'sawtooth', f0: f * d, dur, vol: p.vol, attack: 0.09 / r, at, bus, filter: 180 * r, filterTo: p.filter * r, sweep: 0.5 / r });
+      } else if (p.voice === 'organ') {
+        // an organ: the note and its first harmonics, held
+        for (const [h, k] of [
+          [1, 1],
+          [2, 0.5],
+          [3, 0.3],
+          [4, 0.18],
+        ])
+          a.tone({ type: 'sine', f0: f * h, dur, vol: p.vol * k, attack: 0.25 / r, at, bus });
       } else if (p.voice === 'choir') {
         // voices: an "ah", two saws through the vowel's band, slow to come in
         for (const d of [0.995, 1.005]) a.tone({ type: 'sawtooth', f0: f * 2 * d, dur, vol: p.vol, attack: 0.6 / r, at, bus, filter: 950 * r, filterType: 'bandpass', q: 1.1 });
@@ -451,6 +498,13 @@ export function playStep(a, song, step, at, r = 1) {
       if (ar.voice === 'strings') {
         // bowed short (spiccato): two saws a hair apart, quick in, quick out
         for (const dt of [0.997, 1.003]) a.tone({ type: 'sawtooth', f0: hz(semi, base) * r * dt, dur: stepDur * 0.6, vol: ar.vol, attack: 0.006 / r, at: t, bus: wet, filter: ar.filter * r });
+      } else if (ar.voice === 'organ') {
+        for (const [h, k] of [
+          [1, 1],
+          [2, 0.45],
+          [3, 0.2],
+        ])
+          a.tone({ type: 'sine', f0: hz(semi, base) * r * h, dur: stepDur * 1.8, vol: ar.vol * k, attack: 0.02 / r, at: t, bus: wet });
       } else a.tone({ type: ar.type, f0: hz(semi, base) * r, dur: stepDur * 0.9, vol: ar.vol, at: t, bus: wet, filter: ar.filter * r });
     }
   }
@@ -459,6 +513,17 @@ export function playStep(a, song, step, at, r = 1) {
   if (on(pd, bar) && s === 0) voice.pad(a, t, r, chord, base, stepDur * 16, pd, pd.voice === 'brass' ? wet : dry);
   const ch = song.choir;
   if (on(ch, bar) && s === 0) voice.pad(a, t, r, chord, base, stepDur * 16, { ...ch, voice: 'choir' }, wet);
+  const sh = song.shepard;
+  if (on(sh, bar) && s === 0) {
+    // six octaves of one note gliding up `rise` semitones a bar, loudest in the middle octaves: it seems to climb for ever
+    const from = (bar * sh.rise) % 12;
+    for (let k = 0; k < 6; k++) {
+      const pos = (k + from / 12) / 6; // 0..1 across the octaves
+      const w = Math.exp(-((pos - 0.5) ** 2) / 0.045);
+      const f = (base / 4) * Math.pow(2, k + from / 12) * r;
+      a.tone({ type: 'sine', f0: f, f1: f * Math.pow(2, sh.rise / 12), dur: stepDur * 16, vol: sh.vol * w, attack: stepDur * 5, at: t, bus: wet });
+    }
+  }
 
   const l = song.lead;
   if (on(l, bar)) {
