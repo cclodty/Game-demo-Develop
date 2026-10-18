@@ -174,7 +174,9 @@ export class Bullets {
     if (!b.alive) return;
 
     if (b.owner === 'enemy') this.checkCloseCall(b, sx, sz);
-    if (b.traveled > b.range || Math.abs(b.x) > 60 || Math.abs(b.z) > 60) {
+    // off the map: 30 m past its edges (a fixed 60 m used to end every shot fired in Senado's south end, 74 m long)
+    const { halfW, halfD } = this.game.level.bounds;
+    if (b.traveled > b.range || Math.abs(b.x) > halfW + 30 || Math.abs(b.z) > halfD + 30) {
       if (b.traveled > b.range && b.owner === 'enemy') this.game.fx.sparks(b.x, GUN_Y, b.z, b.dx, b.dz, 3, [3, 0.6, 0.3], 3);
       b.alive = false;
     }
@@ -183,7 +185,7 @@ export class Bullets {
   findHit(b, x0, z0, x1, z1) {
     const game = this.game;
     let best = null;
-    const solid = game.level.raycast(x0, z0, x1, z1, false, b.over);
+    const solid = game.level.raycast(x0, z0, x1, z1, false, b.over, false);
     if (solid) best = { t: solid.t, type: 'solid', solid: solid.solid, nx: solid.nx, nz: solid.nz };
 
     const prop = b.over ? null : game.level.raycastProps(x0, z0, x1, z1, b.ignore, b.hits);

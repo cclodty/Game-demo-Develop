@@ -254,7 +254,16 @@ export class Level {
     this.root = null;
     this.owned = [];
     // camera -> player cutaway, shared by every material that opts in (see maps.js)
-    this.cut = { uCutA: { value: new THREE.Vector3() }, uCutB: { value: new THREE.Vector3() }, uCutR: { value: 0 } };
+    this.cut = {
+      uCutA: { value: new THREE.Vector3() },
+      uCutB: { value: new THREE.Vector3() },
+      uCutR: { value: 0 },
+      // the map's fade (maps.js `fade`): outside the play area on the camera's side
+      uFadeOn: { value: 0 },
+      uFadeY: { value: 1.2 },
+      uFadeBox: { value: new THREE.Vector2() },
+      uFadeDir: { value: new THREE.Vector2(0, 1) },
+    };
     this.makeAssets();
     this.buildLights();
     this.rain = new Rain(this.scene, 900);
@@ -685,8 +694,9 @@ export class Level {
     const t = 0.6;
     const side = (key, x, z, w, d) => {
       if (!edges) {
-        // invisible boundary: the map's own buildings and barriers mark the edge
-        this.addBox(x, z, w, d, 3, null, 'wall', { visible: false });
+        // invisible boundary: the map's own buildings and barriers mark the edge. It stops people
+        // and thrown things, not shots (raycast's `edges`): a shot flies on into the street beyond
+        this.addBox(x, z, w, d, 3, null, 'wall', { visible: false }).edge = true;
         return;
       }
       const [h, matKey, trim] = edges[key];
@@ -778,12 +788,13 @@ export class Level {
     return this.groundFn ? this.groundFn(x, z) : 0;
   }
 
-  /** Nearest static hit along a segment. */
-  raycast(x0, z0, x1, z1, ignoreGlass = false, over = 0) {
+  /** Nearest static hit along a segment; `edges` false lets it through an invisible map edge (shots, lasers). */
+  raycast(x0, z0, x1, z1, ignoreGlass = false, over = 0, edges = true) {
     let best = null;
     let bt = Infinity;
     for (const s of this.solids) {
       if (!s.alive || s.h <= over) continue; // `over`: from that high up, lower cover is no obstacle
+      if (!edges && s.edge) continue;
       if (ignoreGlass && s.kind === 'glass') continue;
       if (this.segSolid(x0, z0, x1, z1, s, _hit) && _hit.t < bt) {
         bt = _hit.t;
@@ -801,9 +812,9 @@ export class Level {
     return true;
   }
 
-  /** Distance a ray travels before hitting something solid (glass included). */
+  /** Distance a ray (a laser) travels before hitting something solid (glass included; not an invisible map edge, as shots fly on). */
   rayLength(x0, z0, dx, dz, max) {
-    const hit = this.raycast(x0, z0, x0 + dx * max, z0 + dz * max);
+    const hit = this.raycast(x0, z0, x0 + dx * max, z0 + dz * max, false, 0, false);
     return hit ? hit.t * max : max;
   }
 

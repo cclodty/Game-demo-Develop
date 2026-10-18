@@ -537,6 +537,8 @@ const senado = {
   start: [2, 54],
   camera: { dist: 31, pitch: 72, fov: 30 },
   cutaway: true,
+  // the buildings across the avenue, between the camera and the square: above 1.2 m, seen through
+  fade: { above: 1.2 },
   theme: {
     bg: 0x9cc4e8,
     fog: [0xc9d8e6, 0.0042],
@@ -690,6 +692,7 @@ const senado = {
       [24.6, -42, 0.3, 3],
       [-25.6, -62, 0.3, 8],
       [-6, -73.7, 7, 0.3],
+      [0, 73.75, 52, 0.3], // across the avenue: shots fly over it, people stop at it
     ]) {
       L.deco(x, 0, z, w, 1.0, d, barrier, true);
       L.deco(x, 0.62, z, w + 0.02, 0.16, d + 0.02, stripe);

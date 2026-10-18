@@ -1016,7 +1016,7 @@ class Enemy {
     const m = this.muzzle();
     const dx = Math.sin(this.aimAngle);
     const dz = Math.cos(this.aimAngle);
-    const hit = g.level.raycast(m.x, m.z, m.x + dx * 40, m.z + dz * 40, true);
+    const hit = g.level.raycast(m.x, m.z, m.x + dx * 40, m.z + dz * 40, true, 0, false);
     const len = hit ? hit.t * 40 : 40;
     const k = this.state === 'fire' ? 1 : clamp(this.aimT / this.aimTime, 0, 1);
     let intensity = 0.35 + k * k * 2.8;

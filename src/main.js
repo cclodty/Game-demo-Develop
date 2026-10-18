@@ -1714,6 +1714,14 @@ class Game {
     const tilted = view.pitch !== undefined;
     const radius = this.level.map.cutaway ? (tilted ? 5.5 : 4.2) : tilted ? 2.2 : 0;
     cut.uCutR.value = radius;
+    // a map's fade: what stands outside the play area on the camera's side shows the street behind it
+    const fade = this.level.map.fade;
+    cut.uFadeOn.value = fade ? 1 : 0;
+    if (fade) {
+      cut.uFadeY.value = fade.above;
+      cut.uFadeBox.value.set(this.level.bounds.halfW, this.level.bounds.halfD);
+      cut.uFadeDir.value.set(Math.sin(this.camYaw), Math.cos(this.camYaw));
+    }
     if (radius > 0) {
       this.camera.updateMatrixWorld();
       cut.uCutA.value.copy(this.camera.position);
