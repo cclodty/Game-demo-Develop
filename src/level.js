@@ -779,11 +779,11 @@ export class Level {
   }
 
   /** Nearest static hit along a segment. */
-  raycast(x0, z0, x1, z1, ignoreGlass = false) {
+  raycast(x0, z0, x1, z1, ignoreGlass = false, over = 0) {
     let best = null;
     let bt = Infinity;
     for (const s of this.solids) {
-      if (!s.alive) continue;
+      if (!s.alive || s.h <= over) continue; // `over`: from that high up, lower cover is no obstacle
       if (ignoreGlass && s.kind === 'glass') continue;
       if (this.segSolid(x0, z0, x1, z1, s, _hit) && _hit.t < bt) {
         bt = _hit.t;
@@ -793,9 +793,9 @@ export class Level {
     return best;
   }
 
-  hasLOS(x0, z0, x1, z1) {
+  hasLOS(x0, z0, x1, z1, over = 0) {
     for (const s of this.solids) {
-      if (!s.alive || s.kind === 'glass') continue;
+      if (!s.alive || s.kind === 'glass' || s.h <= over) continue;
       if (this.segSolid(x0, z0, x1, z1, s, _hit)) return false;
     }
     return true;

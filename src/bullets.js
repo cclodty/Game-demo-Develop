@@ -96,6 +96,7 @@ export class Bullets {
     b.traveled = 0;
     b.split = !!o.split;
     b.ricochet = false;
+    b.over = o.over || 0; // fired from this high: lower cover and the props are no obstacle
     b.ignore = null;
     b.alive = true;
     b.near = false;
@@ -182,10 +183,10 @@ export class Bullets {
   findHit(b, x0, z0, x1, z1) {
     const game = this.game;
     let best = null;
-    const solid = game.level.raycast(x0, z0, x1, z1);
+    const solid = game.level.raycast(x0, z0, x1, z1, false, b.over);
     if (solid) best = { t: solid.t, type: 'solid', solid: solid.solid, nx: solid.nx, nz: solid.nz };
 
-    const prop = game.level.raycastProps(x0, z0, x1, z1, b.ignore, b.hits);
+    const prop = b.over ? null : game.level.raycastProps(x0, z0, x1, z1, b.ignore, b.hits);
     if (prop && (!best || prop.t < best.t)) best = { t: prop.t, type: prop.prop.kind, prop: prop.prop };
 
     if (b.owner === 'player') {

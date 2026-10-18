@@ -62,7 +62,7 @@ src/waves.js  pickups.js     MODES (arcade: 12 waves, then RUN CLEAR; endless), 
 src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 4 maps as data
 src/nav.js                   grid A* on 0.5 m cells
 src/rng.js                   seeded RNG: game.rng for logic (?seed=), vfxRng behind utils.js rand/pick for effects
-src/characters.js  skin.js   block rigs + weapon models; optional skinned models worn over the rig (IK hands)
+src/characters.js  skin.js   block rigs + weapon models (and the drone's block quadcopter, shaped like a rig); optional skinned models worn over the rig (IK hands)
 src/models.js                loads assets/models/*.glb, fits props to map boxes; src/models-index.js is generated
 src/asset-manifest.js        catalogue of every asset we want as a real model (sizes, budgets, prompts)
 src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-time grading

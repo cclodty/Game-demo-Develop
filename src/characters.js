@@ -5,6 +5,7 @@
 // over the block rig, which keeps driving the aim, weapons and moves.
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { characterTemplate, weaponTemplate } from './models.js';
 import { createSkin, deathSkin, disposeSkin, flashSkin, poseSkin } from './skin.js';
 
@@ -377,6 +378,51 @@ export function buildCharacter(options) {
   return rig;
 }
 
+/**
+ * A drone (enemies.js TYPES.drone): a block quadcopter in a rig's shape, so setFlash, the style
+ * (toon twins, outlines) and disposeRig treat it as any character. Three meshes: the frame (body,
+ * crossed arms, gun pod), the four rotors (pale, so its shape reads from above), the glowing eye. `height` m up, it carries its ring and a shadow
+ * on the floor below it.
+ */
+export function buildDrone(options) {
+  const o = { body: 0x23262e, accent: 0xff3aa0, gun: 0x2b2b33, rotor: 0x9aa0ae, glow: 2.2, ring: 0.5, height: 2.5, ...options };
+  const std = (color, extra = {}) =>
+    new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.3, emissive: 0xffffff, emissiveIntensity: 0, ...extra });
+  const mats = {
+    body: std(o.body),
+    pants: std(o.rotor), // the rotors
+    skin: std(o.gun),
+    hair: std(o.gun),
+    accent: std(o.accent, { emissive: new THREE.Color(o.accent), emissiveIntensity: o.glow, roughness: 0.4 }),
+    gun: std(o.gun, { metalness: 0.7, roughness: 0.35, emissiveIntensity: 0 }),
+  };
+  mats.gun.emissive.setRGB(0, 0, 0);
+  const root = new THREE.Group();
+  const inner = new THREE.Group();
+  root.add(inner);
+  const arm = (a) => box(0.95, 0.05, 0.07).rotateY(a);
+  const frame = new THREE.Mesh(mergeGeometries([box(0.42, 0.14, 0.42), arm(Math.PI / 4), arm(-Math.PI / 4), box(0.1, 0.1, 0.3, 0, -0.11, 0.14)]), mats.body);
+  const rotors = new THREE.Mesh(
+    mergeGeometries([-1, 1].flatMap((sx) => [-1, 1].map((sz) => new THREE.CylinderGeometry(0.19, 0.19, 0.02, 14).translate(sx * 0.34, 0.07, sz * 0.34)))),
+    mats.pants,
+  );
+  const eye = new THREE.Mesh(box(0.16, 0.05, 0.03, 0, 0, 0.22), mats.accent);
+  inner.add(frame, rotors, eye);
+  inner.traverse((m) => {
+    if (m.isMesh) m.castShadow = true;
+  });
+  const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(o.accent).multiplyScalar(o.ring), transparent: true, opacity: 0.9, depthWrite: false });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.y = -o.height + 0.065;
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.42, 18).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.5, depthWrite: false }));
+  shadow.position.y = -o.height + 0.03;
+  root.add(ring, shadow);
+  const rig = { root, inner, mats, ring, shadow, rotors, scale: 1, weaponParts: [], muzzles: [[0, 0.32]], gripZ: 0, drone: true };
+  rig.anim = { phase: 0, moveAmt: 0, moveDir: undefined, swing: 0 };
+  if (hooks.rigBuilt) hooks.rigBuilt(rig);
+  return rig;
+}
+
 /** moveDir: world angle the character is moving in (lets a model's legs run sideways or backwards). */
 export function animateRig(rig, phase, moveAmt, moveDir) {
   const swing = Math.sin(phase) * 0.75 * moveAmt;
@@ -415,4 +461,8 @@ export function disposeRig(rig) {
   if (rig.skin) disposeSkin(rig.skin);
   for (const m of Object.values(rig.mats)) m.dispose();
   rig.ring.material.dispose();
+  if (rig.shadow) {
+    rig.shadow.geometry.dispose();
+    rig.shadow.material.dispose();
+  }
 }

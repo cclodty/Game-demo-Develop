@@ -402,7 +402,7 @@ export class Player {
       p.vz += (dz / d) * 1.5;
     }
     for (const e of g.enemies.list) {
-      if (!e.alive) continue;
+      if (!e.alive || e.cfg.fly) continue; // a drone flies over
       const dx = e.x - this.x;
       const dz = e.z - this.z;
       const rr = R + e.radius;
@@ -557,7 +557,7 @@ export class Player {
       return d > 0.01 ? { x: dx / d, z: dz / d } : { x: Math.sin(this.facing), z: Math.cos(this.facing) };
     };
     for (const e of g.enemies.list) {
-      if (!e.alive || e.spawnLock > 0) continue;
+      if (!e.alive || e.spawnLock > 0 || e.cfg.fly) continue;
       const dir = inCone(e.x, e.z, PLAYER.kickRange + e.radius);
       if (!dir) continue;
       e.kick(dir.x, dir.z, 14);
