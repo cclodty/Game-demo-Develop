@@ -26,7 +26,7 @@ const POSE_RIG = async (name, worn, opts = {}) => {
   C.keyPose(rig, name, opts.w ?? 1);
   // the arms as player.js syncRig sets them: overhead with a carry, level with the aim however the body leans
   const level = -rig.inner.rotation.x;
-  rig.armL.rotation.x = rig.armR.rotation.x = (name === 'carry' ? -2.7 : 0) + level;
+  rig.armL.rotation.x = rig.armR.rotation.x = (name === 'carry' ? -1.5 : 0) + level;
   C.finishRig(rig, 0.4);
   rig.root.updateMatrixWorld(true);
   return rig;
@@ -186,8 +186,10 @@ test('the player: slide, spin and carry hold their key poses when the style step
       g.thrown.carry = pan;
       out.carry = look();
       out.arms = rig.armL.rotation.x;
+      out.gunsAway = rig.weaponParts.every((m) => !m.visible);
       g.thrown.carry = null;
       out.none = look();
+      out.gunsBack = rig.weaponParts.every((m) => m.visible);
       // shot down mid-slide: the body falls from standing, not from the slide's lean and reach
       p.slideT = PLAYER.slideDuration * 0.5;
       look();
@@ -202,7 +204,8 @@ test('the player: slide, spin and carry hold their key poses when the style step
     assert.deepEqual([r.kick.key, r.kick.w], ['kick', 1], 'mid-kick: the Spartan kick, held');
     assert.ok(Math.abs(r.spinYaw) > 1, 'the spin still turns the body');
     assert.equal(r.carry.key, 'carry');
-    assert.ok(r.arms < -2.5, 'arms overhead');
+    assert.ok(r.arms < -1.2 && r.arms > -1.75, `arms up to it (${r.arms.toFixed(2)})`);
+    assert.deepEqual([r.gunsAway, r.gunsBack], [true, true], 'the guns put away while carrying, back after');
     assert.deepEqual(r.none, { key: null, w: r.none.w, y: 0, lean: 0 }, 'standing straight after');
     assert.deepEqual(r.dead, { y: 0, z: 0, lean: 0, legZ: 0 }, 'shot down mid-slide: the fall starts from standing');
     assert.deepEqual(problems(logs), []);
