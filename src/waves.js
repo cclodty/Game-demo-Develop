@@ -49,6 +49,8 @@ export class Waves {
     this.beatT = 0;
     this.beatSpots = []; // the spawn points the beat being telegraphed comes through
     this.beatHurt = false; // the player took damage during the beat that is live
+    this.stageOrder = []; // the map's stages (maps.js) in the order this wave's beats visit them
+    this.stage = null; // the stage of the beat being telegraphed or live
   }
 
   /** The beat that is live, or (between beats) the one coming: 1-based, for the HUD; 0 without beats. */
@@ -137,6 +139,14 @@ export class Waves {
     this.beatT = 0.3;
     this.beatSpots = [];
     this.beatHurt = false;
+    this.stage = null;
+    // the stages the beats visit, in an order of the wave's own (so every run with this seed sees the same)
+    const stages = g.level.map.stages || [];
+    this.stageOrder = stages.map((_, i) => i);
+    for (let i = this.stageOrder.length - 1; i > 0; i--) {
+      const j = wr.int(0, i);
+      [this.stageOrder[i], this.stageOrder[j]] = [this.stageOrder[j], this.stageOrder[i]];
+    }
     const tips = [
       '敵人的紅色激光變亮 = 即將開槍',
       '按 Shift 進入子彈時間，看清每一顆子彈',
@@ -181,8 +191,23 @@ export class Waves {
    */
   pickSpots(beat) {
     const far = beat.find((t) => TYPES[t].spawn && TYPES[t].spawn.minDist);
-    const anchor = this.pickSpawn(far || beat[0]);
     const p = this.game.player;
+    const stages = this.game.level.map.stages;
+    if (stages && stages.length && this.stageOrder.length) {
+      // a stage to play at: the two doors nearest to it that are not on top of the player (a sniper's beat keeps his distance)
+      this.stage = stages[this.stageOrder[this.beatI % this.stageOrder.length]];
+      const min = far ? TYPES[far].spawn.minDist : 7.5;
+      const [sx, sz] = this.stage.at;
+      const near = this.game.level.spawns
+        .filter((sp) => Math.hypot(sp.ex - p.x, sp.ez - p.z) > min)
+        .sort((a, b) => Math.hypot(a.ex - sx, a.ez - sz) - Math.hypot(b.ex - sx, b.ez - sz));
+      const spots = near.length ? near : [...this.game.level.spawns].sort((a, b) => Math.hypot(b.ex - p.x, b.ez - p.z) - Math.hypot(a.ex - p.x, a.ez - p.z));
+      const anchor = spots[0];
+      const second = spots[1] && Math.hypot(spots[1].ex - anchor.ex, spots[1].ez - anchor.ez) < BEATS.spread ? spots[1] : anchor;
+      return [anchor, second];
+    }
+    this.stage = null;
+    const anchor = this.pickSpawn(far || beat[0]);
     let second = null;
     let bd = BEATS.spread;
     for (const sp of this.game.level.spawns) {
@@ -222,7 +247,7 @@ export class Waves {
       this.beatHurt = false;
       const count = {};
       for (const t of beat) count[t] = (count[t] || 0) + 1;
-      g.notes.log(`第 ${this.beatI} 拍出場：${Object.entries(count).map(([t, n]) => `${TYPES[t].label}×${n}`).join(' ')}`);
+      g.notes.log(`第 ${this.beatI} 拍${this.stage ? `（${this.stage.name}）` : ''}出場：${Object.entries(count).map(([t, n]) => `${TYPES[t].label}×${n}`).join(' ')}`);
     } else {
       this.beatT += dt;
       if (this.pending.length) return;

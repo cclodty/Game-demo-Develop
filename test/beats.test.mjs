@@ -93,8 +93,13 @@ test('arcade wave 4 (nine enemies) comes in two beats: together, after a telegra
       gap: times[beats[0]] - times[0],
       doors: doors.length,
       maxAlive: Math.max(...[g.enemies.list.length]),
+      stage: g.waves.stage && g.waves.stage.en,
+      stageOrder: [...g.waves.stageOrder],
+      stageCount: (g.level.map.stages || []).length,
     };
   });
+  assert.ok(r.stage, 'the beat plays at a named stage of the map');
+  assert.equal(new Set(r.stageOrder).size, r.stageCount, 'the wave visits every stage once before repeating');
   assert.equal(r.roster, 9, 'wave 4 is nine enemies (compose: 3 + 6, one of them a brute)');
   assert.deepEqual(r.beats, [5, 4], `two beats, as even as nine allows (${r.beats})`);
   assert.equal(r.spawned, 9, 'the whole roster came in 20 s');

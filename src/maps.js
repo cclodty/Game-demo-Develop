@@ -101,47 +101,54 @@ const rooftop = {
   },
   floor: 'concrete',
   edges: { n: [1, 'parapet', 'neonPink'], s: [0.8, 'parapet', 'neonCyan'], w: [1, 'parapet', 'neonCyan'], e: [1, 'parapet', 'neonCyan'] },
+  // Four stages (stages, below), none a mirror of another: the glass greenhouse in the north-west,
+  // the barrel yard in the south-east, the gate in the barrier to the north, the open helipad.
   solids: [
     [-7.5, -5, 2, 2, 1.7, 'crate'],
     [-5.9, -5.6, 1.2, 1.2, 1.1, 'crate'],
-    [7.5, -5, 2, 2, 1.7, 'crate'],
-    [9.1, -4.4, 1.2, 1.2, 1.1, 'crate'],
-    [-18, 10, 1.6, 1.6, 1.4, 'crate'],
+    [9.5, -3.5, 1.6, 1.6, 1.4, 'crate'],
     [18, 10, 1.6, 1.6, 1.4, 'crate'],
+    [15.5, 11.2, 1.2, 1.2, 1.1, 'crate'],
     [-2.5, 11.5, 1.4, 1.4, 1.3, 'crate'],
     [-2.25, -8, 2.5, 0.6, 1.25, 'concrete'],
     [2.25, -8, 2.5, 0.6, 1.25, 'concrete'],
-    [-10.5, 9, 0.6, 4.5, 1.25, 'concrete'],
     [10.5, 9, 0.6, 4.5, 1.25, 'concrete'],
-    [-4.5, 2.5, 1, 1, 3.4, 'pillar'],
+    [-15, 9, 0.6, 4, 1.25, 'concrete'], // the lane south of the west sign stays open (fixtures.test shoots along it)
     [4.5, 2.5, 1, 1, 3.4, 'pillar'],
-    [-14, 4, 2.8, 1.8, 1.5, 'unit'],
     [14, 4, 2.8, 1.8, 1.5, 'unit'],
-    [-17, -6, 1.4, 1.4, 1.0, 'unit'],
     [17, -6, 1.4, 1.4, 1.0, 'unit'],
-    [-13, -13.5, 4, 3, 2.9, 'hut'],
+    [-16, 1, 1.4, 1.4, 1.0, 'unit'],
     [13, -13.5, 4, 3, 2.9, 'hut'],
   ],
   glass: [
-    [0, -12.4, 6, 0.25, 1.9],
-    [-19.5, -2.5, 0.25, 4, 1.9],
+    // the greenhouse: three glass walls, open to the south
+    [-14, -12.2, 7.2, 0.25, 1.9],
+    [-17.6, -9, 0.25, 6.6, 1.9],
+    [-10.4, -9, 0.25, 6.6, 1.9],
     [19.5, -2.5, 0.25, 4, 1.9],
-    [0, 7, 5, 0.25, 1.9],
+    [2, 7, 5, 0.25, 1.9],
   ],
-  barrels: [[-6, -3.4], [11.8, 6.2], [-12, -2], [3.5, -10], [-19.5, 13], [5.2, 12.4], [15.5, -9.5], [-9, -11, 'lpg']],
-  pans: [[-2.5, -1.5], [2.5, -1.5], [-12.5, -8.5], [12.5, -8.5], [-16, 7], [16, 7]],
-  tools: [[-13, -9.5, 'extinguisher']], // things to pick up and use: a fire extinguisher by the stairwell
-  // fixtures (fixtures.js): street lamps that go dark when shot out, hanging signs that drop on whoever is under them
-  fixtures: [[-6, 7, 'lamp'], [6, 7, 'lamp'], [12, -3, 'sign', 180], [-12, 11, 'sign', 0], [0, -8, 'door', 0, 2, 1.25]], // a gate in the barrier (an opening needs 2 m for a path through: nav inflates cover by 0.5 m)
-  pads: [[-9, 1], [9, 1]],
-  // the last wave of a run that ends here (boss.js): the helicopter, over the helipad, flying in from the north-west
+  barrels: [[-6, -3.4], [-12, -2], [3.5, -10], [-19.5, 13], [5.2, 12.4], [-9, -11, 'lpg'], [13, 8.5], [15, 7.2, 'gas'], [16.5, 9.5], [14, 11.5], [12, 10.5]],
+  pans: [[2.5, -1.5], [-1.5, 1.5], [-14, -9], [12.5, -8.5], [-16, 7], [6, 10]],
+  tools: [[-13, -9.5, 'extinguisher']], // things to pick up and use: a fire extinguisher in the greenhouse
+  // fixtures (fixtures.js): street lamps that go dark when shot out, hanging signs that drop on whoever is under them, a gate in the barrier
+  fixtures: [[-6, 7, 'lamp'], [8, 5, 'lamp'], [12, -3, 'sign', 180], [-12, 11, 'sign', 0], [0, -8, 'door', 0, 2, 1.25]],
+  pads: [[-9, 1], [11, 2]],
+  // where the beats of a wave play out (waves.js): a name, a spot, and the move the spot is made for
+  stages: [
+    { name: '溫室', en: 'GREENHOUSE', at: [-14, -8.5], move: 'glass' },
+    { name: '油桶陣', en: 'BARREL YARD', at: [14, 9.5], move: 'boom' },
+    { name: '閘門', en: 'THE GATE', at: [0, -9.5], move: 'door' },
+    { name: '停機坪', en: 'HELIPAD', at: [0, -1.5], move: 'slide' },
+  ],
   boss: { kind: 'heli', pad: [0, -1.5], from: [-34, -30] },
   spawns: [
-    { x: -13, z: -11.4, ex: -13, ez: -9.2, kind: 'door' },
     { x: 13, z: -11.4, ex: 13, ez: -9.2, kind: 'door' },
+    { x: -21.4, z: -9, ex: -19, ez: -9, kind: 'ledge' },
     { x: -21.4, z: 3.5, ex: -18.6, ez: 3.5, kind: 'ledge' },
     { x: 21.4, z: 3.5, ex: 18.6, ez: 3.5, kind: 'ledge' },
     { x: 7.5, z: 14.4, ex: 7.5, ez: 11.6, kind: 'ledge' },
+    { x: -6, z: 14.4, ex: -6, ez: 11.6, kind: 'ledge' },
   ],
   decorate(L) {
     const pad = new THREE.Mesh(
@@ -204,36 +211,42 @@ const club = {
   // dance floor's tiles ([x, z] of its corner, columns, rows); `gaps` closes the ways round the speakers to the DJ's side for the fight
   boss: { kind: 'dj', at: [6, -11.6], booth: [6, -10], speakers: [[2.6, -10.6], [9.4, -10.6]], gaps: [[3, -12.15, 2, 3.7], [9, -12.15, 2, 3.7]], floor: [-6, -5, 12, 8] },
   edges: { n: [3.2, 'clubWall', 'neonPink'], s: [0.9, 'clubWall', 'neonCyan'], w: [3.2, 'clubWall', 'neonCyan'], e: [3.2, 'clubWall', 'neonCyan'] },
+  // Four stages: the long bar with its flap, the DJ booth, the lounge in the east, a glass walk in the west.
   solids: [
     [-15, -10.2, 4, 1.2, 1.2, 'bar'],
     [-9, -10.2, 4, 1.2, 1.2, 'bar'],
     [6, -10, 4, 1.6, 1.3, 'dj'],
     [2.6, -10.6, 1.2, 1.2, 2.2, 'speaker'],
     [9.4, -10.6, 1.2, 1.2, 2.2, 'speaker'],
-    [-8.5, -5.5, 1, 1, 3.2, 'pillar'],
     [8.5, -5.5, 1, 1, 3.2, 'pillar'],
-    [-8.5, 5, 1, 1, 3.2, 'pillar'],
     [8.5, 5, 1, 1, 3.2, 'pillar'],
+    [-8.5, 5, 1, 1, 3.2, 'pillar'],
     [17.6, -4, 1.4, 4.4, 0.9, 'sofa', 270],
     [17.6, 4, 1.4, 4.4, 0.9, 'sofa', 270],
     [15.4, -4, 1, 1.2, 0.8, 'table'],
     [15.4, 4, 1, 1.2, 0.8, 'table'],
-    [-17.6, 3, 1.4, 5, 0.9, 'sofa', 90],
-    [-15.4, 3, 1, 1.2, 0.8, 'table'],
-    [-4.5, 10, 1.3, 1.3, 1.7, 'speaker'],
     [4.5, 10, 1.3, 1.3, 1.7, 'speaker'],
-    [-13.5, 9, 0.5, 4, 1.2, 'bar', 90],
+    [-7, 11.5, 1.3, 1.3, 1.7, 'speaker'],
     [13.5, 9.5, 0.5, 3, 1.2, 'bar', 270],
+    [-13.5, 1.5, 1.2, 1.2, 0.8, 'table'],
   ],
   glass: [
     [-12, -13.3, 9, 0.35, 1.9],
+    // the glass walk: two panes with a table and a tray between them
     [-11.5, 3, 0.25, 6, 1.9],
+    [-15.5, 3, 0.25, 6, 1.9],
     [12, 0, 0.25, 3.5, 1.9],
   ],
   barrels: [[-5.5, -12.2, 'gas'], [12.5, -12, 'gas'], [11.5, 12], [-17.5, 12], [17.5, -11.5]],
-  pans: [[-3, -1.5, 'tray'], [3, -1.5, 'tray'], [0, 4, 'tray'], [-15, -7, 'tray'], [15, -8.5, 'tray'], [-2.5, 12, 'tray']],
+  pans: [[-3, -1.5, 'tray'], [2, 1, 'tray'], [0, 4, 'tray'], [-15, -7, 'tray'], [15, -8.5, 'tray'], [-2.5, 12, 'tray'], [-13.5, 4.5, 'tray']],
   tools: [[-8.5, 0, 'extinguisher']], // one: the club's draw-call budget (400) is the tightest of the maps
   fixtures: [[-6, 0, 'lamp'], [-4, -7.5, 'sign', 180], [-12, -10.2, 'door', 0, 2, 1.2]], // the bar's flap
+  stages: [
+    { name: '長吧', en: 'THE BAR', at: [-12, -8.5], move: 'slide' },
+    { name: 'DJ 台', en: 'DJ BOOTH', at: [6, -8], move: 'high' },
+    { name: '梳化角', en: 'THE LOUNGE', at: [15.5, 0], move: 'pan' },
+    { name: '玻璃走廊', en: 'GLASS WALK', at: [-13.5, 3], move: 'glass' },
+  ],
   pads: [[-3, 7.5], [13, -3.5]],
   spawns: [
     { x: -3, z: -13.4, ex: -3, ez: -11.2, kind: 'door' },

@@ -181,7 +181,7 @@ export class HUD {
       wv.state === 'warmup'
         ? `熱身 · ${where}`
         : wv.state === 'active'
-          ? `剩餘敵人 ${wv.remaining}${wv.beats.length ? ` · 第 ${wv.beatNo}/${wv.beats.length} 拍` : ''} · ${where}`
+          ? `剩餘敵人 ${wv.remaining}${wv.beats.length ? ` · 第 ${wv.beatNo}/${wv.beats.length} 拍${wv.stage ? ` · ${wv.stage.name} ${wv.stage.en}` : ''}` : ''} · ${where}`
           : wv.state === 'done'
             ? `全部 ${wv.wave} 波清空 · ${where}`
             : wv.wave > 0
