@@ -30,6 +30,9 @@ export class Waves {
     this.spawnCd = 0;
     this.clock = 0;
     this.stageNext = false;
+    this.order = []; // this wave's spawn points, in the order its stream drew them (indices into level.spawns)
+    this.orderI = 0;
+    this.wr = null; // this wave's stream
     this.hurt = false; // the player took damage this wave
     this.cleanWaves = 0;
   }
@@ -50,8 +53,8 @@ export class Waves {
     return this.state === 'active' && this.queue.length === 0 && this.pending.length === 0;
   }
 
-  compose(n) {
-    const rng = this.game.rng;
+  /** Wave n's roster, drawn from `rng` (the wave's own stream unless given). */
+  compose(n, rng = this.game.rng.fork('wave', n)) {
     const finale = n === this.rules.waves ? this.rules.finale : null;
     let total = 3 + Math.floor(n * 1.7);
     let brutes = n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
@@ -85,7 +88,16 @@ export class Waves {
   startWave() {
     const g = this.game;
     this.wave++;
-    this.queue = this.compose(this.wave);
+    // the wave's own stream: its roster, spawn order, pacing and pads are the same for
+    // every run with this seed, however it is played (rng.js)
+    const wr = (this.wr = g.rng.fork('wave', this.wave));
+    this.queue = this.compose(this.wave, wr);
+    this.order = g.level.spawns.map((_, i) => i);
+    for (let i = this.order.length - 1; i > 0; i--) {
+      const j = wr.int(0, i);
+      [this.order[i], this.order[j]] = [this.order[j], this.order[i]];
+    }
+    this.orderI = 0;
     const count = {};
     for (const t of this.queue) count[t] = (count[t] || 0) + 1;
     g.notes.log(`第 ${this.wave} 波開始：${Object.entries(count).map(([t, n]) => `${TYPES[t] ? TYPES[t].label : t}×${n}`).join(' ')}`);
@@ -113,25 +125,29 @@ export class Waves {
     if (this.isFinal) g.hud.banner('FINAL WAVE', `最後一波 · 撐過去就通關`, 'stage');
     else g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
     g.audio.waveStart();
-    if (g.ruleset.pads) g.pickups.refillPads();
+    if (g.ruleset.pads) g.pickups.refillPads(wr);
   }
 
+  /**
+   * The next point in the wave's spawn order that is neither on top of the player nor a long
+   * walk away (the Senado strip is 148 m long); only a player standing by a door moves an
+   * enemy on to the next one.
+   */
   pickSpawn() {
-    const { player, level, rng } = this.game;
+    const { player, level } = this.game;
+    const S = level.spawns;
     const dist = (sp) => Math.hypot(sp.ex - player.x, sp.ez - player.z);
-    // Not on top of the player, but not a long walk away either (the Senado strip is 148 m long).
-    let pool = level.spawns.filter((sp) => dist(sp) > 9 && dist(sp) < 45);
-    if (pool.length < 2) {
-      pool = level.spawns
-        .filter((sp) => dist(sp) > 7.5)
-        .sort((a, b) => dist(a) - dist(b))
-        .slice(0, 3);
+    for (let k = 0; k < S.length; k++) {
+      const sp = S[this.order[(this.orderI + k) % S.length]];
+      const d = dist(sp);
+      if (d > 9 && d < 45) {
+        this.orderI += k + 1;
+        return sp;
+      }
     }
-    if (!pool.length) pool = level.spawns;
-    pool.sort((a, b) => a.lastUsed - b.lastUsed);
-    const choice = pool[rng.int(0, Math.min(2, pool.length) - 1)];
-    choice.lastUsed = this.clock;
-    return choice;
+    // nowhere suits: the nearest point not on top of the player, or the next in order
+    const near = S.filter((sp) => dist(sp) > 7.5).sort((a, b) => dist(a) - dist(b))[0];
+    return near || S[this.order[this.orderI++ % S.length]];
   }
 
   /** The first run's warm-up holds wave 1 back until endWarmup(). */
@@ -178,7 +194,7 @@ export class Waves {
     if (this.queue.length && this.spawnCd <= 0 && enemies.aliveCount + this.pending.length < this.maxAlive) {
       const type = this.queue.shift();
       this.pending.push({ type, sp: this.pickSpawn(), t: 0.9 });
-      this.spawnCd = this.game.rng.range(0.5, 1.3);
+      this.spawnCd = this.wr.range(0.5, 1.3);
     }
 
     if (!this.queue.length && !this.pending.length && enemies.aliveCount === 0) {

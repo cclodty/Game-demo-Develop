@@ -743,7 +743,7 @@ export class Level {
           this.deco(sp.x - dx * 0.9 - dz * o, -0.2, sp.z - dz * 0.9 + dx * o, 0.08, 1.6, 0.08, this.mat.metal, true);
         }
       }
-      return { ...sp, dirX: dx, dirZ: dz, climb: sp.kind === 'ledge' || sp.kind === 'stairs', ring, mat, heat: 0, lamp, lastUsed: -99 };
+      return { ...sp, dirX: dx, dirZ: dz, climb: sp.kind === 'ledge' || sp.kind === 'stairs', ring, mat, heat: 0, lamp };
     });
   }
 
@@ -907,10 +907,7 @@ export class Level {
       s.alive = true;
       s.mesh.visible = true;
     }
-    for (const sp of this.spawns) {
-      sp.heat = 0;
-      sp.lastUsed = -99; // or a restart would pick spawns by the last run's history
-    }
+    for (const sp of this.spawns) sp.heat = 0;
     for (const pad of this.pads) pad.pickup = null;
     this.rebuildNav();
   }
