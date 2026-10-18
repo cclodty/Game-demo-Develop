@@ -416,15 +416,15 @@
   - [x] 順手修了：子彈在 |z| > 60 米就消失，議事亭前地遠端的敵人永遠打不中人（`bullets.js` 改用地圖邊界）
 - 這次不做：敵人用環境（踢油桶、開門）、撤退、呼叫同伴
 
-### 波次拍子（估計：一天）
-- 目標：街機與每日挑戰的一波分成三四個「拍子」：每拍在地圖的一個舞台同時出 3–6 個敵人，出場前 1.2 秒出生點全部亮燈加一聲提示；拍子之間安靜，剩下一個敵人或 12 秒後下一拍。不再慢慢補人。無盡模式保留現在的細流
-- 涉及：`src/waves.js`（compose 不變，排程改為拍子；舞台從 `maps.js stages` 選，沒有就用出生點叢集）、`src/config.js`（`BEATS`）、`src/hud.js`（拍子 2/4 小字）、`src/main.js`（CLEAN BEAT +100：一拍無傷清場）
+### ✅ 波次拍子（估計：一天）— 2026-10-18 完成
+- 目標：街機與每日挑戰的一波分成幾個「拍子」：每拍在地圖的一個舞台同時出 3–6 個敵人，出場前 1.2 秒出生點全部亮燈加一聲提示；拍子之間安靜，剩下一個敵人或 12 秒後下一拍。不再慢慢補人。無盡模式保留現在的細流
+- 涉及：`src/waves.js`（compose 不變，排程改為拍子：splitBeats／pickSpots／updateBeats；舞台未有前用「下一道門加最近的另一道門」）、`src/config.js`（`BEATS`）、`src/hud.js`（第 2/4 拍）、`src/main.js`（beatHurt）、`src/audio.js`（拍子提示音）、`test/beats.test.mjs`
 - 驗收：
-  - [ ] 測試：街機第 1 波，首拍敵人在 0.3 秒內一起出現；兩個以上活着時 12 秒內不補人；一波總人數等於 compose 的名單
-  - [ ] 測試：無盡模式仍是細流（maxAlive 行為不變）
-  - [ ] 一拍無傷清場出 CLEAN BEAT；HUD 顯示拍子進度
-  - [ ] 重播與 `?seed=` 仍逐步一致；`test/arcade.test.mjs`、`test/daily.test.mjs` 仍過
-  - [ ] 截圖：拍子預告（亮燈）；npm run lint && npm test 通過
+  - [x] 測試：街機第 4 波（9 人）分兩拍 [5, 4]，首拍在 0.3 秒內一起出現；兩個以上活着時 12 秒內不補人；一波總人數等於 compose 的名單
+  - [x] 測試：無盡模式仍是細流（maxAlive 行為不變）
+  - [x] 一拍無傷清場出 CLEAN BEAT +100；HUD 顯示「第 n/k 拍」
+  - [x] 重播與 `?seed=` 仍逐步一致；`test/arcade.test.mjs`、`test/daily.test.mjs`、`test/streams.test.mjs` 仍過
+  - [x] 截圖：拍子預告（亮燈）；npm run lint && npm test 通過
 - 這次不做：舞台重設計（後面兩張卡）、拍子間的對白、音樂跟拍子
 
 ### Style 推進獎勵（估計：半天）

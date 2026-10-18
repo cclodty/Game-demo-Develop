@@ -103,6 +103,22 @@ export const AI = {
   flankClose: 3, // m: from here they just come straight at you
 };
 
+/**
+ * Waves played in beats (波次拍子; waves.js, the MODES with `beats`): the
+ * wave's roster is split into beats of a few enemies that come in together at
+ * one spot after a telegraph, with quiet between. Endless keeps its trickle.
+ */
+export const BEATS = {
+  size: [3, 6], // enemies a beat brings, least and most (the roster is split as evenly as that allows)
+  finaleSize: [5, 8], // the last wave's beats are bigger
+  telegraph: 1.2, // s the spot's rings burn before they come
+  quiet: 1.5, // s of nothing after a beat is cleared (or spent) before the next telegraph
+  next: 1, // the next beat comes when this many or fewer still stand…
+  after: 12, // …or this many s after the beat came, whatever stands
+  spread: 18, // m: a second door this close to the beat's door shares its enemies
+  clean: 100, // CLEAN BEAT: a beat cleared without taking a hit
+};
+
 /** Things in the maps that play along (環境互動). */
 export const ENV = {
   crateHits: 6, // bullets a wooden crate takes before it breaks apart

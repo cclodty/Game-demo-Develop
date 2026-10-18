@@ -428,6 +428,13 @@ export class AudioSys {
     this.tone({ type: 'sine', f0: 55, dur: 0.6, vol: 0.3 });
   }
 
+  /** A beat is coming: a knock and a rising tick at its doors. */
+  beat() {
+    if (!this.ready) return;
+    this.tone({ type: 'sine', f0: 70, dur: 0.35, vol: 0.25 });
+    this.tone({ type: 'square', f0: 330, f1: 660, dur: 0.12, vol: 0.05, filter: 1800, delay: 0.05 });
+  }
+
   waveClear() {
     if (!this.ready) return;
     [0, 3, 7, 12].forEach((s, i) => this.tone({ type: 'triangle', f0: noteHz(s, 523.25), dur: 0.35, vol: 0.09, delay: i * 0.08 }));

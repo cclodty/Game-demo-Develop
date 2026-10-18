@@ -1320,6 +1320,7 @@ class Game {
     this.score.breakCombo();
     this.score.rank.hit();
     this.waves.hurt = true;
+    this.waves.beatHurt = true;
     this.hurtFx = Math.min(1, this.hurtFx + 0.45 + dmg / 60);
     this.shake(0.35);
     this.audio.hurt();
