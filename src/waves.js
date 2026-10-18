@@ -113,7 +113,7 @@ export class Waves {
     if (this.isFinal) g.hud.banner('FINAL WAVE', `最後一波 · 撐過去就通關`, 'stage');
     else g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
     g.audio.waveStart();
-    g.pickups.refillPads();
+    if (g.ruleset.pads) g.pickups.refillPads();
   }
 
   pickSpawn() {

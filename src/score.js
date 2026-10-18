@@ -78,9 +78,10 @@ export class Score {
     this.reset();
   }
 
-  /** Each mode keeps its own best (endless keeps the key the game always had). */
-  useBest(mode) {
+  /** Each mode keeps its own best (endless keeps the key the game always had), and so does each set of run rules. */
+  useBest(mode, rules = null) {
     this.key = mode === 'endless' ? KEY : `${KEY}.${mode}`;
+    if (rules && rules.label) this.key += `.${[rules.difficulty, ...rules.variants].join('+')}`;
     try {
       this.best = Number(localStorage.getItem(this.key)) || 0;
     } catch {
@@ -117,19 +118,20 @@ export class Score {
     this.maxCombo = Math.max(this.maxCombo, this.combo);
     this.comboT = COMBO_WINDOW;
     const m = this.mult;
+    const rm = this.game.ruleset.styleMul;
     let total = 0;
     for (const t of tags) total += t.pts;
-    this.score += total * m;
+    this.score += total * m * rm;
     // the rank: the first tag names the enemy; the rest are the move
     const moves = tags.slice(1).map((t) => t.label);
     this.raise(moves.length ? moves.sort().join('+') : 'KILL', moves.length ? RANK.move + RANK.extra * (moves.length - 1) : RANK.kill);
-    this.game.hud.feedKill(tags, m);
+    this.game.hud.feedKill(tags, m, rm);
     if (this.combo > 1) this.game.audio.combo(this.combo);
   }
 
   /** A non-kill style bonus (close call, deflect, ...). */
   style(label, pts, refresh = true) {
-    const m = this.mult;
+    const m = this.mult * this.game.ruleset.styleMul;
     this.score += pts * m;
     this.raise(label, pts * RANK.perPoint);
     if (refresh && this.combo > 0) this.comboT = Math.min(COMBO_WINDOW, this.comboT + 0.8);

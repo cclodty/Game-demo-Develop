@@ -409,7 +409,12 @@ export class Level {
     this.applyTheme(map.theme);
     if (map.floor !== 'none') this.buildFloor(map.floor);
     this.buildEdges(map.edges);
-    for (const s of map.solids) this.addSolid(...s);
+    // a variant (rules.js glassUpTo) makes every box of cover up to that height glass
+    this.glassUpTo = this.game.ruleset.glassUpTo;
+    for (const s of map.solids) {
+      if (this.glassUpTo && typeof s[0] === 'number' && s[4] <= this.glassUpTo) this.addGlass(s[0], s[1], s[2], s[3], s[4]);
+      else this.addSolid(...s);
+    }
     for (const g of map.glass || []) this.addGlass(...g);
     for (const [x, z, v] of map.barrels || []) this.barrels.push(new Barrel(this, x, z, v));
     for (const [x, z, v] of map.pans || []) this.pans.push(new Pan(this, x, z, v));
@@ -612,12 +617,25 @@ export class Level {
     const pane = new THREE.Mesh(this.geo.unit, this.mat.glass);
     pane.scale.set(w, h, d);
     pane.renderOrder = 1;
-    const top = new THREE.Mesh(this.geo.unit, this.mat.glassEdge);
-    top.scale.set(w + 0.04, 0.06, d + 0.04);
-    top.position.y = h;
     const bot = new THREE.Mesh(this.geo.unit, this.mat.darkMetal);
     bot.scale.set(w + 0.06, 0.12, d + 0.06);
-    mesh.add(pane, top, bot);
+    mesh.add(pane, bot);
+    // a pane gets a lit top edge; a block of glass (cover in the glass variant) a rim round its top, not a glowing lid
+    const edges =
+      Math.min(w, d) > 0.5
+        ? [
+            [0, -d / 2, w + 0.04, 0.05],
+            [0, d / 2, w + 0.04, 0.05],
+            [-w / 2, 0, 0.05, d],
+            [w / 2, 0, 0.05, d],
+          ]
+        : [[0, 0, w + 0.04, d + 0.04]];
+    for (const [ex, ez, ew, ed] of edges) {
+      const top = new THREE.Mesh(this.geo.unit, this.mat.glassEdge);
+      top.scale.set(ew, 0.06, ed);
+      top.position.set(ex, h, ez);
+      mesh.add(top);
+    }
     mesh.position.set(x, 0, z);
     this.add(mesh);
     const s = { minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2, h, kind: 'glass', alive: true, mesh, w, d, x, z };

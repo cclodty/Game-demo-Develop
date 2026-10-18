@@ -84,6 +84,7 @@ export class HUD {
       e.focus.style.transform = `scaleX(${v})`;
       e.focusBar.classList.toggle('empty', v < FOCUS.minToEnter);
     });
+    this.set('focusOff', !g.ruleset.slowmo, (v) => e.focusBar.classList.toggle('off', v));
     this.set('focusOn', g.focusActive, (v) => {
       e.focusBar.classList.toggle('active', v);
       e.focusLabel.classList.toggle('show', v);
@@ -162,7 +163,7 @@ export class HUD {
     const waveLabel = g.waves.wave > 0 ? `WAVE ${g.waves.wave}${Number.isFinite(last) ? ` / ${last}` : ''}` : '';
     this.set('wave', waveLabel, (v) => (e.wave.textContent = v));
     const wv = g.waves;
-    const where = g.level.map.name;
+    const where = g.ruleset.label ? `${g.level.map.name} · ${g.ruleset.label}` : g.level.map.name;
     const sub =
       wv.state === 'warmup' ? `熱身 · ${where}` : wv.state === 'active' ? `剩餘敵人 ${wv.remaining} · ${where}` : wv.state === 'done' ? `全部 ${wv.wave} 波清空 · ${where}` : wv.wave > 0 ? `下一波準備中… · ${where}` : `準備… · ${where}`;
     this.set('waveSub', sub, (v) => (e.waveSub.textContent = v));
@@ -234,7 +235,7 @@ export class HUD {
     setTimeout(() => node.remove(), ms + 450);
   }
 
-  feedKill(tags, mult) {
+  feedKill(tags, mult, rulesMul = 1) {
     const block = document.createElement('div');
     block.className = 'feed-block kill';
     let total = 0;
@@ -245,10 +246,11 @@ export class HUD {
       row.innerHTML = `<span>${t.label}</span><b>+${t.pts}</b>`;
       block.appendChild(row);
     }
-    if (mult > 1) {
+    if (mult > 1 || rulesMul !== 1) {
       const row = document.createElement('div');
       row.className = 'feed-row total';
-      row.innerHTML = `<span>COMBO x${mult}</span><b>${fmt(total * mult)}</b>`;
+      const label = [mult > 1 ? `COMBO x${mult}` : '', rulesMul !== 1 ? `RULES x${rulesMul}` : ''].filter(Boolean).join(' · ');
+      row.innerHTML = `<span>${label}</span><b>${fmt(total * mult * rulesMul)}</b>`;
       block.appendChild(row);
     }
     this.pushFeed(block, 2600);

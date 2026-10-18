@@ -7,13 +7,14 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RANK } from '../src/config.js';
+import { rulesFor } from '../src/rules.js';
 import { Score } from '../src/score.js';
 import { gameHarness, problems, snap } from './helpers.mjs';
 
 /** A Score with the game around it stubbed out. */
 function score() {
   const logs = [];
-  const game = { mode: 'arcade', hud: { feedKill() {}, feed() {} }, audio: { combo() {} }, notes: { log: (t) => logs.push(t) } };
+  const game = { mode: 'arcade', ruleset: rulesFor(), hud: { feedKill() {}, feed() {} }, audio: { combo() {} }, notes: { log: (t) => logs.push(t) } };
   const s = new Score(game);
   s.logs = logs;
   return s;

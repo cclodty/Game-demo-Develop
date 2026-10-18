@@ -120,6 +120,11 @@ body.playing * {
   box-shadow: none;
 }
 
+/* a variant turned bullet time off */
+#focus-bar.off {
+  opacity: 0.25;
+}
+
 #weapon-name {
   margin-top: 12px;
   font-weight: 700;
@@ -919,6 +924,10 @@ body.playing * {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.modes.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .mode-card {

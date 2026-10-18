@@ -17,6 +17,7 @@ import { PostFX } from './postfx.js';
 import { readQuality } from './quality.js';
 import { InputRecord } from './replay.js';
 import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
+import { DIFFICULTIES, DIFFICULTY_IDS, packRules, rulesFor, VARIANT_IDS, VARIANTS } from './rules.js';
 import { rate, Score } from './score.js';
 import { Style } from './style.js';
 import { Thrown } from './thrown.js';
@@ -27,6 +28,7 @@ import { Grenades } from './weapons.js';
 
 const MAP_KEY = 'bullet-ballet.map';
 const MODE_KEY = 'bullet-ballet.mode';
+const RULES_KEY = 'bullet-ballet.rules';
 const VIEW_KEY = 'bullet-ballet.view';
 const DEFAULT_VIEW = VIEWS.findIndex((v) => v.id === 'iso');
 const STEP = 1 / LOGIC_HZ;
@@ -98,6 +100,18 @@ class Game {
     } catch {
       /* storage unavailable */
     }
+    // the run rules picked on the title screen (rules.js); a run fixes them as ruleset
+    this.difficulty = 'normal';
+    this.variants = [];
+    try {
+      const saved = JSON.parse(localStorage.getItem(RULES_KEY) || '{}');
+      if (DIFFICULTY_IDS.includes(saved.difficulty)) this.difficulty = saved.difficulty;
+      if (Array.isArray(saved.variants)) this.variants = VARIANT_IDS.filter((id) => saved.variants.includes(id));
+    } catch {
+      /* storage unavailable or unreadable */
+    }
+    this.ruleset = rulesFor(this.difficulty, this.variants);
+    this.fixedRules = null; // { difficulty, variants } from a replayed record
     this.stage = 0;
     this.transition = null;
     this.level = new Level(this);
@@ -193,6 +207,26 @@ class Game {
       $('mode-cards').appendChild(b);
     }
     this.markMode();
+    const ruleCard = (id, r, row, onClick) => {
+      const b = document.createElement('button');
+      b.className = 'mode-card';
+      b.type = 'button';
+      b.dataset.rule = id;
+      b.style.setProperty('--mode', r.color);
+      b.innerHTML = `<span class="mode-zh">${r.name}</span><span class="mode-en">${r.en}</span><span class="mode-desc">${r.desc}</span>`;
+      b.addEventListener('click', (e) => {
+        e.stopPropagation(); // picking a rule is not starting a run
+        onClick(id);
+      });
+      $(row).appendChild(b);
+    };
+    for (const id of DIFFICULTY_IDS) ruleCard(id, DIFFICULTIES[id], 'difficulty-cards', (d) => this.setRules(d, this.variants));
+    for (const id of VARIANT_IDS) {
+      ruleCard(id, VARIANTS[id], 'variant-cards', (v) =>
+        this.setRules(this.difficulty, this.variants.includes(v) ? this.variants.filter((x) => x !== v) : [...this.variants, v]),
+      );
+    }
+    this.markRules();
     const cards = $('map-cards');
     MAPS.forEach((m, i) => {
       const b = document.createElement('button');
@@ -280,6 +314,23 @@ class Game {
     $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結` : `每 ${r.perStage} 波換一個場景`;
   }
 
+  /** Pick the difficulty and variants for the next run (the title screen), and remember them. */
+  setRules(difficulty, variants) {
+    this.difficulty = DIFFICULTY_IDS.includes(difficulty) ? difficulty : 'normal';
+    this.variants = VARIANT_IDS.filter((id) => variants.includes(id));
+    try {
+      localStorage.setItem(RULES_KEY, JSON.stringify({ difficulty: this.difficulty, variants: this.variants }));
+    } catch {
+      /* storage unavailable */
+    }
+    this.markRules();
+  }
+
+  markRules() {
+    for (const c of $('difficulty-cards').children) c.classList.toggle('selected', c.dataset.rule === this.difficulty);
+    for (const c of $('variant-cards').children) c.classList.toggle('selected', this.variants.includes(c.dataset.rule));
+  }
+
   startRun(mapIndex = this.startMap) {
     this.startMap = mapIndex;
     this.markMapCard();
@@ -291,13 +342,18 @@ class Game {
     this.rng.reset(this.fixedSeed ?? randomSeed());
     // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
     const warmup = this.fixedWarmup ?? wantWarmup();
-    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, hz: LOGIC_HZ });
+    // the rules hold for the whole run (a replay brings its own: fixedRules)
+    const pick = this.fixedRules ?? { difficulty: this.difficulty, variants: this.variants };
+    this.ruleset = rulesFor(pick.difficulty, pick.variants);
+    const rules = packRules(this.ruleset.difficulty, this.ruleset.variants);
+    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, rules, hz: LOGIC_HZ });
     this.resetWorld(MAPS[mapIndex]);
-    this.score.useBest(this.mode);
+    this.score.useBest(this.mode, this.ruleset);
     this.score.reset();
     this.waves.reset();
     this.hud.reset();
     this.notes.reset(MAPS[mapIndex]);
+    if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
     if (warmup) {
       this.waves.startWarmup();
       this.tutorial.start();
@@ -342,7 +398,7 @@ class Game {
     this.thrown.clear();
     this.style.clearGhosts();
     this.fx.clear();
-    if (this.level.map !== map) {
+    if (this.level.map !== map || this.level.glassUpTo !== this.ruleset.glassUpTo) {
       this.level.load(map);
       this.applyMapView();
       this.renderer.compile(this.scene, this.camera);
@@ -531,6 +587,7 @@ class Game {
   }
 
   toggleFocus() {
+    if (!this.ruleset.slowmo) return; // a variant turned bullet time off
     if (this.focusActive) this.setFocus(false);
     else if (this.focusMeter >= FOCUS.minToEnter) this.setFocus(true);
     else this.audio.denied();

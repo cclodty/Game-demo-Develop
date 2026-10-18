@@ -211,6 +211,11 @@ class Enemy {
     this.shieldMesh = g;
   }
 
+  /** Seconds from the laser coming on to the shot: the type's, times the difficulty's (rules.js aimMul). */
+  get aimTime() {
+    return this.cfg.aimTime * this.game.ruleset.aimMul;
+  }
+
   /** Those who run at the player instead of keeping a range: blades and bombers. */
   get rushes() {
     return this.cfg.weapon === 'blade' || !!this.cfg.bomb;
@@ -405,6 +410,7 @@ class Enemy {
   }
 
   dropWeapon() {
+    if (!this.game.ruleset.drops) return; // a variant: only the pistols
     for (const [kind, chance] of DROPS[this.type] || []) {
       if (this.game.rng.next() >= chance) continue;
       for (const m of this.rig.weaponParts) m.visible = false;
@@ -638,7 +644,7 @@ class Enemy {
             }
           } else this.losLost = 0;
           if (cfg.weapon === 'shotgun' && distP > 4) want = [(dxp / distP) * 1.2, (dzp / distP) * 1.2];
-          if (this.aimT >= cfg.aimTime) {
+          if (this.aimT >= this.aimTime) {
             const w = WEAPONS[cfg.weapon];
             this.state = 'fire';
             this.burst = w.shots;
@@ -845,7 +851,7 @@ class Enemy {
     const dz = Math.cos(this.aimAngle);
     const hit = g.level.raycast(m.x, m.z, m.x + dx * 40, m.z + dz * 40, true);
     const len = hit ? hit.t * 40 : 40;
-    const k = this.state === 'fire' ? 1 : clamp(this.aimT / this.cfg.aimTime, 0, 1);
+    const k = this.state === 'fire' ? 1 : clamp(this.aimT / this.aimTime, 0, 1);
     let intensity = 0.35 + k * k * 2.8;
     if (k > 0.78 && this.state === 'aim') intensity *= Math.sin(performance.now() * 0.06) > 0 ? 1.7 : 0.5;
     this.laser.set(m.x, m.z, m.x + dx * len, m.z + dz * len, 0.035 + k * 0.05, intensity);

@@ -69,6 +69,7 @@ src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-tim
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
 src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
 src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
+src/rules.js                 run rules: difficulties and variants as data (one switch or number each), read by their systems as game.ruleset
 src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export
 src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions
 src/senado/                  Largo do Senado data and model code extracted from the senado/ sub-project
