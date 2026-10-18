@@ -1,9 +1,52 @@
 import * as THREE from 'three';
 import { GUN_Y, PLAYER } from './config.js';
-import { animateRig, attachWeapon, buildCharacter, deathPose, finishRig, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
+import { animateRig, attachWeapon, buildCharacter, deathPose, finishRig, keyPose, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { angleTo, clamp, damp, rand, wrapAngle } from './utils.js';
 import { PLAYER_WEAPONS } from './weapons.js';
+
+/**
+ * Turn the hero texture's teal jacket to `hue` (degrees), or back to the original (null). The
+ * texture is shared by the model's material and its toon twin, so both change.
+ */
+function recolorJacket(skin, hue) {
+  const tex = (skin.mats.find((m) => m.map) || {}).map;
+  if (!tex || !tex.image) return;
+  const src = (tex.userData.jacketSource ??= tex.image);
+  if (hue === null) {
+    tex.image = src;
+    tex.needsUpdate = true;
+    return;
+  }
+  const c = document.createElement('canvas');
+  c.width = src.width;
+  c.height = src.height;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(src, 0, 0);
+  const img = ctx.getImageData(0, 0, c.width, c.height);
+  const d = img.data;
+  const to = new THREE.Color();
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i] / 255;
+    const g = d[i + 1] / 255;
+    const b = d[i + 2] / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const v = max;
+    const s = max ? (max - min) / max : 0;
+    if (s < 0.25 || v < 0.12) continue;
+    let h = max === r ? (g - b) / (max - min) : max === g ? 2 + (b - r) / (max - min) : 4 + (r - g) / (max - min);
+    h = ((h * 60) % 360 + 360) % 360;
+    if (h < 165 || h > 215) continue; // the jacket's teal
+    to.setHSL(hue / 360, s, v * (1 - s / 2));
+    d[i] = Math.round(to.r * 255);
+    d[i + 1] = Math.round(to.g * 255);
+    d[i + 2] = Math.round(to.b * 255);
+  }
+  ctx.putImageData(img, 0, 0);
+  tex.image = c;
+  tex.needsUpdate = true;
+}
 
 export class Player {
   constructor(game) {
@@ -52,6 +95,7 @@ export class Player {
     this.slot = 'pistols';
     this.kickCd = 0;
     this.kickT = 0;
+    this.execT = 0; // an execution under way: s left
     this.splitTarget = null;
     this.sinceHurt = 99;
     this.hurtFlash = 0;
@@ -67,9 +111,22 @@ export class Player {
     r.inner.rotation.set(0, 0, 0);
     r.inner.position.set(0, 0, 0);
     r.ring.visible = true;
-    attachWeapon(r, PLAYER_WEAPONS.pistols.model);
+    // a variant (rules.js startWeapon) starts the run with a special weapon in hand
+    const first = PLAYER_WEAPONS[this.game.ruleset.startWeapon];
+    if (first && first.id !== 'pistols') {
+      this.special = { id: first.id, ammo: first.ammo, empty: false };
+      this.slot = 'special';
+    }
+    attachWeapon(r, this.weapon.model);
     setFlash(r, 0);
     this.syncRig(0);
+  }
+
+  /** The jacket's colour (an unlock, looks only): the block rig's body, and the jacket in the hero model's texture. */
+  setCoat(coat) {
+    const r = this.rig;
+    for (const m of [r.mats.body, this.game.style.twins.get(r.mats.body)]) if (m) m.color.setHex(coat.rgb);
+    if (r.skin) recolorJacket(r.skin, coat.hue);
   }
 
   /** Put the player back at the map's start (used between stages). */
@@ -209,7 +266,7 @@ export class Player {
 
     // slide: only out of a run, locked to the direction of travel; a spin can cut it short
     const curSp = Math.hypot(this.vx, this.vz);
-    if (input.hit('KeyC') && this.slideCd <= 0 && this.slideT <= 0 && this.spinT <= 0 && curSp >= PLAYER.slideMinSpeed) {
+    if (input.hit('KeyC') && this.slideCd <= 0 && this.slideT <= 0 && this.spinT <= 0 && this.execT <= 0 && curSp >= PLAYER.slideMinSpeed) {
       this.slideT = PLAYER.slideDuration;
       this.slideDirX = this.vx / curSp;
       this.slideDirZ = this.vz / curSp;
@@ -217,7 +274,7 @@ export class Player {
       g.notes.log('滑鏟');
     }
 
-    if (input.hit('Space') && this.spinCd <= 0 && this.spinT <= 0) {
+    if (input.hit('Space') && this.spinCd <= 0 && this.spinT <= 0 && this.execT <= 0) {
       this.spinT = PLAYER.spinDuration;
       this.slideT = 0;
       g.notes.log('旋轉閃避');
@@ -241,7 +298,12 @@ export class Player {
     let tz;
     let accel = PLAYER.accel;
     const speed = PLAYER.speed * (w.moveMul || 1);
-    if (this.spinT > 0) {
+    if (this.execT > 0) {
+      // an execution: standing over him until it is done
+      this.execT -= dt;
+      tx = tz = 0;
+      accel = 40;
+    } else if (this.spinT > 0) {
       this.spinT -= dt;
       const sp = speed * PLAYER.spinSpeedMul;
       tx = this.spinDirX * sp;
@@ -276,7 +338,7 @@ export class Player {
     // --- aim
     const aim = input.aim;
     const aimDist = Math.hypot(aim.x - this.x, aim.z - this.z);
-    if (aimDist > 0.35) this.facing = angleTo(this.x, this.z, aim.x, aim.z);
+    if (aimDist > 0.35 && this.execT <= 0) this.facing = angleTo(this.x, this.z, aim.x, aim.z);
 
     // --- split aim (dual weapons only): hold right mouse to lock the left gun
     if (input.mouse.rightPressed && w.dual) {
@@ -307,7 +369,7 @@ export class Player {
     if (input.hit('KeyG')) g.thrown.action();
     const carrying = !!g.thrown.carry;
     if (carrying && input.mouse.leftPressed) g.thrown.throwCarried();
-    if (input.mouse.left && this.fireCd <= 0 && !carrying) {
+    if (input.mouse.left && this.fireCd <= 0 && !carrying && this.execT <= 0) {
       if (this.slot === 'pistols' && this.reloadT > 0) {
         if (input.mouse.leftPressed) g.audio.empty();
       } else if (this.slot === 'pistols' && this.ammo <= 0) {
@@ -317,9 +379,13 @@ export class Player {
       }
     }
 
-    // --- kick
+    // --- kick; by an enemy still dazed from a kick or a throw, F is an execution instead
     if (this.kickT > 0) this.kickT -= dt;
-    if (input.hit('KeyF') && this.kickCd <= 0) this.kick();
+    if (input.hit('KeyF') && this.execT <= 0) {
+      const down = this.executable();
+      if (down) this.execute(down);
+      else if (this.kickCd <= 0) this.kick();
+    }
 
     const sp = Math.hypot(this.vx, this.vz);
     this.moveAmt = damp(this.moveAmt, clamp(sp / PLAYER.speed, 0, 1), 10, dt);
@@ -346,7 +412,7 @@ export class Player {
       p.vz += (dz / d) * 1.5;
     }
     for (const e of g.enemies.list) {
-      if (!e.alive) continue;
+      if (!e.alive || e.cfg.fly) continue; // a drone flies over
       const dx = e.x - this.x;
       const dz = e.z - this.z;
       const rr = R + e.radius;
@@ -487,6 +553,35 @@ export class Player {
     }
   }
 
+  /** The nearest enemy within PLAYER.execRange still dazed from a kick, a throw or a body bowled into him. */
+  executable() {
+    let best = null;
+    let bd = PLAYER.execRange;
+    for (const e of this.game.enemies.list) {
+      if (!e.alive || e.stunT <= 0 || e.cfg.fly || !['kick', 'throw', 'strike'].includes(e.stunCause)) continue;
+      const d = Math.hypot(e.x - this.x, e.z - this.z);
+      if (d <= bd) {
+        bd = d;
+        best = e;
+      }
+    }
+    return best;
+  }
+
+  /** Finish a dazed enemy: a sure kill, PLAYER.execTime s standing over him, the first PLAYER.execInvuln s untouchable. */
+  execute(e) {
+    const g = this.game;
+    this.execT = PLAYER.execTime;
+    this.invuln = Math.max(this.invuln, PLAYER.execInvuln);
+    this.facing = angleTo(this.x, this.z, e.x, e.z);
+    this.vx = this.vz = 0;
+    const d = Math.hypot(e.x - this.x, e.z - this.z) || 1;
+    e.die((e.x - this.x) / d, (e.z - this.z) / d, { cause: 'execution' });
+    g.audio.kick(true);
+    g.shake(0.35);
+    g.hitstop(0.08);
+  }
+
   kick() {
     const g = this.game;
     this.kickCd = PLAYER.kickCooldown;
@@ -501,7 +596,7 @@ export class Player {
       return d > 0.01 ? { x: dx / d, z: dz / d } : { x: Math.sin(this.facing), z: Math.cos(this.facing) };
     };
     for (const e of g.enemies.list) {
-      if (!e.alive || e.spawnLock > 0) continue;
+      if (!e.alive || e.spawnLock > 0 || e.cfg.fly) continue;
       const dir = inCone(e.x, e.z, PLAYER.kickRange + e.radius);
       if (!dir) continue;
       e.kick(dir.x, dir.z, 14);
@@ -520,6 +615,7 @@ export class Player {
       }
       hit = true;
     }
+    if (g.grenades.kick(inCone)) hit = true;
     g.audio.kick(hit);
     if (hit) {
       g.shake(0.25);
@@ -555,6 +651,7 @@ export class Player {
     this.vx = this.deathDx * 6;
     this.vz = this.deathDz * 6;
     this.rig.root.rotation.y = Math.atan2(-this.deathDx, -this.deathDz);
+    keyPose(this.rig, null); // fall from standing, not from where a slide or a spin left the body
     this.aimLaser.hide();
     this.splitLaser.hide();
     this.rig.ring.visible = false;
@@ -591,27 +688,22 @@ export class Player {
     if (!this.game.style.poseDue(r, this.game.worldTime)) return;
     animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
 
-    if (this.spinT > 0) {
-      const k = 1 - this.spinT / PLAYER.spinDuration;
-      r.inner.rotation.y = this.spinYaw();
-      r.inner.position.y = Math.sin(k * Math.PI) * 0.3;
-    } else {
-      r.inner.rotation.y = 0;
-      r.inner.position.y = 0;
-    }
-    if (this.slideT > 0) {
-      // lie back along the slide: body low and tilted, legs out in front
-      const k = 1 - this.slideT / PLAYER.slideDuration;
-      const e = Math.min(1, k * 4) * Math.min(1, (1 - k) * 4);
-      r.inner.position.y = -0.38 * e;
-      r.inner.rotation.x = -0.75 * e;
-      r.legL.rotation.x = r.legR.rotation.x = -1.3 * e;
-    } else {
-      r.inner.rotation.x = 0;
-    }
+    // the moves' key poses (characters.js KEY_POSES), held, with one in-between at each end
+    const carrying = !!(this.game.thrown && this.game.thrown.carry);
+    r.inner.rotation.y = this.spinYaw();
+    const held = (k) => (k < 0.12 || k > 0.88 ? 0.5 : 1);
+    if (this.slideT > 0) keyPose(r, 'slide', held(1 - this.slideT / PLAYER.slideDuration));
+    else if (this.spinT > 0) keyPose(r, 'spin', held(1 - this.spinT / PLAYER.spinDuration));
+    else keyPose(r, carrying ? 'carry' : null);
     if (this.kickT > 0) {
       const k = 1 - this.kickT / 0.28;
       r.legR.rotation.x = -1.7 * Math.sin(k * Math.PI);
+    }
+    if (this.execT > 0) {
+      // the execution: leaning in, a stamp down on him (the kick's leg, so a worn model shows it too)
+      const k = 1 - this.execT / PLAYER.execTime;
+      r.legR.rotation.x = -1.5 * Math.sin(Math.min(1, k * 1.6) * Math.PI);
+      r.inner.rotation.x = 0.3 * Math.sin(k * Math.PI);
     }
 
     const pose = r.pose;
@@ -623,9 +715,11 @@ export class Player {
       r.armL.rotation.y = pose.ly;
     }
     r.armR.rotation.y = pose.ry;
-    const carrying = !!(this.game.thrown && this.game.thrown.carry);
-    r.armL.rotation.x = carrying ? -2.7 : pose.lx;
-    r.armR.rotation.x = carrying ? -2.7 : pose.rx;
+    // the guns stay level with the aim however the body leans (a slide lies back, an execution leans in)
+    const level = -r.inner.rotation.x;
+    r.armL.rotation.x = (carrying ? -2.7 : pose.lx) + level;
+    r.armR.rotation.x = (carrying ? -2.7 : pose.rx) + level;
+    r.anchor.rotation.x = r.center.rotation.x = level;
     if (r.hold === 'dual') {
       r.armL.position.z = -this.recoilL * 0.14;
       r.armR.position.z = -this.recoilR * 0.14;

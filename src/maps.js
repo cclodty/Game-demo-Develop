@@ -130,6 +130,8 @@ const rooftop = {
   barrels: [[-6, -3.4], [11.8, 6.2], [-12, -2], [3.5, -10], [-19.5, 13], [5.2, 12.4], [15.5, -9.5]],
   pans: [[-2.5, -1.5], [2.5, -1.5], [-12.5, -8.5], [12.5, -8.5], [-16, 7], [16, 7]],
   pads: [[-9, 1], [9, 1]],
+  // the last wave of a run that ends here (boss.js): the helicopter, over the helipad, flying in from the north-west
+  boss: { kind: 'heli', pad: [0, -1.5], from: [-34, -30] },
   spawns: [
     { x: -13, z: -11.4, ex: -13, ez: -9.2, kind: 'door' },
     { x: 13, z: -11.4, ex: 13, ez: -9.2, kind: 'door' },

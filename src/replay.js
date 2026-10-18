@@ -118,7 +118,7 @@ export class InputRecord {
 /** Reads an encoded record back, one StepInput per logic step. */
 export class RecordReader {
   constructor(bytes) {
-    if (bytes[0] !== 0x42 || bytes[1] !== 0x42) throw new Error('not an input record');
+    if (bytes.length < HEADER || bytes[0] !== 0x42 || bytes[1] !== 0x42) throw new Error('not an input record');
     if (bytes[2] !== VERSION) throw new Error(`input record version ${bytes[2]}, expected ${VERSION}`);
     const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     this.bytes = bytes;
@@ -149,7 +149,7 @@ export class RecordReader {
     if (f & F_KEYS) c.keys = this.uint();
     if (f & F_PRESSED) c.pressed = this.uint();
     if (f & F_NUDGE) {
-      const b = this.bytes[this.pos++];
+      const b = this.byte();
       c.aimQX += (b >> 4) - 8;
       c.aimQZ += (b & 15) - 8;
     }
@@ -173,11 +173,17 @@ export class RecordReader {
     this.flags = h % 32;
   }
 
+  byte() {
+    if (this.pos >= this.bytes.length) throw new Error('input record cut short');
+    return this.bytes[this.pos++];
+  }
+
   uint() {
     let v = 0;
     let scale = 1;
     for (;;) {
-      const b = this.bytes[this.pos++];
+      const b = this.byte();
+      if (scale > 2 ** 35) throw new Error('input record garbled');
       v += (b & 127) * scale;
       if (b < 128) return v;
       scale *= 128;
@@ -187,5 +193,70 @@ export class RecordReader {
   int() {
     const u = this.uint();
     return u % 2 ? -(u + 1) / 2 : u / 2;
+  }
+
+  /** Read a whole record through once; throws when it is not one, is from another version, or is cut short. */
+  static check(bytes) {
+    const rd = new RecordReader(bytes);
+    while (rd.next(0, 0));
+    return rd;
+  }
+}
+
+const STORE_KEY = 'bullet-ballet.replays';
+export const KEEP_REPLAYS = 10;
+
+export const toBase64 = (bytes) => {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+export const fromBase64 = (text) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
+const pad = (n) => String(n).padStart(2, '0');
+
+/** The file name a replay downloads as: bullet-ballet-20261018-1203-rooftop.bbr */
+export function replayName(at, mapId) {
+  const d = new Date(at);
+  return `bullet-ballet-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}-${mapId}.bbr`;
+}
+
+/**
+ * The last KEEP_REPLAYS runs in this browser: each the run's input record with a few facts for the
+ * list (map, mode, rules, result, wave, score, grade, time). `storage` is localStorage or a stand-in.
+ */
+export class ReplayStore {
+  constructor(storage = globalThis.localStorage) {
+    this.storage = storage;
+    try {
+      const list = JSON.parse(storage.getItem(STORE_KEY) || '[]');
+      this.list = Array.isArray(list) ? list.filter((r) => r && typeof r.data === 'string') : [];
+    } catch {
+      this.list = [];
+    }
+  }
+
+  /** Keep a run's record (newest first); when storage is full the oldest go until it fits. */
+  add(meta, bytes) {
+    const entry = { ...meta, name: replayName(meta.at, meta.mapId), data: toBase64(bytes) };
+    this.list.unshift(entry);
+    this.list.length = Math.min(this.list.length, KEEP_REPLAYS);
+    while (this.list.length) {
+      try {
+        this.storage.setItem(STORE_KEY, JSON.stringify(this.list));
+        break;
+      } catch {
+        if (this.list.length === 1) {
+          this.list = [];
+          break;
+        }
+        this.list.pop(); // full: drop the oldest and try again
+      }
+    }
+    return this.list[0] === entry ? entry : null;
+  }
+
+  /** An entry's record as bytes. */
+  bytes(entry) {
+    return fromBase64(entry.data);
   }
 }

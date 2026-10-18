@@ -220,6 +220,44 @@ body.playing * {
   text-align: center;
 }
 
+/* a boss's health bar (hud.js; boss.js) */
+#boss-bar {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+#boss-bar .boss-name {
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #ff5a6a;
+}
+
+#boss-bar .boss-name small {
+  font-family: var(--display);
+  font-weight: normal;
+  color: var(--dim);
+}
+
+#boss-bar .boss-segs {
+  display: flex;
+  gap: 4px;
+}
+
+#boss-bar .boss-segs i {
+  width: 56px;
+  height: 9px;
+  background: #ff3355;
+  box-shadow: 0 0 8px rgba(255, 51, 85, 0.7);
+}
+
+#boss-bar .boss-segs i.lost {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
 #wave-label {
   font-family: var(--display);
   font-size: 30px;
@@ -595,7 +633,8 @@ body.playing * {
   opacity: 0.6;
 }
 
-#hint {
+#hint,
+#hint-pad {
   position: absolute;
   left: 20px;
   bottom: 16px;
@@ -607,7 +646,16 @@ body.playing * {
   opacity: 0.75;
 }
 
-#hint b {
+/* a connected pad (main.js pollPad): its hint bar and key names instead of the keyboard's */
+body.pad #hint,
+body:not(.pad) #hint-pad,
+body.pad .keys-only,
+body:not(.pad) .pad-only {
+  display: none;
+}
+
+#hint b,
+#hint-pad b {
   color: var(--ink);
   font-weight: 700;
   margin-right: 3px;
@@ -698,6 +746,14 @@ body.playing * {
   animation: spin-lock 1.6s linear infinite;
 }
 
+/* the world's daily challenges, with a back end (main.js refreshGlobal) */
+.daily-global {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #ff4fa3;
+  letter-spacing: 1px;
+}
+
 #indicators .arrow {
   position: absolute;
   left: 0;
@@ -715,6 +771,23 @@ body.playing * {
   border-left: 16px solid rgba(255, 51, 85, 0.55);
   border-top: 8px solid transparent;
   border-bottom: 8px solid transparent;
+}
+
+/* a sniper taking aim (hud.js updateSnipers): a red glow on the screen's edge on his side */
+#indicators .snipe-warn {
+  position: absolute;
+  left: -320px;
+  top: -320px;
+  width: 640px;
+  height: 640px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255, 16, 32) 0%, rgba(255, 16, 32, 0.75) 18%, rgba(255, 16, 32, 0.3) 40%, rgba(255, 16, 32, 0) 68%);
+  pointer-events: none;
+  display: none;
+}
+
+#indicators .snipe-warn.hot {
+  animation: blink 0.12s infinite alternate;
 }
 
 #indicators .arrow.hot::before {
@@ -1128,6 +1201,421 @@ body.playing * {
 
 #gameover .menu {
   margin-top: 14px;
+}
+
+/* a replay's end screen: back to the title instead of a new run (replays, main.js) */
+#gameover .replay-only,
+#gameover.replay .start:not(.replay-only) {
+  display: none;
+}
+
+#gameover.replay .replay-only {
+  display: block;
+}
+
+/* the daily challenge: its title card and its end-screen block (daily.js) */
+.daily-card {
+  margin: 14px auto 0;
+  padding: 10px 14px;
+  text-align: left;
+  background: rgba(255, 79, 163, 0.08);
+  border: 1px solid rgba(255, 79, 163, 0.35);
+  border-left: 3px solid #ff4fa3;
+  cursor: default;
+}
+
+.daily-head b {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.daily-en {
+  font-family: var(--display);
+  letter-spacing: 3px;
+  color: #ff4fa3;
+}
+
+#daily-what {
+  margin-left: 8px;
+  font-size: 13px;
+  color: #c9cae6;
+}
+
+.daily-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 8px;
+}
+
+.daily-row button {
+  padding: 6px 14px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: rgba(255, 79, 163, 0.18);
+  border: 1px solid rgba(255, 79, 163, 0.6);
+  cursor: pointer;
+}
+
+.daily-row button small {
+  font-weight: 400;
+  color: var(--dim);
+}
+
+#daily-done {
+  font-weight: 700;
+}
+
+#daily-next {
+  margin-left: auto;
+  font-family: var(--display);
+  letter-spacing: 2px;
+  color: var(--dim);
+}
+
+#daily-msg:empty {
+  display: none;
+}
+
+#gameover:not(.daily) .go-daily {
+  display: none;
+}
+
+.go-daily {
+  margin-top: 14px;
+}
+
+.go-daily-head {
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--dim);
+}
+
+.go-daily-days {
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  gap: 4px;
+  height: 64px;
+  margin-top: 6px;
+}
+
+.go-daily-bar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.go-daily-bar i {
+  display: block;
+  background: rgba(255, 79, 163, 0.5);
+}
+
+.go-daily-bar.today i {
+  background: #ff4fa3;
+  box-shadow: 0 0 10px rgba(255, 79, 163, 0.6);
+}
+
+.go-daily-bar span {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  font-size: 10px;
+  color: var(--dim);
+  text-align: center;
+}
+
+.go-daily-share {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.go-daily-share code {
+  padding: 2px 8px;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.go-daily-share button {
+  padding: 2px 10px;
+  font: inherit;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+}
+
+#gameover .daily-only,
+#gameover.daily .start:not(.daily-only) {
+  display: none;
+}
+
+#gameover.daily .daily-only {
+  display: block;
+}
+
+/* the leaderboards (leaderboard.js) */
+.board-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.board-tabs button {
+  padding: 6px 12px;
+  font: inherit;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+}
+
+.board-tabs button.selected {
+  background: rgba(255, 79, 163, 0.18);
+  border-color: #ff4fa3;
+}
+
+.board-status {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.board-row {
+  display: grid;
+  grid-template-columns: 3em minmax(0, 1fr) 10em 6em;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.board-row.me {
+  background: rgba(255, 79, 163, 0.14);
+  border-color: rgba(255, 79, 163, 0.5);
+}
+
+.board-rank {
+  font-family: var(--display);
+  font-size: 18px;
+  color: var(--gold);
+}
+
+.board-score {
+  font-family: var(--display);
+  letter-spacing: 1px;
+  text-align: right;
+}
+
+.board-row button {
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+}
+
+.board-gap {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--dim);
+  text-align: center;
+}
+
+.board-name-row {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.board-name-row input,
+#go-name {
+  width: 12em;
+  padding: 4px 8px;
+  font: inherit;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.board-name-row button,
+#go-name-save {
+  padding: 4px 10px;
+  font: inherit;
+  color: var(--ink);
+  background: rgba(255, 79, 163, 0.18);
+  border: 1px solid rgba(255, 79, 163, 0.6);
+  cursor: pointer;
+}
+
+.go-board {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+/* achievements (achievements.js) */
+.modes.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ach-row {
+  display: grid;
+  grid-template-columns: 3.5em 13em minmax(0, 1fr) 11em;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  color: var(--dim);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ach-row.done {
+  color: var(--ink);
+  background: rgba(255, 200, 97, 0.08);
+  border-color: rgba(255, 200, 97, 0.45);
+}
+
+.ach-mark {
+  font-family: var(--display);
+  font-size: 18px;
+  color: var(--gold);
+  text-align: center;
+}
+
+.ach-name {
+  font-weight: 700;
+}
+
+.ach-opens {
+  color: #ff4fa3;
+  text-align: right;
+}
+
+.title-links {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.title-links button {
+  padding: 6px 16px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+}
+
+.title-links button small {
+  font-family: var(--display);
+  letter-spacing: 2px;
+  color: var(--dim);
+}
+
+.title-links button:hover,
+.title-links button:focus-visible {
+  background: rgba(255, 63, 164, 0.14);
+  outline: none;
+}
+
+.replay-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  text-align: left;
+}
+
+.replay-row {
+  display: grid;
+  grid-template-columns: 7em minmax(0, 1fr) 13em 7em auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.replay-when,
+.replay-how {
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.replay-score {
+  font-family: var(--display);
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-align: right;
+}
+
+.replay-row button,
+.replay-row a.button {
+  padding: 4px 10px;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+}
+
+.replay-empty {
+  color: var(--dim);
+  text-align: center;
+}
+
+#replays .menu label.button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  font-weight: 700;
+  font-size: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 3px solid var(--pink);
+  cursor: pointer;
+}
+
+#replay-badge {
+  margin-top: 6px;
+  font-family: var(--display);
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: #ff4fa3;
+  animation: breathe 0.8s ease-in-out infinite alternate;
+}
+
+#replay-badge b {
+  color: var(--ink);
+}
+
+#replay-badge small {
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--dim);
 }
 
 /* the best kill plays before the score (clip.js) */

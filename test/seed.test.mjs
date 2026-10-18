@@ -1,4 +1,4 @@
-// Seeded runs: with ?seed=123 the bot plays 600 frames and gets the same wave
+// Seeded runs: with ?seed=321 the bot plays 600 frames and gets the same wave
 // rosters, the same spawn points and the same enemy shots, at the same moments,
 // in a second page and after a restart in the same page. Without a seed every
 // run differs. Effects have their own RNG: switching them all off and
@@ -77,8 +77,8 @@ function assertEventful(r) {
   assert.ok(r.shots.length >= 1, `no enemy fired in ${FRAMES} frames`);
 }
 
-test('?seed=123 plays the same run in a second page and after a restart', { timeout: 10 * 60 * 1000 }, async () => {
-  const a = await h.open('?seed=123');
+test('?seed=321 plays the same run in a second page and after a restart', { timeout: 10 * 60 * 1000 }, async () => {
+  const a = await h.open('?seed=321');
   // stop the first page's frame loop (the bot would anyway): two SwiftShader pages
   // rendering at once starved the second one's load past the harness timeout
   await a.page.evaluate(() => {
@@ -86,7 +86,7 @@ test('?seed=123 plays the same run in a second page and after a restart', { time
   });
   let b;
   try {
-    b = await h.open('?seed=123');
+    b = await h.open('?seed=321');
     await installTrace(a.page);
     await installTrace(b.page);
     const a1 = await play(a.page);
@@ -94,7 +94,7 @@ test('?seed=123 plays the same run in a second page and after a restart', { time
     const a2 = await play(a.page); // R from the pause menu: same page, a fresh run
     console.log(brief(a1));
     assertEventful(a1);
-    assert.equal(a1.seed, 123);
+    assert.equal(a1.seed, 321);
     assert.deepEqual(b1, a1, 'a second page with the same seed played a different run');
     assert.deepEqual(a2, a1, 'restarting with the same seed played a different run');
     assert.deepEqual(problems([...a.logs, ...b.logs]), []);
@@ -123,7 +123,7 @@ test('without a seed every run is different', { timeout: 10 * 60 * 1000 }, async
 });
 
 test('effects have their own RNG: with every effect off the seeded run is unchanged', { timeout: 10 * 60 * 1000 }, async () => {
-  const { page, logs } = await h.open('?seed=123');
+  const { page, logs } = await h.open('?seed=321');
   try {
     await installTrace(page);
     const reference = await play(page);

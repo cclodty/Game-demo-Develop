@@ -71,16 +71,19 @@ export class Pickups {
     this.prompt = null;
   }
 
-  /** Put a weapon on every empty pad, preferring kinds not already lying around. */
-  refillPads() {
-    const used = new Set(this.list.map((p) => p.kind));
+  /**
+   * Every pad gets the wave's weapon, a different one on each pad while the pool lasts; a weapon
+   * still lying on a pad is swapped. Drawn from the wave's stream `rng`, so every run with a seed
+   * sees the same pads, however it is played.
+   */
+  refillPads(rng) {
+    const used = new Set();
     let n = 0;
     for (const pad of this.game.level.pads) {
-      if (pad.pickup) continue;
       const fresh = PAD_POOL.filter((k) => !used.has(k));
-      const pool = fresh.length ? fresh : PAD_POOL;
-      const kind = this.game.rng.pick(pool);
+      const kind = rng.pick(fresh.length ? fresh : PAD_POOL);
       used.add(kind);
+      if (pad.pickup) this.remove(pad.pickup);
       this.spawn(kind, pad.x, pad.z, { pad });
       this.game.fx.ring(pad.x, pad.z, 1.6, 0.5, 0xffc861, 3);
       n++;

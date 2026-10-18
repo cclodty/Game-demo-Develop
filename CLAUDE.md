@@ -36,6 +36,7 @@ npm run lint                      # eslint on src/, scripts/, test/
 npm test                          # senado unit tests + smoke + map validator + asset pipeline + a short bot run (~2 min)
 npm run test:game                 # slow: every weapon fires, E-swap, a long looting run (~10 min)
 npm run build                     # single-file dist/bullet-ballet.html for sharing (must stay < 16 MB)
+npm run itch                      # that file as index.html in dist/bullet-ballet-itch.zip, for itch.io (docs/itch/README.md)
 npm run assets                    # masters in assets/source/<id>/ → web models in assets/models/
 npm run assets:docs               # regenerate assets/PROMPTS.md, asset-list.*, maps/*.json
 ```
@@ -54,31 +55,36 @@ performance and "does it feel good" are the developer's calls; ask for them.
 ```
 index.html, style.css        HUD / menu DOM and styles; importmap → vendor/three
 src/main.js                  Game: fixed 120 Hz logic steps + per-frame present, time scale (bullet time, hit-stop, kill-cam), camera views, screens
-src/input.js  replay.js      live keyboard/mouse → one StepInput per logic step; the run's input record (changes only)
+src/input.js  replay.js      live keyboard/mouse/gamepad (standard layout mapped onto BUTTONS) → one StepInput per logic step; the run's input record (changes only), the last ten kept as replays (.bbr)
 src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, VIEWS
 src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS and the AI state machine
-src/weapons.js bullets.js    player weapon stats, drops, grenades; projectile stepping and ricochet
+src/weapons.js bullets.js    player weapon stats, drops, grenades (the launcher's, and the grenadier's lobbed ones: ring, fuse, kick back, AIRBURST); projectile stepping and ricochet
 src/waves.js  pickups.js     MODES (arcade: 12 waves, then RUN CLEAR; endless), wave composition and spawn pacing; floor weapons and pads
 src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 4 maps as data
 src/nav.js                   grid A* on 0.5 m cells
 src/rng.js                   seeded RNG: game.rng for logic (?seed=), vfxRng behind utils.js rand/pick for effects
-src/characters.js  skin.js   block rigs + weapon models; optional skinned models worn over the rig (IK hands)
+src/characters.js  skin.js   block rigs + weapon models (and the drone's block quadcopter, shaped like a rig), KEY_POSES (slide, spin, carry); optional skinned models worn over the rig (IK hands and key-pose feet)
 src/models.js                loads assets/models/*.glb, fits props to map boxes; src/models-index.js is generated
 src/asset-manifest.js        catalogue of every asset we want as a real model (sizes, budgets, prompts)
 src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
+src/boss.js                  the rooftop helicopter boss (the last wave on a map with `boss` in maps.js): flight, searchlight and burst, rappellers, health bar
 src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
 src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
+src/leaderboard.js           boards: local always, the back end's when config.js BACKEND.url is set (never waited on); nickname rule shared with backend/
+src/daily.js                 the daily challenge: UTC date → seed, map and rules from a rotation table; one try a day; share codes
+src/achievements.js          achievements as data, counted from the game's events (never feeding back into play); unlocks: rules.js variants with `unlock`, coat colours
 src/clip.js                  the best-kill clip: overlapping MediaRecorder recordings of a small copy of the screen, played on the end screen
 src/telemetry.js             local play records: one row per run (start, waves, end and cause, time, played again), carried by the feedback export
 src/rules.js                 run rules: difficulties and variants as data (one switch or number each), read by their systems as game.ruleset
 src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export
 src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions
 src/senado/                  Largo do Senado data and model code extracted from the senado/ sub-project
-scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, serve.mjs, senado-extract.mjs
+backend/                     the leaderboard Cloudflare Worker (worker.js), its D1 schema and a wrangler.toml template; deployed by the developer (docs/BACKEND.md)
+scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, itch.mjs (+ itch-cover.mjs), serve.mjs, senado-extract.mjs
 test/                        node:test + playwright; helpers.mjs has the bot; fixtures/ holds a short recorded clip
 assets/                      SPEC.md, PROMPTS.md, START_HERE.md, asset-list.*, maps/*.json, source/ (masters), models/ (web)
-docs/                        ROADMAP.md, TASKS.md, DECISIONS.md; shots/ holds the screenshots PR descriptions show
+docs/                        ROADMAP.md, TASKS.md, DECISIONS.md, BACKEND.md (deploying the back end); shots/ holds the screenshots PR descriptions show; itch/ the itch.io page
 senado/                      the Largo do Senado city-model sub-project (own README, tests, scripts); don't edit from game tasks
 vendor/three/                three.js r186 + the addons we use; never modify
 ```

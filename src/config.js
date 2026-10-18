@@ -35,6 +35,9 @@ export const PLAYER = {
   kickRange: 2.1,
   kickArc: 1.25, // radians, total cone is twice this
   kickCooldown: 0.45,
+  execRange: 1.2, // m: F by an enemy kicked down or hit by something thrown, still dazed, finishes him
+  execTime: 0.6, // s the execution takes, standing
+  execInvuln: 0.3, // s untouchable at its start
 };
 
 export const FOCUS = {
@@ -44,6 +47,7 @@ export const FOCUS = {
   regen: 0.022,
   minToEnter: 0.1,
   killRefill: 0.12,
+  executeRefill: 0.25, // an execution's refill (instead of killRefill)
   closeCallRefill: 0.05,
 };
 
@@ -101,6 +105,20 @@ export const WARMUP = {
  * without a hit, and how fast a cleared run was. A run that falls gets no
  * time points. The god-mode bot clears 12 waves with about 206,000 points.
  */
+/** The leaderboard back end (backend/worker.js, docs/BACKEND.md): its address once deployed; empty plays offline. */
+export const BACKEND = {
+  url: '',
+};
+
+/** Gamepads (input.js poll, main.js padAim): sticks, the aim distance, the pull onto an enemy. */
+export const PAD = {
+  moveAt: 0.35, // the left stick past this (each axis) holds W / A / S / D
+  deadzone: 0.3, // the right stick inside this keeps the last aim direction
+  aimDistance: 7, // m: the aim point ahead of the player along the right stick
+  assistDeg: 6, // the aim snaps onto the nearest visible enemy this close to the stick's direction
+  assistRange: 25, // m: enemies further off are not snapped to
+};
+
 /** The best-kill clip (clip.js): overlapping recordings of a small copy of the screen. */
 export const CLIP = {
   before: 6, // seconds kept ahead of the best kill
@@ -133,6 +151,8 @@ export const CAMERA = {
   lookAhead: 0.24,
   lookAheadMax: 5.5,
   focusZoom: 0.86,
+  bossZoom: 1.4, // a boss in the air (boss.js): the view pulls back this much
+  bossPull: 0.35, // and leans this far from the player towards it
 };
 
 /**

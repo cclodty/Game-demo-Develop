@@ -1,7 +1,10 @@
-// Seeded random numbers. Game logic (wave rosters, spawn picks, enemy
-// decisions, bullet spread, drops, weapon pads) draws from game.rng, which is
-// reseeded at the start of every run: ?seed=123 plays the same run each time,
-// and replays and the daily challenge build on that. Effects (particles,
+// Seeded random numbers. Game logic draws from game.rng, which is reseeded at
+// the start of every run: ?seed=123 plays the same run each time, and replays
+// and the daily challenge build on that. Each wave's roster, spawn order,
+// pacing and weapon pads come from a stream forked off the seed and the wave
+// number (game.rng.fork('wave', n)), so every run with a seed meets the same
+// waves however it is played; enemy decisions, bullet spread and drops stay
+// on the main stream. Effects (particles,
 // decals, sounds, set dressing) draw from vfxRng through rand / randInt / pick
 // in utils.js, so adding or removing an effect never changes the game.
 // Nothing in src/ calls Math.random (eslint enforces it).
@@ -39,6 +42,11 @@ export class Rng {
   /** One element of a non-empty array. */
   pick(arr) {
     return arr[Math.floor(this.next() * arr.length)];
+  }
+
+  /** A separate stream named by `parts`, from this stream's seed alone: fork('wave', 3) is the same however far this stream has been drawn. */
+  fork(...parts) {
+    return new Rng(seedFrom(`${this.seed}/${parts.join('/')}`));
   }
 }
 

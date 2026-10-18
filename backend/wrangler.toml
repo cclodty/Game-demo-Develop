@@ -1,0 +1,15 @@
+# A template: fill in database_id on your own machine and do not commit it
+# (docs/BACKEND.md, step 3). Nothing in this file is a secret, but the repo
+# keeps no account details.
+name = "bullet-ballet"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# the pages allowed to call the worker, comma separated; "*" while testing
+ALLOWED_ORIGIN = "*"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bullet-ballet"
+database_id = "REPLACE-WITH-YOUR-D1-DATABASE-ID"

@@ -17,7 +17,7 @@ const KEY = 'bullet-ballet.tutorial';
  * nearest barrel. `aimHint` waits for the enemy to start aiming.
  */
 export const STEPS = [
-  { type: 'grunt', at: 'front', aimHint: true, hint: '他在瞄準你：按 <b>Shift</b> 或 <b>Q</b> 進入子彈時間，避開再還擊', log: '熱身 1／3：子彈時間' },
+  { type: 'grunt', at: 'front', aimHint: true, hint: '他在瞄準你：按 {focus} 進入子彈時間，避開再還擊', log: '熱身 1／3：子彈時間' },
   { type: 'grunt', at: 'pan', hint: '射<b>平底鑊</b>：子彈會反彈，飛向最近的敵人', log: '熱身 2／3：平底鑊' },
   { type: 'grunt', at: 'barrel', hint: '射<b>油桶</b>：爆炸會炸死旁邊的敵人', log: '熱身 3／3：油桶' },
 ];

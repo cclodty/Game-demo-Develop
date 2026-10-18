@@ -3,7 +3,8 @@ import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
-import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PLAYER, RATING, VIEWS } from './config.js';
+import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
+import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RATING, VIEWS } from './config.js';
 import { Enemies } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
@@ -16,9 +17,11 @@ import { Pickups } from './pickups.js';
 import { Player } from './player.js';
 import { PostFX } from './postfx.js';
 import { readQuality } from './quality.js';
-import { InputRecord } from './replay.js';
+import { countdown, dailyFor, DailyStore, msToNextDay, shareCode, utcDay } from './daily.js';
+import { fromBase64, InputRecord, RecordReader, ReplayStore, toBase64 } from './replay.js';
+import { Leaderboard } from './leaderboard.js';
 import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
-import { DIFFICULTIES, DIFFICULTY_IDS, packRules, rulesFor, VARIANT_IDS, VARIANTS } from './rules.js';
+import { DIFFICULTIES, DIFFICULTY_IDS, packRules, rulesFor, unpackRules, VARIANT_IDS, VARIANTS } from './rules.js';
 import { rate, Score } from './score.js';
 import { Style } from './style.js';
 import { Telemetry } from './telemetry.js';
@@ -27,6 +30,7 @@ import { Tutorial, wantWarmup } from './tutorial.js';
 import { clamp, damp, lerp } from './utils.js';
 import { MODE_IDS, MODES, Waves } from './waves.js';
 import { Grenades } from './weapons.js';
+import { Boss } from './boss.js';
 
 const MAP_KEY = 'bullet-ballet.map';
 const MODE_KEY = 'bullet-ballet.mode';
@@ -79,6 +83,12 @@ class Game {
     this.cmd = new StepInput();
     this.feed = null;
     this.record = new InputRecord();
+    this.replays = new ReplayStore(); // the last ten runs' records, for the replay list
+    this.replay = null; // while a record plays back: { rd, speed, meta, mode }
+    this.now = () => Date.now(); // the wall clock, read only to pick the daily challenge's day (tests set their own)
+    this.daily = new DailyStore(); // this browser's daily results
+    this.dailyRun = null; // during a daily run and its end screen: { day, mode }
+    this.boards = new Leaderboard(); // the back end's boards when BACKEND.url is set, this browser's otherwise
     this.acc = 0;
     this.stepCount = 0;
     this.frameSteps = 0;
@@ -102,13 +112,15 @@ class Game {
     } catch {
       /* storage unavailable */
     }
+    // achievements and what they open (achievements.js); a locked rule pick is not on offer
+    this.achievements = new Achievements(localStorage, (a) => this.onAchievement(a));
     // the run rules picked on the title screen (rules.js); a run fixes them as ruleset
     this.difficulty = 'normal';
     this.variants = [];
     try {
       const saved = JSON.parse(localStorage.getItem(RULES_KEY) || '{}');
       if (DIFFICULTY_IDS.includes(saved.difficulty)) this.difficulty = saved.difficulty;
-      if (Array.isArray(saved.variants)) this.variants = VARIANT_IDS.filter((id) => saved.variants.includes(id));
+      if (Array.isArray(saved.variants)) this.variants = VARIANT_IDS.filter((id) => saved.variants.includes(id) && this.isOpen(id));
     } catch {
       /* storage unavailable or unreadable */
     }
@@ -120,6 +132,7 @@ class Game {
     if (this.startMap) this.level.load(MAPS[this.startMap]);
     this.bullets = new Bullets(this);
     this.grenades = new Grenades(this);
+    this.boss = new Boss(this); // the last wave's boss on a map that has one (boss.js)
     this.pickups = new Pickups(this);
     this.thrown = new Thrown(this);
     this.tutorial = new Tutorial(this);
@@ -138,6 +151,9 @@ class Game {
     this.raycaster = new THREE.Raycaster();
     this.ndc = new THREE.Vector2();
     this.aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GUN_Y);
+    this.padDir = new THREE.Vector2(0, -1); // the right stick's last direction on the floor
+    this.padScreen = new THREE.Vector3();
+    this.padOn = false; // a pad is connected (the hints name its buttons)
     const start = this.level.start;
     this.aimPoint = new THREE.Vector3(start.x, GUN_Y, start.z - 5);
     this.camTarget = new THREE.Vector3(start.x, 0, start.z);
@@ -198,6 +214,7 @@ class Game {
     };
     for (const id of MODE_IDS) {
       const m = MODES[id];
+      if (m.daily) continue; // it has its own card
       const b = document.createElement('button');
       b.className = 'mode-card';
       b.type = 'button';
@@ -230,7 +247,30 @@ class Game {
         this.setRules(this.difficulty, this.variants.includes(v) ? this.variants.filter((x) => x !== v) : [...this.variants, v]),
       );
     }
+    // the coat colours (open with an achievement) and the achievements page
+    for (const c of COATS) {
+      const b = document.createElement('button');
+      b.className = 'mode-card';
+      b.type = 'button';
+      b.dataset.coat = c.id;
+      b.style.setProperty('--mode', `#${c.rgb.toString(16).padStart(6, '0')}`);
+      b.innerHTML = `<span class="mode-zh">${c.name}</span>`;
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.achievements.setCoat(c.id);
+        this.player.setCoat(c);
+        this.markRules();
+      });
+      $('coat-cards').appendChild(b);
+    }
+    $('open-achievements').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.showAchievements(true);
+    });
+    $('achievements').addEventListener('click', (e) => e.stopPropagation());
+    $('achievements-close').addEventListener('click', () => this.showAchievements(false));
     this.markRules();
+    if (this.achievements.coatOpen) this.player.setCoat(COATS.find((c) => c.id === this.achievements.coat));
     // the first visit: the local records switch (on unless turned off)
     const tele = $('telemetry-on');
     tele.checked = this.telemetry.on;
@@ -256,15 +296,75 @@ class Game {
     });
     this.markMapCard();
     $('title').addEventListener('click', () => start());
+    // the daily challenge card
+    $('daily-card').addEventListener('click', (e) => e.stopPropagation()); // not a start of the picked mode
+    $('daily-start').addEventListener('click', () => {
+      this.audio.init();
+      this.startDaily();
+    });
+    $('daily-replay').addEventListener('click', () => this.playDailyReplay());
+    $('go-daily-copy').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const code = $('go-daily-code').textContent;
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).catch(() => {});
+      $('go-daily-copy').textContent = '已複製';
+    });
+    this.renderDaily();
+    this.refreshGlobal();
+    setInterval(() => {
+      if (this.state === 'title') this.renderDaily(); // the countdown
+    }, 1000);
     $('gameover').addEventListener('click', () => {
       if (this.clipOn) this.endClip(); // a click skips the clip
+      else if (this.replay || this.dailyRun) this.toTitle(); // a replay's or a daily's end goes back to the title
       else if (performance.now() - this.overAt > 700) start();
+    });
+    // the leaderboards
+    $('open-boards').addEventListener('click', (e) => {
+      e.stopPropagation(); // not a start
+      this.showBoards(true);
+    });
+    $('boards').addEventListener('click', (e) => e.stopPropagation());
+    $('boards-close').addEventListener('click', () => this.showBoards(false));
+    for (const tab of document.querySelectorAll('#board-tabs button')) {
+      tab.addEventListener('click', () => this.renderBoard(tab.dataset.board));
+    }
+    $('board-name-save').addEventListener('click', () => {
+      const name = this.boards.setName($('board-name').value);
+      $('board-msg').textContent = name ? `暱稱改為「${name}」` : '暱稱要 1 到 16 個字：文字、數字、空格或 _ . -';
+      if (name) $('board-name').value = name;
+    });
+    $('go-name-save').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const name = this.boards.setName($('go-name').value);
+      if (!name) {
+        $('go-board-text').textContent = '暱稱要 1 到 16 個字：文字、數字、空格或 _ . -';
+        return;
+      }
+      $('go-name-row').classList.add('hidden');
+      if (this.pendingUpload) this.sendRun(this.pendingUpload);
+    });
+    $('go-name').addEventListener('click', (e) => e.stopPropagation());
+    // the replay list
+    $('open-replays').addEventListener('click', (e) => {
+      e.stopPropagation(); // not a start
+      this.showReplays(true);
+    });
+    $('replays').addEventListener('click', (e) => e.stopPropagation());
+    $('replays-close').addEventListener('click', () => this.showReplays(false));
+    $('replay-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const err = this.playReplay(bytes, { name: file.name });
+      if (err) this.renderReplays(`無法播放 ${file.name}：${err}`);
     });
     $('go-clip-save').addEventListener('click', (e) => e.stopPropagation()); // saving is not restarting
     $('pause').addEventListener('click', () => this.setPaused(false));
     const menu = {
       resume: () => this.setPaused(false),
-      restart: () => start(),
+      restart: () => (this.dailyRun ? this.toTitle() : start()), // a daily has one try
       title: () => this.toTitle(),
       note: () => this.notes.openNote(),
       export: () => this.notes.download(),
@@ -277,6 +377,25 @@ class Game {
     }
     addEventListener('keydown', (e) => {
       if (isTyping(e.target)) return; // the note box handles its own keys
+      if (this.replay && (this.state === 'playing' || this.state === 'dying')) {
+        // a replay: 1 / 2 / 3 for half, normal and double speed, Esc to leave; the game's own keys do nothing
+        const speed = { Digit1: 0.5, Digit2: 1, Digit3: 2 }[e.code];
+        if (speed) this.setReplaySpeed(speed);
+        else if (e.code === 'Escape') this.toTitle();
+        return;
+      }
+      if (e.code === 'Escape' && !$('replays').classList.contains('hidden')) {
+        this.showReplays(false);
+        return;
+      }
+      if (e.code === 'Escape' && !$('boards').classList.contains('hidden')) {
+        this.showBoards(false);
+        return;
+      }
+      if (e.code === 'Escape' && !$('achievements').classList.contains('hidden')) {
+        this.showAchievements(false);
+        return;
+      }
       if (e.code === 'Escape' && this.state === 'playing' && this.tutorial.active) return; // Esc skips the warm-up (a recorded control) instead of pausing
       if (e.code === 'Escape' || e.code === 'KeyP') {
         if (this.notes.noteOpen) this.notes.cancelNote();
@@ -288,7 +407,8 @@ class Game {
         e.preventDefault(); // or the N lands in the note box it just focused
         this.notes.openNote();
       } else if (e.code === 'KeyR' && this.state === 'paused') {
-        start();
+        if (this.dailyRun) this.toTitle();
+        else start();
       } else if (e.code === 'KeyT') {
         if (this.state === 'paused' || (this.state === 'over' && performance.now() - this.overAt > 700)) this.toTitle();
       } else if (e.code === 'KeyV' && this.state !== 'paused') {
@@ -299,6 +419,7 @@ class Game {
       } else if (e.code === 'Enter') {
         if (this.state === 'title') start();
         else if (this.clipOn) this.endClip();
+        else if (this.state === 'over' && (this.replay || this.dailyRun)) this.toTitle();
         else if (this.state === 'over' && performance.now() - this.overAt > 700) start();
       } else if (this.state === 'title' && /^Digit[1-9]$/.test(e.code)) {
         const i = Number(e.code.slice(5)) - 1;
@@ -331,10 +452,16 @@ class Game {
     $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結` : `每 ${r.perStage} 波換一個場景`;
   }
 
+  /** Whether a variant is on offer: open from the start, or its achievement is done. */
+  isOpen(id) {
+    const v = VARIANTS[id];
+    return !!v && (!v.unlock || this.achievements.has(v.unlock));
+  }
+
   /** Pick the difficulty and variants for the next run (the title screen), and remember them. */
   setRules(difficulty, variants) {
     this.difficulty = DIFFICULTY_IDS.includes(difficulty) ? difficulty : 'normal';
-    this.variants = VARIANT_IDS.filter((id) => variants.includes(id));
+    this.variants = VARIANT_IDS.filter((id) => variants.includes(id) && this.isOpen(id));
     try {
       localStorage.setItem(RULES_KEY, JSON.stringify({ difficulty: this.difficulty, variants: this.variants }));
     } catch {
@@ -345,12 +472,60 @@ class Game {
 
   markRules() {
     for (const c of $('difficulty-cards').children) c.classList.toggle('selected', c.dataset.rule === this.difficulty);
-    for (const c of $('variant-cards').children) c.classList.toggle('selected', this.variants.includes(c.dataset.rule));
+    for (const c of $('variant-cards').children) {
+      c.classList.toggle('selected', this.variants.includes(c.dataset.rule));
+      c.classList.toggle('hidden', !this.isOpen(c.dataset.rule));
+    }
+    const ach = this.achievements;
+    $('coat-row').classList.toggle('hidden', !ach.coatOpen);
+    for (const c of $('coat-cards').children) c.classList.toggle('selected', c.dataset.coat === ach.coat);
+  }
+
+  /** An achievement is done: say so, with what it opens, and put the opened picks on the title. */
+  onAchievement(a) {
+    const opens = Object.values(VARIANTS)
+      .filter((v) => v.unlock === a.id)
+      .map((v) => v.name);
+    if (a.id === COAT_UNLOCK) opens.push('外套顏色');
+    this.hud.toast(`成就：${a.name} <small>${a.en}</small>${opens.length ? `<br>解鎖：${opens.join('、')}` : ''}`);
+    this.notes.log(`成就：${a.name}${opens.length ? `（解鎖 ${opens.join('、')}）` : ''}`);
+    this.audio.pickup();
+    this.markRules();
+  }
+
+  showAchievements(on) {
+    $('achievements').classList.toggle('hidden', !on);
+    $('title').classList.toggle('hidden', on);
+    if (!on) return;
+    const ach = this.achievements;
+    const list = $('ach-list');
+    list.textContent = '';
+    for (const a of ACHIEVEMENTS) {
+      const row = document.createElement('div');
+      row.className = `ach-row${ach.has(a.id) ? ' done' : ''}`;
+      const p = ach.progress(a);
+      const opens = Object.values(VARIANTS)
+        .filter((v) => v.unlock === a.id)
+        .map((v) => v.name);
+      if (a.id === COAT_UNLOCK) opens.push('外套顏色');
+      const cell = (cls, text) => {
+        const s = document.createElement('span');
+        s.className = cls;
+        s.textContent = text;
+        row.appendChild(s);
+      };
+      cell('ach-mark', ach.has(a.id) ? '✓' : p.need > 1 ? `${p.have}/${p.need}` : '');
+      cell('ach-name', `${a.name} ${a.en}`);
+      cell('ach-desc', a.desc);
+      cell('ach-opens', opens.length ? `解鎖：${opens.join('、')}` : '');
+      list.appendChild(row);
+    }
+    $('ach-count').textContent = `已完成 ${ACHIEVEMENTS.filter((a) => ach.has(a.id)).length} / ${ACHIEVEMENTS.length}`;
   }
 
   startRun(mapIndex = this.startMap) {
     // a run left from the pause menu (restart) ends as a quit
-    if (this.state === 'paused' || this.state === 'playing') this.telemetry.end({ result: 'quit', wave: this.waves.wave, score: this.score.score }, this.stepCount / LOGIC_HZ);
+    if (this.state === 'paused' || this.state === 'playing') this.endAsQuit();
     this.startMap = mapIndex;
     this.markMapCard();
     try {
@@ -375,7 +550,9 @@ class Game {
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
     this.telemetry.confirm(); // the switch was on the title screen: playing is leaving it as it is
     $('telemetry-switch').classList.add('hidden');
-    this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup });
+    if (!this.replay) this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup, input: this.padOn ? 'pad' : 'keyboard', daily: !!this.dailyRun });
+    $('replay-badge').classList.toggle('hidden', !this.replay);
+    document.body.classList.toggle('replaying', !!this.replay);
     this.deathCause = '';
     if (warmup) {
       this.waves.startWarmup();
@@ -383,6 +560,9 @@ class Game {
     }
     this.endClip();
     this.clip.start();
+    this.achievements.startRun();
+    this.achievements.watching = !!this.replay; // a replay earns nothing
+    this.rankSeen = 0;
     this.state = 'playing';
     $('title').classList.add('hidden');
     $('gameover').classList.add('hidden');
@@ -395,8 +575,372 @@ class Game {
   }
 
   /** Abandon the run (from pause or game over) and go back to the map select. */
+  /**
+   * The day's challenge (daily.js): the date picks the seed, map and rules; one try a day in this
+   * browser, taken as soon as the run starts. Returns whether it started.
+   */
+  startDaily() {
+    const day = utcDay(this.now());
+    if (!this.daily.canPlay(day)) {
+      this.renderDaily('今天已經打過了：可以看重播，明天再來。');
+      return false;
+    }
+    const d = dailyFor(day);
+    if (this.replay) this.endReplay();
+    const keep = { seed: this.fixedSeed, warmup: this.fixedWarmup, rules: this.fixedRules };
+    this.fixedSeed = d.seed;
+    this.fixedWarmup = false; // the same run for everyone: no warm-up
+    this.fixedRules = { difficulty: d.difficulty, variants: d.variants };
+    this.dailyRun = { day, mode: this.mode };
+    this.mode = 'daily';
+    this.daily.begin(day);
+    this.startRun(d.map);
+    Object.assign(this, { fixedSeed: keep.seed, fixedWarmup: keep.warmup, fixedRules: keep.rules });
+    this.notes.log(`每日挑戰 ${day}`);
+    return true;
+  }
+
+  /** Leave the daily: the title's mode comes back. */
+  endDaily() {
+    if (!this.dailyRun) return;
+    this.mode = this.dailyRun.mode;
+    this.dailyRun = null;
+  }
+
+  /** Watch the day's run again (the only way to see it after the one try). */
+  playDailyReplay() {
+    const r = this.daily.replay;
+    if (!r) return;
+    const err = this.playReplay(fromBase64(r.data), { name: `每日挑戰 ${r.day}` });
+    if (err) this.renderDaily(`無法播放：${err}`);
+  }
+
+  /** With a back end (config.js BACKEND.url): the world's daily challenges today and yesterday on the daily card, from /stats (asked at most once a minute; nothing shows when it fails). */
+  refreshGlobal() {
+    const el = $('daily-global');
+    if (!this.boards.online) {
+      el.classList.add('hidden');
+      return;
+    }
+    const at = performance.now();
+    if (this.globalAt && at - this.globalAt < 60000) return;
+    this.globalAt = at;
+    this.boards.stats().then((days) => {
+      if (!days) return;
+      const today = utcDay(this.now());
+      const yesterday = utcDay(this.now() - 86400000);
+      const count = (d) => (days.find((x) => x.day === d) || { daily: 0 }).daily;
+      el.textContent = `全球：今天 ${count(today)} 局 · 昨天 ${count(yesterday)} 局`;
+      el.classList.remove('hidden');
+    });
+  }
+
+  /** The title's daily card: today's map and rules, start or today's result, and the time to the next one. */
+  renderDaily(msg = '') {
+    const now = this.now();
+    const day = utcDay(now);
+    const d = dailyFor(day);
+    const rules = rulesFor(d.difficulty, d.variants).label || '正常';
+    $('daily-what').textContent = `${day}（UTC） · ${MAPS[d.map].name} · ${rules}`;
+    const done = this.daily.days[day];
+    $('daily-start').classList.toggle('hidden', !!done);
+    $('daily-done').classList.toggle('hidden', !done);
+    $('daily-replay').classList.toggle('hidden', !(done && this.daily.replay && this.daily.replay.day === day));
+    if (done) $('daily-done').textContent = done.left ? '今天的一局已開始過（中途離開）' : `今天：${Math.round(done.score).toLocaleString('en-US')} 分 ${done.grade}`;
+    $('daily-next').textContent = `下一局 ${countdown(msToNextDay(now))}`;
+    $('daily-msg').textContent = msg;
+  }
+
+  /** The end screen's daily block: today's score, the last fourteen days, and the share code. */
+  showDailyEnd(grade) {
+    const r = this.dailyRun;
+    const result = { score: Math.round(this.score.score), grade, wave: this.waves.wave, cleared: this.waves.state === 'done' };
+    this.daily.finish(r.day, result, toBase64(this.record.encode()));
+    $('go-daily-day').textContent = r.day;
+    const days = this.daily.last14(r.day);
+    const top = Math.max(1, ...days.map((x) => (x.result ? x.result.score : 0)));
+    const bars = $('go-daily-days');
+    bars.textContent = '';
+    for (const x of days) {
+      const bar = document.createElement('div');
+      bar.className = `go-daily-bar${x.day === r.day ? ' today' : ''}${x.result ? '' : ' none'}`;
+      bar.title = `${x.day}：${x.result ? `${x.result.score.toLocaleString('en-US')} 分 ${x.result.grade}` : '沒有打'}`;
+      const fill = document.createElement('i');
+      fill.style.height = `${x.result ? Math.max(6, (100 * x.result.score) / top) : 0}%`;
+      const label = document.createElement('span');
+      label.textContent = x.day.slice(8);
+      bar.append(fill, label);
+      bars.appendChild(bar);
+    }
+    $('go-daily-code').textContent = shareCode({ day: r.day, score: result.score, grade });
+    $('go-daily-copy').textContent = '複製';
+    this.notes.log(`每日挑戰 ${r.day}：${result.score} 分 ${grade}`);
+  }
+
+  /**
+   * A finished run onto the boards: a daily, or an arcade run on the normal rules (a variant or
+   * another difficulty is another game). Always this browser's board; the back end's as well when
+   * BACKEND.url is set, asking for a nickname the first time. Never holds the end screen up.
+   */
+  uploadRun(grade) {
+    const box = $('go-board');
+    const daily = this.dailyRun;
+    const arcade = this.mode === 'arcade' && !this.ruleset.label;
+    box.classList.toggle('hidden', !(daily || arcade));
+    $('go-name-row').classList.add('hidden');
+    this.pendingUpload = null;
+    if (!daily && !arcade) return;
+    const run = {
+      mode: daily ? 'daily' : 'arcade',
+      day: daily ? daily.day : utcDay(this.now()),
+      map: this.record.map,
+      score: Math.round(this.score.score),
+      grade,
+      replay: toBase64(this.record.encode()),
+      overAt: this.overAt,
+    };
+    if (this.boards.online && !this.boards.me.name) {
+      // the first time on the boards: a nickname first (the local board has the run already)
+      this.boards.addLocal(run);
+      run.localDone = true;
+      this.pendingUpload = run;
+      $('go-board-text').textContent = '第一次上排行榜：取個暱稱';
+      $('go-name-row').classList.remove('hidden');
+      return;
+    }
+    this.sendRun(run);
+  }
+
+  sendRun(run) {
+    this.pendingUpload = null;
+    $('go-board-text').textContent = this.boards.online ? '上傳中…' : '';
+    this.boards.submit(run, { local: !run.localDone }).then((o) => {
+      if (this.overAt !== run.overAt) return; // a new run started meanwhile
+      const local = `本機榜第 ${o.local.rank} 名`;
+      let text;
+      if (o.online) text = o.online.kept ? `排行榜：第 ${o.online.rank} 名（共 ${o.online.total} 人）` : `排行榜：今天較好的一局仍是第 ${o.online.rank} 名`;
+      else if (!this.boards.online) text = `${local}（離線）`;
+      else if (o.error === 'already played today') text = `今天已上傳過 · ${local}`;
+      else text = `連不上排行榜，已存進${local}`;
+      $('go-board-text').textContent = text;
+      this.notes.log(text);
+    });
+  }
+
+  showBoards(on) {
+    $('boards').classList.toggle('hidden', !on);
+    $('title').classList.toggle('hidden', on);
+    if (on) {
+      $('board-name').value = this.boards.me.name;
+      $('board-msg').textContent = '';
+      this.renderBoard(this.boardTab || 'daily');
+    }
+  }
+
+  /** One board on the board page: 'daily' (today's) or a start map's arcade board ('0'…'3'). */
+  async renderBoard(tab) {
+    this.boardTab = tab;
+    for (const t of document.querySelectorAll('#board-tabs button')) t.classList.toggle('selected', t.dataset.board === tab);
+    const mode = tab === 'daily' ? 'daily' : 'arcade';
+    const key = tab === 'daily' ? utcDay(this.now()) : Number(tab);
+    const list = $('board-list');
+    list.textContent = '';
+    $('board-status').textContent = this.boards.online ? '讀取中…' : '';
+    const b = await this.boards.board(mode, key);
+    if (this.boardTab !== tab) return; // another tab was picked meanwhile
+    const row = (r) => {
+      const el = document.createElement('div');
+      el.className = `board-row${r.me ? ' me' : ''}`;
+      const cell = (cls, text) => {
+        const s = document.createElement('span');
+        s.className = cls;
+        s.textContent = text;
+        el.appendChild(s);
+      };
+      cell('board-rank', `${r.rank}`);
+      cell('board-name', r.name);
+      cell('board-score', `${Number(r.score).toLocaleString('en-US')} ${r.grade}`);
+      if (r.entry) {
+        const play = document.createElement('button');
+        play.type = 'button';
+        play.textContent = '看重播';
+        play.addEventListener('click', async () => {
+          try {
+            const bytes = await this.boards.replay(r.entry);
+            const err = this.playReplay(bytes, { name: `${r.name} 的重播` });
+            if (err) $('board-msg').textContent = `無法播放：${err}`;
+          } catch {
+            $('board-msg').textContent = '下載重播失敗';
+          }
+        });
+        el.appendChild(play);
+      } else el.appendChild(document.createElement('span'));
+      return el;
+    };
+    for (const r of b.top) list.appendChild(row(r));
+    if (b.place && b.place > b.top.length && b.around.length) {
+      const gap = document.createElement('div');
+      gap.className = 'board-gap';
+      gap.textContent = '我附近';
+      list.appendChild(gap);
+      for (const r of b.around) list.appendChild(row(r));
+    }
+    if (!b.top.length) {
+      const empty = document.createElement('div');
+      empty.className = 'replay-empty';
+      empty.textContent = mode === 'daily' ? '今天還沒有人上榜' : '這張地圖還沒有成績（街機、正常規則、沒有變體才上榜）';
+      list.appendChild(empty);
+    }
+    $('board-status').textContent = b.local
+      ? b.why === 'offline'
+        ? '離線：只有這部電腦的成績（後端網址未設定）'
+        : '連不上排行榜：先顯示這部電腦的成績'
+      : `全球 · ${b.total} 人${b.place ? ` · 我第 ${b.place} 名` : ''}`;
+  }
+
+  /** A run left before its end (restart or the title from the pause menu): recorded as a quit, and kept as a replay. */
+  endAsQuit() {
+    this.telemetry.end({ result: 'quit', wave: this.waves.wave, score: this.score.score }, this.stepCount / LOGIC_HZ);
+    this.saveReplay('quit');
+  }
+
+  /** Keep the run's input record in this browser (the last ten), unless the run was itself a replay or under a second long. */
+  saveReplay(result, grade = '') {
+    if (this.replay || this.record.steps < LOGIC_HZ) return null;
+    return this.replays.add(
+      {
+        at: new Date().toISOString(), // when it was played, for the list (not the game)
+        map: MAPS[this.record.map].name,
+        mapId: MAPS[this.record.map].id,
+        mode: MODES[this.mode].name,
+        rules: this.ruleset.label,
+        result,
+        wave: this.waves.wave,
+        score: Math.round(this.score.score),
+        grade,
+        seconds: Math.round(this.record.steps / LOGIC_HZ),
+      },
+      this.record.encode(),
+    );
+  }
+
+  /**
+   * Play an input record back: its seed, map, mode, rules and warm-up, and every step's input
+   * from the record instead of the keyboard. Returns null, or why the record cannot be played.
+   */
+  playReplay(bytes, meta = {}) {
+    let rd;
+    try {
+      RecordReader.check(bytes);
+      rd = new RecordReader(bytes);
+    } catch (err) {
+      const why = String(err.message);
+      if (why.includes('version')) return `這個重播檔是另一個版本的遊戲錄的（${why.replace(/^.*version (\d+).*$/, '第 $1 版')}），讀不到`;
+      if (why.includes('not an input record')) return '這不是子彈芭蕾的重播檔';
+      return '檔案不完整或已損壞';
+    }
+    if (rd.map >= MAPS.length || !MODE_IDS[rd.mode]) return '檔案裡的地圖或模式這個版本沒有';
+    if (this.replay) this.endReplay();
+    const keep = { seed: this.fixedSeed, warmup: this.fixedWarmup, rules: this.fixedRules };
+    this.fixedSeed = rd.seed;
+    this.fixedWarmup = rd.warmup;
+    this.fixedRules = unpackRules(rd.rules);
+    this.replay = { rd, speed: 1, meta, mode: this.mode };
+    this.mode = MODE_IDS[rd.mode]; // for the run (waves read it); the title's pick comes back after
+    this.showReplays(false);
+    this.startRun(rd.map);
+    Object.assign(this, { fixedSeed: keep.seed, fixedWarmup: keep.warmup, fixedRules: keep.rules });
+    this.feed = (game) => rd.next(game.player.x, game.player.z);
+    this.setReplaySpeed(1);
+    this.notes.log(`重播 ${meta.name || ''}`.trim());
+    return null;
+  }
+
+  /** A frame's real time as the run sees it: a replay plays at its own speed. */
+  playDt(realDt) {
+    return this.replay ? realDt * this.replay.speed : realDt;
+  }
+
+  setReplaySpeed(speed) {
+    if (!this.replay) return;
+    this.replay.speed = speed;
+    $('replay-speed').textContent = `${speed}×`;
+  }
+
+  /** Leave playback: the keyboard drives the game again and the title's mode comes back. */
+  endReplay() {
+    this.achievements.watching = false;
+    if (!this.replay) return;
+    this.mode = this.replay.mode;
+    this.replay = null;
+    this.feed = null;
+    $('replay-badge').classList.add('hidden');
+    document.body.classList.remove('replaying');
+  }
+
+  /** The record ran out before the run ended (that run was left from the pause menu). */
+  replayRanOut() {
+    this.toTitle();
+    this.renderReplays('重播完：那一局是中途離開的。');
+    this.showReplays(true);
+  }
+
+  showReplays(on) {
+    $('replays').classList.toggle('hidden', !on);
+    $('title').classList.toggle('hidden', on);
+    if (on) this.renderReplays();
+  }
+
+  /** The replay list: newest first, each to play or download. */
+  renderReplays(msg = '') {
+    const list = $('replay-list');
+    list.textContent = '';
+    const result = { death: '倒下', clear: '通關', quit: '中途離開' };
+    const cell = (cls, text) => {
+      const s = document.createElement('span');
+      s.className = cls;
+      s.textContent = text;
+      return s;
+    };
+    for (const r of this.replays.list) {
+      const row = document.createElement('div');
+      row.className = 'replay-row';
+      const d = new Date(r.at);
+      row.append(
+        cell('replay-when', `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`),
+        cell('replay-what', [r.map, r.mode, r.rules].filter(Boolean).join(' · ')),
+        cell('replay-how', `${result[r.result] || ''} · 第 ${r.wave} 波 · ${clock(r.seconds)}`),
+        cell('replay-score', `${Number(r.score).toLocaleString('en-US')}${r.grade ? ` ${r.grade}` : ''}`),
+      );
+      const play = document.createElement('button');
+      play.type = 'button';
+      play.textContent = '播放';
+      play.addEventListener('click', () => {
+        const err = this.playReplay(this.replays.bytes(r), r);
+        if (err) this.renderReplays(`無法播放：${err}`);
+      });
+      const save = document.createElement('a');
+      save.className = 'button';
+      save.textContent = '下載 .bbr';
+      save.download = r.name;
+      save.href = '#';
+      save.addEventListener('click', () => {
+        save.href = URL.createObjectURL(new Blob([this.replays.bytes(r)], { type: 'application/octet-stream' }));
+        setTimeout(() => URL.revokeObjectURL(save.href), 2000);
+      });
+      row.append(play, save);
+      list.appendChild(row);
+    }
+    if (!this.replays.list.length) list.appendChild(cell('replay-empty', '還沒有重播。打完一局就會自動存在這裡（最近 10 局）。'));
+    $('replay-msg').textContent = msg;
+  }
+
   toTitle() {
-    if (this.state === 'paused') this.telemetry.end({ result: 'quit', wave: this.waves.wave, score: this.score.score }, this.stepCount / LOGIC_HZ);
+    if (this.state === 'paused' && !this.replay) this.endAsQuit();
+    this.endReplay();
+    this.endDaily();
+    this.renderDaily();
+    this.refreshGlobal();
     this.resetWorld(this.level.map);
     this.state = 'title';
     this.notes.hideNote();
@@ -420,11 +964,12 @@ class Game {
     this.enemies.clear();
     this.bullets.clear();
     this.grenades.clear();
+    this.boss.reset();
     this.pickups.clear();
     this.thrown.clear();
     this.style.clearGhosts();
     this.fx.clear();
-    if (this.level.map !== map || this.level.glassUpTo !== this.ruleset.glassUpTo) {
+    if (this.level.map !== map || this.level.glassUpTo !== this.ruleset.glassUpTo || this.level.pansAsBarrels !== this.ruleset.pansAsBarrels) {
       this.level.load(map);
       this.applyMapView();
       this.renderer.compile(this.scene, this.camera);
@@ -544,7 +1089,7 @@ class Game {
   gameOver(cleared = false) {
     this.state = 'over';
     this.overAt = performance.now();
-    const isBest = this.score.saveBest();
+    const isBest = !this.replay && this.score.saveBest(); // a replay sets no records
     const s = this.score;
     $('go-title').textContent = cleared ? 'RUN CLEAR' : 'GAME OVER';
     $('gameover').classList.toggle('cleared', cleared);
@@ -559,14 +1104,20 @@ class Game {
     const graded = !!this.waves.rules.graded;
     $('gameover').classList.toggle('graded', graded);
     if (graded) this.showGrade(cleared);
-    this.telemetry.end(
+    $('gameover').classList.toggle('replay', !!this.replay);
+    $('gameover').classList.toggle('daily', !!this.dailyRun && !this.replay);
+    if (this.dailyRun && !this.replay) this.showDailyEnd(graded ? $('go-grade').textContent : 'D');
+    if (this.replay) $('go-board').classList.add('hidden');
+    else this.uploadRun(graded ? $('go-grade').textContent : 'D');
+    this.saveReplay(cleared ? 'clear' : 'death', graded ? $('go-grade').textContent : '');
+    if (!this.replay) this.telemetry.end(
       { result: cleared ? 'clear' : 'death', wave: this.waves.wave, cause: cleared ? undefined : this.deathCause || '不明', score: s.score, grade: graded ? $('go-grade').textContent : undefined },
       this.stepCount / LOGIC_HZ,
     );
     $('gameover').classList.remove('hidden');
     document.body.classList.remove('playing');
     this.hud.show(false);
-    this.showClip();
+    if (!this.replay) this.showClip();
   }
 
   /** The end screen opens on the run's best kill when there is a recording of it, then shows the score. */
@@ -696,6 +1247,10 @@ class Game {
     const d = Math.hypot(e.x - p.x, e.z - p.z);
     const tags = [{ label: e.cfg.label, pts: e.cfg.score }];
     let refill = FOCUS.killRefill;
+    if (info.cause === 'execution') {
+      tags.push({ label: 'EXECUTION', pts: 200, cls: 'gold' });
+      refill = FOCUS.executeRefill;
+    }
     if (this.focusActive) tags.push({ label: 'SLOW-MO', pts: 50, cls: 'cyan' });
     if (info.bullet && info.bullet.spinShot) tags.push({ label: 'PIROUETTE', pts: 150, cls: 'pink' });
     else if (p.alive && p.spinning) tags.push({ label: 'SPIN KILL', pts: 100, cls: 'cyan' });
@@ -726,6 +1281,10 @@ class Game {
 
     const before = this.score.score;
     this.score.kill(tags);
+    this.achievements.kill(
+      tags.map((t) => t.label),
+      info.bullet ? info.bullet.kills || 0 : 0,
+    );
     this.clip.kill(this.score.score - before);
     this.notes.log(`擊殺 ${e.cfg.label}：${tags.map((t) => t.label).join(' + ')} ×${this.score.mult}`);
     this.addFocus(refill);
@@ -744,6 +1303,7 @@ class Game {
     if (this.stepCount - this.lastCloseCall < LOGIC_HZ / 4) return;
     this.lastCloseCall = this.stepCount;
     this.notes.log(spin ? '旋轉中子彈穿身（DODGE）' : '子彈擦身（CLOSE CALL）');
+    this.achievements.style(spin ? 'DODGE' : 'CLOSE CALL');
     if (spin) {
       this.score.style('DODGE', 40);
       this.addFocus(0.06);
@@ -778,6 +1338,7 @@ class Game {
     if (!this.player.alive) return;
     const bonus = 250 * n;
     this.notes.log(`第 ${n} 波清空${stageEnd ? '，準備轉場' : ''}`);
+    this.achievements.wave(!this.waves.hurt);
     this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt });
     this.score.bonus('WAVE CLEAR', bonus);
     this.addFocus(0.35);
@@ -792,6 +1353,8 @@ class Game {
     if (!this.player.alive) return;
     const bonus = 250 * n;
     this.notes.log(`第 ${n} 波清空：通關（RUN CLEAR）`);
+    this.achievements.wave(!this.waves.hurt);
+    this.achievements.clear();
     this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt });
     this.score.bonus('RUN CLEAR', bonus);
     this.player.invuln = 99; // nothing still flying can take the run away now
@@ -802,6 +1365,7 @@ class Game {
 
   explode(x, z, r, opts = {}) {
     const p = this.player;
+    this.boss.blast(x, z, opts); // right under the helicopter, a barrel or a grenade hurts it
     this.fx.explosion(x, z, r);
     this.audio.explosion(this.panFor(x));
     this.level.noise(x, z, 20);
@@ -859,24 +1423,77 @@ class Game {
     const realDt = Math.min(0.05, rawDt);
     this.last = now;
     this.time += realDt;
+    this.pollPad();
     if (this.state !== 'paused') {
       this.updateAim();
-      if (this.state === 'playing' || this.state === 'dying') this.updatePlay(realDt);
+      if (this.state === 'playing' || this.state === 'dying') this.updatePlay(this.playDt(realDt));
       else this.updateIdle(realDt);
     }
     // in a run the logic steps take the presses (a fast frame may hold one over to the next step)
     if (this.state !== 'playing' && this.state !== 'dying') this.input.dropEdges();
     this.notes.update(realDt, rawDt);
     this.render();
-    if (this.state === 'playing' || this.state === 'dying') this.clip.frame(realDt); // after the frame is drawn
+    if ((this.state === 'playing' || this.state === 'dying') && !this.replay) this.clip.frame(realDt); // after the frame is drawn
+  }
+
+  /** Once a display frame: read the gamepad; Start pauses and resumes; the hints follow whether one is connected. */
+  pollPad() {
+    const pad = this.input.poll();
+    if (this.input.padStart) {
+      if (this.state === 'playing') this.setPaused(true);
+      else if (this.state === 'paused') this.setPaused(false);
+    }
+    if (!!pad === this.padOn) return;
+    this.padOn = !!pad;
+    document.body.classList.toggle('pad', this.padOn);
+    this.notes.log(this.padOn ? '接上手掣' : '手掣已拔掉');
+    if (this.state === 'playing' || this.state === 'dying') this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'input', device: this.padOn ? 'pad' : 'keyboard' });
   }
 
   updateAim() {
-    const m = this.input.mouse;
-    this.ndc.set((m.x / innerWidth) * 2 - 1, -(m.y / innerHeight) * 2 + 1);
-    this.raycaster.setFromCamera(this.ndc, this.camera);
-    this.raycaster.ray.intersectPlane(this.aimPlane, this.aimPoint);
+    if (this.input.pad && this.input.usingPad) this.padAim();
+    else {
+      const m = this.input.mouse;
+      this.ndc.set((m.x / innerWidth) * 2 - 1, -(m.y / innerHeight) * 2 + 1);
+      this.raycaster.setFromCamera(this.ndc, this.camera);
+      this.raycaster.ray.intersectPlane(this.aimPlane, this.aimPoint);
+    }
     this.aimFresh = true;
+  }
+
+  /**
+   * Aim with the right stick: a point PAD.aimDistance ahead along it (up the stick is up the
+   * screen, as for WASD), or the nearest visible enemy within PAD.assistDeg of that line. Let go
+   * and the direction stays. The cursor follows, for the crosshair. This is input, recorded as
+   * the step's aim, so a replay needs none of it.
+   */
+  padAim() {
+    const p = this.player;
+    const s = this.input.padStick;
+    if (Math.hypot(s.x, s.y) > PAD.deadzone) {
+      const c = Math.cos(this.camYaw);
+      const n = Math.sin(this.camYaw);
+      this.padDir.set(s.x * c + s.y * n, -s.x * n + s.y * c).normalize();
+    }
+    const dir = this.padDir;
+    let tx = p.x + dir.x * PAD.aimDistance;
+    let tz = p.z + dir.y * PAD.aimDistance;
+    const cosMax = Math.cos((PAD.assistDeg * Math.PI) / 180);
+    let best = PAD.assistRange;
+    for (const e of this.enemies.list) {
+      if (!e.alive) continue;
+      const dx = e.x - p.x;
+      const dz = e.z - p.z;
+      const d = Math.hypot(dx, dz);
+      if (d < 0.5 || d >= best || (dx * dir.x + dz * dir.y) / d < cosMax || !this.level.hasLOS(p.x, p.z, e.x, e.z)) continue;
+      best = d;
+      tx = e.x;
+      tz = e.z;
+    }
+    this.aimPoint.set(tx, GUN_Y, tz);
+    const v = this.padScreen.copy(this.aimPoint).project(this.camera);
+    this.input.mouse.x = ((v.x + 1) / 2) * innerWidth;
+    this.input.mouse.y = ((1 - v.y) / 2) * innerHeight;
   }
 
   /** One displayed frame of a run: as many fixed logic steps as realDt covers, then what is only shown. */
@@ -906,7 +1523,12 @@ class Game {
       this.aimFresh = false;
       this.aimStep = this.stepCount;
     }
-    this.cmd = this.feed ? this.feed(this) : this.input.latch(this.cmd, aim, p.x, p.z, this.camYaw);
+    const cmd = this.feed ? this.feed(this) : this.input.latch(this.cmd, aim, p.x, p.z, this.camYaw);
+    if (!cmd) {
+      this.replayRanOut();
+      return;
+    }
+    this.cmd = cmd;
     this.record.push(this.cmd);
     this.stepCount++;
     this.logic(STEP);
@@ -960,6 +1582,7 @@ class Game {
     if (this.transition) this.updateTransition(h);
     this.player.update(pdt, cmd);
     this.enemies.update(dt);
+    this.boss.update(dt);
     this.level.updateProps(dt);
     this.bullets.update(dt);
     this.grenades.update(dt);
@@ -968,6 +1591,11 @@ class Game {
     this.tutorial.update(h);
     this.waves.update(dt, h);
     this.score.update(dt, h);
+    // the Style rank changed (achievements only listen; nothing here feeds back into play)
+    if (this.score.rank.index !== this.rankSeen) {
+      this.rankSeen = this.score.rank.index;
+      this.achievements.rank(this.score.rank.name, this.level.map.id);
+    }
     if (this.clearT > 0) {
       this.clearT -= h;
       if (this.clearT <= 0) this.gameOver(true);
@@ -1030,6 +1658,12 @@ class Game {
       tx += lx;
       tz += lz;
       zoom *= lerp(1, CAMERA.focusZoom, this.focusAmt);
+      if (this.boss.active) {
+        // a boss in the air: pull back and lean towards it, so it is in the picture
+        tx = lerp(tx, this.boss.x, CAMERA.bossPull);
+        tz = lerp(tz, this.boss.z, CAMERA.bossPull);
+        zoom *= CAMERA.bossZoom;
+      }
       if (this.killcamT > 0) {
         tx = lerp(tx, this.killcamPos.x, 0.6);
         tz = lerp(tz, this.killcamPos.z, 0.6);

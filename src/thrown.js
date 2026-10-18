@@ -28,7 +28,7 @@ export class Thrown {
     this.game = game;
     this.carry = null; // a level prop (pan or barrel) held over the head
     this.list = []; // thrown weapons in flight
-    this.prompt = ''; // HUD hint (HTML), '' for none
+    this.prompt = ''; // HUD hint (HTML, controls as {name}: input.js withLabels), '' for none
   }
 
   clear() {
@@ -174,6 +174,11 @@ export class Thrown {
     // thrown props: hit enemies while in the air (their flight itself is the level's prop physics)
     for (const q of level.props) {
       if (!q.thrown || !q.alive || (q.y || 0) < 0.25) continue;
+      if (q.kind === 'barrel' && g.boss.under(q.x, q.z)) {
+        q.thrown = false;
+        q.ignite(0.02); // thrown at the helicopter: it goes off right under it
+        continue;
+      }
       for (const e of g.enemies.list) {
         if (!e.alive || e.spawnLock > 0) continue;
         if (Math.hypot(e.x - q.x, e.z - q.z) > e.radius + q.r) continue;
@@ -233,11 +238,11 @@ export class Thrown {
 
     // HUD hint
     if (!p.alive) this.prompt = '';
-    else if (this.carry) this.prompt = '<b>G</b> / <b>左鍵</b> 擲出';
+    else if (this.carry) this.prompt = '{throw} / {fire} 擲出';
     else {
       const near = this.nearProp();
-      if (near) this.prompt = `<b>G</b> 拿起${Thrown.propName(near)}`;
-      else if (p.special && p.special.empty) this.prompt = `<b>G</b> 擲出空的${PLAYER_WEAPONS[p.special.id].name}`;
+      if (near) this.prompt = `{throw} 拿起${Thrown.propName(near)}`;
+      else if (p.special && p.special.empty) this.prompt = `{throw} 擲出空的${PLAYER_WEAPONS[p.special.id].name}`;
       else this.prompt = '';
     }
   }

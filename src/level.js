@@ -15,7 +15,8 @@ import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenc
 const _hit = { t: 0, nx: 0, nz: 0 };
 
 class Barrel {
-  constructor(level, x, z, variant = 'barrel') {
+  /** `block`: the built barrel even when a model is loaded (cheaper: three parts instead of the model's seven). */
+  constructor(level, x, z, variant = 'barrel', block = false) {
     this.level = level;
     this.kind = 'barrel';
     this.variant = variant;
@@ -28,7 +29,7 @@ class Barrel {
     const g = new THREE.Group();
     const G = level.geo;
     const M = level.mat;
-    const model = propModel(variant, level.map.id);
+    const model = block ? null : propModel(variant, level.map.id);
     if (model) {
       // a made model; the wrapper takes the fuse wobble without touching its fitted scale
       const body = new THREE.Group();
@@ -105,7 +106,7 @@ class Barrel {
       if (this.fuse < 0) {
         this.alive = false;
         this.mesh.visible = false;
-        this.level.game.explode(this.x, this.z, this.blast);
+        this.level.game.explode(this.x, this.z, this.blast, { kind: 'barrel' });
         return;
       }
     }
@@ -417,7 +418,13 @@ export class Level {
     }
     for (const g of map.glass || []) this.addGlass(...g);
     for (const [x, z, v] of map.barrels || []) this.barrels.push(new Barrel(this, x, z, v));
-    for (const [x, z, v] of map.pans || []) this.pans.push(new Pan(this, x, z, v));
+    // a variant (rules.js pansAsBarrels) puts a barrel where each pan was: the built one, as the
+    // model's seven parts (21 draw calls with outlines and shadows) would take the club over its budget
+    this.pansAsBarrels = this.game.ruleset.pansAsBarrels;
+    for (const [x, z, v] of map.pans || []) {
+      if (this.pansAsBarrels) this.barrels.push(new Barrel(this, x, z, 'barrel', true));
+      else this.pans.push(new Pan(this, x, z, v));
+    }
     this.flocks = (map.flocks || []).map(([x, z]) => new Flock(x, z));
     this.props = [...this.barrels, ...this.pans];
     for (const [x, z] of map.pads || []) this.addPad(x, z);
@@ -743,7 +750,7 @@ export class Level {
           this.deco(sp.x - dx * 0.9 - dz * o, -0.2, sp.z - dz * 0.9 + dx * o, 0.08, 1.6, 0.08, this.mat.metal, true);
         }
       }
-      return { ...sp, dirX: dx, dirZ: dz, climb: sp.kind === 'ledge' || sp.kind === 'stairs', ring, mat, heat: 0, lamp, lastUsed: -99 };
+      return { ...sp, dirX: dx, dirZ: dz, climb: sp.kind === 'ledge' || sp.kind === 'stairs', ring, mat, heat: 0, lamp };
     });
   }
 
@@ -772,11 +779,11 @@ export class Level {
   }
 
   /** Nearest static hit along a segment. */
-  raycast(x0, z0, x1, z1, ignoreGlass = false) {
+  raycast(x0, z0, x1, z1, ignoreGlass = false, over = 0) {
     let best = null;
     let bt = Infinity;
     for (const s of this.solids) {
-      if (!s.alive) continue;
+      if (!s.alive || s.h <= over) continue; // `over`: from that high up, lower cover is no obstacle
       if (ignoreGlass && s.kind === 'glass') continue;
       if (this.segSolid(x0, z0, x1, z1, s, _hit) && _hit.t < bt) {
         bt = _hit.t;
@@ -786,9 +793,9 @@ export class Level {
     return best;
   }
 
-  hasLOS(x0, z0, x1, z1) {
+  hasLOS(x0, z0, x1, z1, over = 0) {
     for (const s of this.solids) {
-      if (!s.alive || s.kind === 'glass') continue;
+      if (!s.alive || s.kind === 'glass' || s.h <= over) continue;
       if (this.segSolid(x0, z0, x1, z1, s, _hit)) return false;
     }
     return true;
@@ -907,10 +914,7 @@ export class Level {
       s.alive = true;
       s.mesh.visible = true;
     }
-    for (const sp of this.spawns) {
-      sp.heat = 0;
-      sp.lastUsed = -99; // or a restart would pick spawns by the last run's history
-    }
+    for (const sp of this.spawns) sp.heat = 0;
     for (const pad of this.pads) pad.pickup = null;
     this.rebuildNav();
   }
