@@ -403,6 +403,9 @@ const docks = {
     rain: true,
   },
   floor: 'asphalt',
+  // the last wave of a run that ends here (boss.js): the armoured truck, driving in from the west round a loop
+  // that clears every container (barrels and pans in its way are shoved aside)
+  boss: { kind: 'truck', from: [-30, 0.8], loop: [[-16, 0.8], [16, 0.8], [13, 4.6], [13, 11.3], [-11, 11.3], [-12.5, 8.8], [-16, 5]] },
   edges: { n: [3.6, 'warehouse', null], s: [0.45, 'curb', null], w: [2.2, 'fence', null], e: [2.2, 'fence', null] },
   solids: [
     [-14, -6, 6, 2.4, 2.6, 'containerRed'],

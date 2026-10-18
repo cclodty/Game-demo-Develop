@@ -53,11 +53,15 @@ after(async () => {
   await h.close();
 });
 
-test('wave 12 on the rooftop is the helicopter; on another last stage the big last wave stays', async () => {
-  const r = await page.evaluate(() => {
+test('wave 12 on the rooftop is the helicopter; on a last stage with no boss the big last wave stays', async () => {
+  const r = await page.evaluate(async () => {
     const g = window.game;
+    const { MAPS } = await import('/src/maps.js');
     const out = {};
+    // every map has its boss now (boss.js): the docks' is taken away here, to see what a map without one gets
+    const docksBoss = MAPS[2].boss;
     for (const start of [2, 0]) {
+      if (start === 0) delete MAPS[2].boss;
       window.toFinal(start);
       g.hud.update(1 / 60);
       const bar = document.getElementById('boss-bar');
@@ -70,11 +74,12 @@ test('wave 12 on the rooftop is the helicopter; on another last stage the big la
         banner: document.getElementById('banner').textContent,
       };
     }
+    MAPS[2].boss = docksBoss;
     return out;
   });
   assert.deepEqual(r.rooftop, { boss: true, queue: 0, brutes: 0, bar: true, segs: 5, banner: r.rooftop.banner });
   assert.match(r.rooftop.banner, /BOSS/);
-  assert.equal(r.docks.boss, false, 'a run ending on the docks has no boss');
+  assert.equal(r.docks.boss, false, 'a run ending on a map without a boss has none');
   assert.ok(r.docks.queue > 20 && r.docks.brutes >= 1, `the big last wave (${r.docks.queue})`);
   assert.equal(r.docks.bar, false);
   assert.doesNotMatch(r.docks.banner, /BOSS/);

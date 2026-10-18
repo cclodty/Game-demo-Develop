@@ -22,6 +22,14 @@
 // Thugs come in through the doors every DJ.crew.every s. Shots fly over the booth while the DJ
 // is on (`pass`, bullets.js), at the glass or the DJ.
 //
+// truck, the docks' armoured truck (碼頭頭目): it drives a loop between the containers (the map's
+// `boss.loop`), shoving barrels and pans out of its way. Its roof gun draws a red line onto the
+// player and sweeps a burst there every TRUCK.gun.every s; every TRUCK.charge.every s it stops,
+// turns on the player, paints its path red on the ground and charges down it (slide, spin or get
+// out of the way), then backs up to its loop. Bullets do nothing to the armour. What hurts it is a
+// blast beside it (a barrel, a grenade), and its back door: every TRUCK.unload.every s it stops
+// and lets two thugs out, and TRUCK.unload.hits shots into the open door take a segment.
+//
 // Logic: a boss runs in the fixed steps on game.rng and the world, and resets with the run.
 
 import * as THREE from 'three';
@@ -30,7 +38,7 @@ import { BODY, buildCharacter, disposeRig, setFlash } from './characters.js';
 import { GUN_Y } from './config.js';
 import { addCutaway } from './cutaway.js';
 import { Laser } from './fx.js';
-import { clamp, lerp, segCircle, smoothstep } from './utils.js';
+import { clamp, lerp, segAABB, segCircle, smoothstep, wrapAngle } from './utils.js';
 
 export const HELI = {
   label: 'HELICOPTER', // the HUD bar's English name; names its bullets in the notes, as an enemy's label does
@@ -75,6 +83,33 @@ export const DJ = {
   open: 4, // s the glass stays down after a speaker blows
   perSegment: 3, // hits on the DJ while the glass is down that take a segment (and bring the glass back up)
   crew: { first: 6, every: 16, count: 2, maxAlive: 6 }, // thugs through the doors: s in, then every s, while fewer than maxAlive are about
+};
+
+export const TRUCK = {
+  label: 'ARMORED TRUCK',
+  name: '裝甲貨車',
+  short: '貨車',
+  downed: '擊毀',
+  pull: false,
+  segments: 5,
+  bonus: 2000,
+  size: { w: 2.2, l: 5, h: 2.6 }, // m: wide, long, high
+  speed: 5, // m/s round its loop
+  enter: 2.4, // s driving in from off the map
+  shove: 5, // m/s it gives a barrel, a pan or a thug in its way
+  // the roof gun: every `every` s (first after `first`) a red line onto the player for `warn` s, then `shots` rounds
+  // `interval` s apart at `speed` m/s for `dmg`, swept across `sweep` rad round that spot; it needs a clear line
+  gun: { first: 4, every: 5, warn: 0.7, shots: 9, interval: 0.07, speed: 30, dmg: 7, sweep: 0.35, range: 26 },
+  // the charge: every `every` s (first after `first`) it stops and turns on the player (at `turn` rad/s, `aim` s at
+  // most), paints its path red for `warn` s, then drives it at `speed` m/s, `length` m at most; `dmg` to a player
+  // it hits (not one sliding or spinning); a path shorter than `min` m is not worth it
+  charge: { first: 9, every: 14, turn: 3, aim: 1, warn: 1.2, speed: 16, length: 24, min: 5, dmg: 35, back: 6 },
+  // the back door: every `every` s (first after `first`) it stops for `open` s and lets `count` thugs out; `hits`
+  // shots into the open door take a segment (and it shuts)
+  unload: { first: 15, every: 22, open: 4.5, count: 2, hits: 4, maxAlive: 7 },
+  // a blast of one of `kinds` within `radius` m of its side takes a segment; then `cool` s before the next can
+  blast: { radius: 2.5, kinds: ['barrel', 'grenade'], cool: 1.5 },
+  wreck: { burn: 1.6, radius: 4.5 }, // brought down: s burning, then the blast
 };
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -780,8 +815,520 @@ class Dj extends Boss {
   }
 }
 
+/** The docks' armoured truck. */
+class Truck extends Boss {
+  constructor(game) {
+    super(game, TRUCK);
+    this.root = null;
+    this.laser = new Laser(game.scene, new THREE.Color(1, 0.05, 0.05));
+    this.reset();
+  }
+
+  reset() {
+    if (this.root) {
+      this.game.scene.remove(this.root, this.strip);
+      for (const o of [this.root, this.strip]) {
+        o.traverse((m) => {
+          if (m.geometry) m.geometry.dispose();
+        });
+      }
+      this.root = null;
+    }
+    super.reset();
+    this.laser.hide();
+    this.state = 'enter';
+  }
+
+  /** The final wave on the docks: `def` is the map's (maps.js `boss`: its loop, and where it drives in from). */
+  start(def) {
+    this.reset();
+    super.start(def);
+    this.loop = def.loop.map(([x, z]) => ({ x, z }));
+    this.from = { x: def.from[0], z: def.from[1] };
+    this.x = this.from.x;
+    this.z = this.from.z;
+    const first = this.loop[0];
+    this.heading = Math.atan2(first.x - this.x, first.z - this.z);
+    this.seg = 0; // driving from loop[seg] to loop[seg + 1]
+    this.state = 'enter'; // enter, drive, aim, warn, charge, back, unload, down
+    this.timer = 0;
+    this.gunState = 'idle';
+    this.gunT = TRUCK.gun.first;
+    this.chargeT = TRUCK.charge.first;
+    this.unloadT = TRUCK.unload.first;
+    this.blastT = 0;
+    this.doorHits = 0;
+    this.door = 0; // 0 shut, 1 open (looks)
+    this.hitPlayer = false;
+    this.build();
+  }
+
+  /** The look: a block truck (cab, box, wheels, a roof gun, a back door), and the red strip of a charge. */
+  build() {
+    const g = this.game;
+    const L = g.level;
+    const { w, l, h } = TRUCK.size;
+    const std = (color, extra = {}) => {
+      const m = new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.4, ...extra });
+      addCutaway(m, L.cut);
+      return m;
+    };
+    const box = (bw, bh, bd, x = 0, y = 0, z = 0) => new THREE.BoxGeometry(bw, bh, bd).translate(x, y, z);
+    const root = new THREE.Group();
+    const body = new THREE.Mesh(
+      mergeGeometries([
+        box(w, h - 0.5, l * 0.7, 0, 0.5 + (h - 0.5) / 2, -l * 0.15), // the armoured box
+        box(w, h - 0.9, l * 0.3, 0, 0.5 + (h - 0.9) / 2, l * 0.35), // the cab
+        box(w + 0.1, 0.25, 0.3, 0, 0.55, l / 2), // the ram bar
+      ]),
+      std(0x3a4048),
+    );
+    const plates = new THREE.Mesh(
+      mergeGeometries([box(w + 0.04, 0.12, l * 0.7, 0, 1.55, -l * 0.15), box(w + 0.04, 0.12, l * 0.7, 0, 2.15, -l * 0.15)]),
+      std(0xd9a530, { emissive: 0x6a4a10, emissiveIntensity: 0.4 }),
+    );
+    const glass = new THREE.Mesh(box(w - 0.3, 0.45, 0.06, 0, 1.45, l / 2 + 0.01), std(0x5fd0ff, { emissive: 0x2a8fff, emissiveIntensity: 0.5, roughness: 0.15 }));
+    const wheels = new THREE.Mesh(
+      mergeGeometries(
+        [
+          [-1, 1],
+          [1, 1],
+          [-1, -1],
+          [1, -1],
+        ].map(([sx, sz]) =>
+          new THREE.CylinderGeometry(0.5, 0.5, 0.35, 12)
+            .rotateZ(Math.PI / 2)
+            .translate(sx * (w / 2), 0.5, sz * l * 0.32),
+        ),
+      ),
+      std(0x111216),
+    );
+    const turret = new THREE.Group();
+    turret.position.set(0, h, -l * 0.15);
+    turret.add(new THREE.Mesh(mergeGeometries([box(0.8, 0.4, 0.8, 0, 0.2, 0), box(0.14, 0.14, 1.2, 0, 0.3, 0.6)]), std(0x22252b)));
+    const door = new THREE.Group(); // hinged at the left rear corner
+    door.position.set(-w / 2, 0.5, -l / 2);
+    door.add(new THREE.Mesh(box(w, h - 0.55, 0.1, w / 2, (h - 0.55) / 2, -0.05), std(0x2c3138)));
+    const lights = new THREE.Mesh(
+      mergeGeometries([box(0.35, 0.18, 0.05, -w / 2 + 0.3, 0.95, l / 2 + 0.02), box(0.35, 0.18, 0.05, w / 2 - 0.3, 0.95, l / 2 + 0.02)]),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 2.6, 1.8) }),
+    );
+    root.add(body, plates, glass, wheels, turret, door, lights);
+    root.traverse((m) => {
+      if (m.isMesh) m.castShadow = true;
+    });
+    lights.castShadow = false;
+    g.style.retone(root, 'char', L.cut);
+    g.style.outline(root, 'char');
+    this.turret = turret;
+    this.doorMesh = door;
+    // the charge's path, painted on the ground
+    this.strip = new THREE.Mesh(
+      new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0, 0, 0.5),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 0.15, 0.15), transparent: true, opacity: 0.45, depthWrite: false }),
+    );
+    this.strip.visible = false;
+    this.root = root;
+    g.scene.add(root, this.strip);
+    this.sync();
+  }
+
+  /** (x, z) in the truck's own frame: [right, forward]. */
+  local(x, z) {
+    const s = Math.sin(this.heading);
+    const c = Math.cos(this.heading);
+    const dx = x - this.x;
+    const dz = z - this.z;
+    return [dx * c - dz * s, dx * s + dz * c];
+  }
+
+  /** One logic step. */
+  update(dt) {
+    if (!this.active) return;
+    this.t += dt;
+    if (this.blastT > 0) this.blastT -= dt;
+    if (this.state === 'down') {
+      this.updateWreck(dt);
+      return;
+    }
+    this.updateMove(dt);
+    this.updateGun(dt);
+    this.push();
+    this.sync();
+  }
+
+  /** Where it goes: in, round the loop, the stops for a charge or the back door. */
+  updateMove(dt) {
+    const g = this.game;
+    const p = g.player;
+    const C = TRUCK.charge;
+    const U = TRUCK.unload;
+    switch (this.state) {
+      case 'enter': {
+        const first = this.loop[0];
+        if (this.driveTo(first.x, first.z, (Math.hypot(first.x - this.from.x, first.z - this.from.z) / TRUCK.enter) * dt)) this.state = 'drive';
+        break;
+      }
+      case 'drive': {
+        this.chargeT -= dt;
+        this.unloadT -= dt;
+        if (this.unloadT <= 0) {
+          this.unloadT = U.every;
+          if (g.enemies.aliveCount + U.count <= U.maxAlive) {
+            this.state = 'unload';
+            this.timer = U.open;
+            this.doorHits = 0;
+            this.letOut();
+            break;
+          }
+        }
+        if (this.chargeT <= 0 && p.alive) {
+          this.chargeT = C.every;
+          this.state = 'aim';
+          this.timer = C.aim;
+          this.chargeFrom = { x: this.x, z: this.z, heading: this.heading };
+          break;
+        }
+        let step = TRUCK.speed * dt;
+        while (step > 0) {
+          const next = this.loop[(this.seg + 1) % this.loop.length];
+          const d = Math.hypot(next.x - this.x, next.z - this.z);
+          if (d > step) {
+            this.driveTo(next.x, next.z, step);
+            break;
+          }
+          this.driveTo(next.x, next.z, d);
+          step -= d;
+          this.seg = (this.seg + 1) % this.loop.length;
+        }
+        break;
+      }
+      case 'aim': {
+        // stopped: turn the nose onto the player
+        this.timer -= dt;
+        const want = Math.atan2(p.x - this.x, p.z - this.z);
+        const da = wrapAngle(want - this.heading);
+        this.heading = wrapAngle(this.heading + clamp(da, -C.turn * dt, C.turn * dt));
+        if (Math.abs(da) < 0.03 || this.timer <= 0) {
+          const run = this.chargeRoom();
+          if (run < C.min) this.state = 'back';
+          else {
+            this.state = 'warn';
+            this.timer = C.warn;
+            this.run = run;
+            this.ran = 0;
+            this.hitPlayer = false;
+            g.audio.aimWarn(g.panFor(this.x));
+            g.notes.log('貨車準備衝撞');
+          }
+        }
+        break;
+      }
+      case 'warn':
+        this.timer -= dt;
+        if (this.timer <= 0) this.state = 'charge';
+        break;
+      case 'charge': {
+        const step = Math.min(C.speed * dt, this.run - this.ran);
+        this.x += Math.sin(this.heading) * step;
+        this.z += Math.cos(this.heading) * step;
+        this.ran += step;
+        this.hitCheck();
+        if (this.ran >= this.run - 1e-6) {
+          this.state = 'back';
+          g.shake(0.35);
+          g.audio.impact(g.panFor(this.x));
+          g.fx.sparks(this.x + Math.sin(this.heading) * TRUCK.size.l * 0.5, 0.8, this.z + Math.cos(this.heading) * TRUCK.size.l * 0.5, -Math.sin(this.heading), -Math.cos(this.heading), 16, [6, 4, 1.5], 8);
+        }
+        break;
+      }
+      case 'back': {
+        // back to the loop, the way it came, and the nose round to the road again
+        const f = this.chargeFrom;
+        const d = Math.hypot(f.x - this.x, f.z - this.z);
+        const step = Math.min(d, C.back * dt);
+        if (d > 1e-6) {
+          this.x += ((f.x - this.x) / d) * step;
+          this.z += ((f.z - this.z) / d) * step;
+        }
+        const da = wrapAngle(f.heading - this.heading);
+        this.heading = wrapAngle(this.heading + clamp(da, -C.turn * dt, C.turn * dt));
+        if (d - step < 1e-4 && Math.abs(wrapAngle(f.heading - this.heading)) < 0.03) {
+          this.heading = f.heading;
+          this.state = 'drive';
+        }
+        break;
+      }
+      case 'unload':
+        this.timer -= dt;
+        if (this.timer <= 0) this.state = 'drive';
+        break;
+    }
+    this.door = clamp(this.door + (this.state === 'unload' ? dt : -dt) * 3, 0, 1);
+  }
+
+  /** Move up to `step` m towards (x, z), turning to face it; true once there. */
+  driveTo(x, z, step) {
+    const d = Math.hypot(x - this.x, z - this.z);
+    if (d > 1e-6) this.heading = Math.atan2(x - this.x, z - this.z);
+    if (d <= step + 1e-6) {
+      this.x = x;
+      this.z = z;
+      return true;
+    }
+    this.x += ((x - this.x) / d) * step;
+    this.z += ((z - this.z) / d) * step;
+    return false;
+  }
+
+  /** How far it can charge straight ahead before its nose meets something solid. */
+  chargeRoom() {
+    const L = this.game.level;
+    const C = TRUCK.charge;
+    const { w, l } = TRUCK.size;
+    const fx = Math.sin(this.heading);
+    const fz = Math.cos(this.heading);
+    let room = C.length;
+    for (const side of [-0.5, 0, 0.5]) {
+      const ox = this.x + fz * side * w;
+      const oz = this.z - fx * side * w;
+      const hit = L.raycast(ox, oz, ox + fx * (C.length + l / 2), oz + fz * (C.length + l / 2), false, 0, true);
+      if (hit) room = Math.min(room, hit.t * (C.length + l / 2) - l / 2 - 0.3);
+    }
+    return Math.max(0, room);
+  }
+
+  /** A charge running into the player: hurt once, thrown aside (a slide or a spin goes under or round it). */
+  hitCheck() {
+    const g = this.game;
+    const p = g.player;
+    if (this.hitPlayer || !p.alive || p.sliding || p.spinning) return;
+    const [rx, fw] = this.local(p.x, p.z);
+    const { w, l } = TRUCK.size;
+    if (Math.abs(rx) > w / 2 + 0.35 || Math.abs(fw) > l / 2 + 0.35) return;
+    this.hitPlayer = true;
+    const side = rx >= 0 ? 1 : -1;
+    const dx = Math.sin(this.heading) * 0.6 + Math.cos(this.heading) * side * 0.8;
+    const dz = Math.cos(this.heading) * 0.6 - Math.sin(this.heading) * side * 0.8;
+    p.hurt(TRUCK.charge.dmg, dx, dz, true, '貨車的衝撞');
+    g.shake(0.5);
+  }
+
+  /** Nothing stands inside it: the player, thugs, barrels and pans are pushed out to its sides. */
+  push() {
+    const g = this.game;
+    const { w, l } = TRUCK.size;
+    const sh = Math.sin(this.heading);
+    const ch = Math.cos(this.heading);
+    const shove = (o, r, speed) => {
+      const [rx, fw] = this.local(o.x, o.z);
+      const ox = w / 2 + r - Math.abs(rx);
+      const oz = l / 2 + r - Math.abs(fw);
+      if (ox <= 0 || oz <= 0) return false;
+      if (ox < oz) {
+        const s = rx >= 0 ? 1 : -1;
+        o.x += ch * s * ox;
+        o.z -= sh * s * ox;
+        if (speed && o.vx !== undefined) {
+          o.vx += ch * s * speed;
+          o.vz -= sh * s * speed;
+        }
+      } else {
+        const s = fw >= 0 ? 1 : -1;
+        o.x += sh * s * oz;
+        o.z += ch * s * oz;
+        if (speed && o.vx !== undefined) {
+          o.vx += sh * s * speed;
+          o.vz += ch * s * speed;
+        }
+      }
+      return true;
+    };
+    const p = g.player;
+    if (p.alive) shove(p, 0.35, 0);
+    for (const e of g.enemies.list) if (e.alive) shove(e, e.radius, 0);
+    for (const o of g.level.props) if (o.alive && !o.carried && (o.y || 0) < 1) shove(o, o.r, TRUCK.shove);
+  }
+
+  /** The roof gun: a red line onto the player, then a sweep of rounds there. */
+  updateGun(dt) {
+    const g = this.game;
+    const p = g.player;
+    const G = TRUCK.gun;
+    const busy = this.state === 'enter';
+    switch (this.gunState) {
+      case 'idle':
+        this.gunT -= dt;
+        if (this.gunT <= 0 && !busy && p.alive && Math.hypot(p.x - this.x, p.z - this.z) < G.range && g.level.hasLOS(this.x, this.z, p.x, p.z)) {
+          this.gunState = 'warn';
+          this.gunTimer = G.warn;
+          this.lock = { x: p.x, z: p.z };
+          g.audio.aimWarn(g.panFor(this.x));
+        }
+        break;
+      case 'warn':
+        this.gunTimer -= dt;
+        if (this.gunTimer <= 0) {
+          this.gunState = 'fire';
+          this.shots = G.shots;
+          this.gunTimer = 0;
+        }
+        break;
+      case 'fire':
+        this.gunTimer -= dt;
+        while (this.gunTimer <= 0 && this.shots > 0) {
+          this.fire();
+          this.shots--;
+          this.gunTimer += G.interval;
+        }
+        if (this.shots <= 0) {
+          this.gunState = 'idle';
+          this.gunT = G.every;
+          this.lock = null;
+        }
+        break;
+    }
+  }
+
+  /** One round of the sweep, from the roof gun across the locked spot. */
+  fire() {
+    const g = this.game;
+    const G = TRUCK.gun;
+    const k = G.shots > 1 ? (G.shots - this.shots) / (G.shots - 1) : 0.5;
+    const a = Math.atan2(this.lock.x - this.x, this.lock.z - this.z) + (k - 0.5) * 2 * G.sweep;
+    const dx = Math.sin(a);
+    const dz = Math.cos(a);
+    // the source is the boss as the game sees it (game.boss): its label names the bullets that hit
+    g.bullets.spawn({ x: this.x + dx * 0.8, z: this.z + dz * 0.8, dx, dz, speed: G.speed, owner: 'enemy', damage: G.dmg, range: G.range, source: g.boss });
+    g.audio.shot('minigun', g.panFor(this.x));
+  }
+
+  /** The back door opens and two thugs step out behind it. */
+  letOut() {
+    const g = this.game;
+    const U = TRUCK.unload;
+    const bx = -Math.sin(this.heading);
+    const bz = -Math.cos(this.heading);
+    const back = TRUCK.size.l / 2;
+    for (let i = 0; i < U.count; i++) {
+      const side = (i - (U.count - 1) / 2) * 1.2;
+      const x = this.x + bx * (back + 0.6) + bz * side;
+      const z = this.z + bz * (back + 0.6) - bx * side;
+      g.enemies.spawn('grunt', { x, z, ex: x + bx * 1.5, ez: z + bz * 1.5 });
+    }
+    g.notes.log(`貨車開後門放出 ${U.count} 個打手`);
+    g.hud.banner('DOOR OPEN', '射後門！', 'clear');
+  }
+
+  shotAt(x0, z0, x1, z1) {
+    if (!this.active || this.state === 'down') return null;
+    const { w, l } = TRUCK.size;
+    const [ax, az] = this.local(x0, z0);
+    const [bx, bz] = this.local(x1, z1);
+    const out = {};
+    if (!segAABB(ax, az, bx, bz, { minX: -w / 2, maxX: w / 2, minZ: -l / 2, maxZ: l / 2 }, out)) return null;
+    // where it meets the box: the back face, with the door open, is the door
+    const hz = az + (bz - az) * out.t;
+    const hx = ax + (bx - ax) * out.t;
+    const door = this.state === 'unload' && this.door > 0.5 && hz < -l / 2 + 0.05 && Math.abs(hx) < w / 2 - 0.15;
+    return { t: out.t, part: door ? 'door' : 'armor' };
+  }
+
+  shot(b, part) {
+    const g = this.game;
+    if (part === 'armor') {
+      g.fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 6, [6, 4.5, 1.8], 7);
+      g.audio.impact(g.panFor(b.x));
+      return true;
+    }
+    g.fx.sparks(b.x, GUN_Y, b.z, b.dx, b.dz, 10, [7, 3, 1], 8);
+    g.audio.impact(g.panFor(b.x));
+    if (++this.doorHits >= TRUCK.unload.hits) {
+      // a segment: the door slams and it drives off
+      this.doorHits = 0;
+      this.state = 'drive';
+      this.hurt();
+    }
+    return true;
+  }
+
+  /** Over its roof: a thrown barrel that comes down there goes off on it (thrown.js). */
+  under(x, z) {
+    if (!this.active || this.state === 'down') return false;
+    const [rx, fw] = this.local(x, z);
+    return Math.abs(rx) <= TRUCK.size.w / 2 + 0.3 && Math.abs(fw) <= TRUCK.size.l / 2 + 0.3;
+  }
+
+  /** A blast beside it (main.js explode): a barrel or a grenade within reach of its side takes a segment. */
+  blast(x, z, opts = {}) {
+    if (!this.active || this.state === 'down' || this.blastT > 0 || !TRUCK.blast.kinds.includes(opts.kind)) return;
+    const { w, l } = TRUCK.size;
+    const [rx, fw] = this.local(x, z);
+    const dx = Math.max(0, Math.abs(rx) - w / 2);
+    const dz = Math.max(0, Math.abs(fw) - l / 2);
+    if (Math.hypot(dx, dz) > TRUCK.blast.radius) return;
+    this.blastT = TRUCK.blast.cool;
+    this.game.shake(0.4);
+    this.hurt();
+  }
+
+  /** The last segment: it stops and burns, then blows. */
+  goDown() {
+    const g = this.game;
+    this.state = 'down';
+    this.timer = TRUCK.wreck.burn;
+    this.gunState = 'idle';
+    this.lock = null;
+    g.notes.log('貨車起火');
+    g.hud.banner('BOSS DOWN', '快離開貨車！', 'clear');
+  }
+
+  updateWreck(dt) {
+    const g = this.game;
+    const before = Math.floor(this.timer * 12);
+    this.timer -= dt;
+    if (Math.floor(this.timer * 12) !== before) g.fx.sparks(this.x, TRUCK.size.h, this.z, 0, 0, 3, [6, 2.5, 0.8], 3, Math.PI); // burning: a few sparks, twelve times a second
+    if (this.timer > 0) {
+      this.sync();
+      return;
+    }
+    g.explode(this.x, this.z, TRUCK.wreck.radius, { source: '爆炸的貨車', kind: 'truck' });
+    this.root.visible = false;
+    this.strip.visible = false;
+    this.laser.hide();
+    this.finish();
+  }
+
+  /** Where everything is drawn: the truck, its gun and door, the red line, the painted path. */
+  sync() {
+    const { l } = TRUCK.size;
+    this.root.position.set(this.x, 0, this.z);
+    this.root.rotation.y = this.heading;
+    const aimAt = this.lock || this.game.player;
+    this.turret.rotation.y = Math.atan2(aimAt.x - this.x, aimAt.z - this.z) - this.heading;
+    this.doorMesh.rotation.y = -this.door * 1.6;
+    const red = this.gunState === 'warn' || this.gunState === 'fire';
+    if (red && this.lock) this.laser.set(this.x, this.z, this.lock.x, this.lock.z, 0.06, this.gunState === 'warn' ? 1.5 + 2 * clamp(1 - this.gunTimer / TRUCK.gun.warn, 0, 1) : 3, GUN_Y);
+    else this.laser.hide();
+    const painted = this.state === 'warn' || this.state === 'charge';
+    this.strip.visible = painted;
+    if (painted) {
+      const fx = Math.sin(this.heading);
+      const fz = Math.cos(this.heading);
+      const left = this.run - this.ran;
+      this.strip.position.set(this.x + fx * l * 0.5, 0.03, this.z + fz * l * 0.5);
+      this.strip.rotation.y = this.heading;
+      this.strip.scale.set(TRUCK.size.w, 1, Math.max(0.01, left));
+    }
+  }
+}
+
 /** Every kind of boss, by the name a map's `boss.kind` uses. */
-export const BOSSES = { heli: { make: (game) => new Heli(game), cfg: HELI }, dj: { make: (game) => new Dj(game), cfg: DJ } };
+export const BOSSES = {
+  heli: { make: (game) => new Heli(game), cfg: HELI },
+  dj: { make: (game) => new Dj(game), cfg: DJ },
+  truck: { make: (game) => new Truck(game), cfg: TRUCK },
+};
 
 /** The run's boss: none until a final wave starts one; each kind is built once and reused. */
 export class Bosses {
