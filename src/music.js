@@ -8,7 +8,11 @@
 // taken bar by bar. Drums: x hit, X accent, g ghost. Bass: r root, o root an
 // octave up, 5 fifth, 3 and 7 the chord's second and fourth tones, - holds the
 // note before. Keys: x the chord, - holds. Arp: a digit picks a chord tone.
-// Toms fall in pitch through the bar, so a run of them is a fill.
+// Toms fall in pitch through the bar, so a run of them is a fill. A swell rises
+// from its step to the end of the bar. With `kit: 'epic'` the kick is a taiko
+// and the snare a trailer hit, both through the hall (`hall`: a made-up room).
+// Parts may name a voice: strings (an arp, short bowed notes), brass (a pad,
+// its filter opening like a swell), horn (a lead); `choir` is a second pad.
 // A lead is a list of [bar, step, semitones above the key, steps long, slide].
 
 /** The chord of a bar: semitones above the key's root, the root first. */
@@ -204,7 +208,85 @@ const vendetta = {
   },
 };
 
-export const SONGS = { classic, neon, city, breaks, dream, vendetta };
+/**
+ * 傳說 LEGEND: a trailer-style heroic epic (the developer: "the big feel of Two Steps From Hell").
+ * Taiko on a 3-3-2, sixteenth-note bowed strings, low brass, a choir and a horn line over the epic
+ * i–VI–III–VII in D minor, a swell into each turn of the loop, all in a big hall.
+ */
+const legend = {
+  name: '傳說 LEGEND',
+  bpm: 132,
+  key: 146.83,
+  bars: 4,
+  kit: 'epic',
+  hall: { seconds: 3.2, send: 0.55 },
+  chords: [CHORD.m(0), CHORD.M(-4), CHORD.M(3), CHORD.M(-2)],
+  delay: { steps: 3, send: 0.08, feedback: 0.2 },
+  mix: { snare: 1.6, swell: 4 }, // measured against the taiko: the hits about 6 dB under it, the swell about 12
+  drums: {
+    kick: ['x.....x...x.x...', 'x.....x...x.x...', 'x.....x...x.x...', 'x.x.x.x.x.xxxxxx'],
+    snare: '....x.......x...',
+    swell: ['................', '................', '................', 'x...............'],
+  },
+  bass: { pattern: 'r-------r-------', type: 'sawtooth', filter: 420, vol: 0.2, len: 1, sub: 0.8 },
+  arp: { pattern: '0102010201020102', voice: 'strings', octave: 0, vol: 0.28, filter: 3200 },
+  pad: { voice: 'brass', octave: -1, vol: 0.14, filter: 1500, from: 2 },
+  choir: { vol: 0.2, from: 4 },
+  lead: {
+    voice: 'horn',
+    vol: 0.4,
+    filter: 1800,
+    octave: 1,
+    from: 4,
+    notes: [
+      [0, 0, 7, 4], [0, 4, 12, 8], [0, 12, 10, 2], [0, 14, 12, 2],
+      [1, 0, 15, 6], [1, 6, 12, 2], [1, 8, 8, 8],
+      [2, 0, 10, 4], [2, 4, 15, 4], [2, 8, 19, 8],
+      [3, 0, 17, 6], [3, 6, 14, 2], [3, 8, 17, 4], [3, 12, 22, 4],
+    ],
+  },
+};
+
+/**
+ * 暗湧 UNDERTOW: tension in the manner of a Hans Zimmer score (the developer's other pick). A low
+ * drone, a sixteenth-note string ostinato, one brass braam a bar whose filter opens, a ticking clock,
+ * a slow horn that climbs, over i–VI–iv–V in A minor.
+ */
+const undertow = {
+  name: '暗湧 UNDERTOW',
+  bpm: 120,
+  key: 220,
+  bars: 4,
+  kit: 'epic',
+  hall: { seconds: 3.6, send: 0.5 },
+  chords: [CHORD.m(0), CHORD.M(-4), CHORD.m(5), CHORD.M(7)],
+  delay: { steps: 3, send: 0.1, feedback: 0.25 },
+  mix: { tick: 6, swell: 4 },
+  drums: {
+    kick: ['x...............', 'x...............', 'x...............', 'x.......x...x.x.'],
+    tick: 'x.x.x.x.x.x.x.x.',
+    swell: ['................', '................', '................', '........x.......'],
+  },
+  bass: { pattern: 'r---------------', type: 'sawtooth', filter: 320, vol: 0.22, len: 1, sub: 0.9 },
+  arp: { pattern: '0.10.10.0.10.10.', voice: 'strings', octave: -1, vol: 0.3, filter: 2600 },
+  pad: { voice: 'brass', octave: -1, vol: 0.15, filter: 1800, from: 0 },
+  choir: { vol: 0.11, from: 4 },
+  lead: {
+    voice: 'horn',
+    vol: 0.32,
+    filter: 1500,
+    octave: 0,
+    from: 4,
+    notes: [
+      [0, 0, 12, 8], [0, 8, 11, 4], [0, 12, 12, 4],
+      [1, 0, 15, 8], [1, 8, 12, 8],
+      [2, 0, 17, 8], [2, 8, 15, 8],
+      [3, 0, 11, 8], [3, 8, 19, 8],
+    ],
+  },
+};
+
+export const SONGS = { classic, neon, city, breaks, dream, vendetta, legend, undertow };
 
 const hz = (semi, base) => base * Math.pow(2, semi / 12);
 const at16 = (p, bar) => (Array.isArray(p) ? p[bar % p.length] : p);
@@ -238,6 +320,21 @@ const voice = {
     for (const d of [0, 0.011, 0.023]) a.noise({ type: 'bandpass', freq: 1400 * r, q: 0.6, dur: 0.02 / r, vol, at, delay: d / r, bus });
     a.noise({ type: 'bandpass', freq: 1500 * r, q: 0.5, dur: 0.26 / r, vol: vol * 0.7, at, delay: 0.03 / r, bus });
   },
+  taiko(a, at, r, vol, bus) {
+    a.tone({ type: 'sine', f0: 100 * r, f1: 42 * r, dur: 0.7 / r, vol, at, bus });
+    a.noise({ type: 'lowpass', freq: 380 * r, dur: 0.14 / r, vol: vol * 0.5, at, bus });
+    a.noise({ type: 'bandpass', freq: 1200 * r, q: 0.7, dur: 0.03 / r, vol: vol * 0.15, at, bus });
+  },
+  hit(a, at, r, vol, bus) {
+    a.noise({ type: 'bandpass', freq: 1300 * r, q: 0.5, dur: 0.45 / r, vol, at, bus });
+    a.tone({ type: 'triangle', f0: 160 * r, f1: 90 * r, dur: 0.25 / r, vol: vol * 0.5, at, bus });
+  },
+  tick(a, at, r, vol, bus) {
+    a.noise({ type: 'bandpass', freq: 3400 * r, q: 3, dur: 0.012 / r, vol, at, bus });
+  },
+  swell(a, at, r, len, vol, bus) {
+    a.noise({ type: 'highpass', freq: 1800 * r, freqEnd: 7000 * r, attack: len * 0.92, dur: len, vol, at, bus });
+  },
   tom(a, at, r, vol, bus, pitch = 1) {
     a.tone({ type: 'sine', f0: 200 * pitch * r, f1: 72 * pitch * r, dur: 0.3 / r, vol, at, bus });
     a.noise({ type: 'bandpass', freq: 900 * pitch * r, q: 0.8, dur: 0.05 / r, vol: vol * 0.25, at, bus });
@@ -270,8 +367,18 @@ const voice = {
     }
   },
   pad(a, at, r, chord, base, dur, p, bus) {
+    const o = 12 * (p.octave || 0);
     for (const semi of chord) {
-      for (const d of [0.997, 1.003]) a.tone({ type: 'sawtooth', f0: hz(semi, base) * r * d, dur, vol: p.vol, attack: 0.4 / r, at, bus, filter: p.filter * r });
+      const f = hz(semi + o, base) * r;
+      if (p.voice === 'brass') {
+        // low brass: the filter opens over the first beat, a braam
+        for (const d of [0.996, 1.004]) a.tone({ type: 'sawtooth', f0: f * d, dur, vol: p.vol, attack: 0.09 / r, at, bus, filter: 180 * r, filterTo: p.filter * r, sweep: 0.5 / r });
+      } else if (p.voice === 'choir') {
+        // voices: an "ah", two saws through the vowel's band, slow to come in
+        for (const d of [0.995, 1.005]) a.tone({ type: 'sawtooth', f0: f * 2 * d, dur, vol: p.vol, attack: 0.6 / r, at, bus, filter: 950 * r, filterType: 'bandpass', q: 1.1 });
+      } else {
+        for (const d of [0.997, 1.003]) a.tone({ type: 'sawtooth', f0: f * d, dur, vol: p.vol, attack: 0.4 / r, at, bus, filter: p.filter * r });
+      }
     }
   },
 };
@@ -296,10 +403,19 @@ export function playStep(a, song, step, at, r = 1) {
   const d = song.drums;
   if (on(d, bar)) {
     const hit = (p) => (p ? at16(p, bar)[s] : '.');
+    const epic = song.kit === 'epic';
     const k = hit(d.kick);
-    if (k !== '.') voice.kick(a, t, r, (k === 'X' ? 0.52 : 0.45) * mx.kick, dry);
+    if (k !== '.') {
+      if (epic) voice.taiko(a, t, r, (k === 'X' ? 0.62 : 0.55) * mx.kick, wet);
+      else voice.kick(a, t, r, (k === 'X' ? 0.52 : 0.45) * mx.kick, dry);
+    }
     const sn = hit(d.snare);
-    if (sn !== '.') voice.snare(a, t, r, (sn === 'g' ? 0.18 : sn === 'X' ? 1 : 0.78) * mx.snare, sn === 'g' ? dry : wet);
+    if (sn !== '.') {
+      if (epic) voice.hit(a, t, r, (sn === 'X' ? 0.9 : 0.7) * mx.snare, wet);
+      else voice.snare(a, t, r, (sn === 'g' ? 0.18 : sn === 'X' ? 1 : 0.78) * mx.snare, sn === 'g' ? dry : wet);
+    }
+    if (hit(d.tick) !== '.') voice.tick(a, t, r, 0.1 * (mx.tick || 1), dry);
+    if (hit(d.swell) !== '.') voice.swell(a, t, r, stepDur * (16 - s), 0.14 * (mx.swell || 1), wet);
     const cl = hit(d.clap);
     if (cl !== '.') voice.clap(a, t, r, 1.3 * mx.clap, wet);
     const h = hit(d.hat);
@@ -332,19 +448,27 @@ export function playStep(a, song, step, at, r = 1) {
     const c = at16(ar.pattern, bar)[s];
     if (c >= '0' && c <= '9') {
       const semi = chord[Number(c) % chord.length] + 12 * (ar.octave || 0) + (ar.upper && s >= ar.upper ? 12 : 0);
-      a.tone({ type: ar.type, f0: hz(semi, base) * r, dur: stepDur * 0.9, vol: ar.vol, at: t, bus: wet, filter: ar.filter * r });
+      if (ar.voice === 'strings') {
+        // bowed short (spiccato): two saws a hair apart, quick in, quick out
+        for (const dt of [0.997, 1.003]) a.tone({ type: 'sawtooth', f0: hz(semi, base) * r * dt, dur: stepDur * 0.6, vol: ar.vol, attack: 0.006 / r, at: t, bus: wet, filter: ar.filter * r });
+      } else a.tone({ type: ar.type, f0: hz(semi, base) * r, dur: stepDur * 0.9, vol: ar.vol, at: t, bus: wet, filter: ar.filter * r });
     }
   }
 
   const pd = song.pad;
-  if (on(pd, bar) && s === 0) voice.pad(a, t, r, chord, base, stepDur * 16, pd, dry);
+  if (on(pd, bar) && s === 0) voice.pad(a, t, r, chord, base, stepDur * 16, pd, pd.voice === 'brass' ? wet : dry);
+  const ch = song.choir;
+  if (on(ch, bar) && s === 0) voice.pad(a, t, r, chord, base, stepDur * 16, { ...ch, voice: 'choir' }, wet);
 
   const l = song.lead;
   if (on(l, bar)) {
     for (const [nb, ns, semi, len, slide = 0] of l.notes) {
       if (nb !== loopBar || ns !== s) continue;
       const f = hz(semi + 12 * (l.octave || 0) - 12, base) * r;
-      a.tone({ type: l.type, f0: f, f1: slide ? f * Math.pow(2, slide / 12) : 0, dur: stepDur * len * 0.95, vol: l.vol, attack: 0.01 / r, at: t, bus: wet, filter: l.filter * r });
+      if (l.voice === 'horn') {
+        // a horn: two saws, a soft swell in, the filter opening a little as it sounds
+        for (const d of [0.996, 1.004]) a.tone({ type: 'sawtooth', f0: f * d, dur: stepDur * len * 0.95, vol: l.vol, attack: 0.07 / r, at: t, bus: wet, filter: l.filter * 0.6 * r, filterTo: l.filter * r, sweep: 0.25 / r });
+      } else a.tone({ type: l.type, f0: f, f1: slide ? f * Math.pow(2, slide / 12) : 0, dur: stepDur * len * 0.95, vol: l.vol, attack: 0.01 / r, at: t, bus: wet, filter: l.filter * r });
     }
   }
 }

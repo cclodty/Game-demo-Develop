@@ -84,6 +84,23 @@ export class AudioSys {
     tone.connect(fb);
     fb.connect(delay);
     tone.connect(this.music);
+    // a song may ask for a hall (song.hall): what goes to musicWet also rings out in a made-up room
+    const hall = this.song.hall;
+    if (hall) {
+      const n = Math.ceil(ctx.sampleRate * hall.seconds);
+      const ir = ctx.createBuffer(2, n, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = ir.getChannelData(ch);
+        for (let i = 0; i < n; i++) d[i] = rand(-1, 1) * Math.pow(1 - i / n, 2.6);
+      }
+      const room = ctx.createConvolver();
+      room.buffer = ir;
+      const hs = ctx.createGain();
+      hs.gain.value = hall.send;
+      this.musicWet.connect(hs);
+      hs.connect(room);
+      room.connect(this.music);
+    }
 
     const len = ctx.sampleRate * 2;
     this.noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
@@ -160,7 +177,8 @@ export class AudioSys {
     src.stop(t + dur + 0.05);
   }
 
-  tone({ type = 'sine', f0, f1 = 0, dur, vol, attack = 0.003, delay = 0, pan = 0, bus = this.sfx, at = 0, filter = 0 }) {
+  // `filter` a lowpass (or `filterType`) at that frequency, opening (or closing) to `filterTo` over `sweep` s (the whole note if 0)
+  tone({ type = 'sine', f0, f1 = 0, dur, vol, attack = 0.003, delay = 0, pan = 0, bus = this.sfx, at = 0, filter = 0, filterTo = 0, sweep = 0, filterType = 'lowpass', q = 1 }) {
     const c = this.ctx;
     const t = (at || c.currentTime) + delay;
     const o = c.createOscillator();
@@ -174,8 +192,10 @@ export class AudioSys {
     let node = o;
     if (filter) {
       const f = c.createBiquadFilter();
-      f.type = 'lowpass';
-      f.frequency.value = filter;
+      f.type = filterType;
+      f.Q.value = q;
+      f.frequency.setValueAtTime(filter, t);
+      if (filterTo) f.frequency.exponentialRampToValueAtTime(filterTo, t + (sweep || dur));
       o.connect(f);
       node = f;
     }
