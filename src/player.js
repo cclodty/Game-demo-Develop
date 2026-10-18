@@ -5,6 +5,8 @@ import { Laser } from './fx.js';
 import { angleTo, clamp, damp, rand, wrapAngle } from './utils.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
+const KICK_TIME = 0.28; // s a kick takes, for its key pose (characters.js KEY_POSES.kick)
+
 /**
  * Turn the hero texture's teal jacket to `hue` (degrees), or back to the original (null). The
  * texture is shared by the model's material and its toon twin, so both change.
@@ -585,7 +587,7 @@ export class Player {
   kick() {
     const g = this.game;
     this.kickCd = PLAYER.kickCooldown;
-    this.kickT = 0.28;
+    this.kickT = KICK_TIME;
     let hit = false;
     const inCone = (x, z, reach) => {
       const dx = x - this.x;
@@ -694,11 +696,8 @@ export class Player {
     const held = (k) => (k < 0.12 || k > 0.88 ? 0.5 : 1);
     if (this.slideT > 0) keyPose(r, 'slide', held(1 - this.slideT / PLAYER.slideDuration));
     else if (this.spinT > 0) keyPose(r, 'spin', held(1 - this.spinT / PLAYER.spinDuration));
+    else if (this.kickT > 0) keyPose(r, 'kick', held(1 - this.kickT / KICK_TIME));
     else keyPose(r, carrying ? 'carry' : null);
-    if (this.kickT > 0) {
-      const k = 1 - this.kickT / 0.28;
-      r.legR.rotation.x = -1.7 * Math.sin(k * Math.PI);
-    }
     if (this.execT > 0) {
       // the execution: leaning in, a stamp down on him (the kick's leg, so a worn model shows it too)
       const k = 1 - this.execT / PLAYER.execTime;

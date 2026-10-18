@@ -453,9 +453,11 @@
   - [x] 手掣局照舊逐步重播一致（同一個測試加了 LB+RB 和 LT）；提示列、FOCUS 鍵名、熱身提示寫 LB+RB；npm run lint && npm test 通過
 - 這次不做：自訂鍵位
 
-### 斯巴達踢（估計：半天）
+### ✅ 斯巴達踢（估計：半天）— 2026-10-18 完成
 - 目標：踢的時候上身後仰，右腳伸直踢到胸口高度，像電影《300》的前踢；方塊版和穿模型都有（`KEY_POSES` 加 `kick`），只改樣子，踢的範圍和時間不變
-- 驗收：三種鏡頭截圖對比；`test/calibration.test.mjs` 的踢腳檢查仍過；npm run lint && npm test 通過
+- 驗收：
+  - [x] 三種鏡頭截圖對比（`docs/shots/feedback-1/kick-*.jpg`）；`test/keyposes.test.mjs` 量度：右腳 0.85 米以上、在臀部前 0.55 米以上，頭在臀部後面，企地的腳貼地
+  - [x] `test/calibration.test.mjs` 的踢腳檢查仍過；npm run lint && npm test 通過
 - 這次不做：踢的判定、敵人被踢的樣子
 
 ### 手部姿勢：舉平底鑊、機關槍（估計：一天；做不好可先擱置）
