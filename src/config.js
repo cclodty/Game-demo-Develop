@@ -134,6 +134,14 @@ export const ENV = {
   flockBlind: 0.5, // world seconds before he can aim again (a kill meanwhile is a PIGEON STRIKE)
   flockScare: 1.5, // metres: a player bullet passing this close to a resting flock startles it
   flockAway: [14, 24], // world seconds a startled flock stays away
+  // fixtures (fixtures.js): street lamps and hanging signs
+  lampHits: 2, // player bullets that put a street lamp out
+  darkRadius: 4, // m: the dark pool under a lamp shot out…
+  darkTime: 10, // …for this many world seconds, in which the enemies inside cannot aim (a kill there is BLACKOUT)
+  signHits: 3, // bullets on a hanging sign's bracket before the board drops
+  signFall: 0.45, // s from the bracket breaking to the board on the floor
+  signBlast: 1.2, // m: whoever stands this close to where it lands is CRUSHED
+  signDamage: 60, // what the player takes under it
 };
 
 /** The 60-second warm-up on a first run (src/tutorial.js). */

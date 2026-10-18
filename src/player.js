@@ -406,6 +406,12 @@ export class Player {
       if (d2 >= rr * rr || d2 < 1e-8) continue;
       const d = Math.sqrt(d2);
       const push = rr - d;
+      if (p.fixed) {
+        // a lamp post or a sign's post: the body gives way, not the post
+        this.x -= (dx / d) * push;
+        this.z -= (dz / d) * push;
+        continue;
+      }
       p.x += (dx / d) * push;
       p.z += (dz / d) * push;
       p.vx += (dx / d) * 1.5;
@@ -603,7 +609,7 @@ export class Player {
       hit = true;
     }
     for (const p of g.level.props) {
-      if (!p.alive) continue;
+      if (!p.alive || p.fixed) continue;
       const dir = inCone(p.x, p.z, PLAYER.kickRange + p.r);
       if (!dir) continue;
       if (p.kind === 'pan') {

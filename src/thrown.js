@@ -53,7 +53,7 @@ export class Thrown {
     let best = null;
     let bd = PLAYER.throwReach;
     for (const q of this.game.level.props) {
-      if (!q.alive || q.carried || (q.y || 0) > 0.6) continue;
+      if (!q.alive || q.carried || q.fixed || (q.y || 0) > 0.6) continue;
       if (q.kind === 'barrel' && q.fuse >= 0) continue;
       const d = Math.hypot(q.x - p.x, q.z - p.z) - q.r;
       if (d < bd) {

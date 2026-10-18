@@ -780,6 +780,11 @@ class Enemy {
       this.losT = 0.12;
       this.los = p.alive && g.level.hasLOS(this.x, this.z, p.x, p.z, cfg.fly ? cfg.fly.height : 0);
     }
+    // in the dark under a lamp shot out (fixtures.js): no aiming from there
+    if (g.level.darkAt(this.x, this.z)) {
+      if (this.state === 'aim' || this.state === 'fire') this.blind(0.3);
+      this.fireCd = Math.max(this.fireCd, 0.15);
+    }
     const dxp = p.x - this.x;
     const dzp = p.z - this.z;
     const distP = Math.hypot(dxp, dzp) || 0.001;
@@ -1171,7 +1176,7 @@ class Enemy {
 
   pushProps() {
     for (const p of this.game.level.props) {
-      if (!p.alive || p.carried) continue;
+      if (!p.alive || p.carried || p.fixed) continue;
       const dx = p.x - this.x;
       const dz = p.z - this.z;
       const rr = this.radius + p.r;

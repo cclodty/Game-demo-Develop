@@ -1270,6 +1270,8 @@ class Game {
     if (info.cause === 'explosion') tags.push(info.chain ? { label: 'CHAIN', pts: 120, cls: 'gold' } : { label: 'BOOM', pts: 120, cls: 'gold' });
     if (info.cause === 'kick') tags.push({ label: 'KICK', pts: 150, cls: 'gold' });
     if (info.cause === 'strike') tags.push({ label: 'STRIKE!', pts: 200, cls: 'gold' });
+    if (info.cause === 'crushed') tags.push({ label: 'CRUSHED', pts: 200, cls: 'gold' });
+    if (this.level.darkAt(e.x, e.z)) tags.push({ label: 'BLACKOUT', pts: 100, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });
     if (e.blindT > 0) tags.push({ label: 'PIGEON STRIKE', pts: 80, cls: 'gold' });
     if (info.cause === 'bullet') {

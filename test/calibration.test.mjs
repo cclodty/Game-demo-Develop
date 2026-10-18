@@ -161,6 +161,7 @@ const measureProps = (page) =>
         out.push({ map: map.id, kind: s.modelKey, fit: spec.fit || 'box', box: [s.maxX - s.minX, s.maxZ - s.minZ, s.h], model: size(box), off: [(box.min.x + box.max.x) / 2 - x, (box.min.z + box.max.z) / 2 - z], base: box.min.y });
       }
       for (const q of level.props) {
+        if (q.fixed) continue; // a fixture (lamp, sign, door…): built from blocks, no model to measure
         // lay it at rest where the map puts it, facing +z, and measure the made model
         const m = q.kind === 'barrel' ? q.body : q.tilt;
         if (!m.children.length || m.children[0].isMesh) continue; // the block version: nothing made to measure

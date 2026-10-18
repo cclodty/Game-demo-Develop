@@ -436,14 +436,14 @@
   - [x] `test/rank.test.mjs` 擴充兩個；npm run lint && npm test 通過
 - 這次不做：改 RANK 其他數字、鏡頭提示
 
-### 環境互動件 ①：字彙、街燈與吊招牌（估計：一天）
-- 目標：地圖資料多一個 `fixtures` 陣列，每件寫 kind 和位置，玩法由 kind 決定，不寫地圖專屬程式。第一批兩種：**街燈**——射兩槍熄滅，周圍 4 米變黑 10 秒，黑暗裡的敵人瞄不到玩家，在黑暗裡擊殺出 BLACKOUT +100；**吊招牌**——射斷支架（3 槍）掉下來，壓到的人即死出 CRUSHED +200，之後留在地上做矮掩體。四張地圖各放 2–4 件
-- 涉及：新 `src/fixtures.js`（字彙表與行為）、`src/level.js`（載入、重設、nav 更新）、`src/maps.js`（fixtures 資料）、`src/enemies.js`（黑暗中失去瞄準，重用 blind）、`src/main.js`（標籤）、`src/config.js`（`ENV.darkRadius 4、darkTime 10、lampHits 2、signHits 3、signBlast 1.2`）
+### ✅ 環境互動件 ①：字彙、街燈與吊招牌（估計：一天）— 2026-10-18 完成
+- 目標：地圖資料多一個 `fixtures` 陣列，每件寫 kind 和位置，玩法由 kind 決定，不寫地圖專屬程式。第一批兩種：**街燈**——射兩槍熄滅，周圍 4 米變黑 10 秒，黑暗裡的敵人瞄不到玩家，在黑暗裡擊殺出 BLACKOUT +100；**吊招牌**——射斷支架（3 槍）掉下來，壓到的人即死出 CRUSHED +200（玩家 −60），之後留在地上做矮掩體。天台 2 燈 2 牌、夜店 1 燈 1 牌、碼頭 3 燈 1 牌、議事亭 4 燈 2 牌
+- 涉及：新 `src/fixtures.js`（Fixture：lamp／sign，固定在 `level.props` 裡，子彈找得到、沒人推得動拿得起）、`src/level.js`（載入、`darkAt`、更新、重設）、`src/maps.js`（fixtures 資料；議事亭四盞路燈由 solids 改為互動件）、`src/enemies.js`（黑暗中不瞄準）、`src/bullets.js`（擊中互動件）、`src/main.js`（BLACKOUT、CRUSHED）、`src/player.js`／`src/thrown.js`（固定物不踢不拿）、`src/config.js`（`ENV.lampHits 2、darkRadius 4、darkTime 10、signHits 3、signFall 0.45、signBlast 1.2、signDamage 60`）、`test/fixtures.test.mjs`
 - 驗收：
-  - [ ] 測試：街燈兩槍滅、瞄準中的敵人中斷、黑暗中擊殺有 BLACKOUT；10 秒後燈復亮
-  - [ ] 測試：招牌 3 槍落下，下面的敵人死並出 CRUSHED；落地後擋子彈與路徑
-  - [ ] 重開一局兩者復原（seed test）；`?style=off` 一樣；渲染預算不超
-  - [ ] 截圖：黑暗區、招牌墜落；npm run lint && npm test 通過
+  - [x] 測試：街燈兩槍滅、瞄準中的敵人中斷且半秒內不再瞄、黑暗中擊殺有 BLACKOUT；10 秒後燈復亮可再打
+  - [x] 測試：招牌 3 槍落下，下面的敵人死並出 CRUSHED，玩家在下面 −60；落地後擋子彈與路徑；重開一局掛回去
+  - [x] 四張地圖的驗證器與渲染預算通過；`?style=off` 不影響玩法（互動件只是道具）
+  - [x] 截圖：黑暗區、招牌墜落；npm run lint && npm test 通過
 - 這次不做：門與鐵閘、氣樽、水邊（後面三張）
 
 ### 環境互動件 ②：門與鐵閘（估計：一天）

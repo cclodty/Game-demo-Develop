@@ -8,6 +8,7 @@ import { Flock } from './ambient.js';
 import { ENV } from './config.js';
 import { MAPS } from './maps.js';
 import { propModel } from './models.js';
+import { buildFixtures } from './fixtures.js';
 import { NavGrid } from './nav.js';
 import { clamp, rand, resolveCircleAABB, resolveCirclePoly, segAABB, segCircle, segPoly, TAU } from './utils.js';
 import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenceTexture, floorTexture } from './textures.js';
@@ -401,6 +402,7 @@ export class Level {
     this.crates = [];
     this.barrels = [];
     this.pans = [];
+    this.fixtures = [];
     this.props = [];
     this.pads = [];
     this.animators = [];
@@ -426,7 +428,8 @@ export class Level {
       else this.pans.push(new Pan(this, x, z, v));
     }
     this.flocks = (map.flocks || []).map(([x, z]) => new Flock(x, z));
-    this.props = [...this.barrels, ...this.pans];
+    this.fixtures = buildFixtures(this, map.fixtures); // lamps and signs: fixed props that play along (fixtures.js)
+    this.props = [...this.barrels, ...this.pans, ...this.fixtures];
     for (const [x, z] of map.pads || []) this.addPad(x, z);
     this.buildSpawns(map.spawns);
     if (map.decorate) map.decorate(this);
@@ -773,6 +776,12 @@ export class Level {
     for (const f of this.flocks) if (f.away <= 0 && Math.hypot(f.x - x, f.z - z) < r) this.startle(f, x, z);
   }
 
+  /** In the dark pool of a lamp shot out (fixtures.js): nobody aims from there. */
+  darkAt(x, z) {
+    for (const f of this.fixtures) if (f.darkAt(x, z)) return true;
+    return false;
+  }
+
   /** Height of the ground (the Senado fountain sits in a sunken ring). */
   groundY(x, z) {
     return this.groundFn ? this.groundFn(x, z) : 0;
@@ -926,7 +935,7 @@ export class Level {
     this.updateFlocks(dt);
     const props = this.props;
     for (const p of props) {
-      if (!p.alive || p.carried) continue;
+      if (!p.alive || p.carried || p.fixed) continue;
       p.x += p.vx * dt;
       p.z += p.vz * dt;
       // nothing slows a thing that is in the air
@@ -952,10 +961,10 @@ export class Level {
     }
     for (let i = 0; i < props.length; i++) {
       const a = props[i];
-      if (!a.alive || a.carried) continue;
+      if (!a.alive || a.carried || a.fixed) continue;
       for (let j = i + 1; j < props.length; j++) {
         const b = props[j];
-        if (!b.alive || b.carried) continue;
+        if (!b.alive || b.carried || b.fixed) continue;
         const dx = b.x - a.x;
         const dz = b.z - a.z;
         const rr = a.r + b.r;
@@ -980,6 +989,7 @@ export class Level {
     }
     for (const b of this.barrels) if (b.alive) b.update(dt);
     for (const p of this.pans) p.update(dt, this.time);
+    for (const f of this.fixtures) f.update(dt);
   }
 
   updateAmbient(realDt, worldDt, cx, cz) {

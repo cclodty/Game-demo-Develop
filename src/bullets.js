@@ -265,6 +265,13 @@ export class Bullets {
         if (b.owner === 'player' && hit.prop.y > 0.6) this.scatter(b, hit.prop);
         else this.ricochet(b, hit.prop);
         return;
+      case 'lamp':
+      case 'sign':
+        // a fixture (fixtures.js): the player's bullets work it, anyone else's just stop
+        if (b.owner === 'player') hit.prop.shot(b);
+        else fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 4, [6, 1.4, 0.6], 5);
+        b.alive = false;
+        return;
       case 'enemy':
         if (hit.enemy.hit(b) === 'blocked') {
           b.alive = false;
