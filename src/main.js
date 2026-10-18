@@ -1268,12 +1268,14 @@ class Game {
       refill += 0.08;
     }
     if (info.cause === 'explosion') tags.push(info.chain ? { label: 'CHAIN', pts: 120, cls: 'gold' } : { label: 'BOOM', pts: 120, cls: 'gold' });
+    if (info.rocket) tags.push({ label: 'ROCKET CAN', pts: 150, cls: 'gold' });
     if (info.cause === 'kick') tags.push({ label: 'KICK', pts: 150, cls: 'gold' });
     if (info.cause === 'strike') tags.push({ label: 'STRIKE!', pts: 200, cls: 'gold' });
     if (info.cause === 'crushed') tags.push({ label: 'CRUSHED', pts: 200, cls: 'gold' });
     if (info.cause === 'slam') tags.push({ label: 'SLAM', pts: 120, cls: 'gold' });
     if (info.cause === 'shutter') tags.push({ label: 'SHUTTER', pts: 200, cls: 'gold' });
     if (this.level.darkAt(e.x, e.z)) tags.push({ label: 'BLACKOUT', pts: 100, cls: 'gold' });
+    if (this.level.smokeAt(e.x, e.z)) tags.push({ label: 'SMOKE', pts: 80, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });
     if (e.blindT > 0) tags.push({ label: 'PIGEON STRIKE', pts: 80, cls: 'gold' });
     if (info.cause === 'bullet') {
@@ -1390,7 +1392,7 @@ class Game {
       const d = Math.hypot(e.x - x, e.z - z);
       if (d > r + e.radius || !this.level.hasLOS(x, z, e.x, e.z)) continue;
       const k = 1 / (d || 1);
-      e.blast((e.x - x) * k, (e.z - z) * k, d < r * 0.65 ? 20 : 5, !!opts.chain);
+      e.blast((e.x - x) * k, (e.z - z) * k, d < r * 0.65 ? 20 : 5, !!opts.chain, !!opts.rocket);
     }
     for (const e of this.enemies.corpses) {
       const d = Math.hypot(e.x - x, e.z - z);

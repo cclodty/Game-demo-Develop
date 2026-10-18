@@ -620,7 +620,10 @@ export class Player {
       if (p.kind === 'pan') {
         p.hit(dir.x, dir.z, 9);
         p.vy = 8;
-      } else {
+      } else if (p.kind === 'extinguisher') {
+        p.kick(dir.x, dir.z); // off it careers
+      } else if (!(p.kind === 'barrel' && p.rocket(dir.x, dir.z))) {
+        // an LPG cylinder jets off instead of sliding
         p.vx += dir.x * 14;
         p.vz += dir.z * 14;
       }

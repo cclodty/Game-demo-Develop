@@ -82,8 +82,12 @@ class Barrel {
     this.carried = false;
     this.thrown = false;
     this.alive = true;
+    this.rocketT = -1; // an LPG cylinder kicked into flight: seconds of jet left (rocket)
+    this.rocketSpeed = 0; // the jet's own speed: the floor's drag does not slow it
+    this.rocketHit = false;
     this.mesh.visible = true;
     this.body.scale.setScalar(1);
+    this.body.rotation.set(0, 0, 0);
     this.mesh.rotation.set(0, rand(0, TAU), 0);
   }
 
@@ -100,6 +104,19 @@ class Barrel {
     if (this.fuse < 0 || this.fuse > delay) this.fuse = delay;
   }
 
+  /** Kicked along (dx, dz): an LPG cylinder's valve gives and it jets off, bouncing off walls, until it meets an enemy or its ENV.rocketTime is up. */
+  rocket(dx, dz) {
+    if (!this.alive || this.carried || this.fuse >= 0 || this.variant !== 'lpg' || this.rocketT > 0) return false;
+    this.rocketT = ENV.rocketTime;
+    this.rocketSpeed = 6;
+    this.vx = dx * 6;
+    this.vz = dz * 6;
+    const g = this.level.game;
+    g.audio.fuse(g.panFor(this.x));
+    g.notes.log('石油氣樽噴射');
+    return true;
+  }
+
   update(dt) {
     if (this.fuse >= 0) {
       this.fuse -= dt;
@@ -107,11 +124,35 @@ class Barrel {
       if (this.fuse < 0) {
         this.alive = false;
         this.mesh.visible = false;
-        this.level.game.explode(this.x, this.z, this.blast, { kind: 'barrel' });
+        this.level.game.explode(this.x, this.z, this.blast, { kind: 'barrel', rocket: this.rocketHit });
         return;
       }
     }
     if (this.carried) return;
+    if (this.rocketT > 0 && this.fuse < 0) {
+      // the jet: faster along its way, sparks behind, a burst on the first enemy it meets or when the gas is spent
+      const g = this.level.game;
+      this.rocketT -= dt;
+      const sp = Math.hypot(this.vx, this.vz) || 1;
+      const ux = this.vx / sp; // the way it points (a wall bounce turned it)
+      const uz = this.vz / sp;
+      this.rocketSpeed = Math.min(ENV.rocketSpeed, this.rocketSpeed + ENV.rocketAccel * dt);
+      this.vx = ux * this.rocketSpeed;
+      this.vz = uz * this.rocketSpeed;
+      g.fx.sparks(this.x - ux * 0.5, 0.5, this.z - uz * 0.5, -ux, -uz, 2, [8, 3, 0.6], 7, 0.5);
+      this.body.rotation.z = Math.PI / 2 - 0.3; // lying along its flight
+      this.mesh.rotation.y = Math.atan2(ux, uz);
+      for (const e of g.enemies.list) {
+        if (!e.alive || e.spawnLock > 0 || e.cfg.fly || Math.hypot(e.x - this.x, e.z - this.z) > e.radius + this.r + 0.1) continue;
+        this.rocketHit = true;
+        this.ignite(0.02);
+        break;
+      }
+      if (this.rocketT <= 0) {
+        this.rocketHit = true;
+        this.ignite(0.02);
+      }
+    }
     if (this.y > 0 || this.vy !== 0) {
       this.vy -= 22 * dt;
       this.y += this.vy * dt;
@@ -125,6 +166,151 @@ class Barrel {
       }
     }
     this.mesh.position.set(this.x, this.y, this.z);
+  }
+}
+
+/**
+ * A fire extinguisher (滅火筒): one bullet bursts it into a white cloud of
+ * ENV.smokeRadius for ENV.smokeTime, in which no enemy aims (a kill there is
+ * SMOKE); a kick sends it careering about for ENV.tumbleTime, bowling over
+ * whoever it meets (pushProps). It can be picked up and thrown like a pan.
+ */
+class Extinguisher {
+  constructor(level, x, z) {
+    this.level = level;
+    this.kind = 'extinguisher';
+    this.variant = 'extinguisher';
+    this.home = [x, z];
+    this.r = 0.28;
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(level.geo.extinguisher, level.mat.extinguisher);
+    body.position.y = 0.3;
+    const head = new THREE.Mesh(level.geo.extHead, level.mat.darkMetal);
+    head.position.y = 0.64;
+    g.add(body, head); // two meshes: every mesh is three draw calls with its shadow and its outline, and the club's budget is tight
+    g.traverse((m) => {
+      if (m.isMesh) m.castShadow = true;
+    });
+    this.tilt = g; // what a throw tumbles (thrown.js) and the calibration measures
+    this.mesh = new THREE.Group();
+    this.mesh.add(g);
+    level.add(this.mesh);
+    this.cloud = new THREE.Mesh(level.geo.cloud, level.mat.cloud);
+    this.cloud.position.y = 0.02;
+    this.cloud.userData.noOutline = true;
+    level.add(this.cloud);
+    this.reset();
+  }
+
+  reset() {
+    [this.x, this.z] = this.home;
+    this.vx = this.vz = 0;
+    this.y = 0;
+    this.vy = 0;
+    this.hp = 1;
+    this.smokeT = 0;
+    this.tumbleT = 0;
+    this.steerT = 0;
+    this.puff = 0;
+    this.alive = true;
+    this.carried = false;
+    this.thrown = false;
+    this.mesh.visible = true;
+    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.rotation.set(0, 0, 0);
+    this.tilt.rotation.set(0, 0, 0);
+    this.cloud.visible = false;
+  }
+
+  /** A bullet: it bursts. */
+  hit(dmg, dx, dz) {
+    if (!this.alive || this.smokeT > 0) return;
+    this.hp -= dmg;
+    this.vx += dx * 0.4;
+    this.vz += dz * 0.4;
+    if (this.hp <= 0) this.burst();
+  }
+
+  burst() {
+    const g = this.level.game;
+    this.smokeT = ENV.smokeTime;
+    this.vx = this.vz = 0;
+    this.tumbleT = 0;
+    this.cloud.visible = true;
+    this.cloud.position.set(this.x, 0.02, this.z);
+    g.fx.smokePuff(this.x, 0.6, this.z, 14, 1.2, 0.9, 1.6);
+    g.audio.glass(g.panFor(this.x));
+    g.level.noise(this.x, this.z, 5);
+    g.notes.log('滅火筒爆開，白霧四散');
+  }
+
+  /** Kicked along (dx, dz): off it goes, and keeps going. */
+  kick(dx, dz) {
+    if (!this.alive || this.smokeT > 0) return;
+    this.tumbleT = ENV.tumbleTime;
+    this.steerT = 0.3;
+    this.vx = dx * ENV.tumbleSpeed;
+    this.vz = dz * ENV.tumbleSpeed;
+    this.level.game.notes.log('踢飛滅火筒');
+  }
+
+  /** Inside this one's cloud. */
+  smokeAt(x, z) {
+    return this.smokeT > 0 && Math.hypot(x - this.x, z - this.z) < ENV.smokeRadius;
+  }
+
+  update(dt) {
+    const g = this.level.game;
+    if (this.smokeT > 0) {
+      this.smokeT -= dt;
+      if (this.smokeT <= 0) {
+        this.alive = false;
+        this.mesh.visible = false;
+        this.cloud.visible = false;
+        return;
+      }
+      if (++this.puff % 6 === 0) g.fx.smokePuff(this.x + rand(-1.6, 1.6), 0.4, this.z + rand(-1.6, 1.6), 1, 1.0, 0.88, 0.9);
+      this.cloud.material.opacity = 0.3 + 0.08 * Math.sin(g.worldTime * 2) * Math.min(1, this.smokeT / 1.5);
+      this.cloud.scale.setScalar(Math.min(1, this.smokeT / 1.2 + 0.3));
+      return;
+    }
+    if (this.carried) return;
+    if (this.tumbleT > 0 && this.y <= 0.05) {
+      // careering about: its speed is kept up and its course wanders a little every 0.3 s
+      this.tumbleT -= dt;
+      this.steerT -= dt;
+      const sp = Math.hypot(this.vx, this.vz) || 1;
+      let ux = this.vx / sp;
+      let uz = this.vz / sp;
+      if (this.steerT <= 0) {
+        this.steerT = 0.3;
+        const a = Math.atan2(ux, uz) + g.rng.range(-0.6, 0.6);
+        ux = Math.sin(a);
+        uz = Math.cos(a);
+      }
+      this.vx = ux * ENV.tumbleSpeed;
+      this.vz = uz * ENV.tumbleSpeed;
+      if (++this.puff % 3 === 0) g.fx.smokePuff(this.x - ux * 0.3, 0.3, this.z - uz * 0.3, 1, 0.5, 0.9, 1.4);
+    }
+    if (this.y > 0 || this.vy !== 0) {
+      this.vy -= 22 * dt;
+      this.y += this.vy * dt;
+      if (this.y <= 0) {
+        this.y = 0;
+        this.vy = 0;
+        this.thrown = false;
+      }
+    }
+    const sp = Math.hypot(this.vx, this.vz);
+    this.mesh.position.set(this.x, this.y, this.z);
+    if (sp > 1) {
+      this.mesh.rotation.y = Math.atan2(this.vx, this.vz);
+      this.tilt.rotation.x = Math.PI / 2;
+      this.tilt.position.y = 0.12;
+    } else if (this.y <= 0) {
+      this.tilt.rotation.x = 0;
+      this.tilt.position.y = 0;
+    }
   }
 }
 
@@ -274,6 +460,9 @@ export class Level {
       gasBand: new THREE.CylinderGeometry(0.59, 0.59, 0.3, 18),
       gasValve: new THREE.CylinderGeometry(0.12, 0.16, 0.22, 8),
       lpg: new THREE.CapsuleGeometry(0.3, 0.5, 6, 14),
+      extinguisher: new THREE.CylinderGeometry(0.12, 0.12, 0.55, 12),
+      extHead: new THREE.CylinderGeometry(0.05, 0.08, 0.14, 8),
+      cloud: new THREE.CircleGeometry(ENV.smokeRadius, 36).rotateX(-Math.PI / 2),
       lpgCollar: new THREE.CylinderGeometry(0.14, 0.18, 0.18, 10, 1, true),
       pan: new THREE.CylinderGeometry(0.38, 0.32, 0.07, 20),
       panRim: new THREE.TorusGeometry(0.38, 0.03, 6, 24),
@@ -308,6 +497,8 @@ export class Level {
       gas: std({ color: 0xd8dde4, roughness: 0.35, metalness: 0.4 }),
       gasBand: std({ color: 0x2a6cff, emissive: 0x2a6cff, emissiveIntensity: 0.5 }),
       lpg: std({ color: 0xe8652a, roughness: 0.45, metalness: 0.35, emissive: 0xff4400, emissiveIntensity: 0.15 }),
+      extinguisher: std({ color: 0xc8202a, roughness: 0.4, metalness: 0.4 }),
+      cloud: new THREE.MeshBasicMaterial({ color: 0xf0f2f4, transparent: true, opacity: 0.3, depthWrite: false }),
       pan: std({ color: 0x22242a, roughness: 0.3, metalness: 0.85 }),
       tray: std({ color: 0xb8bcc6, roughness: 0.2, metalness: 0.95 }),
       panRim: std({ color: 0xffd38a, emissive: 0xffb347, emissiveIntensity: 1.4, metalness: 0.9, roughness: 0.25 }),
@@ -402,6 +593,7 @@ export class Level {
     this.crates = [];
     this.barrels = [];
     this.pans = [];
+    this.tools = [];
     this.fixtures = [];
     this.props = [];
     this.pads = [];
@@ -428,8 +620,9 @@ export class Level {
       else this.pans.push(new Pan(this, x, z, v));
     }
     this.flocks = (map.flocks || []).map(([x, z]) => new Flock(x, z));
+    for (const [x, z, kind] of map.tools || []) if (kind === 'extinguisher') this.tools.push(new Extinguisher(this, x, z)); // things to pick up and use (more kinds come with their cards)
     this.fixtures = buildFixtures(this, map.fixtures); // lamps and signs: fixed props that play along (fixtures.js)
-    this.props = [...this.barrels, ...this.pans, ...this.fixtures];
+    this.props = [...this.barrels, ...this.pans, ...this.tools, ...this.fixtures];
     for (const [x, z] of map.pads || []) this.addPad(x, z);
     this.buildSpawns(map.spawns);
     if (map.decorate) map.decorate(this);
@@ -795,6 +988,12 @@ export class Level {
     return false;
   }
 
+  /** In the cloud of a burst extinguisher: nobody aims from there either. */
+  smokeAt(x, z) {
+    for (const t of this.tools) if (t.smokeAt && t.smokeAt(x, z)) return true;
+    return false;
+  }
+
   /** Height of the ground (the Senado fountain sits in a sunken ring). */
   groundY(x, z) {
     return this.groundFn ? this.groundFn(x, z) : 0;
@@ -1002,6 +1201,7 @@ export class Level {
     }
     for (const b of this.barrels) if (b.alive) b.update(dt);
     for (const p of this.pans) p.update(dt, this.time);
+    for (const t of this.tools) if (t.alive) t.update(dt);
     for (const f of this.fixtures) f.update(dt);
   }
 

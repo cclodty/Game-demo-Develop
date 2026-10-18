@@ -252,6 +252,12 @@ export class Bullets {
         b.alive = false;
         return;
       }
+      case 'extinguisher':
+        hit.prop.hit(1, b.dx, b.dz);
+        fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 6, [7, 7, 7], 6);
+        game.audio.impact(pan);
+        b.alive = false;
+        return;
       case 'barrel':
         hit.prop.hit(b.owner === 'player' ? Math.max(1, b.damage) : 0.5, b.dx, b.dz);
         fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 8, [7, 3, 1], 6);

@@ -44,6 +44,7 @@ export class Thrown {
 
   static propName(prop) {
     if (prop.kind === 'pan') return prop.variant === 'tray' ? '托盤' : '平底鑊';
+    if (prop.kind === 'extinguisher') return '滅火筒';
     return prop.variant === 'gas' ? '氣罐' : prop.variant === 'lpg' ? '石油氣樽' : '油桶';
   }
 
@@ -54,7 +55,8 @@ export class Thrown {
     let bd = PLAYER.throwReach;
     for (const q of this.game.level.props) {
       if (!q.alive || q.carried || q.fixed || (q.y || 0) > 0.6) continue;
-      if (q.kind === 'barrel' && q.fuse >= 0) continue;
+      if (q.kind === 'barrel' && (q.fuse >= 0 || q.rocketT > 0)) continue;
+      if (q.kind === 'extinguisher' && q.smokeT > 0) continue;
       const d = Math.hypot(q.x - p.x, q.z - p.z) - q.r;
       if (d < bd) {
         bd = d;

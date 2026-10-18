@@ -458,10 +458,14 @@
 - 這次不做：鎖門、敵人踢門、門的模型（方塊版）；小屋的門（天台小屋的門是出生點，福隆新街才有真正的屋內）
 - 這次不做：鎖門、敵人踢門、門的模型（方塊版）
 
-### 環境互動件 ③：石油氣樽火箭與滅火筒（估計：一天）
-- 目標：踢**石油氣樽**（現有 lpg 變體）會令它噴射：沿踢的方向加速、撞牆反彈、1.5 秒後或撞到敵人時爆炸，出 ROCKET CAN +150。新道具**滅火筒**：射爆噴白霧 3 米 6 秒，霧裡的敵人瞄不到，霧中擊殺出 SMOKE +80；踢它會四處亂撞，撞到的敵人暈
-- 涉及：`src/level.js`（Barrel 加 thrust；新 Extinguisher 道具）、`src/maps.js`（`tools` 陣列）、`src/thrown.js`（可拿起）、`src/main.js`（標籤）、`src/config.js`
-- 驗收：測試：踢 lpg 後加速、1.5 秒爆；滅火筒霧中敵人 blind、擊殺有 SMOKE；踢後亂撞暈人；npm run lint && npm test && npm run test:game 通過
+### ✅ 環境互動件 ③：石油氣樽火箭與滅火筒（估計：一天）— 2026-10-18 完成
+- 目標：踢**石油氣樽**（現有 lpg 變體）會令它噴射：沿踢的方向加速到 14 m/s、撞牆反彈、1.5 秒後或撞到敵人時爆炸，爆炸擊殺出 ROCKET CAN +150。新道具**滅火筒**（`maps.js tools`）：射一槍爆開噴白霧 3 米 6 秒，霧裡的敵人瞄不到，霧中擊殺出 SMOKE +80，6 秒後連筒帶霧消失；踢它會以 10 m/s 四處亂撞 2.5 秒，撞到的敵人暈（撞人）；也可以 G 拿起擲出。天台多一支石油氣樽；滅火筒天台 1、夜店 1（繪製預算最緊）、碼頭 1、議事亭 1
+- 涉及：`src/level.js`（Barrel.rocket／噴射更新；新 Extinguisher 類；`tools`、`smokeAt`）、`src/maps.js`、`src/bullets.js`、`src/enemies.js`（霧中不瞄準；爆炸帶 rocket 旗）、`src/player.js`（踢的分支）、`src/thrown.js`（名字；噴射中和冒煙中拿不起）、`src/main.js`（ROCKET CAN、SMOKE）、`src/config.js`（`ENV.rocketTime 1.5、rocketAccel 26、rocketSpeed 14、smokeRadius 3、smokeTime 6、tumbleTime 2.5、tumbleSpeed 10`）、`test/tools.test.mjs`
+- 驗收：
+  - [x] 測試：踢 lpg 後噴射加速，撞到路上的打手爆炸、擊殺有 ROCKET CAN 與 BOOM；踢向空地 1.5 秒後自爆
+  - [x] 測試：滅火筒一槍爆開，霧裡的打手瞄準中斷且不再瞄，擊殺有 SMOKE；6 秒後消失
+  - [x] 測試：踢飛的滅火筒 10 m/s 出去、1.5 秒後仍在跑、撞倒路上的打手（strike 暈）、4 秒後停
+  - [x] 地圖驗證器與渲染預算通過；npm run lint && npm test 通過（`test:game` 在 CI 之外由下一次全套 game 測試覆蓋：這張沒改武器、拾取規則或轉場）
 - 這次不做：火焰蔓延、煙霧遮玩家視線以外的效果
 
 ### 環境互動件 ④：水邊（估計：半天）

@@ -441,14 +441,14 @@ class Enemy {
     if (this.hp <= 0) this.die(dx, dz, { cause });
   }
 
-  /** Caught in an explosion; `chain` when a bomber's charges set it off (a kill then is a CHAIN). */
-  blast(dx, dz, dmg, chain = false) {
+  /** Caught in an explosion; `chain` when a bomber's charges set it off (a kill then is a CHAIN), `rocket` when a kicked LPG cylinder did (ROCKET CAN). */
+  blast(dx, dz, dmg, chain = false, rocket = false) {
     if (!this.alive) return;
     this.hp -= dmg;
     this.flash = 1;
     this.vx += dx * 10;
     this.vz += dz * 10;
-    if (this.hp <= 0) this.die(dx, dz, { cause: 'explosion', chain });
+    if (this.hp <= 0) this.die(dx, dz, { cause: 'explosion', chain, rocket });
     else {
       this.stunT = 0.5;
       this.stunCause = 'blast';
@@ -780,8 +780,8 @@ class Enemy {
       this.losT = 0.12;
       this.los = p.alive && g.level.hasLOS(this.x, this.z, p.x, p.z, cfg.fly ? cfg.fly.height : 0);
     }
-    // in the dark under a lamp shot out (fixtures.js): no aiming from there
-    if (g.level.darkAt(this.x, this.z)) {
+    // in the dark under a lamp shot out (fixtures.js) or in an extinguisher's cloud: no aiming from there
+    if (g.level.darkAt(this.x, this.z) || g.level.smokeAt(this.x, this.z)) {
       if (this.state === 'aim' || this.state === 'fire') this.blind(0.3);
       this.fireCd = Math.max(this.fireCd, 0.15);
     }

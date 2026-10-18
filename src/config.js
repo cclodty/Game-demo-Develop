@@ -147,6 +147,15 @@ export const ENV = {
   slamPower: 12, // how hard the door throws him
   shutterFall: 0.5, // s from the lock giving to the shutter on the ground
   shutterDamage: 60, // what the player takes under a shutter
+  // a kicked LPG cylinder jets off (level.js Barrel.rocket) and bursts on an enemy or when its time is up: ROCKET CAN
+  rocketTime: 1.5, // s of flight
+  rocketAccel: 26, // m/s² along its way
+  rocketSpeed: 14, // m/s at most
+  // a fire extinguisher (level.js Extinguisher): shot, it bursts into a cloud nobody aims from (SMOKE); kicked, it tumbles about
+  smokeRadius: 3, // m
+  smokeTime: 6, // s the cloud lasts
+  tumbleTime: 2.5, // s a kicked one careers about, bowling over whoever it meets
+  tumbleSpeed: 10, // m/s it keeps while it does
 };
 
 /** The 60-second warm-up on a first run (src/tutorial.js). */

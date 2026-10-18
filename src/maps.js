@@ -128,8 +128,9 @@ const rooftop = {
     [19.5, -2.5, 0.25, 4, 1.9],
     [0, 7, 5, 0.25, 1.9],
   ],
-  barrels: [[-6, -3.4], [11.8, 6.2], [-12, -2], [3.5, -10], [-19.5, 13], [5.2, 12.4], [15.5, -9.5]],
+  barrels: [[-6, -3.4], [11.8, 6.2], [-12, -2], [3.5, -10], [-19.5, 13], [5.2, 12.4], [15.5, -9.5], [-9, -11, 'lpg']],
   pans: [[-2.5, -1.5], [2.5, -1.5], [-12.5, -8.5], [12.5, -8.5], [-16, 7], [16, 7]],
+  tools: [[-13, -9.5, 'extinguisher']], // things to pick up and use: a fire extinguisher by the stairwell
   // fixtures (fixtures.js): street lamps that go dark when shot out, hanging signs that drop on whoever is under them
   fixtures: [[-6, 7, 'lamp'], [6, 7, 'lamp'], [12, -3, 'sign', 180], [-12, 11, 'sign', 0], [0, -8, 'door', 0, 2, 1.25]], // a gate in the barrier (an opening needs 2 m for a path through: nav inflates cover by 0.5 m)
   pads: [[-9, 1], [9, 1]],
@@ -228,6 +229,7 @@ const club = {
   ],
   barrels: [[-5.5, -12.2, 'gas'], [12.5, -12, 'gas'], [11.5, 12], [-17.5, 12], [17.5, -11.5]],
   pans: [[-3, -1.5, 'tray'], [3, -1.5, 'tray'], [0, 4, 'tray'], [-15, -7, 'tray'], [15, -8.5, 'tray'], [-2.5, 12, 'tray']],
+  tools: [[-8.5, 0, 'extinguisher']], // one: the club's draw-call budget (400) is the tightest of the maps
   fixtures: [[-6, 0, 'lamp'], [-4, -7.5, 'sign', 180], [-12, -10.2, 'door', 0, 2, 1.2]], // the bar's flap
   pads: [[-3, 7.5], [13, -3.5]],
   spawns: [
@@ -428,6 +430,7 @@ const docks = {
   ],
   barrels: [[4.5, -12, 'gas'], [-21.5, -4, 'gas'], [21.5, 3, 'gas'], [-1, 11.5, 'gas'], [-11, 1.5], [13.5, -8.5], [3, 3.5], [-16, 12.5], [15, 12]],
   pans: [[-4, -12.5], [7, 1.5], [-12, 9], [17, -11], [3, 12.5]],
+  tools: [[-4, 9, 'extinguisher']],
   fixtures: [[-10, 8, 'lamp'], [16, -8, 'lamp'], [0, 10, 'lamp'], [-14, -9, 'sign', 90], [10.5, 7.2, 'shutter', 90, 5]], // a loading-bay shutter between two containers
   pads: [[-10, -0.5], [12, 1.5]],
   spawns: [
@@ -600,6 +603,7 @@ const senado = {
   pans: [[-12, 49.8], [11, 49.8], [-5.8, 17.9], [6, 9.9], [-14, -63.5], [1, -12], [8, 40], [-8, -60]],
   // pigeon flocks resting on the square: they burst into the air at shots, blasts and runners (PIGEON STRIKE)
   flocks: [[-6, 46], [8, 44], [0, 22], [-10, -64]],
+  tools: [[-3, 52, 'extinguisher']],
   // four of the square's lamps can be shot out; two shop signs hang over the pavement
   fixtures: [[-15, 60, 'lamp'], [16, 58, 'lamp'], [-9, 31, 'lamp'], [9, 30, 'lamp'], [-14, 55, 'sign', 90], [12, 42, 'sign', 270]],
   pads: [[-4, 48], [1, -34], [-10, -62]],
