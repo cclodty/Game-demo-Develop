@@ -129,6 +129,7 @@ export class Style {
     this.twins = new WeakMap(); // original lit material -> its toon twin
     this.flats = new WeakMap(); // and its flat-look twin
     this.origins = new WeakMap(); // twin -> the lit material it stands in for
+    this.litOf = new WeakMap(); // level mesh -> its lit material(s) (not in userData: clones copy that through JSON)
     this.hulls = { char: new Set(), world: new Set() };
     this.rigs = new Set();
     this.level = null;
@@ -322,7 +323,7 @@ export class Style {
 
   /**
    * Every mesh under the level's root in the world's toon, or in the flat look on a map that asks for it.
-   * Each mesh keeps its lit materials (userData.lit), so the flatWorld switch can swap them live.
+   * Each mesh's lit materials are kept (litOf), so the flatWorld switch can swap them live.
    */
   retoneLevel(level) {
     if (!this.on.toon) return;
@@ -330,8 +331,11 @@ export class Style {
     level.cut.uCutSoft.value = flat ? 0 : 1;
     level.root.traverse((o) => {
       if (!o.isMesh || o.userData.hull || o.userData.ghost) return;
-      if (!o.userData.lit) o.userData.lit = Array.isArray(o.material) ? o.material.map((m) => this.lit(m)) : this.lit(o.material);
-      const lit = o.userData.lit;
+      let lit = this.litOf.get(o);
+      if (!lit) {
+        lit = Array.isArray(o.material) ? o.material.map((m) => this.lit(m)) : this.lit(o.material);
+        this.litOf.set(o, lit);
+      }
       const pick = (m) => (flat ? this.flat(m, level.cut) : this.toon(m, 'world', level.cut));
       o.material = Array.isArray(lit) ? lit.map(pick) : pick(lit);
     });
