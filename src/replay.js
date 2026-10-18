@@ -206,12 +206,12 @@ export class RecordReader {
 const STORE_KEY = 'bullet-ballet.replays';
 export const KEEP_REPLAYS = 10;
 
-const toBase64 = (bytes) => {
+export const toBase64 = (bytes) => {
   let s = '';
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(s);
 };
-const fromBase64 = (text) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
+export const fromBase64 = (text) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
 const pad = (n) => String(n).padStart(2, '0');
 
 /** The file name a replay downloads as: bullet-ballet-20261018-1203-rooftop.bbr */

@@ -16,7 +16,8 @@ import { Pickups } from './pickups.js';
 import { Player } from './player.js';
 import { PostFX } from './postfx.js';
 import { readQuality } from './quality.js';
-import { InputRecord, RecordReader, ReplayStore } from './replay.js';
+import { countdown, dailyFor, DailyStore, msToNextDay, shareCode, utcDay } from './daily.js';
+import { fromBase64, InputRecord, RecordReader, ReplayStore, toBase64 } from './replay.js';
 import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
 import { DIFFICULTIES, DIFFICULTY_IDS, packRules, rulesFor, unpackRules, VARIANT_IDS, VARIANTS } from './rules.js';
 import { rate, Score } from './score.js';
@@ -81,6 +82,9 @@ class Game {
     this.record = new InputRecord();
     this.replays = new ReplayStore(); // the last ten runs' records, for the replay list
     this.replay = null; // while a record plays back: { rd, speed, meta, mode }
+    this.now = () => Date.now(); // the wall clock, read only to pick the daily challenge's day (tests set their own)
+    this.daily = new DailyStore(); // this browser's daily results
+    this.dailyRun = null; // during a daily run and its end screen: { day, mode }
     this.acc = 0;
     this.stepCount = 0;
     this.frameSteps = 0;
@@ -200,6 +204,7 @@ class Game {
     };
     for (const id of MODE_IDS) {
       const m = MODES[id];
+      if (m.daily) continue; // it has its own card
       const b = document.createElement('button');
       b.className = 'mode-card';
       b.type = 'button';
@@ -258,9 +263,26 @@ class Game {
     });
     this.markMapCard();
     $('title').addEventListener('click', () => start());
+    // the daily challenge card
+    $('daily-card').addEventListener('click', (e) => e.stopPropagation()); // not a start of the picked mode
+    $('daily-start').addEventListener('click', () => {
+      this.audio.init();
+      this.startDaily();
+    });
+    $('daily-replay').addEventListener('click', () => this.playDailyReplay());
+    $('go-daily-copy').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const code = $('go-daily-code').textContent;
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).catch(() => {});
+      $('go-daily-copy').textContent = '已複製';
+    });
+    this.renderDaily();
+    setInterval(() => {
+      if (this.state === 'title') this.renderDaily(); // the countdown
+    }, 1000);
     $('gameover').addEventListener('click', () => {
       if (this.clipOn) this.endClip(); // a click skips the clip
-      else if (this.replay) this.toTitle(); // a replay's end goes back to the title
+      else if (this.replay || this.dailyRun) this.toTitle(); // a replay's or a daily's end goes back to the title
       else if (performance.now() - this.overAt > 700) start();
     });
     // the replay list
@@ -282,7 +304,7 @@ class Game {
     $('pause').addEventListener('click', () => this.setPaused(false));
     const menu = {
       resume: () => this.setPaused(false),
-      restart: () => start(),
+      restart: () => (this.dailyRun ? this.toTitle() : start()), // a daily has one try
       title: () => this.toTitle(),
       note: () => this.notes.openNote(),
       export: () => this.notes.download(),
@@ -317,7 +339,8 @@ class Game {
         e.preventDefault(); // or the N lands in the note box it just focused
         this.notes.openNote();
       } else if (e.code === 'KeyR' && this.state === 'paused') {
-        start();
+        if (this.dailyRun) this.toTitle();
+        else start();
       } else if (e.code === 'KeyT') {
         if (this.state === 'paused' || (this.state === 'over' && performance.now() - this.overAt > 700)) this.toTitle();
       } else if (e.code === 'KeyV' && this.state !== 'paused') {
@@ -328,7 +351,7 @@ class Game {
       } else if (e.code === 'Enter') {
         if (this.state === 'title') start();
         else if (this.clipOn) this.endClip();
-        else if (this.state === 'over' && this.replay) this.toTitle();
+        else if (this.state === 'over' && (this.replay || this.dailyRun)) this.toTitle();
         else if (this.state === 'over' && performance.now() - this.overAt > 700) start();
       } else if (this.state === 'title' && /^Digit[1-9]$/.test(e.code)) {
         const i = Number(e.code.slice(5)) - 1;
@@ -427,6 +450,88 @@ class Game {
   }
 
   /** Abandon the run (from pause or game over) and go back to the map select. */
+  /**
+   * The day's challenge (daily.js): the date picks the seed, map and rules; one try a day in this
+   * browser, taken as soon as the run starts. Returns whether it started.
+   */
+  startDaily() {
+    const day = utcDay(this.now());
+    if (!this.daily.canPlay(day)) {
+      this.renderDaily('今天已經打過了：可以看重播，明天再來。');
+      return false;
+    }
+    const d = dailyFor(day);
+    if (this.replay) this.endReplay();
+    const keep = { seed: this.fixedSeed, warmup: this.fixedWarmup, rules: this.fixedRules };
+    this.fixedSeed = d.seed;
+    this.fixedWarmup = false; // the same run for everyone: no warm-up
+    this.fixedRules = { difficulty: d.difficulty, variants: d.variants };
+    this.dailyRun = { day, mode: this.mode };
+    this.mode = 'daily';
+    this.daily.begin(day);
+    this.startRun(d.map);
+    Object.assign(this, { fixedSeed: keep.seed, fixedWarmup: keep.warmup, fixedRules: keep.rules });
+    this.notes.log(`每日挑戰 ${day}`);
+    return true;
+  }
+
+  /** Leave the daily: the title's mode comes back. */
+  endDaily() {
+    if (!this.dailyRun) return;
+    this.mode = this.dailyRun.mode;
+    this.dailyRun = null;
+  }
+
+  /** Watch the day's run again (the only way to see it after the one try). */
+  playDailyReplay() {
+    const r = this.daily.replay;
+    if (!r) return;
+    const err = this.playReplay(fromBase64(r.data), { name: `每日挑戰 ${r.day}` });
+    if (err) this.renderDaily(`無法播放：${err}`);
+  }
+
+  /** The title's daily card: today's map and rules, start or today's result, and the time to the next one. */
+  renderDaily(msg = '') {
+    const now = this.now();
+    const day = utcDay(now);
+    const d = dailyFor(day);
+    const rules = rulesFor(d.difficulty, d.variants).label || '正常';
+    $('daily-what').textContent = `${day}（UTC） · ${MAPS[d.map].name} · ${rules}`;
+    const done = this.daily.days[day];
+    $('daily-start').classList.toggle('hidden', !!done);
+    $('daily-done').classList.toggle('hidden', !done);
+    $('daily-replay').classList.toggle('hidden', !(done && this.daily.replay && this.daily.replay.day === day));
+    if (done) $('daily-done').textContent = done.left ? '今天的一局已開始過（中途離開）' : `今天：${Math.round(done.score).toLocaleString('en-US')} 分 ${done.grade}`;
+    $('daily-next').textContent = `下一局 ${countdown(msToNextDay(now))}`;
+    $('daily-msg').textContent = msg;
+  }
+
+  /** The end screen's daily block: today's score, the last fourteen days, and the share code. */
+  showDailyEnd(grade) {
+    const r = this.dailyRun;
+    const result = { score: Math.round(this.score.score), grade, wave: this.waves.wave, cleared: this.waves.state === 'done' };
+    this.daily.finish(r.day, result, toBase64(this.record.encode()));
+    $('go-daily-day').textContent = r.day;
+    const days = this.daily.last14(r.day);
+    const top = Math.max(1, ...days.map((x) => (x.result ? x.result.score : 0)));
+    const bars = $('go-daily-days');
+    bars.textContent = '';
+    for (const x of days) {
+      const bar = document.createElement('div');
+      bar.className = `go-daily-bar${x.day === r.day ? ' today' : ''}${x.result ? '' : ' none'}`;
+      bar.title = `${x.day}：${x.result ? `${x.result.score.toLocaleString('en-US')} 分 ${x.result.grade}` : '沒有打'}`;
+      const fill = document.createElement('i');
+      fill.style.height = `${x.result ? Math.max(6, (100 * x.result.score) / top) : 0}%`;
+      const label = document.createElement('span');
+      label.textContent = x.day.slice(8);
+      bar.append(fill, label);
+      bars.appendChild(bar);
+    }
+    $('go-daily-code').textContent = shareCode({ day: r.day, score: result.score, grade });
+    $('go-daily-copy').textContent = '複製';
+    this.notes.log(`每日挑戰 ${r.day}：${result.score} 分 ${grade}`);
+  }
+
   /** A run left before its end (restart or the title from the pause menu): recorded as a quit, and kept as a replay. */
   endAsQuit() {
     this.telemetry.end({ result: 'quit', wave: this.waves.wave, score: this.score.score }, this.stepCount / LOGIC_HZ);
@@ -566,6 +671,8 @@ class Game {
   toTitle() {
     if (this.state === 'paused' && !this.replay) this.endAsQuit();
     this.endReplay();
+    this.endDaily();
+    this.renderDaily();
     this.resetWorld(this.level.map);
     this.state = 'title';
     this.notes.hideNote();
@@ -729,6 +836,8 @@ class Game {
     $('gameover').classList.toggle('graded', graded);
     if (graded) this.showGrade(cleared);
     $('gameover').classList.toggle('replay', !!this.replay);
+    $('gameover').classList.toggle('daily', !!this.dailyRun && !this.replay);
+    if (this.dailyRun && !this.replay) this.showDailyEnd(graded ? $('go-grade').textContent : 'D');
     this.saveReplay(cleared ? 'clear' : 'death', graded ? $('go-grade').textContent : '');
     if (!this.replay) this.telemetry.end(
       { result: cleared ? 'clear' : 'death', wave: this.waves.wave, cause: cleared ? undefined : this.deathCause || '不明', score: s.score, grade: graded ? $('go-grade').textContent : undefined },

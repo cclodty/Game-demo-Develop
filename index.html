@@ -88,6 +88,16 @@
         </div>
         <p class="tagline">在慢鏡中起舞。時間是你的武器。</p>
         <p class="touch-note">這個遊戲需要鍵盤和滑鼠，請在電腦上遊玩。</p>
+        <div class="daily-card" id="daily-card">
+          <div class="daily-head"><b>每日挑戰</b> <span class="daily-en">DAILY</span> <span id="daily-what"></span></div>
+          <div class="daily-row">
+            <button type="button" id="daily-start">開始今天的一局 <small>全世界同一局 · 每天一次</small></button>
+            <span id="daily-done" class="hidden"></span>
+            <button type="button" id="daily-replay" class="hidden">看今天的重播</button>
+            <span id="daily-next"></span>
+          </div>
+          <p id="daily-msg" class="notes-msg"></p>
+        </div>
         <div class="cols">
           <div class="col">
             <h3>操作</h3>
@@ -203,6 +213,11 @@
           </div>
         </div>
         <div class="go-hint" id="go-hint"></div>
+        <div class="go-daily" id="go-daily">
+          <div class="go-daily-head">每日挑戰 <span id="go-daily-day"></span> · 最近 14 天</div>
+          <div class="go-daily-days" id="go-daily-days"></div>
+          <div class="go-daily-share">分享碼 <code id="go-daily-code"></code> <button type="button" id="go-daily-copy">複製</button></div>
+        </div>
         <div class="go-stats">
           <div class="over-only"><span>波次</span><b id="go-wave">0</b></div>
           <div class="clear-only"><span>用時</span><b id="go-time">0:00</b></div>
@@ -212,6 +227,7 @@
         </div>
         <div class="start">點擊重新開始 <span>/ Enter</span></div>
         <div class="start replay-only">重播完 <span>/ 點擊或 Enter 返回</span></div>
+        <div class="start daily-only">明天再來 <span>/ 點擊返回</span></div>
         <div class="menu">
           <button type="button" data-act="title">返回主畫面 · 換地圖 <kbd>T</kbd></button>
           <button type="button" data-act="export">匯出回饋 <small class="notes-count"></small> <kbd>⇩</kbd></button>

@@ -29,6 +29,17 @@ export const VARIANTS = {
 };
 export const VARIANT_IDS = Object.keys(VARIANTS);
 
+/** What each day's challenge plays, in turn (daily.js: the day's number modulo the table); another row is another day. */
+export const DAILY_ROTATION = [
+  { map: 0, difficulty: 'normal', variants: [] },
+  { map: 1, difficulty: 'ballet', variants: [] },
+  { map: 2, difficulty: 'normal', variants: ['glassCity'] },
+  { map: 3, difficulty: 'normal', variants: [] },
+  { map: 0, difficulty: 'normal', variants: ['dualist'] },
+  { map: 1, difficulty: 'street', variants: ['noSlowmo'] },
+  { map: 2, difficulty: 'ballet', variants: ['dualist'] },
+];
+
 /** The rules of a run: BASE, then the difficulty's and each variant's settings (multipliers multiply, the rest replace). */
 export function rulesFor(difficulty = 'normal', variants = []) {
   const d = DIFFICULTIES[difficulty] ? difficulty : 'normal';

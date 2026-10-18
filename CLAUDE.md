@@ -69,6 +69,7 @@ src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-tim
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
 src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
 src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
+src/daily.js                 the daily challenge: UTC date → seed, map and rules from a rotation table; one try a day; share codes
 src/clip.js                  the best-kill clip: overlapping MediaRecorder recordings of a small copy of the screen, played on the end screen
 src/telemetry.js             local play records: one row per run (start, waves, end and cause, time, played again), carried by the feedback export
 src/rules.js                 run rules: difficulties and variants as data (one switch or number each), read by their systems as game.ruleset
