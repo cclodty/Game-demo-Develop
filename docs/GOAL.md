@@ -13,7 +13,7 @@
 - 後端、帳號、網址、itch.io 上架是開發者的事：你寫程式、測試和文件，部署步驟留給他。
 
 ## 分支與 PR
-1. 從 origin/main 開分支 goal/phase-2（已存在就接著用）。整個目標只開一個 PR，標題「第二階段：回頭」，草稿即可。不要合併到 main，不要開第二個 PR，不要 force-push；合併由開發者決定。
+1. 從 origin/main 開分支 goal/phase-2（已存在就接著用）。若 main 的 docs/TASKS.md 還沒有「第二階段『回頭』」那一節，先把 origin/claude/youthful-galileo-s4cjqn 合併進 goal/phase-2（那是規劃文件所在的分支）。整個目標只開一個 PR，標題「第二階段：回頭」，草稿即可。不要合併到 main，不要開第二個 PR，不要 force-push；合併由開發者決定。
 2. 每張卡做完就 push，等 CI 綠才開始下一張。CI 紅就修到綠；不准刪、跳過或放寬測試來過關。CI 的測試步驟現在約 12 分鐘，等它是正常的。
 3. PR 描述照 .github/pull_request_template.md，每做完一張卡就累加一段，並更新頂部總表。
 
