@@ -21,6 +21,7 @@ import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
 import { DIFFICULTIES, DIFFICULTY_IDS, packRules, rulesFor, VARIANT_IDS, VARIANTS } from './rules.js';
 import { rate, Score } from './score.js';
 import { Style } from './style.js';
+import { Telemetry } from './telemetry.js';
 import { Thrown } from './thrown.js';
 import { Tutorial, wantWarmup } from './tutorial.js';
 import { clamp, damp, lerp } from './utils.js';
@@ -128,6 +129,7 @@ class Game {
     this.waves = new Waves(this);
     this.hud = new HUD(this);
     this.clip = new Clip(this); // the best kill, recorded for the end screen
+    this.telemetry = new Telemetry(); // each run's record in this browser, for the feedback export
     this.post = new PostFX(this.renderer, this.scene, this.camera);
     this.post.setSize(innerWidth, innerHeight);
     this.post.bloom.enabled = this.quality !== 'low';
@@ -229,6 +231,16 @@ class Game {
       );
     }
     this.markRules();
+    // the first visit: the local records switch (on unless turned off)
+    const tele = $('telemetry-on');
+    tele.checked = this.telemetry.on;
+    $('telemetry-switch').classList.toggle('hidden', this.telemetry.asked);
+    $('telemetry-switch').addEventListener('click', (e) => e.stopPropagation()); // not a start
+    tele.addEventListener('change', () => this.telemetry.setOn(tele.checked));
+    $('telemetry-ok').addEventListener('click', () => {
+      this.telemetry.confirm();
+      $('telemetry-switch').classList.add('hidden');
+    });
     const cards = $('map-cards');
     MAPS.forEach((m, i) => {
       const b = document.createElement('button');
@@ -337,6 +349,8 @@ class Game {
   }
 
   startRun(mapIndex = this.startMap) {
+    // a run left from the pause menu (restart) ends as a quit
+    if (this.state === 'paused' || this.state === 'playing') this.telemetry.end({ result: 'quit', wave: this.waves.wave, score: this.score.score }, this.stepCount / LOGIC_HZ);
     this.startMap = mapIndex;
     this.markMapCard();
     try {
@@ -359,6 +373,10 @@ class Game {
     this.hud.reset();
     this.notes.reset(MAPS[mapIndex]);
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
+    this.telemetry.confirm(); // the switch was on the title screen: playing is leaving it as it is
+    $('telemetry-switch').classList.add('hidden');
+    this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup });
+    this.deathCause = '';
     if (warmup) {
       this.waves.startWarmup();
       this.tutorial.start();
@@ -378,6 +396,7 @@ class Game {
 
   /** Abandon the run (from pause or game over) and go back to the map select. */
   toTitle() {
+    if (this.state === 'paused') this.telemetry.end({ result: 'quit', wave: this.waves.wave, score: this.score.score }, this.stepCount / LOGIC_HZ);
     this.resetWorld(this.level.map);
     this.state = 'title';
     this.notes.hideNote();
@@ -449,6 +468,7 @@ class Game {
       /* storage unavailable */
     }
     const v = VIEWS[this.view];
+    if (this.state === 'playing') this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'view', view: v.name });
     if (this.state === 'playing') this.hud.toast(`鏡頭：${v.name} <small>${v.en} · V</small>`);
     $('view-name').textContent = v.name;
   }
@@ -539,6 +559,10 @@ class Game {
     const graded = !!this.waves.rules.graded;
     $('gameover').classList.toggle('graded', graded);
     if (graded) this.showGrade(cleared);
+    this.telemetry.end(
+      { result: cleared ? 'clear' : 'death', wave: this.waves.wave, cause: cleared ? undefined : this.deathCause || '不明', score: s.score, grade: graded ? $('go-grade').textContent : undefined },
+      this.stepCount / LOGIC_HZ,
+    );
     $('gameover').classList.remove('hidden');
     document.body.classList.remove('playing');
     this.hud.show(false);
@@ -730,6 +754,7 @@ class Game {
   }
 
   onPlayerHurt(dmg, source = '子彈') {
+    this.deathCause = source; // the last thing that hit: the cause, if this was the end
     this.notes.log(`被${source}打中 −${dmg}（HP ${Math.max(0, Math.ceil(this.player.hp))}）`);
     this.score.breakCombo();
     this.score.rank.hit();
@@ -753,6 +778,7 @@ class Game {
     if (!this.player.alive) return;
     const bonus = 250 * n;
     this.notes.log(`第 ${n} 波清空${stageEnd ? '，準備轉場' : ''}`);
+    this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt });
     this.score.bonus('WAVE CLEAR', bonus);
     this.addFocus(0.35);
     this.player.hp = PLAYER.hp;
@@ -766,6 +792,7 @@ class Game {
     if (!this.player.alive) return;
     const bonus = 250 * n;
     this.notes.log(`第 ${n} 波清空：通關（RUN CLEAR）`);
+    this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt });
     this.score.bonus('RUN CLEAR', bonus);
     this.player.invuln = 99; // nothing still flying can take the run away now
     this.clearT = 2.6;

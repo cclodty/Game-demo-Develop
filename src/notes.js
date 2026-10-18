@@ -203,7 +203,7 @@ export class Notes {
     p.innerHTML =
       '<div class="dbg-head">數據面板 <span>` 關閉 · N 記下這一刻</span></div>' +
       '<pre id="dbg-stats"></pre>' +
-      '<div class="dbg-opts"><label><input type="checkbox" id="dbg-fps" /> 常駐 FPS 角標</label><label><input type="checkbox" id="dbg-clip" /> 最佳片段錄影</label><label>畫質 <select id="dbg-quality"><option value="high">高</option><option value="low">低：無泛光、無陰影</option></select></label></div>' +
+      '<div class="dbg-opts"><label><input type="checkbox" id="dbg-fps" /> 常駐 FPS 角標</label><label><input type="checkbox" id="dbg-clip" /> 最佳片段錄影</label><label><input type="checkbox" id="dbg-tele" /> 本機事件記錄</label><label>畫質 <select id="dbg-quality"><option value="high">高</option><option value="low">低：無泛光、無陰影</option></select></label></div>' +
       '<div class="dbg-title">風格</div><div class="dbg-opts" id="dbg-style"></div>' +
       '<div class="dbg-title">手感數字（即時生效，會記住） <button type="button" id="dbg-reset">重設為預設</button></div>' +
       '<div id="dbg-tune"></div>' +
@@ -234,6 +234,13 @@ export class Notes {
     clip.addEventListener('change', () => {
       this.game.clip.setOn(clip.checked);
       clip.blur();
+    });
+    const tele = $('dbg-tele');
+    tele.checked = this.game.telemetry.on;
+    tele.addEventListener('change', () => {
+      this.game.telemetry.setOn(tele.checked);
+      $('telemetry-on').checked = tele.checked;
+      tele.blur();
     });
     const sel = $('dbg-quality');
     sel.value = this.quality;
@@ -508,6 +515,7 @@ export class Notes {
       out.push('');
     });
     if (!this.list.length) out.push('（沒有記錄。遊戲中按 N 記下這一刻。）', '');
+    out.push(g.telemetry.text());
     return out.join('\n');
   }
 

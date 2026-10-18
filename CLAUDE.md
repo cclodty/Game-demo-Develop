@@ -70,6 +70,7 @@ src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SF
 src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
 src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
 src/clip.js                  the best-kill clip: overlapping MediaRecorder recordings of a small copy of the screen, played on the end screen
+src/telemetry.js             local play records: one row per run (start, waves, end and cause, time, played again), carried by the feedback export
 src/rules.js                 run rules: difficulties and variants as data (one switch or number each), read by their systems as game.ruleset
 src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export
 src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions
