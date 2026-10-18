@@ -5,7 +5,14 @@
 // machine; the feedback export (notes.js) carries the records along. The
 // first visit shows a switch on the title screen, on unless turned off; the
 // stats panel keeps it. It only watches: the game never reads it back.
+// Alongside, the days played (UTC, as the daily challenge counts them): the
+// first one and the runs and daily challenges of each, for the export's
+// "coming back" lines (回訪統計).
 
+import { utcDay } from './daily.js';
+
+const DAY_MS = 86400000;
+const DAYS_KEY = 'bullet-ballet.telemetry.days'; // { first: 'YYYY-MM-DD', days: { 'YYYY-MM-DD': { runs, daily } } }
 const PREF_KEY = 'bullet-ballet.telemetry'; // 'on' | 'off'; unset until the first visit's switch has been seen
 const LOG_KEY = 'bullet-ballet.telemetry.runs';
 const MAX_RUNS = 60; // the oldest go first
@@ -23,6 +30,8 @@ export class Telemetry {
     const runs = this.readJSON(LOG_KEY);
     this.runs = Array.isArray(runs) ? runs : [];
     this.run = null; // the run being recorded
+    const days = this.readJSON(DAYS_KEY);
+    this.days = days && typeof days.days === 'object' && days.days ? days : { first: null, days: {} };
   }
 
   read(key) {
@@ -80,6 +89,13 @@ export class Telemetry {
       last.gap = Math.round((this.now() - last.endAt) / 1000);
     }
     this.run = { at: new Date(this.now()).toISOString(), ...info, events: [], again: false };
+    // the day's count: runs, and how many of them were the daily challenge
+    const day = utcDay(this.now());
+    if (!this.days.first) this.days.first = day;
+    const d = (this.days.days[day] ??= { runs: 0, daily: 0 });
+    d.runs++;
+    if (info.daily) d.daily++;
+    this.write(DAYS_KEY, JSON.stringify(this.days));
     this.runs.push(this.run);
     while (this.runs.length > MAX_RUNS) this.runs.shift();
     this.save();
@@ -116,11 +132,64 @@ export class Telemetry {
     this.runs = [];
     this.run = null;
     this.write(LOG_KEY, '[]');
+    this.days = { first: null, days: {} };
+    this.write(DAYS_KEY, JSON.stringify(this.days));
   }
 
-  /** The records as Markdown for the feedback export: one table row per run, newest last. */
+  /**
+   * Coming back, from this browser's days (UTC): the first day, how many days were played, whether
+   * the player came back the next day and on the seventh (null until that day has come), how many of
+   * the first week's days after the first one were played, and the daily challenges played.
+   */
+  retention() {
+    const first = this.days.first;
+    if (!first) return null;
+    const today = utcDay(this.now());
+    const n = (day) => Math.round((Date.parse(day) - Date.parse(first)) / DAY_MS);
+    const since = n(today);
+    const played = Object.keys(this.days.days)
+      .filter((d) => this.days.days[d].runs > 0)
+      .sort();
+    const on = (k) => played.some((d) => n(d) === k);
+    const sum = (days, key) => days.reduce((a, d) => a + this.days.days[d][key], 0);
+    return {
+      first,
+      today,
+      since,
+      days: played.length,
+      d1: since >= 1 ? on(1) : null,
+      d7: since >= 7 ? on(7) : null,
+      week: played.filter((d) => n(d) >= 1 && n(d) <= 7).length,
+      runs: sum(played, 'runs'),
+      daily: sum(played, 'daily'),
+      daily7: sum(
+        played.filter((d) => since - n(d) < 7),
+        'daily',
+      ),
+    };
+  }
+
+  /** The export's "coming back" lines. */
+  retentionText() {
+    const r = this.retention();
+    const out = ['## 回訪（這部電腦，按 UTC 日）', ''];
+    if (!r) return [...out, '（還沒有記錄。）', ''].join('\n');
+    const yes = (v) => (v === null ? '未到' : v ? '有' : '沒有');
+    out.push(
+      `- 第一次玩：${r.first}（${r.since} 天前）`,
+      `- 玩過的日數：${r.days} 天，共 ${r.runs} 局`,
+      `- 第 1 天回來：${yes(r.d1)}`,
+      `- 第 7 天回來：${yes(r.d7)}`,
+      `- 第一週（第 1–7 天）回來了 ${r.week} 天`,
+      `- 每日挑戰：共 ${r.daily} 局，最近 7 天 ${r.daily7} 局`,
+      '',
+    );
+    return out.join('\n');
+  }
+
+  /** The records as Markdown for the feedback export: the coming back lines, then one table row per run, newest last. */
   text() {
-    const out = ['## 事件記錄（這部電腦，最近的局）', ''];
+    const out = [this.retentionText(), '## 事件記錄（這部電腦，最近的局）', ''];
     if (!this.on) out.push('（事件記錄已關閉。）', '');
     if (!this.runs.length) {
       out.push('（還沒有記錄。）', '');

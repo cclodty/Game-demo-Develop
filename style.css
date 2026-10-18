@@ -746,6 +746,14 @@ body:not(.pad) .pad-only {
   animation: spin-lock 1.6s linear infinite;
 }
 
+/* the world's daily challenges, with a back end (main.js refreshGlobal) */
+.daily-global {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #ff4fa3;
+  letter-spacing: 1px;
+}
+
 #indicators .arrow {
   position: absolute;
   left: 0;

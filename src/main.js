@@ -310,6 +310,7 @@ class Game {
       $('go-daily-copy').textContent = '已複製';
     });
     this.renderDaily();
+    this.refreshGlobal();
     setInterval(() => {
       if (this.state === 'title') this.renderDaily(); // the countdown
     }, 1000);
@@ -549,7 +550,7 @@ class Game {
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
     this.telemetry.confirm(); // the switch was on the title screen: playing is leaving it as it is
     $('telemetry-switch').classList.add('hidden');
-    if (!this.replay) this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup, input: this.padOn ? 'pad' : 'keyboard' });
+    if (!this.replay) this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup, input: this.padOn ? 'pad' : 'keyboard', daily: !!this.dailyRun });
     $('replay-badge').classList.toggle('hidden', !this.replay);
     document.body.classList.toggle('replaying', !!this.replay);
     this.deathCause = '';
@@ -612,6 +613,26 @@ class Game {
     if (!r) return;
     const err = this.playReplay(fromBase64(r.data), { name: `每日挑戰 ${r.day}` });
     if (err) this.renderDaily(`無法播放：${err}`);
+  }
+
+  /** With a back end (config.js BACKEND.url): the world's daily challenges today and yesterday on the daily card, from /stats (asked at most once a minute; nothing shows when it fails). */
+  refreshGlobal() {
+    const el = $('daily-global');
+    if (!this.boards.online) {
+      el.classList.add('hidden');
+      return;
+    }
+    const at = performance.now();
+    if (this.globalAt && at - this.globalAt < 60000) return;
+    this.globalAt = at;
+    this.boards.stats().then((days) => {
+      if (!days) return;
+      const today = utcDay(this.now());
+      const yesterday = utcDay(this.now() - 86400000);
+      const count = (d) => (days.find((x) => x.day === d) || { daily: 0 }).daily;
+      el.textContent = `全球：今天 ${count(today)} 局 · 昨天 ${count(yesterday)} 局`;
+      el.classList.remove('hidden');
+    });
   }
 
   /** The title's daily card: today's map and rules, start or today's result, and the time to the next one. */
@@ -919,6 +940,7 @@ class Game {
     this.endReplay();
     this.endDaily();
     this.renderDaily();
+    this.refreshGlobal();
     this.resetWorld(this.level.map);
     this.state = 'title';
     this.notes.hideNote();
