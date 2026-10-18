@@ -49,6 +49,8 @@ const seededOnly = {
 
 const node = {
   process: 'readonly',
+  Request: 'readonly',
+  Response: 'readonly',
   console: 'readonly',
   URL: 'readonly',
   Buffer: 'readonly',
@@ -63,6 +65,12 @@ export default [
     files: ['src/**/*.js'],
     languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: browser },
     rules: { ...rules, ...seededOnly },
+  },
+  {
+    // the leaderboard Worker (Cloudflare's runtime: fetch, Request, Response, URL, atob)
+    files: ['backend/**/*.js'],
+    languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: { Request: 'readonly', Response: 'readonly', URL: 'readonly', atob: 'readonly', console: 'readonly' } },
+    rules,
   },
   {
     files: ['scripts/**/*.mjs', 'test/**/*.mjs', 'eslint.config.mjs'],

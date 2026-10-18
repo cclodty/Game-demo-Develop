@@ -280,14 +280,14 @@
   - [x] npm run lint && npm test 通過
 - 這次不做：伺服器、排行榜、多次嘗試取最佳
 
-### 後端 ①：Worker 與 D1 程式（估計：一天）
+### ✅ 後端 ①：Worker 與 D1 程式（估計：一天）— 2026-10-18 完成（部署待開發者）
 - 目標：`backend/` 內一個 Cloudflare Worker（純 JS `fetch` handler，不用框架）加 D1 schema；端點：GET `/daily`（今日種子與規則）、POST `/scores`（模式、日期、分數、評級、暱稱、匿名 id、重播位元組 ≤ 100 KB）、GET `/board`（daily 按日期／arcade 按地圖，前 100 與我附近）、GET `/stats`（每日局數）；基本防濫用（每 id 每模式每日一筆、長度上限、暱稱過濾）；`docs/BACKEND.md` 寫開發者的部署步驟
 - 涉及：`backend/worker.js`、`backend/schema.sql`、`backend/wrangler.toml`（範本，不含帳號資料）、`test/backend.test.mjs`（用假 D1 綁定）、`docs/BACKEND.md`
 - 驗收：
-  - [ ] 單元測試覆蓋三個端點的正常與拒絕情況（超長、重複、壞資料、CORS）
-  - [ ] 不加 npm 依賴；repo 內沒有任何密鑰或帳號 id；`wrangler` 只在文件裡由開發者執行
-  - [ ] 文件讓開發者十五分鐘內部署並把網址填進 `config.js`
-  - [ ] npm run lint && npm test 通過
+  - [x] 單元測試覆蓋三個端點的正常與拒絕情況（超長、重複、壞資料、CORS）（`test/backend.test.mjs`：假 D1 用 Node 內建的 SQLite，SQL 真的跑；另加 `/replay` 與 `/stats`）
+  - [x] 不加 npm 依賴；repo 內沒有任何密鑰或帳號 id；`wrangler` 只在文件裡由開發者執行
+  - [x] 文件讓開發者十五分鐘內部署並把網址填進 `config.js`（`docs/BACKEND.md`；`config.js` 已有空的 `BACKEND.url`）
+  - [x] npm run lint && npm test 通過
 - 這次不做：分數重算驗證（第三階段）、登入、好友、部署本身（開發者）
 
 ### 排行榜 ②：客戶端（估計：一天）
