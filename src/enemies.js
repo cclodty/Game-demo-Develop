@@ -2,7 +2,7 @@
 // brightens while they aim, so a quick read (or bullet time) lets you dodge.
 
 import * as THREE from 'three';
-import { AI, GUN_Y, LOGIC_HZ } from './config.js';
+import { AI, ENV, GUN_Y, LOGIC_HZ } from './config.js';
 import { animateRig, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { DROPS } from './weapons.js';
@@ -485,6 +485,17 @@ class Enemy {
     if (info.cause === 'self') return; // his own fuse: no kill for anyone (goOff follows)
     if (this.cfg.bomb) this.bombT = this.cfg.bomb.delay; // killed: the charges go off a moment later
     g.onEnemyKilled(this, info);
+  }
+
+  /** Over the edge into water: gone, whatever he had left. */
+  splash() {
+    const g = this.game;
+    const sp = Math.hypot(this.vx, this.vz) || 1;
+    this.hp = 0;
+    this.splashed = true;
+    g.fx.smokePuff(this.x, 0.2, this.z, 10, 0.6, 0.8, 1.6);
+    g.notes.log(`${this.cfg.label} 跌落水`);
+    this.die(this.vx / sp, this.vz / sp, { cause: 'splash' });
   }
 
   /** A drone shot down: it tips and drops, and bursts where it hits the floor. */
@@ -1133,6 +1144,14 @@ class Enemy {
       this.x += this.vx * dt;
       this.z += this.vz * dt;
     }
+    // knocked over and flying at water (the harbour's edge, the fountain's rim): in he goes
+    if (this.stunT > 0 && !cfg.fly && g.level.water.length) {
+      const sp = Math.hypot(this.vx, this.vz);
+      if (sp >= ENV.splashSpeed && g.level.waterAt(this.x + (this.vx / sp) * (this.radius + ENV.splashReach), this.z + (this.vz / sp) * (this.radius + ENV.splashReach))) {
+        this.splash();
+        return;
+      }
+    }
     if (cfg.fly) {
       // in the air: no walls, only the edge of the map
       const B = g.level.bounds;
@@ -1256,11 +1275,15 @@ class Enemy {
     this.vz *= f;
     this.x += this.vx * dt;
     this.z += this.vz * dt;
-    if (this.game.level.collideCircle(this, 0.4)) {
+    if (this.splashed) {
+      // into the water: through the rim, under the surface, and gone
+      this.y -= dt * 2.5;
+      if (this.y < -2 && this.rig.root.visible) this.rig.root.visible = false;
+    } else if (this.game.level.collideCircle(this, 0.4)) {
       this.vx *= 0.4;
       this.vz *= 0.4;
     }
-    this.y = Math.max(0, this.y - dt * 6);
+    if (!this.splashed) this.y = Math.max(0, this.y - dt * 6);
     const r = this.rig;
     r.root.rotation.y += this.corpseSpin * dt * clamp(Math.hypot(this.vx, this.vz) / 5, 0, 1);
     r.root.position.set(this.x, this.y + this.game.level.groundY(this.x, this.z), this.z);

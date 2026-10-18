@@ -431,6 +431,7 @@ const docks = {
   barrels: [[4.5, -12, 'gas'], [-21.5, -4, 'gas'], [21.5, 3, 'gas'], [-1, 11.5, 'gas'], [-11, 1.5], [13.5, -8.5], [3, 3.5], [-16, 12.5], [15, 12]],
   pans: [[-4, -12.5], [7, 1.5], [-12, 9], [17, -11], [3, 12.5]],
   tools: [[-4, 9, 'extinguisher']],
+  water: [{ x: 0, z: 17, w: 52, d: 4 }], // the harbour beyond the south curb: whoever is knocked over it is gone
   fixtures: [[-10, 8, 'lamp'], [16, -8, 'lamp'], [0, 10, 'lamp'], [-14, -9, 'sign', 90], [10.5, 7.2, 'shutter', 90, 5]], // a loading-bay shutter between two containers
   pads: [[-10, -0.5], [12, 1.5]],
   spawns: [
@@ -673,6 +674,7 @@ const senado = {
       ring.push([fx + Math.cos(a) * FOUNTAIN.poolOuter, fz + Math.sin(a) * FOUNTAIN.poolOuter]);
     }
     L.addPoly(ring, FOUNTAIN.basinTop, 'wall');
+    L.water.push({ x: fx, z: fz, r: FOUNTAIN.poolOuter }); // the pool: a body knocked over its rim lands in the water
     const floor = -FOUNTAIN.steps * FOUNTAIN.stepRise;
     const pathR = FOUNTAIN.stepsOuter - FOUNTAIN.steps * FOUNTAIN.stepRun;
     L.groundFn = (x, z) => {

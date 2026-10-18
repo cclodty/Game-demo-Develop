@@ -595,6 +595,7 @@ export class Level {
     this.pans = [];
     this.tools = [];
     this.fixtures = [];
+    this.water = []; // { x, z, w, d } rectangles or { x, z, r } circles of water: bodies knocked in are gone, props sink
     this.props = [];
     this.pads = [];
     this.animators = [];
@@ -620,6 +621,7 @@ export class Level {
       else this.pans.push(new Pan(this, x, z, v));
     }
     this.flocks = (map.flocks || []).map(([x, z]) => new Flock(x, z));
+    this.water = (map.water || []).map((w) => ({ ...w }));
     for (const [x, z, kind] of map.tools || []) if (kind === 'extinguisher') this.tools.push(new Extinguisher(this, x, z)); // things to pick up and use (more kinds come with their cards)
     this.fixtures = buildFixtures(this, map.fixtures); // lamps and signs: fixed props that play along (fixtures.js)
     this.props = [...this.barrels, ...this.pans, ...this.tools, ...this.fixtures];
@@ -988,6 +990,28 @@ export class Level {
     return false;
   }
 
+  /** Over water (the docks' harbour, the Senado fountain's pool). */
+  waterAt(x, z) {
+    for (const w of this.water) {
+      if (w.r !== undefined) {
+        if (Math.hypot(x - w.x, z - w.z) < w.r) return true;
+      } else if (Math.abs(x - w.x) < w.w / 2 && Math.abs(z - w.z) < w.d / 2) return true;
+    }
+    return false;
+  }
+
+  /** A prop slid, thrown or kicked into water: it sinks. */
+  sink(p) {
+    p.alive = false;
+    p.mesh.visible = false;
+    if (p.marker) p.marker.visible = false;
+    if (p.cloud) p.cloud.visible = false;
+    const g = this.game;
+    g.fx.smokePuff(p.x, 0.1, p.z, 6, 0.5, 0.75, 1.2);
+    g.audio.toss();
+    g.notes.log('掉進水裡');
+  }
+
   /** In the cloud of a burst extinguisher: nobody aims from there either. */
   smokeAt(x, z) {
     for (const t of this.tools) if (t.smokeAt && t.smokeAt(x, z)) return true;
@@ -1028,10 +1052,11 @@ export class Level {
     return hit ? hit.t * max : max;
   }
 
-  collideCircle(p, r) {
+  /** Push a circle out of the solids; `over`: a thing this high up passes over lower cover (a thrown barrel clears a curb). */
+  collideCircle(p, r, over = 0) {
     let hit = false;
     for (const s of this.solids) {
-      if (!s.alive) continue;
+      if (!s.alive || s.h <= over) continue;
       if (p.x + r < s.minX || p.x - r > s.maxX || p.z + r < s.minZ || p.z - r > s.maxZ) continue;
       if (s.poly ? resolveCirclePoly(p, r, s.poly) : resolveCircleAABB(p, r, s)) hit = true;
     }
@@ -1156,7 +1181,7 @@ export class Level {
       p.vz *= fr;
       const ox = p.x;
       const oz = p.z;
-      if (this.collideCircle(p, p.r)) {
+      if (this.collideCircle(p, p.r, (p.y || 0) > 0.1 ? p.y : 0)) {
         const nx = p.x - ox;
         const nz = p.z - oz;
         const nl = Math.hypot(nx, nz);
@@ -1202,6 +1227,8 @@ export class Level {
     for (const b of this.barrels) if (b.alive) b.update(dt);
     for (const p of this.pans) p.update(dt, this.time);
     for (const t of this.tools) if (t.alive) t.update(dt);
+    // whatever lies or lands in water sinks (nothing carried, nothing still in the air)
+    if (this.water.length) for (const p of props) if (p.alive && !p.carried && !p.fixed && (p.y || 0) <= 0.06 && this.waterAt(p.x, p.z)) this.sink(p);
     for (const f of this.fixtures) f.update(dt);
   }
 

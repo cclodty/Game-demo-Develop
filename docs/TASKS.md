@@ -468,10 +468,13 @@
   - [x] 地圖驗證器與渲染預算通過；npm run lint && npm test 通過（`test:game` 在 CI 之外由下一次全套 game 測試覆蓋：這張沒改武器、拾取規則或轉場）
 - 這次不做：火焰蔓延、煙霧遮玩家視線以外的效果
 
-### 環境互動件 ④：水邊（估計：半天）
-- 目標：`water` 區域：被踢飛、擲中、爆炸推進水裡的敵人即死出 SPLASH +150；道具掉進去沉沒；玩家與走路的敵人進不去。碼頭南邊是海，議事亭的噴水池池面是水
-- 涉及：`src/level.js`（water 區與邊界）、`src/maps.js`、`src/enemies.js`（被撞飛時入水）、`src/main.js`
-- 驗收：測試：踢敵人入水出 SPLASH；走路的敵人被擋；油桶擲進水裡消失；npm run lint && npm test 通過
+### ✅ 環境互動件 ④：水邊（估計：半天）— 2026-10-18 完成
+- 目標：`water` 區域（矩形或圓）：被踢飛、擲中、爆炸推得夠快（≥ 4 m/s、身前 0.6 米是水）的敵人掉進去即死出 SPLASH +150，屍體沉下去；道具掉進去沉沒（擲進水裡的油桶不爆）；玩家與走路的敵人被欄邊擋住。碼頭南邊的海（欄外 4 米）、議事亭的噴水池池面
+- 涉及：`src/level.js`（`water`、`waterAt`、`sink`；空中的道具越過矮掩體：`collideCircle` 加 `over`）、`src/maps.js`（碼頭 water 矩形；議事亭在 decorate 由噴水池資料加一個圓）、`src/enemies.js`（被撞飛時入水 `splash`，屍體下沉）、`src/main.js`（SPLASH）、`src/config.js`（`ENV.splashSpeed 4、splashReach 0.6`）、`test/water.test.mjs`
+- 驗收：
+  - [x] 測試：踢打手越過碼頭欄邊出 SPLASH，屍體沉下去消失；走向水邊的敵人與玩家都被欄邊擋住；擲過欄邊的油桶沉沒、不爆
+  - [x] 測試：議事亭把打手踢過噴水池邊出 SPLASH
+  - [x] `test/throw.test.mjs` 仍過；npm run lint && npm test 通過
 - 這次不做：游泳、從水裡爬上來的敵人
 
 ### 舞台 ①：天台與夜店去對稱（估計：一天）
