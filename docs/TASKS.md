@@ -649,11 +649,16 @@
   - [x] npm run lint && npm test 通過
 - 這次不做：福隆新街（獨立卡）、吊臂與辦公室小屋的新模型（卡上原本的「吊臂下的水邊、鏟車、辦公室小屋」要等模型，舞台先用現有佈景命名）
 
-### 工具 ①：鑊在手（估計：一天）
+### ✅ 工具 ①：鑊在手（估計：一天）— 2026-10-18 完成
 - 目標：按 G 拿平底鑊時，鑊拿在右手而不是舉過頭，左手槍照樣可以開火；拿着鑊按 F 是**鑊擊**：扇形 ±90°、2.3 米，打中的敵人飛出去並暈住（可接處決），直接打死出 PAN SMASH +120；鑊打中油桶會把它打飛；G 擲出鑊照舊。油桶仍然舉過頭
-- 涉及：`src/thrown.js`（pan 改 hand 模式）、`src/player.js`（F 分支）、`src/characters.js`（鑊掛右手、關鍵姿勢 panHold）、`src/skin.js`、`src/hud.js`（提示）、`src/config.js`（`PAN`）
-- 驗收：測試：拿鑊後左手仍能開火；鑊擊暈敵、擊殺出 PAN SMASH；鑊擊油桶飛出；截圖：持鑊姿勢（穿模型與方塊版）；`test/throw.test.mjs`、`test/keyposes.test.mjs` 仍過；npm run lint && npm test && npm run test:game 通過
-- 這次不做：擋彈（下一張）、托盤的差異、鑊的耐久
+- 涉及：`src/thrown.js`（pan 改 hand 模式：`inHand`、`release`、`showRightGun`）、`src/player.js`（F 分支 `smash`、`cone`／`hitFixtures` 與踢共用、只有左槍開火、右臂持鑊的姿勢）、`src/hud.js`（提示）、`src/config.js`（`PAN`）、`src/input.js`（`{kick}` 標籤）、`src/main.js`（PAN SMASH）
+- 驗收：
+  - [x] 測試：拿鑊後右槍收起、只有左槍開火（每一槍都從左邊出）、提示寫「F 鑊擊 · G 擲出」（`test/pan.test.mjs`）
+  - [x] 測試：鑊擊暈敵（打手剩 1 血、暈住，F 處決）、刀手直接打死出 PAN SMASH；鑊擊油桶飛出並在落地處爆炸
+  - [x] 測試：G 由手上擲出、右槍回來；油桶照舊舉過頭；`test/throw.test.mjs`、`test/keyposes.test.mjs`、`test/hands.test.mjs`（鑊的一半改寫成手持）仍過
+  - [x] 截圖：持鑊姿勢（穿模型與方塊版）
+  - [x] npm run lint && npm test 通過（`npm run test:game` 這次沒跑：沒有改武器、拾取或轉場）
+- 這次不做：擋彈（下一張）、托盤的差異、鑊的耐久、鑊掛在穿模型手上的 IK（現在跟方塊右臂的末端，手腕大致在鑊柄）
 
 ### 工具 ②：擋彈與全壘打（估計：半天）
 - 目標：鑊擊的 0.25 秒內，進入扇形的敵人子彈被打回最近的敵人，打死出 HOME RUN +200；地上或空中的榴彈被打回去；狙擊手的一槍被擋出 GONG +150 的 Style 加分

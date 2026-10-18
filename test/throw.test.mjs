@@ -111,7 +111,7 @@ test('G picks up a pan, throws it at the cursor, and the hit enemy is stunned', 
     window.step(1, { press: ['KeyG'] });
     const held = { carry: g.thrown.carry === pan, carried: pan.carried, y: pan.y, prompt: g.thrown.prompt, hud: document.getElementById('prompt').textContent };
     window.step(10);
-    const rides = Math.hypot(pan.x - p.x, pan.z - p.z) < 0.01 && pan.y > 2;
+    const rides = Math.hypot(pan.x - p.x, pan.z - p.z) < 0.01 && (pan.y > 2 || g.thrown.inHand); // a barrel overhead, a pan in the hand (test/pan.test.mjs)
     const dir = window.aimEast();
     const e = window.placeEnemy(4, dir);
     window.step(1, { press: ['KeyG'] });
@@ -130,7 +130,7 @@ test('G picks up a pan, throws it at the cursor, and the hit enemy is stunned', 
   assert.equal(r.held.carry, true, 'G picks the pan up');
   assert.equal(r.held.carried, true);
   assert.match(r.held.hud, /擲出/);
-  assert.equal(r.rides, true, 'the pan rides above the player');
+  assert.equal(r.rides, true, 'the pan rides with the player');
   assert.equal(r.thrown.thrown, true, 'G again throws it');
   assert.equal(r.thrown.carry, null);
   assert.ok(r.thrown.vy > 0 && r.thrown.along > 3, `launched up and towards the cursor: ${JSON.stringify(r.thrown)}`);

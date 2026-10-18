@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GUN_Y, PLAYER } from './config.js';
+import { GUN_Y, PAN, PLAYER } from './config.js';
 import { animateRig, attachWeapon, buildCharacter, deathPose, finishRig, keyPose, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { carryHands } from './thrown.js';
@@ -98,6 +98,7 @@ export class Player {
     this.slot = 'pistols';
     this.kickCd = 0;
     this.kickT = 0;
+    this.swingT = 0; // the pan's swing (smash)
     this.execT = 0; // an execution under way: s left
     this.splitTarget = null;
     this.sinceHurt = 99;
@@ -370,7 +371,7 @@ export class Player {
     }
     // --- carry / throw (G); a carried thing is thrown with G or the left button
     if (input.hit('KeyG')) g.thrown.action();
-    const carrying = !!g.thrown.carry;
+    const carrying = !!g.thrown.carry && !g.thrown.inHand; // a pan in hand leaves the left gun free: only a load overhead is thrown by the left button
     if (carrying && input.mouse.leftPressed) g.thrown.throwCarried();
     if (input.mouse.left && this.fireCd <= 0 && !carrying && this.execT <= 0) {
       if (this.slot === 'pistols' && this.reloadT > 0) {
@@ -384,10 +385,14 @@ export class Player {
 
     // --- kick; by an enemy still dazed from a kick or a throw, F is an execution instead
     if (this.kickT > 0) this.kickT -= dt;
+    if (this.swingT > 0) this.swingT -= dt;
     if (input.hit('KeyF') && this.execT <= 0) {
       const down = this.executable();
       if (down) this.execute(down);
-      else if (this.kickCd <= 0) this.kick();
+      else if (this.kickCd <= 0) {
+        if (g.thrown.inHand) this.smash();
+        else this.kick();
+      }
     }
 
     const sp = Math.hypot(this.vx, this.vz);
@@ -458,6 +463,11 @@ export class Player {
       }
     } else {
       shots.push({ side: 0, tx: aim.x, tz: aim.z, split: false });
+    }
+    if (g.thrown.inHand) {
+      // the right hand holds the pan: the left pistol (side 1, rig.armL) alone
+      shots.length = 0;
+      shots.push({ side: 1, tx: aim.x, tz: aim.z, split: false });
     }
     // spin shot: while spinning the guns point where the body has turned to,
     // so holding fire sprays a ring instead of aiming at the cursor
@@ -567,7 +577,7 @@ export class Player {
     let best = null;
     let bd = PLAYER.execRange;
     for (const e of this.game.enemies.list) {
-      if (!e.alive || e.stunT <= 0 || e.cfg.fly || !['kick', 'throw', 'strike'].includes(e.stunCause)) continue;
+      if (!e.alive || e.stunT <= 0 || e.cfg.fly || !['kick', 'throw', 'strike', 'smash'].includes(e.stunCause)) continue;
       const d = Math.hypot(e.x - this.x, e.z - this.z);
       if (d <= bd) {
         bd = d;
@@ -591,24 +601,82 @@ export class Player {
     g.hitstop(0.08);
   }
 
-  kick() {
-    const g = this.game;
-    this.kickCd = PLAYER.kickCooldown;
-    this.kickT = KICK_TIME;
-    let hit = false;
-    const inCone = (x, z, reach) => {
+  /** The arc in front: (x, z) within `reach` and `arc` radians of the facing gives the way out from the player, else null. */
+  cone(arc) {
+    return (x, z, reach) => {
       const dx = x - this.x;
       const dz = z - this.z;
       const d = Math.hypot(dx, dz);
       if (d > reach) return null;
-      if (d > 0.3 && Math.abs(wrapAngle(Math.atan2(dx, dz) - this.facing)) > PLAYER.kickArc) return null;
+      if (d > 0.3 && Math.abs(wrapAngle(Math.atan2(dx, dz) - this.facing)) > arc) return null;
       return d > 0.01 ? { x: dx / d, z: dz / d } : { x: Math.sin(this.facing), z: Math.cos(this.facing) };
     };
-    // a door in front swings open on whoever is behind it; a shutter's lock post gives (fixtures.js)
-    for (const f of g.level.fixtures) {
-      if (f.kind === 'door' && !f.open && inCone(f.x, f.z, PLAYER.kickRange + f.w / 2)) hit = f.kick(this.x, this.z) || hit;
-      else if (f.kind === 'shutter' && inCone(f.x, f.z, PLAYER.kickRange + f.r)) hit = f.drop('kick') || hit;
+  }
+
+  /** A door in front swings open on whoever is behind it; a shutter's lock post gives (fixtures.js). True if anything did. */
+  hitFixtures(inCone, reach) {
+    let hit = false;
+    for (const f of this.game.level.fixtures) {
+      if (f.kind === 'door' && !f.open && inCone(f.x, f.z, reach + f.w / 2)) hit = f.kick(this.x, this.z) || hit;
+      else if (f.kind === 'shutter' && inCone(f.x, f.z, reach + f.r)) hit = f.drop('kick') || hit;
     }
+    return hit;
+  }
+
+  /**
+   * With a pan in hand, F swings it (PAN): whoever is in the arc flies and is dazed (a kill is PAN SMASH, and an
+   * execution follows), a barrel is batted off and goes off where it lands, a door or a shutter as from a kick.
+   */
+  smash() {
+    const g = this.game;
+    this.kickCd = PLAYER.kickCooldown;
+    this.swingT = PAN.swing;
+    const inCone = this.cone(PAN.arc);
+    let hit = this.hitFixtures(inCone, PAN.reach);
+    for (const e of g.enemies.list) {
+      if (!e.alive || e.spawnLock > 0 || e.cfg.fly) continue;
+      const dir = inCone(e.x, e.z, PAN.reach + e.radius);
+      if (!dir) continue;
+      e.kick(dir.x, dir.z, PAN.power, 'smash', PAN.damage);
+      g.notes.log(`鑊擊中 ${e.cfg.label}`);
+      hit = true;
+    }
+    for (const p of g.level.props) {
+      if (!p.alive || p.fixed || p.carried) continue;
+      const dir = inCone(p.x, p.z, PAN.reach + p.r);
+      if (!dir) continue;
+      if (p.kind === 'barrel') {
+        // batted off: it flies, and a barrel that lands from a flight goes off
+        p.vx = dir.x * PAN.barrelFly;
+        p.vz = dir.z * PAN.barrelFly;
+        p.vy = 7;
+        p.thrown = true;
+      } else if (p.kind === 'pan') {
+        p.hit(dir.x, dir.z, 9);
+        p.vy = 8;
+      } else if (p.kind === 'extinguisher') p.kick(dir.x, dir.z);
+      else {
+        p.vx += dir.x * 14;
+        p.vz += dir.z * 14;
+      }
+      hit = true;
+    }
+    if (g.grenades.kick(inCone)) hit = true;
+    g.audio.kick(hit);
+    g.audio.impact(g.panFor(this.x));
+    if (hit) {
+      g.shake(0.3);
+      g.hitstop(0.06);
+      g.fx.sparks(this.x + Math.sin(this.facing) * 1.2, 1.1, this.z + Math.cos(this.facing) * 1.2, Math.sin(this.facing), Math.cos(this.facing), 12, [7, 7, 6], 7);
+    }
+  }
+
+  kick() {
+    const g = this.game;
+    this.kickCd = PLAYER.kickCooldown;
+    this.kickT = KICK_TIME;
+    const inCone = this.cone(PLAYER.kickArc);
+    let hit = this.hitFixtures(inCone, PLAYER.kickRange);
     for (const e of g.enemies.list) {
       if (!e.alive || e.spawnLock > 0 || e.cfg.fly) continue;
       const dir = inCone(e.x, e.z, PLAYER.kickRange + e.radius);
@@ -706,7 +774,8 @@ export class Player {
     animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
 
     // the moves' key poses (characters.js KEY_POSES), held, with one in-between at each end
-    const carrying = !!(this.game.thrown && this.game.thrown.carry);
+    const inHand = !!(this.game.thrown && this.game.thrown.inHand);
+    const carrying = !!(this.game.thrown && this.game.thrown.carry) && !inHand; // a pan in hand is not a load overhead
     r.inner.rotation.y = this.spinYaw();
     const held = (k) => (k < 0.12 || k > 0.88 ? 0.5 : 1);
     if (this.slideT > 0) keyPose(r, 'slide', held(1 - this.slideT / PLAYER.slideDuration));
@@ -732,7 +801,7 @@ export class Player {
     // something carried overhead: the guns put away, the hands up on it (a worn model's reach it, skin.js)
     const prop = carrying ? this.game.thrown.carry : null;
     r.anim.carry = prop ? carryHands(prop) : null;
-    for (const m of r.weaponParts) m.visible = !prop;
+    for (const m of r.weaponParts) m.visible = !prop && !(inHand && m.parent === r.armR); // a pan in the right hand: that pistol stays away
     // the guns stay level with the aim however the body leans (a slide lies back, an execution leans in)
     const level = -r.inner.rotation.x;
     r.armL.rotation.x = (carrying ? -1.5 : pose.lx) + level;
@@ -741,6 +810,11 @@ export class Player {
       // block arms cannot bend: straight up and a little out, beside its rim rather than through it
       r.armL.rotation.y = 0.45;
       r.armR.rotation.y = -0.45;
+    }
+    if (inHand) {
+      // the pan hangs from the right hand by the hip; the swing brings it up and across (after the guns' arm lines, which it replaces)
+      const k = this.swingT > 0 ? Math.sin((1 - this.swingT / PAN.swing) * Math.PI) : 0;
+      r.armR.rotation.set(0.95 - 1.7 * k, -0.15 + 0.8 * k, 0);
     }
     r.anchor.rotation.x = r.center.rotation.x = level;
     if (r.hold === 'dual') {

@@ -1338,6 +1338,7 @@ class Game {
     if (info.cause === 'slam') tags.push({ label: 'SLAM', pts: 120, cls: 'gold' });
     if (info.cause === 'shutter') tags.push({ label: 'SHUTTER', pts: 200, cls: 'gold' });
     if (info.cause === 'splash') tags.push({ label: 'SPLASH', pts: 150, cls: 'gold' });
+    if (info.cause === 'smash') tags.push({ label: 'PAN SMASH', pts: 120, cls: 'gold' });
     if (this.level.darkAt(e.x, e.z)) tags.push({ label: 'BLACKOUT', pts: 100, cls: 'gold' });
     if (this.level.smokeAt(e.x, e.z)) tags.push({ label: 'SMOKE', pts: 80, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });

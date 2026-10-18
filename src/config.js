@@ -40,6 +40,17 @@ export const PLAYER = {
   execInvuln: 0.3, // s untouchable at its start
 };
 
+/** The pan in hand (工具 ①, thrown.js / player.js smash): F swings it. */
+export const PAN = {
+  arc: 1.6, // radians either side of the facing the swing reaches
+  reach: 2.3, // m
+  power: 16, // how hard whoever is hit flies (dazed: an execution follows)
+  damage: 2, // a thug has 3
+  swing: 0.3, // s the swing shows (and, later, parries)
+  barrelFly: 12, // m/s a barrel is batted off at; it goes off where it lands
+  handY: 1.0, // m: where it rides in the hand
+};
+
 export const FOCUS = {
   worldScale: 0.2, // world speed while in bullet time
   playerScale: 0.55, // the player is slowed less than the world
