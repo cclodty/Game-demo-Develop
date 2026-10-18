@@ -14,6 +14,9 @@
 //   GET  /stats                 runs and players per day, the last 30 days
 
 import { dailyFor, utcDay } from '../src/daily.js';
+import { cleanName } from '../src/leaderboard.js';
+
+export { cleanName };
 
 export const LIMITS = {
   replayBytes: 100 * 1024, // an input record; a ten-minute run is well under this
@@ -29,17 +32,6 @@ export const LIMITS = {
 const MODES = ['daily', 'arcade'];
 const GRADES = ['S', 'A', 'B', 'C', 'D'];
 const DAY_MS = 86400000;
-
-/** A nickname as shown on the boards, or null when it cannot be one: letters, digits, spaces and _ . -, 1 to 16 long, no addresses. */
-export function cleanName(raw) {
-  if (typeof raw !== 'string') return null;
-  const name = raw.normalize('NFKC').replace(/\s+/gu, ' ').trim();
-  const length = [...name].length;
-  if (length < 1 || length > LIMITS.nameLength) return null;
-  if (!/^[\p{L}\p{N}][\p{L}\p{N} _.-]*$/u.test(name)) return null;
-  if (/https?|www\.|\.(com|net|org|io|gg)\b/iu.test(name)) return null;
-  return name;
-}
 
 const fromBase64 = (text) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
 

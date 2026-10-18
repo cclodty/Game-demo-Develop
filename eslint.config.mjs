@@ -39,6 +39,7 @@ const browser = {
   fetch: 'readonly',
   btoa: 'readonly',
   atob: 'readonly',
+  AbortController: 'readonly',
 };
 
 // The game must replay from a seed: logic draws from game.rng, effects from

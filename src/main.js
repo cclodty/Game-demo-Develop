@@ -18,6 +18,7 @@ import { PostFX } from './postfx.js';
 import { readQuality } from './quality.js';
 import { countdown, dailyFor, DailyStore, msToNextDay, shareCode, utcDay } from './daily.js';
 import { fromBase64, InputRecord, RecordReader, ReplayStore, toBase64 } from './replay.js';
+import { Leaderboard } from './leaderboard.js';
 import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
 import { DIFFICULTIES, DIFFICULTY_IDS, packRules, rulesFor, unpackRules, VARIANT_IDS, VARIANTS } from './rules.js';
 import { rate, Score } from './score.js';
@@ -85,6 +86,7 @@ class Game {
     this.now = () => Date.now(); // the wall clock, read only to pick the daily challenge's day (tests set their own)
     this.daily = new DailyStore(); // this browser's daily results
     this.dailyRun = null; // during a daily run and its end screen: { day, mode }
+    this.boards = new Leaderboard(); // the back end's boards when BACKEND.url is set, this browser's otherwise
     this.acc = 0;
     this.stepCount = 0;
     this.frameSteps = 0;
@@ -285,6 +287,32 @@ class Game {
       else if (this.replay || this.dailyRun) this.toTitle(); // a replay's or a daily's end goes back to the title
       else if (performance.now() - this.overAt > 700) start();
     });
+    // the leaderboards
+    $('open-boards').addEventListener('click', (e) => {
+      e.stopPropagation(); // not a start
+      this.showBoards(true);
+    });
+    $('boards').addEventListener('click', (e) => e.stopPropagation());
+    $('boards-close').addEventListener('click', () => this.showBoards(false));
+    for (const tab of document.querySelectorAll('#board-tabs button')) {
+      tab.addEventListener('click', () => this.renderBoard(tab.dataset.board));
+    }
+    $('board-name-save').addEventListener('click', () => {
+      const name = this.boards.setName($('board-name').value);
+      $('board-msg').textContent = name ? `暱稱改為「${name}」` : '暱稱要 1 到 16 個字：文字、數字、空格或 _ . -';
+      if (name) $('board-name').value = name;
+    });
+    $('go-name-save').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const name = this.boards.setName($('go-name').value);
+      if (!name) {
+        $('go-board-text').textContent = '暱稱要 1 到 16 個字：文字、數字、空格或 _ . -';
+        return;
+      }
+      $('go-name-row').classList.add('hidden');
+      if (this.pendingUpload) this.sendRun(this.pendingUpload);
+    });
+    $('go-name').addEventListener('click', (e) => e.stopPropagation());
     // the replay list
     $('open-replays').addEventListener('click', (e) => {
       e.stopPropagation(); // not a start
@@ -326,6 +354,10 @@ class Game {
       }
       if (e.code === 'Escape' && !$('replays').classList.contains('hidden')) {
         this.showReplays(false);
+        return;
+      }
+      if (e.code === 'Escape' && !$('boards').classList.contains('hidden')) {
+        this.showBoards(false);
         return;
       }
       if (e.code === 'Escape' && this.state === 'playing' && this.tutorial.active) return; // Esc skips the warm-up (a recorded control) instead of pausing
@@ -530,6 +562,127 @@ class Game {
     $('go-daily-code').textContent = shareCode({ day: r.day, score: result.score, grade });
     $('go-daily-copy').textContent = '複製';
     this.notes.log(`每日挑戰 ${r.day}：${result.score} 分 ${grade}`);
+  }
+
+  /**
+   * A finished run onto the boards: a daily, or an arcade run on the normal rules (a variant or
+   * another difficulty is another game). Always this browser's board; the back end's as well when
+   * BACKEND.url is set, asking for a nickname the first time. Never holds the end screen up.
+   */
+  uploadRun(grade) {
+    const box = $('go-board');
+    const daily = this.dailyRun;
+    const arcade = this.mode === 'arcade' && !this.ruleset.label;
+    box.classList.toggle('hidden', !(daily || arcade));
+    $('go-name-row').classList.add('hidden');
+    this.pendingUpload = null;
+    if (!daily && !arcade) return;
+    const run = {
+      mode: daily ? 'daily' : 'arcade',
+      day: daily ? daily.day : utcDay(this.now()),
+      map: this.record.map,
+      score: Math.round(this.score.score),
+      grade,
+      replay: toBase64(this.record.encode()),
+      overAt: this.overAt,
+    };
+    if (this.boards.online && !this.boards.me.name) {
+      // the first time on the boards: a nickname first (the local board has the run already)
+      this.boards.addLocal(run);
+      run.localDone = true;
+      this.pendingUpload = run;
+      $('go-board-text').textContent = '第一次上排行榜：取個暱稱';
+      $('go-name-row').classList.remove('hidden');
+      return;
+    }
+    this.sendRun(run);
+  }
+
+  sendRun(run) {
+    this.pendingUpload = null;
+    $('go-board-text').textContent = this.boards.online ? '上傳中…' : '';
+    this.boards.submit(run, { local: !run.localDone }).then((o) => {
+      if (this.overAt !== run.overAt) return; // a new run started meanwhile
+      const local = `本機榜第 ${o.local.rank} 名`;
+      let text;
+      if (o.online) text = o.online.kept ? `排行榜：第 ${o.online.rank} 名（共 ${o.online.total} 人）` : `排行榜：今天較好的一局仍是第 ${o.online.rank} 名`;
+      else if (!this.boards.online) text = `${local}（離線）`;
+      else if (o.error === 'already played today') text = `今天已上傳過 · ${local}`;
+      else text = `連不上排行榜，已存進${local}`;
+      $('go-board-text').textContent = text;
+      this.notes.log(text);
+    });
+  }
+
+  showBoards(on) {
+    $('boards').classList.toggle('hidden', !on);
+    $('title').classList.toggle('hidden', on);
+    if (on) {
+      $('board-name').value = this.boards.me.name;
+      $('board-msg').textContent = '';
+      this.renderBoard(this.boardTab || 'daily');
+    }
+  }
+
+  /** One board on the board page: 'daily' (today's) or a start map's arcade board ('0'…'3'). */
+  async renderBoard(tab) {
+    this.boardTab = tab;
+    for (const t of document.querySelectorAll('#board-tabs button')) t.classList.toggle('selected', t.dataset.board === tab);
+    const mode = tab === 'daily' ? 'daily' : 'arcade';
+    const key = tab === 'daily' ? utcDay(this.now()) : Number(tab);
+    const list = $('board-list');
+    list.textContent = '';
+    $('board-status').textContent = this.boards.online ? '讀取中…' : '';
+    const b = await this.boards.board(mode, key);
+    if (this.boardTab !== tab) return; // another tab was picked meanwhile
+    const row = (r) => {
+      const el = document.createElement('div');
+      el.className = `board-row${r.me ? ' me' : ''}`;
+      const cell = (cls, text) => {
+        const s = document.createElement('span');
+        s.className = cls;
+        s.textContent = text;
+        el.appendChild(s);
+      };
+      cell('board-rank', `${r.rank}`);
+      cell('board-name', r.name);
+      cell('board-score', `${Number(r.score).toLocaleString('en-US')} ${r.grade}`);
+      if (r.entry) {
+        const play = document.createElement('button');
+        play.type = 'button';
+        play.textContent = '看重播';
+        play.addEventListener('click', async () => {
+          try {
+            const bytes = await this.boards.replay(r.entry);
+            const err = this.playReplay(bytes, { name: `${r.name} 的重播` });
+            if (err) $('board-msg').textContent = `無法播放：${err}`;
+          } catch {
+            $('board-msg').textContent = '下載重播失敗';
+          }
+        });
+        el.appendChild(play);
+      } else el.appendChild(document.createElement('span'));
+      return el;
+    };
+    for (const r of b.top) list.appendChild(row(r));
+    if (b.place && b.place > b.top.length && b.around.length) {
+      const gap = document.createElement('div');
+      gap.className = 'board-gap';
+      gap.textContent = '我附近';
+      list.appendChild(gap);
+      for (const r of b.around) list.appendChild(row(r));
+    }
+    if (!b.top.length) {
+      const empty = document.createElement('div');
+      empty.className = 'replay-empty';
+      empty.textContent = mode === 'daily' ? '今天還沒有人上榜' : '這張地圖還沒有成績（街機、正常規則、沒有變體才上榜）';
+      list.appendChild(empty);
+    }
+    $('board-status').textContent = b.local
+      ? b.why === 'offline'
+        ? '離線：只有這部電腦的成績（後端網址未設定）'
+        : '連不上排行榜：先顯示這部電腦的成績'
+      : `全球 · ${b.total} 人${b.place ? ` · 我第 ${b.place} 名` : ''}`;
   }
 
   /** A run left before its end (restart or the title from the pause menu): recorded as a quit, and kept as a replay. */
@@ -838,6 +991,8 @@ class Game {
     $('gameover').classList.toggle('replay', !!this.replay);
     $('gameover').classList.toggle('daily', !!this.dailyRun && !this.replay);
     if (this.dailyRun && !this.replay) this.showDailyEnd(graded ? $('go-grade').textContent : 'D');
+    if (this.replay) $('go-board').classList.add('hidden');
+    else this.uploadRun(graded ? $('go-grade').textContent : 'D');
     this.saveReplay(cleared ? 'clear' : 'death', graded ? $('go-grade').textContent : '');
     if (!this.replay) this.telemetry.end(
       { result: cleared ? 'clear' : 'death', wave: this.waves.wave, cause: cleared ? undefined : this.deathCause || '不明', score: s.score, grade: graded ? $('go-grade').textContent : undefined },

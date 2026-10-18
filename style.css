@@ -1289,6 +1289,113 @@ body.playing * {
   display: block;
 }
 
+/* the leaderboards (leaderboard.js) */
+.board-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.board-tabs button {
+  padding: 6px 12px;
+  font: inherit;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+}
+
+.board-tabs button.selected {
+  background: rgba(255, 79, 163, 0.18);
+  border-color: #ff4fa3;
+}
+
+.board-status {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.board-row {
+  display: grid;
+  grid-template-columns: 3em minmax(0, 1fr) 10em 6em;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.board-row.me {
+  background: rgba(255, 79, 163, 0.14);
+  border-color: rgba(255, 79, 163, 0.5);
+}
+
+.board-rank {
+  font-family: var(--display);
+  font-size: 18px;
+  color: var(--gold);
+}
+
+.board-score {
+  font-family: var(--display);
+  letter-spacing: 1px;
+  text-align: right;
+}
+
+.board-row button {
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+}
+
+.board-gap {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--dim);
+  text-align: center;
+}
+
+.board-name-row {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.board-name-row input,
+#go-name {
+  width: 12em;
+  padding: 4px 8px;
+  font: inherit;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.board-name-row button,
+#go-name-save {
+  padding: 4px 10px;
+  font: inherit;
+  color: var(--ink);
+  background: rgba(255, 79, 163, 0.18);
+  border: 1px solid rgba(255, 79, 163, 0.6);
+  cursor: pointer;
+}
+
+.go-board {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
 .title-links {
   display: flex;
   justify-content: center;
