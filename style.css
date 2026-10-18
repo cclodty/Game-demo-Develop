@@ -654,6 +654,12 @@ body:not(.pad) .pad-only {
   display: none;
 }
 
+/* the pad in use, on the title's pad line */
+.pad-name {
+  margin-left: 6px;
+  color: var(--cyan);
+}
+
 #hint b,
 #hint-pad b {
   color: var(--ink);

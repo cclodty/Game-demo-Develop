@@ -44,6 +44,13 @@ export const CONTROL_LABELS = {
   swap: ['<b>E</b>', '<b>十字鍵 ↑</b>'],
 };
 
+/** A pad's name as the browser gives it, shortened: no vendor numbers, no "(STANDARD GAMEPAD …)". */
+export const padLabel = (id) =>
+  String(id || '')
+    .replace(/\s*\([^)]*(STANDARD GAMEPAD|Vendor:)[^)]*\)\s*/gi, ' ')
+    .replace(/^[0-9a-f]{4}-[0-9a-f]{4}-/i, '')
+    .trim() || '手掣';
+
 /** A hint (HTML) with its `{control}` names filled in for the keyboard, or for a pad. */
 export const withLabels = (html, pad) => html.replace(/\{(\w+)\}/g, (m, k) => (CONTROL_LABELS[k] ? CONTROL_LABELS[k][pad ? 1 : 0] : m));
 
@@ -111,7 +118,10 @@ const editable = (t) => !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELEC
 export class Input {
   constructor() {
     // a gamepad, read once a display frame (poll): its held controls, the right stick, Start
-    this.pad = null; // the connected pad, or null
+    this.pad = null; // the pad in use, or null
+    this.padIndex = -1; // its slot in navigator.getGamepads(): the last pad touched (-1: none yet)
+    this.padTouch = new Map(); // slot → the buttons down and sticks pushed at the last poll, to see a new touch
+    this.pads = []; // every pad the browser lists ({ index, id, mapping }), for the feedback export
     this.usingPad = false; // the pad aims: its right stick moved more recently than the mouse or the keyboard
     this.padKeys = new Set();
     this.padStick = { x: 0, y: 0 };
@@ -185,22 +195,41 @@ export class Input {
   }
 
   /**
-   * Read the first connected gamepad (once a display frame). Its buttons and left stick join the
-   * keyboard's controls, held and pressed since the last poll; the right stick and Start are kept
-   * for main.js. Returns the pad, or null.
+   * Read the gamepad in use (once a display frame). Its buttons and left stick join the keyboard's
+   * controls, held and pressed since the last poll; the right stick and Start are kept for main.js.
+   * The pad in use is the last one touched (a button pressed, a stick pushed past half way), so a
+   * second pad, or a keyboard, mouse or driver the browser also lists as a gamepad, never stands in
+   * its way; until one is touched, the first in the standard layout. Returns the pad, or null.
    */
   poll() {
-    let pad = null;
+    let list = [];
     try {
-      for (const p of navigator.getGamepads ? navigator.getGamepads() : []) {
-        if (p && p.connected) {
-          pad = p;
-          break;
-        }
-      }
+      list = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter((p) => p && p.connected) : [];
     } catch {
-      pad = null; // not allowed here (a frame without the permission)
+      list = []; // not allowed here (a frame without the permission)
     }
+    this.pads = list.map((p) => ({ index: p.index, id: p.id, mapping: p.mapping }));
+    const seen = new Map();
+    for (const p of list) {
+      const down = new Set();
+      p.buttons.forEach((b, i) => {
+        if (b && (b.pressed || b.value > 0.5)) down.add(`b${i}`);
+      });
+      // a non-standard device's axes may rest anywhere (triggers at -1): only its buttons count
+      if (p.mapping === 'standard') {
+        p.axes.forEach((a, i) => {
+          if (Math.abs(a) > 0.5) down.add(`a${i}${a > 0 ? '+' : '-'}`);
+        });
+      }
+      // a touch is something newly down since the pad was last seen (a button held all along is not)
+      const was = this.padTouch.get(p.index);
+      if (was && [...down].some((k) => !was.has(k))) this.padIndex = p.index;
+      seen.set(p.index, down);
+    }
+    this.padTouch = seen;
+    // unplugged: forget it, so whatever takes its slot later has to be touched first
+    if (!list.some((p) => p.index === this.padIndex)) this.padIndex = -1;
+    const pad = list.find((p) => p.index === this.padIndex) || list.find((p) => p.mapping === 'standard') || null;
     this.pad = pad;
     const held = new Set();
     let start = false;

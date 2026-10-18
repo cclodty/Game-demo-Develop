@@ -8,7 +8,7 @@ import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RATING, VIEWS } from './co
 import { Enemies } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
-import { Input, StepInput } from './input.js';
+import { Input, padLabel, StepInput } from './input.js';
 import { Level } from './level.js';
 import { MAPS } from './maps.js';
 import { loadedCharacters, loadModels } from './models.js';
@@ -1442,6 +1442,13 @@ class Game {
     if (this.input.padStart) {
       if (this.state === 'playing') this.setPaused(true);
       else if (this.state === 'paused') this.setPaused(false);
+    }
+    // the title names the pad in use, so a wrong one (a second pad, a device that only looks like one) shows
+    const used = pad ? `${pad.index}:${pad.id}` : '';
+    if (used !== this.padUsed) {
+      if (pad && this.padOn) this.notes.log(`改用手掣：${padLabel(pad.id)}`);
+      this.padUsed = used;
+      $('pad-name').textContent = pad ? `使用中：${padLabel(pad.id)}` : '';
     }
     if (!!pad === this.padOn) return;
     this.padOn = !!pad;
