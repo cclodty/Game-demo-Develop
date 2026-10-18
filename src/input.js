@@ -12,7 +12,7 @@ const BLOCKED = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'Tab', 'Digit1', 'D
 export const BUTTONS = [
   'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight',
   'ShiftLeft', 'ShiftRight', 'KeyQ', 'Space', 'KeyC', 'KeyF', 'KeyG', 'KeyE', 'KeyR',
-  'Digit1', 'Digit2', 'Mouse0', 'Mouse2', 'WheelUp', 'WheelDown',
+  'Digit1', 'Digit2', 'Mouse0', 'Mouse2', 'WheelUp', 'WheelDown', 'Escape',
 ];
 const BIT = new Map(BUTTONS.map((c, i) => [c, 1 << i]));
 

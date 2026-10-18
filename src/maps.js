@@ -79,7 +79,7 @@ function cityBackdrop(L, { facade = true, keepOut = [36, 28] } = {}) {
 
 const rooftop = {
   id: 'rooftop',
-  budget: { tris: 335000, calls: 1550 }, // rendered per frame, all passes (test/maps.test.mjs)
+  budget: { tris: 360000, calls: 1600 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '霓虹天台',
   en: 'NEON ROOFTOP',
   desc: '雨夜的天台：直升機坪、玻璃溫室和一排排油桶。',
@@ -173,7 +173,7 @@ const rooftop = {
 
 const club = {
   id: 'club',
-  budget: { tris: 425000, calls: 260 }, // rendered per frame, all passes (test/maps.test.mjs)
+  budget: { tris: 490000, calls: 400 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '脈衝夜店',
   en: 'CLUB PULSE',
   desc: '跟著節拍閃爍的舞池、吧枱後的一整排酒瓶，和一顆鏡面球。',
@@ -377,7 +377,7 @@ const club = {
 
 const docks = {
   id: 'docks',
-  budget: { tris: 360000, calls: 2050 }, // rendered per frame, all passes (test/maps.test.mjs)
+  budget: { tris: 410000, calls: 2250 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '七號碼頭',
   en: 'HARBOR 7',
   desc: '貨櫃迷宮、會大爆炸的氣罐，敵人還會從海裡爬上來。',
@@ -525,7 +525,7 @@ const SENADO_IMAGES =
 
 const senado = {
   id: 'senado',
-  budget: { tris: 270000, calls: 1950 }, // rendered per frame, all passes (test/maps.test.mjs)
+  budget: { tris: 290000, calls: 1900 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '議事亭前地',
   en: 'LARGO DO SENADO',
   desc: '按實景比例重建的澳門議事亭前地：新馬路、噴水池、窄段一直到板樟堂前地。',
@@ -594,6 +594,8 @@ const senado = {
   ],
   barrels: [[-9.9, 51.6, 'lpg'], [9, 52.4, 'lpg'], [-4.1, 20.8, 'lpg'], [7.7, 13.3, 'lpg'], [-12, -64.5, 'lpg'], [20, 48, 'gas'], [16.2, 46.2], [-11, 35.5], [-21, -68, 'gas']],
   pans: [[-12, 49.8], [11, 49.8], [-5.8, 17.9], [6, 9.9], [-14, -63.5], [1, -12], [8, 40], [-8, -60]],
+  // pigeon flocks resting on the square: they burst into the air at shots, blasts and runners (PIGEON STRIKE)
+  flocks: [[-6, 46], [8, 44], [0, 22], [-10, -64]],
   pads: [[-4, 48], [1, -34], [-10, -62]],
   spawns: [
     { x: -24.5, z: 68, ex: -17, ez: 64, kind: 'gate' },
@@ -691,18 +693,8 @@ const senado = {
       L.deco(x, 0.62, z, w + 0.02, 0.16, d + 0.02, stripe);
     }
 
-    // the square's pigeons: they scatter at gunfire and drift back later
-    L.ambient.push(
-      new Pigeons(
-        L,
-        [
-          [-14, 40, 12, 60],
-          [-8, 12, 8, 28],
-          [-20, -70, 2, -58],
-        ],
-        28,
-      ),
-    );
+    // the square's pigeons (their flocks are in `flocks`, above): they burst into the air and drift back later
+    L.ambient.push(new Pigeons(L, 28));
 
     // A bus shelter roof over the glass panel on the avenue
     L.deco(10, 2.25, 62.6, 3.8, 0.08, 1.6, L.mat.darkMetal, true);

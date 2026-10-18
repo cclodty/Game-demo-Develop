@@ -266,6 +266,29 @@ export const ASSETS = {
     prompt: '40 mm grenade round with an orange tip band',
   },
 
+  weapon_shield: {
+    kind: 'weapon',
+    group: 'weapons',
+    zh: '防暴盾（盾牌手）',
+    priority: 2,
+    size: [0.62, 0.06, 1.05],
+    tris: 600,
+    texture: 512,
+    prompt: 'clear dark polycarbonate riot shield with a yellow reflective rim, a horizontal yellow band and a grip on the back',
+    notes: '盾牌手左手持在身前；遊戲現在用一塊方塊盾，模型做好就換上。',
+  },
+  weapon_bomb_vest: {
+    kind: 'weapon',
+    group: 'weapons',
+    zh: '炸藥背心與引爆器（炸彈客）',
+    priority: 2,
+    size: [0.5, 0.32, 0.42],
+    tris: 900,
+    texture: 512,
+    prompt: 'improvised explosive vest: dark canvas harness with a row of red cylindrical charges, taped wires and a small red lamp on the chest, plus a hand-held dead-man switch',
+    notes: '炸彈客穿在胸前，右手拿引爆器；遊戲現在用方塊和圓柱，模型做好就換上。全是虛構道具，不要任何真實標誌。',
+  },
+
   // ------------------------------------------------- props on several maps
   crate: {
     kind: 'prop',
@@ -311,7 +334,7 @@ export const ASSETS = {
     zh: '平底鑊（子彈打中會反彈）',
     priority: 1,
     size: [0.82, 1.31, 0.1],
-    offset: [0, 0, 0.245],
+    offset: [0, 0.245, -0.05], // the pan's centre is the middle of the disk (the handle sticks out), and it rests 5 cm up
     fit: 'box',
     tris: 600,
     texture: 512,
@@ -440,6 +463,7 @@ export const ASSETS = {
     zh: '酒吧托盤（子彈打中會反彈）',
     priority: 2,
     size: [0.82, 0.82, 0.1],
+    offset: [0, 0, -0.05], // rests 5 cm up, like the pan
     fit: 'box',
     tris: 300,
     texture: 512,

@@ -22,6 +22,7 @@ export const TYPES = {
     lead: [0.2, 0.9],
     turn: 5,
     look: { body: 0x2a2a33, pants: 0x1b1b22, accent: 0xff2d4a, hair: 0x8a1020, weapon: 'pistol' },
+    spawn: { from: 1, weight: 6 },
   },
   shotgun: {
     label: 'SHOTGUNNER',
@@ -36,6 +37,7 @@ export const TYPES = {
     lead: [0.3, 0.8],
     turn: 4.5,
     look: { body: 0x3a2a1e, pants: 0x1e1a18, accent: 0xff8a1f, hair: 0xd06a10, weapon: 'shotgun' },
+    spawn: { from: 2, weight: 2.5 },
   },
   rifle: {
     label: 'RIFLEMAN',
@@ -50,6 +52,7 @@ export const TYPES = {
     lead: [0.5, 1.0],
     turn: 3.5,
     look: { body: 0x2a2440, pants: 0x1a1830, accent: 0xb36bff, hair: 0x3a2466, weapon: 'rifle' },
+    spawn: { from: 2, weight: 2 },
   },
   rusher: {
     label: 'BLADE',
@@ -60,6 +63,7 @@ export const TYPES = {
     score: 120,
     turn: 10,
     look: { body: 0x141418, pants: 0x101014, accent: 0xff2bd0, hair: 0x0a0a0a, weapon: 'blade' },
+    spawn: { from: 3, weight: 2.2 },
   },
   brute: {
     label: 'BRUTE',
@@ -75,6 +79,38 @@ export const TYPES = {
     turn: 2.2,
     heavy: true,
     look: { body: 0x3b3e48, pants: 0x22242c, accent: 0xff3a2a, hair: 0x55585f, weapon: 'minigun', scale: 1.25 },
+  },
+  shield: {
+    label: 'SHIELD',
+    model: 'grunt', // the thug's model behind a riot shield
+    hp: 4,
+    speed: 2.3, // walks in slowly behind the shield
+    radius: 0.4,
+    aimTime: 0.9,
+    cooldown: [1.8, 2.6],
+    range: [2.5, 6],
+    weapon: 'pistol',
+    score: 200,
+    lead: [0.2, 0.7],
+    turn: 3,
+    shield: { arc: 60, down: 1.5 }, // stops bullets coming from within ±arc degrees of his facing; a kick drops it for `down` s
+    look: { body: 0x1f2a36, pants: 0x161c24, accent: 0xffc21a, hair: 0x2a2a2a, weapon: 'pistol' },
+    spawn: { from: 3, weight: 1.6, max: 2 },
+  },
+  bomber: {
+    label: 'BOMBER',
+    model: 'rusher', // the blade's lean runner, in a vest of charges
+    hp: 2,
+    speed: 5.4, // slower than the player (7.4): you can outrun him, not ignore him
+    radius: 0.32,
+    weapon: 'detonator',
+    score: 150,
+    turn: 8,
+    // lights up within `reach` m of the player and goes off `fuse` s later with a barrel's `blast`;
+    // shot dead he goes off `delay` s later; a kick sends his charge that way for `turned` s
+    bomb: { reach: 1.5, fuse: 0.4, blast: 4.4, delay: 0.08, turned: 1.2 },
+    look: { body: 0x2c2a1e, pants: 0x1c1a14, accent: 0xff5a1a, hair: 0x1a1a1a, weapon: 'detonator' },
+    spawn: { from: 6, weight: 1.5, max: 2 },
   },
 };
 
@@ -96,7 +132,14 @@ class Enemy {
     this.type = type;
     this.cfg = TYPES[type];
     const cfg = this.cfg;
-    this.rig = buildCharacter({ ...cfg.look, ring: 0.35, model: type });
+    this.rig = buildCharacter({ ...cfg.look, ring: 0.35, model: cfg.model || type });
+    this.shieldDownT = 0;
+    if (cfg.shield) this.buildShield();
+    this.fuseT = -1; // a bomber's lit vest: seconds left, or -1
+    this.bombT = -1; // a dead bomber's charges: seconds until they go off, or -1
+    this.turnT = 0; // a kicked bomber charges along (dashX, dashZ) this long
+    this.dashX = this.dashZ = 0;
+    if (cfg.bomb) this.buildVest();
     this.idleOffset = rand(0, 10);
     this.game.scene.add(this.rig.root);
     const lc = LASER_COLOR[cfg.weapon] || LASER_COLOR.pistol;
@@ -128,6 +171,7 @@ class Enemy {
     this.lead = 0.5;
     this.timer = 0;
     this.stunT = 0;
+    this.blindT = 0; // a flock burst in his face: no aiming, and a kill now is a PIGEON STRIKE
     this.stunCause = 'kick';
     this.flash = 0;
     this.phase = rand(0, TAU);
@@ -151,7 +195,73 @@ class Enemy {
     return this.alive && (this.state === 'aim' || this.state === 'windup');
   }
 
+  /** The riot shield, held in front on the left: a dark clear panel with a yellow rim. */
+  buildShield() {
+    const g = new THREE.Group();
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(0.62, 1.05, 0.04), new THREE.MeshStandardMaterial({ color: 0x223040, roughness: 0.25, metalness: 0.3, transparent: true, opacity: 0.82 }));
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.06, 0.05), new THREE.MeshStandardMaterial({ color: 0xffc21a, emissive: 0xffa400, emissiveIntensity: 0.8 }));
+    rim.position.y = 0.5;
+    const band = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.05), rim.material);
+    band.position.y = -0.1;
+    g.add(panel, rim, band);
+    for (const m of g.children) m.castShadow = true;
+    g.position.set(0.1, 0.95, 0.42);
+    this.rig.inner.add(g);
+    this.game.style.dress(g);
+    this.shieldMesh = g;
+  }
+
+  /** Seconds from the laser coming on to the shot: the type's, times the difficulty's (rules.js aimMul). */
+  get aimTime() {
+    return this.cfg.aimTime * this.game.ruleset.aimMul;
+  }
+
+  /** Those who run at the player instead of keeping a range: blades and bombers. */
+  get rushes() {
+    return this.cfg.weapon === 'blade' || !!this.cfg.bomb;
+  }
+
+  /** The bomber's vest: a dark harness, a row of red charges and a lamp that blinks faster once he is lit. */
+  buildVest() {
+    const g = new THREE.Group();
+    const harness = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.42, 0.32), new THREE.MeshStandardMaterial({ color: 0x2a2620, roughness: 0.8 }));
+    g.add(harness);
+    const red = new THREE.MeshStandardMaterial({ color: 0xb8241a, roughness: 0.6 });
+    for (const x of [-0.15, -0.05, 0.05, 0.15]) {
+      const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.3, 8), red);
+      stick.position.set(x, -0.02, 0.18);
+      g.add(stick);
+    }
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.06, 0.04), new THREE.MeshStandardMaterial({ color: 0xff3a1a, emissive: 0xff3a1a, emissiveIntensity: 0.5 }));
+    lamp.position.set(0, 0.16, 0.19);
+    g.add(lamp);
+    for (const m of g.children) m.castShadow = true;
+    g.position.set(0, 1.16, 0);
+    this.rig.inner.add(g);
+    this.game.style.dress(g);
+    this.vest = g;
+    this.lamp = lamp;
+  }
+
+  get shieldUp() {
+    return !!this.cfg.shield && this.alive && this.shieldDownT <= 0;
+  }
+
+  /** True when a bullet travelling along (dx, dz) meets the raised shield: it comes from within the arc in front. */
+  blocks(dx, dz) {
+    if (!this.shieldUp) return false;
+    const fx = Math.sin(this.facing);
+    const fz = Math.cos(this.facing);
+    return -(dx * fx + dz * fz) >= Math.cos((this.cfg.shield.arc * Math.PI) / 180);
+  }
+
   dispose() {
+    for (const part of [this.shieldMesh, this.vest]) {
+      for (const m of part ? part.children : []) {
+        m.geometry.dispose();
+        m.material.dispose();
+      }
+    }
     this.game.scene.remove(this.rig.root);
     disposeRig(this.rig);
     this.laser.dispose(this.game.scene);
@@ -159,9 +269,15 @@ class Enemy {
 
   // ----------------------------------------------------------- damage
 
+  /** A bullet arrives; returns 'blocked' when the shield stopped it. */
   hit(b) {
-    if (!this.alive) return;
+    if (!this.alive) return undefined;
     const g = this.game;
+    if (this.blocks(b.dx, b.dz)) {
+      g.fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 10, [7, 6, 3], 7);
+      g.audio.deflect(g.panFor(this.x));
+      return 'blocked';
+    }
     const fromPlayer = b.owner === 'player';
     this.hp -= fromPlayer ? b.damage : 3;
     this.flash = 1;
@@ -187,8 +303,29 @@ class Enemy {
     if (!this.cfg.heavy && this.state === 'aim') this.aimT = Math.max(0, this.aimT - 0.22);
   }
 
+  /** Pigeons in the face: the aim breaks off and cannot start again for `t` seconds. */
+  blind(t) {
+    this.endAim();
+    if (this.state === 'aim' || this.state === 'fire') this.state = 'move';
+    this.repath = 0;
+    this.blindT = t;
+    this.fireCd = Math.max(this.fireCd, t);
+  }
+
   kick(dx, dz, power, cause = 'kick', dmg = 1) {
     if (!this.alive) return;
+    if (this.cfg.shield) {
+      if (this.shieldDownT <= 0) this.game.notes.log('盾牌手的盾被踢開');
+      this.shieldDownT = this.cfg.shield.down;
+    }
+    if (this.cfg.bomb && cause === 'kick') {
+      // his charge goes where the kick sent him, for a while
+      const l = Math.hypot(dx, dz) || 1;
+      this.dashX = dx / l;
+      this.dashZ = dz / l;
+      this.turnT = this.cfg.bomb.turned;
+      this.game.notes.log('踢中炸彈客，衝刺轉向');
+    }
     const heavy = this.cfg.heavy;
     this.stunT = heavy ? 0.35 : 0.85;
     this.stunCause = cause;
@@ -196,7 +333,7 @@ class Enemy {
     this.vx = dx * power * m;
     this.vz = dz * power * m;
     this.endAim();
-    if (this.state !== 'enter') this.state = this.cfg.weapon === 'blade' ? 'chase' : 'move';
+    if (this.state !== 'enter') this.state = this.rushes ? 'chase' : 'move';
     this.repath = 0;
     this.hp -= dmg;
     this.flash = 1;
@@ -204,13 +341,14 @@ class Enemy {
     if (this.hp <= 0) this.die(dx, dz, { cause });
   }
 
-  blast(dx, dz, dmg) {
+  /** Caught in an explosion; `chain` when a bomber's charges set it off (a kill then is a CHAIN). */
+  blast(dx, dz, dmg, chain = false) {
     if (!this.alive) return;
     this.hp -= dmg;
     this.flash = 1;
     this.vx += dx * 10;
     this.vz += dz * 10;
-    if (this.hp <= 0) this.die(dx, dz, { cause: 'explosion' });
+    if (this.hp <= 0) this.die(dx, dz, { cause: 'explosion', chain });
     else {
       this.stunT = 0.5;
       this.stunCause = 'blast';
@@ -240,10 +378,39 @@ class Enemy {
     g.fx.blood(this.x, 1.2, this.z, dx, dz, 24, 1.3);
     g.fx.decal(this.x + dx * 0.6, this.z + dz * 0.6, rand(0.6, 1), 0.2, 0.01, 0.02);
     this.dropWeapon();
+    this.fuseT = -1;
+    if (info.cause === 'self') return; // his own fuse: no kill for anyone (goOff follows)
+    if (this.cfg.bomb) this.bombT = this.cfg.bomb.delay; // killed: the charges go off a moment later
     g.onEnemyKilled(this, info);
   }
 
+  /** Another living enemy within d m. */
+  nearAlly(d) {
+    return this.mgr.list.some((o) => o !== this && o.alive && Math.hypot(o.x - this.x, o.z - this.z) < d);
+  }
+
+  /** Within reach of the player (or, kicked, of his own people): the vest is lit, he plants himself and beeps. */
+  light() {
+    const g = this.game;
+    this.fuseT = this.cfg.bomb.fuse;
+    g.audio.fuse(g.panFor(this.x));
+    g.notes.log('炸彈客點火');
+  }
+
+  /** The charges go off with a barrel's blast: his fuse ran out (he goes with them), or a moment after he was killed. */
+  goOff() {
+    const g = this.game;
+    if (this.alive) {
+      g.notes.log('炸彈客自爆');
+      this.die(0, 0, { cause: 'self' });
+    }
+    this.bombT = -1;
+    this.rig.root.visible = false; // nothing left of him
+    g.explode(this.x, this.z, this.cfg.bomb.blast, { chain: true, source: '炸彈客爆炸' });
+  }
+
   dropWeapon() {
+    if (!this.game.ruleset.drops) return; // a variant: only the pistols
     for (const [kind, chance] of DROPS[this.type] || []) {
       if (this.game.rng.next() >= chance) continue;
       for (const m of this.rig.weaponParts) m.visible = false;
@@ -266,6 +433,7 @@ class Enemy {
   }
 
   pickGoal() {
+    if (this.sp.stay) return { x: this.sp.ex, z: this.sp.ez }; // a warm-up enemy keeps its post
     const g = this.game;
     const p = g.player;
     const [rmin, rmax] = this.cfg.range;
@@ -363,14 +531,28 @@ class Enemy {
 
   update(dt) {
     if (this.dead) {
+      if (this.bombT >= 0) {
+        this.bombT -= dt;
+        if (this.bombT < 0) this.goOff();
+      }
       this.updateCorpse(dt);
       return;
+    }
+    if (this.fuseT >= 0) {
+      // lit: nothing stops it now, a kick only moves where it happens
+      this.fuseT -= dt;
+      if (this.fuseT < 0) {
+        this.goOff();
+        return;
+      }
     }
     const g = this.game;
     const p = g.player;
     const cfg = this.cfg;
     this.flash = Math.max(0, this.flash - dt * 6);
     this.fireCd -= dt;
+    this.blindT = Math.max(0, this.blindT - dt);
+    this.shieldDownT = Math.max(0, this.shieldDownT - dt);
     this.spawnLock -= dt;
     this.losT -= dt;
     if (this.losT <= 0) {
@@ -415,7 +597,7 @@ class Enemy {
               this.y = Math.sin((1 - k) * Math.PI * 0.5) * 1.05;
             } else {
               this.y = 0;
-              this.state = cfg.weapon === 'blade' ? 'chase' : 'move';
+              this.state = this.rushes ? 'chase' : 'move';
             }
             this.vx = this.vz = 0;
             want = null;
@@ -423,7 +605,7 @@ class Enemy {
             const dx = this.sp.ex - this.x;
             const dz = this.sp.ez - this.z;
             const d = Math.hypot(dx, dz);
-            if (d < 0.3 || this.enterT > 2) this.state = cfg.weapon === 'blade' ? 'chase' : 'move';
+            if (d < 0.3 || this.enterT > 2) this.state = this.rushes ? 'chase' : 'move';
             else want = [(dx / d) * cfg.speed, (dz / d) * cfg.speed];
           }
           break;
@@ -462,7 +644,7 @@ class Enemy {
             }
           } else this.losLost = 0;
           if (cfg.weapon === 'shotgun' && distP > 4) want = [(dxp / distP) * 1.2, (dzp / distP) * 1.2];
-          if (this.aimT >= cfg.aimTime) {
+          if (this.aimT >= this.aimTime) {
             const w = WEAPONS[cfg.weapon];
             this.state = 'fire';
             this.burst = w.shots;
@@ -495,13 +677,21 @@ class Enemy {
           this.timer -= dt;
           face = this.aimAngle;
           if (this.timer <= 0) {
-            this.state = cfg.weapon === 'blade' ? 'chase' : 'move';
+            this.state = this.rushes ? 'chase' : 'move';
             this.repath = 0;
           }
           break;
         case 'chase': {
           this.repath -= dt;
-          if (this.los && g.level.nav.lineWalkable(this.x, this.z, p.x, p.z)) {
+          const bomb = cfg.bomb;
+          if (bomb && this.fuseT >= 0) {
+            want = [0, 0];
+            break;
+          }
+          if (bomb && this.turnT > 0) {
+            this.turnT -= dt;
+            want = [this.dashX * cfg.speed, this.dashZ * cfg.speed];
+          } else if (this.los && g.level.nav.lineWalkable(this.x, this.z, p.x, p.z)) {
             want = [(dxp / distP) * cfg.speed, (dzp / distP) * cfg.speed];
           } else {
             if (this.repath <= 0 || !this.path) {
@@ -510,6 +700,10 @@ class Enemy {
               this.pathI = 0;
             }
             want = this.followPath(cfg.speed);
+          }
+          if (bomb) {
+            if (distP < bomb.reach) this.light();
+            break;
           }
           if (distP < 1.7 && this.mgr.requestToken(this)) {
             this.state = 'windup';
@@ -561,8 +755,11 @@ class Enemy {
     }
     if (collide) {
       this.pushProps();
-      g.level.collideCircle(this, this.radius);
+      // a kicked bomber charging into a wall gives up the turn and comes for the player again
+      if (g.level.collideCircle(this, this.radius) && this.turnT > 0 && this.stunT <= 0) this.turnT = 0;
     }
+    // kicked into his own people: he lights up among them
+    if (cfg.bomb && this.turnT > 0 && this.fuseT < 0 && this.nearAlly(cfg.bomb.reach)) this.light();
 
     const speed = Math.hypot(this.vx, this.vz);
     if (face === null && speed > 0.4) face = Math.atan2(this.vx, this.vz);
@@ -618,13 +815,27 @@ class Enemy {
     const r = this.rig;
     r.root.position.set(this.x, this.y + this.game.level.groundY(this.x, this.z), this.z);
     r.root.rotation.y = this.facing;
-    animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
     setFlash(r, this.flash * 2.5);
+    r.ring.material.color.setRGB(this.aiming || this.fuseT >= 0 ? 1.6 : 0.35, 0.05, 0.08);
+    if (this.lamp) {
+      // the vest's lamp: a slow blink, fast once lit
+      const lit = this.fuseT >= 0;
+      const on = Math.sin(this.game.worldTime * (lit ? 80 : 12)) > 0;
+      this.lamp.material.emissiveIntensity = on ? (lit ? 5 : 1.6) : 0.15;
+      if (lit && on) setFlash(r, 1.2);
+    }
+    if (!this.game.style.poseDue(r, this.game.worldTime + this.idleOffset)) return; // the pose holds between the style's steps
+    animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
+    if (this.shieldMesh) {
+      // kicked aside: the shield swings down and out
+      const down = this.shieldDownT > 0;
+      this.shieldMesh.rotation.set(down ? 1.1 : 0, down ? 0.9 : 0, 0);
+      this.shieldMesh.position.set(down ? 0.35 : 0.1, down ? 0.55 : 0.95, down ? 0.2 : 0.42);
+    }
     if (this.cfg.weapon === 'blade') {
       const raise = this.state === 'windup' ? -1.6 : this.state === 'strike' ? 0.9 : 0.5;
       r.armR.rotation.x = damp(r.armR.rotation.x, raise, 25, 1 / LOGIC_HZ); // once per logic step
     }
-    r.ring.material.color.setRGB(this.aiming ? 1.6 : 0.35, 0.05, 0.08);
     finishRig(r, this.game.worldTime + this.idleOffset);
   }
 
@@ -640,7 +851,7 @@ class Enemy {
     const dz = Math.cos(this.aimAngle);
     const hit = g.level.raycast(m.x, m.z, m.x + dx * 40, m.z + dz * 40, true);
     const len = hit ? hit.t * 40 : 40;
-    const k = this.state === 'fire' ? 1 : clamp(this.aimT / this.cfg.aimTime, 0, 1);
+    const k = this.state === 'fire' ? 1 : clamp(this.aimT / this.aimTime, 0, 1);
     let intensity = 0.35 + k * k * 2.8;
     if (k > 0.78 && this.state === 'aim') intensity *= Math.sin(performance.now() * 0.06) > 0 ? 1.7 : 0.5;
     this.laser.set(m.x, m.z, m.x + dx * len, m.z + dz * len, 0.035 + k * 0.05, intensity);
@@ -660,16 +871,18 @@ class Enemy {
     this.y = Math.max(0, this.y - dt * 6);
     const r = this.rig;
     r.root.rotation.y += this.corpseSpin * dt * clamp(Math.hypot(this.vx, this.vz) / 5, 0, 1);
-    const k = clamp(this.corpseT / 0.4, 0, 1);
-    const clip = deathPose(r, this.corpseT);
-    if (!clip) {
-      r.inner.rotation.x = -Math.PI / 2 * (1 - (1 - k) * (1 - k));
-      r.inner.position.y = 0.12 * this.rig.scale * k;
-    }
     r.root.position.set(this.x, this.y + this.game.level.groundY(this.x, this.z), this.z);
     setFlash(r, Math.max(0, 1 - this.corpseT * 4) * 2);
-    animateRig(r, 0, 0);
-    if (!clip) finishRig(r, this.idleOffset);
+    if (this.game.style.poseDue(r, this.game.worldTime + this.idleOffset)) {
+      const k = clamp(this.corpseT / 0.4, 0, 1);
+      const clip = deathPose(r, this.corpseT);
+      if (!clip) {
+        r.inner.rotation.x = -Math.PI / 2 * (1 - (1 - k) * (1 - k));
+        r.inner.position.y = 0.12 * this.rig.scale * k;
+      }
+      animateRig(r, 0, 0);
+      if (!clip) finishRig(r, this.idleOffset);
+    }
     if (!this.pooled && this.corpseT > 0.7) {
       this.pooled = true;
       // resting bodies stop casting shadows: halves their draw calls
@@ -699,6 +912,15 @@ export class Enemies {
     const e = new Enemy(this, type, sp);
     this.list.push(e);
     return e;
+  }
+
+  /** Take a live enemy away without a death (the warm-up ending early). */
+  remove(e) {
+    e.endAim();
+    e.alive = false;
+    this.list = this.list.filter((x) => x !== e);
+    this.game.fx.ring(e.x, e.z, 1.2, 0.4, 0xff3355, 2);
+    e.dispose();
   }
 
   clear() {

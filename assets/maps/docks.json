@@ -353,6 +353,7 @@
       "z": 1.5
     }
   ],
+  "pigeonFlocks": [],
   "spawns": [
     {
       "x": -6,

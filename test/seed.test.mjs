@@ -79,8 +79,14 @@ function assertEventful(r) {
 
 test('?seed=123 plays the same run in a second page and after a restart', { timeout: 10 * 60 * 1000 }, async () => {
   const a = await h.open('?seed=123');
-  const b = await h.open('?seed=123');
+  // stop the first page's frame loop (the bot would anyway): two SwiftShader pages
+  // rendering at once starved the second one's load past the harness timeout
+  await a.page.evaluate(() => {
+    window.game.frame = () => {};
+  });
+  let b;
   try {
+    b = await h.open('?seed=123');
     await installTrace(a.page);
     await installTrace(b.page);
     const a1 = await play(a.page);
@@ -94,7 +100,7 @@ test('?seed=123 plays the same run in a second page and after a restart', { time
     assert.deepEqual(problems([...a.logs, ...b.logs]), []);
   } finally {
     await a.page.close();
-    await b.page.close();
+    if (b) await b.page.close();
   }
 });
 

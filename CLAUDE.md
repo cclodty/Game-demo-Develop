@@ -58,7 +58,7 @@ src/input.js  replay.js      live keyboard/mouse → one StepInput per logic ste
 src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, VIEWS
 src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS and the AI state machine
 src/weapons.js bullets.js    player weapon stats, drops, grenades; projectile stepping and ricochet
-src/waves.js  pickups.js     wave composition and spawn pacing; floor weapons and pads
+src/waves.js  pickups.js     MODES (arcade: 12 waves, then RUN CLEAR; endless), wave composition and spawn pacing; floor weapons and pads
 src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 4 maps as data
 src/nav.js                   grid A* on 0.5 m cells
 src/rng.js                   seeded RNG: game.rng for logic (?seed=), vfxRng behind utils.js rand/pick for effects
@@ -67,13 +67,18 @@ src/models.js                loads assets/models/*.glb, fits props to map boxes;
 src/asset-manifest.js        catalogue of every asset we want as a real model (sizes, budgets, prompts)
 src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
-src/ambient.js               pigeons
+src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
+src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
+src/clip.js                  the best-kill clip: overlapping MediaRecorder recordings of a small copy of the screen, played on the end screen
+src/telemetry.js             local play records: one row per run (start, waves, end and cause, time, played again), carried by the feedback export
+src/rules.js                 run rules: difficulties and variants as data (one switch or number each), read by their systems as game.ruleset
 src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export
+src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions
 src/senado/                  Largo do Senado data and model code extracted from the senado/ sub-project
 scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, serve.mjs, senado-extract.mjs
-test/                        node:test + playwright; helpers.mjs has the bot
+test/                        node:test + playwright; helpers.mjs has the bot; fixtures/ holds a short recorded clip
 assets/                      SPEC.md, PROMPTS.md, START_HERE.md, asset-list.*, maps/*.json, source/ (masters), models/ (web)
-docs/                        ROADMAP.md, TASKS.md, DECISIONS.md
+docs/                        ROADMAP.md, TASKS.md, DECISIONS.md; shots/ holds the screenshots PR descriptions show
 senado/                      the Largo do Senado city-model sub-project (own README, tests, scripts); don't edit from game tasks
 vendor/three/                three.js r186 + the addons we use; never modify
 ```
@@ -109,6 +114,14 @@ Conventions that matter:
 - Gameplay events worth a tester's attention go through `notes.log()` (hits
   taken with their source, kills with tags, focus on/off, waves, pickups) so
   they show up in the feedback export. Keep the lines short and in Chinese.
+- **The look is a rendering layer** (`style.js`, decided 2026-10-17: flat toon
+  shading, outlines, afterimages, 12 fps pose step, comic proportions). Lit
+  materials are swapped for toon twins when a level loads or a rig is built;
+  anything you add to the scene later goes through `game.style.dress(root)`
+  (pickups, thrown guns and grenades do). Character pose code runs only when
+  `style.poseDue(rig, worldTime)` says so; root position and facing update
+  every frame. Never make play depend on the style; `?style=off` must play
+  identically.
 
 ## Working rules
 
@@ -165,6 +178,9 @@ merges `<id>@clip.glb` animations, writes `assets/models/` and
   frame: two logic steps); keep those entry points stable or update
   `test/helpers.mjs` with them. `game.feed` hands steps recorded input instead
   of the keyboard (`test/fixedstep.test.mjs`).
+- The first run in a fresh browser opens with the warm-up (`tutorial.js`). The
+  test harness marks it as seen before every page load unless the query
+  mentions `tutorial` (`?tutorial=1` forces it, `?tutorial=0` is a first visit).
 - `index.html` has `<div id="game">`, so `window.game` is that element until
   `main.js` assigns the real `Game` (after the optional models load). Check
   for `window.game.startRun` before using it.

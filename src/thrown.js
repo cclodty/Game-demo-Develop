@@ -129,6 +129,7 @@ export class Thrown {
     const w = PLAYER_WEAPONS[sp.id];
     const mesh = buildWeaponModel(w.model, g.pickups.mats);
     mesh.scale.setScalar(1.1);
+    g.style.dress(mesh);
     g.scene.add(mesh);
     const { dx, dz, d } = this.aimDir();
     const dist = clamp(d, 2, PLAYER.throwRange * 1.5);

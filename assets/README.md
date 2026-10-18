@@ -11,6 +11,7 @@
 | [PROMPTS.md](PROMPTS.md) | 71 件物件的提示詞（參考圖＋3D 模型），按類別和優先次序排列 |
 | [asset-list.json](asset-list.json) / [.csv](asset-list.csv) | 同一份清單的機器可讀版（任何引擎都能讀）／試算表版 |
 | [maps/](maps/) | 四張地圖的佈局（米），供本遊戲或其他引擎使用 |
+| [FEEDBACK.md](FEEDBACK.md) | 模型回饋清單：測試量到的偏差（腳、手、槍口、道具大小），偏差超過 5 cm 的留一句英文給 Dots |
 | [screenshots/](screenshots/) | 遊戲現況（方塊版）的截圖：四張地圖的實際鏡頭，以及一張側面比例參考 |
 
 PROMPTS、asset-list 和 maps 都由 `npm run assets:docs` 從 `src/asset-manifest.js` 和 `src/maps.js` 生成。要加減物件或改尺寸，改那兩個檔案再重新生成。

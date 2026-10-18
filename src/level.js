@@ -4,6 +4,8 @@
 
 import * as THREE from 'three';
 import { addCutaway } from './cutaway.js';
+import { Flock } from './ambient.js';
+import { ENV } from './config.js';
 import { MAPS } from './maps.js';
 import { propModel } from './models.js';
 import { NavGrid } from './nav.js';
@@ -395,6 +397,7 @@ export class Level {
     this.start = { x: map.start[0], z: map.start[1] };
     this.solids = [];
     this.glass = [];
+    this.crates = [];
     this.barrels = [];
     this.pans = [];
     this.props = [];
@@ -406,10 +409,16 @@ export class Level {
     this.applyTheme(map.theme);
     if (map.floor !== 'none') this.buildFloor(map.floor);
     this.buildEdges(map.edges);
-    for (const s of map.solids) this.addSolid(...s);
+    // a variant (rules.js glassUpTo) makes every box of cover up to that height glass
+    this.glassUpTo = this.game.ruleset.glassUpTo;
+    for (const s of map.solids) {
+      if (this.glassUpTo && typeof s[0] === 'number' && s[4] <= this.glassUpTo) this.addGlass(s[0], s[1], s[2], s[3], s[4]);
+      else this.addSolid(...s);
+    }
     for (const g of map.glass || []) this.addGlass(...g);
     for (const [x, z, v] of map.barrels || []) this.barrels.push(new Barrel(this, x, z, v));
     for (const [x, z, v] of map.pans || []) this.pans.push(new Pan(this, x, z, v));
+    this.flocks = (map.flocks || []).map(([x, z]) => new Flock(x, z));
     this.props = [...this.barrels, ...this.pans];
     for (const [x, z] of map.pads || []) this.addPad(x, z);
     this.buildSpawns(map.spawns);
@@ -422,6 +431,7 @@ export class Level {
         if (m && m.isMeshStandardMaterial) addCutaway(m, this.cut);
       }
     });
+    if (this.game.style) this.game.style.dressLevel(this); // the look: toon twins (with the cutaway), lines on the props
 
     this.nav = new NavGrid(-halfW, -halfD, halfW, halfD, 0.5);
     this.rebuildNav();
@@ -497,12 +507,19 @@ export class Level {
   addSolid(x, z, w, d, h, matKey, face) {
     const M = this.mat;
     const s = this.addBox(x, z, w, d, h, M[matKey], matKey === 'crate' ? 'crate' : 'wall');
+    if (matKey === 'crate') {
+      // wooden crates break apart after ENV.crateHits bullets (breakCrate)
+      Object.assign(s, { x, z, w, d, hp: ENV.crateHits });
+      this.crates.push(s);
+    }
     const model = propModel(matKey, this.map.id, w, d, h, face);
     if (model) {
       // a made model replaces the block look; the box stays for collision
       s.mesh.visible = false;
       model.position.set(x, 0, z);
       this.add(model);
+      s.model = model; // for test/calibration.test.mjs
+      s.modelKey = matKey;
       return s;
     }
     switch (matKey) {
@@ -600,12 +617,25 @@ export class Level {
     const pane = new THREE.Mesh(this.geo.unit, this.mat.glass);
     pane.scale.set(w, h, d);
     pane.renderOrder = 1;
-    const top = new THREE.Mesh(this.geo.unit, this.mat.glassEdge);
-    top.scale.set(w + 0.04, 0.06, d + 0.04);
-    top.position.y = h;
     const bot = new THREE.Mesh(this.geo.unit, this.mat.darkMetal);
     bot.scale.set(w + 0.06, 0.12, d + 0.06);
-    mesh.add(pane, top, bot);
+    mesh.add(pane, bot);
+    // a pane gets a lit top edge; a block of glass (cover in the glass variant) a rim round its top, not a glowing lid
+    const edges =
+      Math.min(w, d) > 0.5
+        ? [
+            [0, -d / 2, w + 0.04, 0.05],
+            [0, d / 2, w + 0.04, 0.05],
+            [-w / 2, 0, 0.05, d],
+            [w / 2, 0, 0.05, d],
+          ]
+        : [[0, 0, w + 0.04, d + 0.04]];
+    for (const [ex, ez, ew, ed] of edges) {
+      const top = new THREE.Mesh(this.geo.unit, this.mat.glassEdge);
+      top.scale.set(ew, 0.06, ed);
+      top.position.set(ex, h, ez);
+      mesh.add(top);
+    }
     mesh.position.set(x, 0, z);
     this.add(mesh);
     const s = { minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2, h, kind: 'glass', alive: true, mesh, w, d, x, z };
@@ -731,9 +761,9 @@ export class Level {
     return segPoly(x0, z0, x1, z1, s.poly, out);
   }
 
-  /** A loud event at (x, z): ambient life within r reacts (pigeons take off). */
+  /** A loud event at (x, z): resting flocks within r take off. Logic: it can break an enemy's aim. */
   noise(x, z, r) {
-    for (const a of this.ambient) if (a.scare) a.scare(x, z, r);
+    for (const f of this.flocks) if (f.away <= 0 && Math.hypot(f.x - x, f.z - z) < r) this.startle(f, x, z);
   }
 
   /** Height of the ground (the Senado fountain sits in a sunken ring). */
@@ -812,8 +842,67 @@ export class Level {
     this.nav.buildRect(this.solids, 0.5, s.minX - 1, s.minZ - 1, s.maxX + 1, s.maxZ + 1);
   }
 
+  /** A crate takes its last bullet: it bursts into planks and stops being cover. */
+  breakCrate(s, dx, dz) {
+    if (!s.alive) return;
+    s.alive = false;
+    (s.model || s.mesh).visible = false;
+    const fx = this.game.fx;
+    for (let i = 0; i < 12; i++) {
+      fx.debris(s.x + rand(-s.w, s.w) / 2, rand(0.2, s.h), s.z + rand(-s.d, s.d) / 2, dx + rand(-0.7, 0.7), dz + rand(-0.7, 0.7), 3, [0.42, 0.29, 0.17], 0.16);
+    }
+    this.game.audio.impact(this.game.panFor(s.x));
+    this.game.shake(0.15);
+    this.game.notes.log('木箱碎裂');
+    this.noise(s.x, s.z, 6);
+    this.nav.buildRect(this.solids, 0.5, s.minX - 1, s.minZ - 1, s.maxX + 1, s.maxZ + 1);
+  }
+
+  // ------------------------------------------------------------- pigeons (logic)
+
+  /** Resting flocks take off when the player runs through, an enemy walks in, or a player bullet passes close. */
+  updateFlocks(dt) {
+    const g = this.game;
+    const p = g.player;
+    for (const f of this.flocks) {
+      if (f.away > 0) {
+        f.away = Math.max(0, f.away - dt);
+        continue;
+      }
+      let from = null;
+      if (p.alive && Math.hypot(p.vx, p.vz) > 1 && Math.hypot(p.x - f.x, p.z - f.z) < 2.4) from = p;
+      for (const e of g.enemies.list) if (!from && e.alive && Math.hypot(e.x - f.x, e.z - f.z) < 1.5) from = e;
+      for (const b of g.bullets.list) if (!from && b.alive && b.owner === 'player' && Math.hypot(b.x - f.x, b.z - f.z) < ENV.flockScare) from = b;
+      if (from) this.startle(f, from.x, from.z);
+    }
+  }
+
+  /** A flock bursts into the air from (x, z): any enemy aiming within ENV.flockReach loses his aim. */
+  startle(f, x, z) {
+    const g = this.game;
+    f.away = g.rng.range(ENV.flockAway[0], ENV.flockAway[1]);
+    f.gen++;
+    f.fromX = x;
+    f.fromZ = z;
+    let n = 0;
+    for (const e of g.enemies.list) {
+      if (!e.alive || Math.hypot(e.x - f.x, e.z - f.z) > ENV.flockReach) continue;
+      if (e.state === 'aim' || e.state === 'fire') {
+        e.blind(ENV.flockBlind);
+        n++;
+      }
+    }
+    g.notes.log(n ? `白鴿驚起，打斷 ${n} 個敵人的瞄準` : '白鴿驚起');
+  }
+
   resetProps() {
     for (const p of this.props) p.reset();
+    for (const f of this.flocks) f.reset();
+    for (const s of this.crates) {
+      s.alive = true;
+      s.hp = ENV.crateHits;
+      (s.model || s.mesh).visible = true;
+    }
     for (const s of this.glass) {
       s.alive = true;
       s.mesh.visible = true;
@@ -830,6 +919,7 @@ export class Level {
 
   updateProps(dt) {
     this.time += dt;
+    this.updateFlocks(dt);
     const props = this.props;
     for (const p of props) {
       if (!p.alive || p.carried) continue;

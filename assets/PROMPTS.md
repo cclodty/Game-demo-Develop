@@ -17,7 +17,7 @@
 | 類別 | 件數 | 優先 1 | 優先 2 | 優先 3 |
 |---|---|---|---|---|
 | [人物](#characters) | 6 | 1 | 5 | 0 |
-| [武器](#weapons) | 9 | 3 | 5 | 1 |
+| [武器](#weapons) | 11 | 3 | 7 | 1 |
 | [共用道具（多張地圖都有）](#props) | 6 | 5 | 1 | 0 |
 | [霓虹天台](#rooftop) | 7 | 0 | 4 | 3 |
 | [脈衝夜店](#club) | 11 | 0 | 3 | 8 |
@@ -25,7 +25,7 @@
 | [議事亭前地](#senado) | 13 | 4 | 4 | 5 |
 | [議事亭前地：地標建築](#landmarks) | 6 | 0 | 3 | 3 |
 | [地面與牆身材質（無縫平鋪貼圖）](#materials) | 5 | 1 | 2 | 2 |
-| **合計** | **71** | | | |
+| **合計** | **73** | | | |
 
 <a id="characters"></a>
 
@@ -345,6 +345,52 @@ Game weapon concept sheet: short straight machete-like blade with a wrapped hand
 
 ```text
 Build a high-quality 3D game weapon from the concept sheet: short straight machete-like blade with a wrapped handle, the edge catching a magenta glint. Units are metres, Y is up and the front faces +Z; put the origin at the main hand grip, with the barrel or blade pointing along +Z. Real size: 0.05 m wide (X) by 0.8 m deep (Z) by 0.08 m tall (Y). Clean topology of about 12,000 triangles with no hidden, floating or intersecting junk, and transforms applied (scale 1, no rotation). PBR metal-roughness materials with 2048 px textures: base colour (sRGB, no lighting baked in), normal map (OpenGL, green up) and an ORM map (red = ambient occlusion, green = roughness, blue = metallic). Add empty helper nodes, positions in metres from the origin as (X, Y, Z): socket_tip at (0, 0, 0.62). Export one GLB with the textures embedded, and the same model as FBX; also save the textures as separate PNG files.
+```
+
+### `weapon_shield` 防暴盾（盾牌手） · 優先 2
+
+| | |
+|---|---|
+| 尺寸 | 長 0.06 × 寬 0.62 × 高 1.05 米（原點在主握把） |
+| 母版（高質量） | 約 12,000 三角面，2048 貼圖 |
+| 網頁遊戲版 | 約 600 面、512 貼圖（遊戲接上後自動處理） |
+| 交付 | `assets/source/weapon_shield/weapon_shield.glb` + `weapon_shield.fbx` + `textures/` + `reference/` |
+
+> 盾牌手左手持在身前；遊戲現在用一塊方塊盾，模型做好就換上。
+
+**① 參考圖**
+
+```text
+Game weapon concept sheet: clear dark polycarbonate riot shield with a yellow reflective rim, a horizontal yellow band and a grip on the back. Orthographic side view and top view, plain light grey background, even neutral lighting, no text or labels. Overall length 0.06 m, height 1.05 m. Art direction: stylized semi-realistic action game set in present-day Macau with a neon-noir mood; clean, readable shapes slightly exaggerated for a camera looking down at 45 degrees; physically based materials with subtle wear; no lighting, shadows or ambient occlusion baked into the base colour (the game lights it, by night and by day).
+```
+
+**② 3D 模型**
+
+```text
+Build a high-quality 3D game weapon from the concept sheet: clear dark polycarbonate riot shield with a yellow reflective rim, a horizontal yellow band and a grip on the back. Units are metres, Y is up and the front faces +Z; put the origin at the main hand grip, with the barrel or blade pointing along +Z. Real size: 0.62 m wide (X) by 0.06 m deep (Z) by 1.05 m tall (Y). Clean topology of about 12,000 triangles with no hidden, floating or intersecting junk, and transforms applied (scale 1, no rotation). PBR metal-roughness materials with 2048 px textures: base colour (sRGB, no lighting baked in), normal map (OpenGL, green up) and an ORM map (red = ambient occlusion, green = roughness, blue = metallic). Export one GLB with the textures embedded, and the same model as FBX; also save the textures as separate PNG files.
+```
+
+### `weapon_bomb_vest` 炸藥背心與引爆器（炸彈客） · 優先 2
+
+| | |
+|---|---|
+| 尺寸 | 長 0.32 × 寬 0.5 × 高 0.42 米（原點在主握把） |
+| 母版（高質量） | 約 12,000 三角面，2048 貼圖 |
+| 網頁遊戲版 | 約 900 面、512 貼圖（遊戲接上後自動處理） |
+| 交付 | `assets/source/weapon_bomb_vest/weapon_bomb_vest.glb` + `weapon_bomb_vest.fbx` + `textures/` + `reference/` |
+
+> 炸彈客穿在胸前，右手拿引爆器；遊戲現在用方塊和圓柱，模型做好就換上。全是虛構道具，不要任何真實標誌。
+
+**① 參考圖**
+
+```text
+Game weapon concept sheet: improvised explosive vest: dark canvas harness with a row of red cylindrical charges, taped wires and a small red lamp on the chest, plus a hand-held dead-man switch. Orthographic side view and top view, plain light grey background, even neutral lighting, no text or labels. Overall length 0.32 m, height 0.42 m. Art direction: stylized semi-realistic action game set in present-day Macau with a neon-noir mood; clean, readable shapes slightly exaggerated for a camera looking down at 45 degrees; physically based materials with subtle wear; no lighting, shadows or ambient occlusion baked into the base colour (the game lights it, by night and by day).
+```
+
+**② 3D 模型**
+
+```text
+Build a high-quality 3D game weapon from the concept sheet: improvised explosive vest: dark canvas harness with a row of red cylindrical charges, taped wires and a small red lamp on the chest, plus a hand-held dead-man switch. Units are metres, Y is up and the front faces +Z; put the origin at the main hand grip, with the barrel or blade pointing along +Z. Real size: 0.5 m wide (X) by 0.32 m deep (Z) by 0.42 m tall (Y). Clean topology of about 12,000 triangles with no hidden, floating or intersecting junk, and transforms applied (scale 1, no rotation). PBR metal-roughness materials with 2048 px textures: base colour (sRGB, no lighting baked in), normal map (OpenGL, green up) and an ORM map (red = ambient occlusion, green = roughness, blue = metallic), plus an emissive map for the glowing parts. Export one GLB with the textures embedded, and the same model as FBX; also save the textures as separate PNG files.
 ```
 
 ### `weapon_grenade` 榴彈（發射器的彈） · 優先 3

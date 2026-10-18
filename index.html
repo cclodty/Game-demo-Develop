@@ -42,11 +42,18 @@
       <div id="focus-label">BULLET TIME</div>
 
       <div id="hud-tr">
-        <div id="score">0</div>
-        <div id="best">BEST 0</div>
-        <div id="combo">
-          <span id="combo-mult">x1</span>
-          <div id="combo-bar"><div class="fill" id="combo-fill"></div></div>
+        <div id="rank" data-rank="D">
+          <b id="rank-letter">D</b>
+          <div id="rank-bar"><div id="rank-fill"></div></div>
+          <small>STYLE</small>
+        </div>
+        <div id="hud-score">
+          <div id="score">0</div>
+          <div id="best">BEST 0</div>
+          <div id="combo">
+            <span id="combo-mult">x1</span>
+            <div id="combo-bar"><div class="fill" id="combo-fill"></div></div>
+          </div>
         </div>
       </div>
 
@@ -54,6 +61,7 @@
       <div id="banner"></div>
       <div id="toast"></div>
       <div id="prompt"></div>
+      <div id="tutorial"></div>
       <div id="indicators"></div>
       <div id="map-credit"></div>
       <div id="tuned" class="hidden"></div>
@@ -110,8 +118,24 @@
             </ul>
           </div>
         </div>
-        <h3 class="maps-title">選擇起點場景 <span>每 3 波換一個場景</span></h3>
+        <div class="mode-row">
+          <h3 class="maps-title">選擇模式</h3>
+          <div id="mode-cards" class="modes"></div>
+        </div>
+        <div class="mode-row">
+          <h3 class="maps-title">難度</h3>
+          <div id="difficulty-cards" class="modes three"></div>
+        </div>
+        <div class="mode-row">
+          <h3 class="maps-title">變體</h3>
+          <div id="variant-cards" class="modes three"></div>
+        </div>
+        <h3 class="maps-title">選擇起點場景 <span id="maps-note">每 3 波換一個場景</span></h3>
         <div id="map-cards" class="maps"></div>
+        <div class="telemetry-switch" id="telemetry-switch">
+          <label><input type="checkbox" id="telemetry-on" checked /> 在這部電腦記錄每局的事件（開局、每波、死因、時長、有沒有再開一局），匯出回饋時一併帶上。不會上傳。</label>
+          <button type="button" id="telemetry-ok">知道了</button>
+        </div>
         <div class="start">點擊開始 <span>/ Enter · 1–4 選場景</span></div>
       </div>
     </div>
@@ -144,19 +168,35 @@
     </div>
 
     <div id="gameover" class="screen hidden">
+      <div class="go-clip" id="go-clip">
+        <video id="go-clip-video" muted playsinline></video>
+        <div class="go-clip-label">最佳擊殺 <span>BEST KILL · 點擊略過</span></div>
+      </div>
       <div class="panel small">
-        <div class="logo-en red">GAME OVER</div>
+        <div class="logo-en red go-title" id="go-title">GAME OVER</div>
         <div class="go-score" id="go-score">0</div>
         <div class="go-best" id="go-best"></div>
+        <div class="go-grade">
+          <div class="grade" id="go-grade">D</div>
+          <div class="grade-parts" id="go-parts">
+            <div data-part="style"><span>STYLE 分</span><i><em></em></i><b>0</b></div>
+            <div data-part="clean"><span>無傷波數</span><i><em></em></i><b>0</b></div>
+            <div data-part="time"><span>用時</span><i><em></em></i><b>0</b></div>
+          </div>
+        </div>
+        <div class="go-hint" id="go-hint"></div>
         <div class="go-stats">
-          <div><span>波次</span><b id="go-wave">0</b></div>
+          <div class="over-only"><span>波次</span><b id="go-wave">0</b></div>
+          <div class="clear-only"><span>用時</span><b id="go-time">0:00</b></div>
           <div><span>擊殺</span><b id="go-kills">0</b></div>
           <div><span>最高連擊</span><b id="go-combo">x1</b></div>
+          <div class="clear-only"><span>無傷波數</span><b id="go-clean">0</b></div>
         </div>
         <div class="start">點擊重新開始 <span>/ Enter</span></div>
         <div class="menu">
           <button type="button" data-act="title">返回主畫面 · 換地圖 <kbd>T</kbd></button>
           <button type="button" data-act="export">匯出回饋 <small class="notes-count"></small> <kbd>⇩</kbd></button>
+          <a class="button hidden" id="go-clip-save" href="#" download="bullet-ballet.webm"><span>存下最佳片段 <small>.webm</small></span> <kbd>⇩</kbd></a>
         </div>
       </div>
     </div>

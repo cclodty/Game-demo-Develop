@@ -38,6 +38,7 @@ export class Pickups {
     });
     const beam = new THREE.Mesh(this.beamGeo, beamMat);
     group.add(model, ring, beam);
+    this.game.style.dress(group);
     group.position.set(x, 0, z);
     this.game.scene.add(group);
     const p = { kind, x, z, ammo: ammo ?? w.ammo, pad, ttl: pad ? Infinity : ttl, group, model, ring, ringMat, beamMat, t: rand(0, 6) };

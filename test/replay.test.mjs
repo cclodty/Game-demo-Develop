@@ -30,12 +30,12 @@ function script(n, seed) {
 
 test('every step reads back exactly as it was recorded, with the header', () => {
   const steps = script(20000, 5);
-  const rec = new InputRecord({ seed: 123, map: 3, hz: 120 });
+  const rec = new InputRecord({ seed: 123, map: 3, mode: 1, warmup: true, rules: 0x16, hz: 120 });
   for (const s of steps) rec.push(Object.assign(new StepInput(), s));
   const bytes = rec.encode();
   assert.equal(bytes.length, rec.size);
   const rd = new RecordReader(bytes);
-  assert.deepEqual([rd.seed, rd.map, rd.hz, rd.steps], [123, 3, 120, steps.length]);
+  assert.deepEqual([rd.seed, rd.map, rd.mode, rd.warmup, rd.rules, rd.hz, rd.steps], [123, 3, 1, true, 0x16, 120, steps.length]);
   for (let i = 0; i < steps.length; i++) {
     const c = rd.next(10, -4);
     const s = steps[i];
@@ -75,7 +75,7 @@ test('controls: held and pressed read by name; an unknown one throws', () => {
 });
 
 test('a record that is not one, or from another version, is refused', () => {
-  assert.throws(() => new RecordReader(new Uint8Array(13)), /not an input record/);
+  assert.throws(() => new RecordReader(new Uint8Array(14)), /not an input record/);
   const bytes = new InputRecord().encode();
   bytes[2] = 99;
   assert.throws(() => new RecordReader(bytes), /version 99/);
