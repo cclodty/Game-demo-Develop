@@ -437,7 +437,7 @@ const docks = {
     [18.5, 8, 6, 2.4, 2.6, 'containerGreen'],
     [-19, 10, 1.6, 1.6, 1.3, 'crate'],
     [5, -1.5, 1.4, 1.4, 1.2, 'crate'],
-    [-4, -1.5, 1.4, 1.4, 1.2, 'crate'],
+    [-3, -3.2, 1.4, 1.4, 1.2, 'crate'], // off the mirror of the crate across the road; the truck's road (boss) runs at z = 0.8
     [20, -9, 1.6, 1.6, 1.4, 'crate'],
     [-21, -11, 1.6, 1.6, 1.4, 'crate'],
     [-8, -11, 1.6, 2.6, 1.5, 'forklift'],
@@ -447,10 +447,17 @@ const docks = {
     [6, -3.6, 3.6, 0.25, 1.9],
     [-21.6, 4.5, 0.25, 3.4, 1.9],
   ],
-  barrels: [[4.5, -12, 'gas'], [-21.5, -4, 'gas'], [21.5, 3, 'gas'], [-1, 11.5, 'gas'], [-11, 1.5], [13.5, -8.5], [3, 3.5], [-16, 12.5], [15, 12]],
+  barrels: [[4.5, -12, 'gas'], [-21.5, -4, 'gas'], [21.5, 3, 'gas'], [-1, 11.5, 'gas'], [-12, -12, 'gas'], [-11, 1.5], [13.5, -8.5], [3, 3.5], [-16, 12.5], [15, 12]],
   pans: [[-4, -12.5], [7, 1.5], [-12, 9], [17, -11], [3, 12.5]],
   tools: [[-4, 9, 'extinguisher']],
   water: [{ x: 0, z: 17, w: 52, d: 4 }], // the harbour beyond the south curb: whoever is knocked over it is gone
+  // where the beats play out (waves.js); the truck's roads (boss.loop) stay clear of cover
+  stages: [
+    { name: '貨櫃巷', en: 'CONTAINER ALLEY', at: [-7, -6], move: 'slide' },
+    { name: '卸貨閘', en: 'LOADING BAY', at: [16.5, 4.5], move: 'shutter' }, // beside the bay, off the truck's lane through it (x = 13)
+    { name: '碼頭邊', en: 'QUAYSIDE', at: [4, 12.5], move: 'splash' },
+    { name: '倉前', en: 'WAREHOUSE FRONT', at: [-11, -9.5], move: 'boom' },
+  ],
   fixtures: [[-10, 8, 'lamp'], [16, -8, 'lamp'], [0, 9, 'lamp'], [-14, -9, 'sign', 90], [10.5, 7.2, 'shutter', 90, 5]], // a loading-bay shutter between two containers; the lamps stand clear of the truck's loop (boss.js)
   pads: [[-10, -0.5], [12, 1.5]],
   spawns: [
@@ -634,6 +641,14 @@ const senado = {
   // pigeon flocks resting on the square: they burst into the air at shots, blasts and runners (PIGEON STRIKE)
   flocks: [[-6, 46], [8, 44], [0, 22], [-10, -64]],
   tools: [[-3, 52, 'extinguisher']],
+  // where the beats play out (waves.js), off the convoy's road (boss): beside the fountain's pool, the square before
+  // St Dominic's, the narrow stretch, and the corner by the post office at the avenue
+  stages: [
+    { name: '噴水池', en: 'THE FOUNTAIN', at: [7, 38], move: 'splash' },
+    { name: '板樟堂前地', en: 'ST DOMINIC\u2019S', at: [6, 57], move: 'pan' },
+    { name: '窄段', en: 'THE NARROWS', at: [0, -28], move: 'glass' },
+    { name: '郵政局前', en: 'POST OFFICE', at: [-8, -64], move: 'boom' },
+  ],
   // four of the square's lamps can be shot out; two shop signs hang over the pavement
   fixtures: [[-15, 60, 'lamp'], [16, 58, 'lamp'], [-11, 31, 'lamp'], [13, 31.5, 'lamp'], [-14, 55, 'sign', 90], [14.5, 41, 'sign', 270]], // the two by the fountain and the east sign stand clear of the convoy's road (boss.js)
   pads: [[-4, 48], [1, -34], [-10, -62]],

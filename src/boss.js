@@ -1181,6 +1181,17 @@ class Truck extends Boss {
     if (p.alive) shove(p, 0.35, 0);
     for (const e of g.enemies.list) if (e.alive) shove(e, e.radius, 0);
     for (const o of g.level.props) if (o.alive && !o.carried && !o.fixed && (o.y || 0) < 1) shove(o, o.r, TRUCK.shove); // not a fixture (fixtures.js): the road is laid clear of them
+    // a roller shutter dropped across its road (the docks' loading bay, fixtures.js): it smashes through, and the shutter is up again
+    for (const f of g.level.fixtures) {
+      if (f.kind !== 'shutter' || !f.down) continue;
+      const [rx, fw] = this.local(f.midX, f.midZ);
+      if (Math.abs(rx) >= w / 2 + f.w / 2 || Math.abs(fw) >= l / 2 + 0.5) continue;
+      f.raise();
+      g.fx.debris(f.midX, 1.2, f.midZ, sh, ch, 14, [0.3, 0.3, 0.34], 0.1);
+      g.audio.impact(g.panFor(f.midX));
+      g.shake(0.3);
+      g.notes.log('貨車撞開落下的鐵閘');
+    }
   }
 
   /** The roof gun: a red line onto the player, then a sweep of rounds there. */
