@@ -1651,7 +1651,7 @@ class Game {
     let zoom = 1;
     if (this.state === 'playing') {
       // holding right mouse with a sniper rifle pushes the view out along the aim
-      const scoped = p.alive && p.weapon.scope && this.input.mouse.right;
+      const scoped = p.alive && p.weapon.scope && this.cmd.mouse.right; // the step's input: the right button or a pad's LT
       const ahead = scoped ? 0.55 : CAMERA.lookAhead;
       const aheadMax = scoped ? 13 : CAMERA.lookAheadMax;
       let lx = (this.aimPoint.x - p.x) * ahead;

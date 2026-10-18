@@ -21,24 +21,28 @@ const BIT = new Map(BUTTONS.map((c, i) => [c, 1 << i]));
 /**
  * A gamepad in the standard layout (the Gamepad API's 'standard' mapping): each button stands for
  * one of the controls above, so a pad run is recorded like any other. The left stick holds WASD;
- * the right stick aims (main.js padAim); Start pauses (not a recorded control).
+ * the right stick aims (main.js padAim); Start pauses (not a recorded control). LB and RB are read
+ * apart (PAD_SHOULDERS).
  */
 export const PAD_BUTTONS = [
   [0, 'Space'], // A: spin
   [1, 'KeyC'], // B: slide
   [2, 'KeyF'], // X: kick
   [3, 'KeyG'], // Y: throw
-  [4, 'KeyR'], // LB: reload
-  [5, 'WheelDown'], // RB: the other weapon
-  [6, 'KeyQ'], // LT: bullet time
+  [6, 'Mouse2'], // LT: the right mouse button (split aim with two guns, the scope with a rifle)
   [7, 'Mouse0'], // RT: fire
   [12, 'KeyE'], // d-pad up: swap for the weapon on the floor
 ];
 const PAD_START = 9;
+/**
+ * The shoulder buttons: LB and RB down together toggle bullet time; alone, LB reloads and RB takes
+ * the other weapon, when let go, so reaching for both at once never reloads first.
+ */
+const PAD_SHOULDERS = { lb: 4, rb: 5, both: 'KeyQ', lbAlone: 'KeyR', rbAlone: 'WheelDown' };
 
 /** How hints name a control, on the keyboard and on a pad: `{name}` in a hint becomes one of these. */
 export const CONTROL_LABELS = {
-  focus: ['<b>Shift</b> 或 <b>Q</b>', '<b>LT</b>'],
+  focus: ['<b>Shift</b> 或 <b>Q</b>', '<b>LB</b>+<b>RB</b>'],
   throw: ['<b>G</b>', '<b>Y</b>'],
   fire: ['<b>左鍵</b>', '<b>RT</b>'],
   swap: ['<b>E</b>', '<b>十字鍵 ↑</b>'],
@@ -127,6 +131,7 @@ export class Input {
     this.padStick = { x: 0, y: 0 };
     this.padStart = false; // Start pressed since the last poll
     this.padStartWas = false;
+    this.padShoulder = { lb: false, rb: false, both: false }; // the shoulder buttons at the last poll, and whether both went down together
     this.keys = new Set();
     this.pressed = new Set();
     this.mouse = {
@@ -245,12 +250,30 @@ export class Input {
       this.padStick.y = ry;
       start = on(PAD_START);
       if (Math.hypot(rx, ry) > PAD.deadzone) this.usingPad = true;
+      this.shoulders(on(PAD_SHOULDERS.lb), on(PAD_SHOULDERS.rb));
+    } else {
+      this.shoulders(false, false);
     }
     for (const c of held) if (!this.padKeys.has(c)) this.pressed.add(c);
     this.padKeys = held;
     this.padStart = start && !this.padStartWas;
     this.padStartWas = start;
     return pad;
+  }
+
+  /** LB and RB (PAD_SHOULDERS): together a press of bullet time; alone, their own press when let go. */
+  shoulders(lb, rb) {
+    const S = this.padShoulder;
+    const P = PAD_SHOULDERS;
+    if (lb && rb && !S.both) {
+      S.both = true;
+      this.pressed.add(P.both);
+    }
+    if (S.lb && !lb && !S.both) this.pressed.add(P.lbAlone);
+    if (S.rb && !rb && !S.both) this.pressed.add(P.rbAlone);
+    if (!lb && !rb) S.both = false;
+    S.lb = lb;
+    S.rb = rb;
   }
 
   /**
