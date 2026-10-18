@@ -1614,7 +1614,8 @@ body:not(.pad) .pad-only {
   padding: 0 5px;
 }
 
-/* the title fits a 1280×720 window without scrolling; shorter windows lose the map blurbs */
+/* the title fits a 1280×720 window without scrolling, with room to spare for a line that wraps in
+   another browser's text (a mode card's blurb did on CI); shorter windows lose the map blurbs */
 #title {
   padding-block: 8px;
 }
@@ -1624,40 +1625,50 @@ body:not(.pad) .pad-only {
 }
 
 #title .logo-en {
-  font-size: clamp(48px, 8vw, 76px);
+  font-size: clamp(48px, 7vw, 66px);
 }
 
 #title .tagline {
-  margin: 6px 0 12px;
+  margin: 4px 0 8px;
 }
 
 #title .daily-card {
-  margin-top: 10px;
+  margin-top: 8px;
+  padding-block: 8px;
 }
 
 #title .mode-row {
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 #title .maps-title {
-  margin: 14px 0 8px;
+  margin: 10px 0 6px;
 }
 
 #title .mode-row .maps-title {
   margin: 0;
 }
 
+#title .rules-line {
+  margin-top: 8px;
+  padding-block: 6px;
+}
+
 #title .map-card {
-  padding: 10px 14px 12px;
+  padding: 8px 14px 10px;
 }
 
 #title .start {
-  margin-top: 12px;
-  font-size: 28px;
+  margin-top: 8px;
+  font-size: 26px;
+}
+
+#title .title-keys {
+  margin-top: 2px;
 }
 
 #title .title-links {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 #title .telemetry-switch {
