@@ -1,6 +1,11 @@
-// The rooftop boss (頭目 ①). When an arcade run's last stage is the rooftop, its final wave
-// is a helicopter instead of the big last wave (the map names its boss: maps.js `boss`). It
-// flies in from off the map and circles over the helipad, HELI.altitude m up, out of reach of
+// The last wave's boss (頭目). When an arcade run ends on a map with a boss (maps.js `boss`,
+// whose `kind` is one of BOSSES), its final wave is that boss instead of the big last wave.
+// What every boss shares is in Boss: segments of health on the HUD bar, a HIT banner for each,
+// and once it is down the BOSS bonus, the run's clip and the end of the wave (`downed`). Each
+// kind brings its own moves. game.boss is the boss of this run (Bosses.current), so a test
+// reads its fields whatever its kind.
+//
+// heli, the rooftop helicopter (頭目 ①②): it flies in from off the map and circles over the helipad, HELI.altitude m up, out of reach of
 // bullets. Its searchlight sweeps the roof and follows a player it comes near; a player who
 // stays in the light for light.lockAfter s draws a red line onto that spot for light.warn s and
 // then a machine-gun burst there. Every rappel.every s two thugs rope down onto the pad.
@@ -8,7 +13,7 @@
 // there) or a grenade going off within hit.radius m of where it is over the roof takes one
 // segment, and it reels for hit.reel s without firing. The fifth brings it down: it falls onto the
 // pad and bursts (crash.radius m: get clear), the BOSS bonus is paid and the run is cleared.
-// Logic: it runs in the fixed steps on game.rng and the world, and resets with the run.
+// Logic: a boss runs in the fixed steps on game.rng and the world, and resets with the run.
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -18,8 +23,10 @@ import { Laser } from './fx.js';
 import { clamp, lerp, smoothstep } from './utils.js';
 
 export const HELI = {
-  label: 'HELICOPTER',
+  label: 'HELICOPTER', // the HUD bar's English name; names its bullets in the notes, as an enemy's label does
   name: '天台直升機',
+  short: '直升機', // in the banners and the notes
+  downed: '擊落', // what bringing it down is called
   altitude: 8, // m over the roof: no bullet reaches it
   enter: 3.5, // s to fly in from off the map
   orbit: { radius: 2.5, speed: 0.35 }, // m and rad/s, circling the pad
@@ -43,11 +50,73 @@ const UP = new THREE.Vector3(0, 1, 0);
 const _a = new THREE.Vector3();
 const _b = new THREE.Vector3();
 
+/** What every boss shares: its health in segments, the HIT banner, and the end (bonus, clip, the wave's end). No boss at all is a plain Boss. */
 export class Boss {
-  constructor(game) {
+  constructor(game, cfg = { label: '', name: '', short: '', downed: '', segments: 0, bonus: 0 }) {
     this.game = game;
-    this.cfg = { label: HELI.label }; // as an enemy's: names the bullets that hit the player
+    this.cfg = cfg; // its numbers; cfg.label names the bullets that hit the player, as an enemy's does
     this.active = false;
+    this.downed = false;
+    this.hp = 0;
+    this.x = this.z = 0;
+  }
+
+  /** The final wave: `def` is the map's (maps.js `boss`). */
+  start(def) {
+    this.def = def;
+    this.active = true;
+    this.downed = false;
+    this.hp = this.cfg.segments;
+    this.t = 0;
+    this.game.notes.log(`頭目：${this.cfg.name}`);
+  }
+
+  reset() {
+    this.active = false;
+    this.downed = false;
+    this.hp = 0;
+  }
+
+  update() {}
+
+  /** A blast at (x, z) (main.js explode): whether it hurts depends on the kind. */
+  blast() {}
+
+  /** Whether (x, z) is where a blast would hurt it (a thrown barrel goes off there: thrown.js). */
+  under() {
+    return false;
+  }
+
+  /** One segment off; the last brings it down (goDown). */
+  hurt() {
+    const g = this.game;
+    const c = this.cfg;
+    this.hp--;
+    g.notes.log(`${c.short}中彈（剩 ${this.hp} 段）`);
+    if (this.hp <= 0) this.goDown();
+    else g.hud.banner('HIT', `${c.short} · 剩 ${this.hp} 段`, 'clear');
+  }
+
+  goDown() {
+    this.finish();
+  }
+
+  /** Down for good: the BOSS bonus, the run's clip, and the wave can end. */
+  finish() {
+    const g = this.game;
+    const c = this.cfg;
+    this.active = false;
+    this.downed = true;
+    g.score.bonus('BOSS', c.bonus);
+    g.clip.kill(Number.MAX_SAFE_INTEGER); // the boss going down is the run's clip, whatever else it had
+    g.notes.log(`${c.downed}${c.short}：BOSS +${c.bonus}`);
+  }
+}
+
+/** The rooftop helicopter. */
+class Heli extends Boss {
+  constructor(game) {
+    super(game, HELI);
     this.root = null;
     this.laser = new Laser(game.scene, new THREE.Color(1, 0.05, 0.05));
     this.reset();
@@ -64,21 +133,15 @@ export class Boss {
       }
     }
     this.root = null;
-    this.active = false;
-    this.downed = false;
+    super.reset();
     this.laser.hide();
-    this.hp = 0;
     this.climbers = [];
   }
 
-  /** The final wave on a map with a boss: `def` is the map's (maps.js `boss`). */
+  /** The final wave on the rooftop: `def` is the map's (maps.js `boss`: its pad and where it flies in from). */
   start(def) {
     this.reset();
-    const g = this.game;
-    this.def = def;
-    this.active = true;
-    this.hp = HELI.segments;
-    this.t = 0;
+    super.start(def);
     this.theta = 0;
     const [px, pz] = def.pad;
     this.pad = { x: px, z: pz };
@@ -96,7 +159,6 @@ export class Boss {
     this.reelT = 0;
     this.fallT = -1;
     this.build();
-    g.notes.log(`頭目：${HELI.name}`);
   }
 
   /** The look: a block helicopter, its rotor, the searchlight's cone and spot, the ropes. */
@@ -275,7 +337,6 @@ export class Boss {
   blast(x, z, opts = {}) {
     if (!this.under(x, z) || !HELI.hit.kinds.includes(opts.kind) || this.reelT > 0) return;
     const g = this.game;
-    this.hp--;
     this.reelT = HELI.hit.reel;
     this.state = 'search';
     this.litT = 0;
@@ -283,9 +344,7 @@ export class Boss {
     g.shake(0.5);
     g.hitstop(0.08);
     g.audio.explosion(g.panFor(this.x));
-    g.notes.log(`直升機中彈（剩 ${this.hp} 段）`);
-    if (this.hp <= 0) this.goDown();
-    else g.hud.banner('HIT', `直升機 · 剩 ${this.hp} 段`, 'clear');
+    this.hurt();
   }
 
   /** The last segment: it falls onto the pad, the ring shows where. */
@@ -314,15 +373,11 @@ export class Boss {
       this.sync();
       return;
     }
-    // down: the blast, the bonus, the clip, the end of the wave
-    this.active = false;
-    this.downed = true;
+    // down: the blast, then the bonus, the clip, the end of the wave
     this.root.visible = this.cone.visible = this.spotMesh.visible = this.crashRing.visible = false;
     this.laser.hide();
     g.explode(this.pad.x, this.pad.z, C.radius, { source: '墜毀的直升機', kind: 'heli' });
-    g.score.bonus('BOSS', HELI.bonus);
-    g.clip.kill(Number.MAX_SAFE_INTEGER); // the shoot-down is the run's clip, whatever else it had
-    g.notes.log(`擊落直升機：BOSS +${HELI.bonus}`);
+    this.finish();
   }
 
   /** Every so often two thugs rope down onto the pad. */
@@ -372,5 +427,33 @@ export class Boss {
       pos.setXYZ(i * 2 + 1, e ? e.x : 0, e ? e.y + 1.7 : -50, e ? e.z : 0);
     }
     pos.needsUpdate = true;
+  }
+}
+
+/** Every kind of boss, by the name a map's `boss.kind` uses. */
+export const BOSSES = { heli: { make: (game) => new Heli(game), cfg: HELI } };
+
+/** The run's boss: none until a final wave starts one; each kind is built once and reused. */
+export class Bosses {
+  constructor(game) {
+    this.game = game;
+    this.none = new Boss(game);
+    this.made = {};
+    this.current = this.none;
+  }
+
+  /** The final wave on a map with a boss: `def` is the map's (maps.js `boss`). */
+  start(def) {
+    this.reset();
+    const kind = BOSSES[def.kind];
+    if (!kind) return;
+    this.current = this.made[def.kind] || (this.made[def.kind] = kind.make(this.game));
+    this.current.start(def);
+  }
+
+  /** No boss (a new run, a restart, the title). */
+  reset() {
+    this.current.reset();
+    this.current = this.none;
   }
 }

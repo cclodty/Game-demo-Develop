@@ -30,7 +30,7 @@ import { Tutorial, wantWarmup } from './tutorial.js';
 import { clamp, damp, lerp } from './utils.js';
 import { MODE_IDS, MODES, Waves } from './waves.js';
 import { Grenades } from './weapons.js';
-import { Boss } from './boss.js';
+import { BOSSES, Bosses } from './boss.js';
 
 const MAP_KEY = 'bullet-ballet.map';
 const MODE_KEY = 'bullet-ballet.mode';
@@ -132,7 +132,7 @@ class Game {
     if (this.startMap) this.level.load(MAPS[this.startMap]);
     this.bullets = new Bullets(this);
     this.grenades = new Grenades(this);
-    this.boss = new Boss(this); // the last wave's boss on a map that has one (boss.js)
+    this.bosses = new Bosses(this); // the last wave's boss on a map that has one (boss.js); this.boss is it
     this.pickups = new Pickups(this);
     this.thrown = new Thrown(this);
     this.tutorial = new Tutorial(this);
@@ -305,6 +305,9 @@ class Game {
         e.stopPropagation();
         start(i);
       });
+      // pointing at a card shows its route
+      for (const ev of ['mouseenter', 'focus']) b.addEventListener(ev, () => this.markRoute(i));
+      for (const ev of ['mouseleave', 'blur']) b.addEventListener(ev, () => this.markRoute());
       cards.appendChild(b);
     });
     this.markMapCard();
@@ -452,6 +455,7 @@ class Game {
 
   markMapCard() {
     [...$('map-cards').children].forEach((c, i) => c.classList.toggle('selected', i === this.startMap));
+    this.markRoute();
   }
 
   setMode(id) {
@@ -466,8 +470,13 @@ class Game {
 
   markMode() {
     for (const c of $('mode-cards').children) c.classList.toggle('selected', c.dataset.mode === this.mode);
+    this.markRoute();
+  }
+
+  /** The maps note: how the mode goes, and in arcade the route from the map card picked (or pointed at). */
+  markRoute(start = this.startMap) {
     const r = MODES[this.mode];
-    $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結` : `每 ${r.perStage} 波換一個場景`;
+    $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結：${this.routeText(start, this.mode)}` : `每 ${r.perStage} 波換一個場景`;
   }
 
   /** Whether a variant is on offer: open from the start, or its achievement is done. */
@@ -676,7 +685,7 @@ class Game {
     const day = utcDay(now);
     const d = dailyFor(day);
     const rules = rulesFor(d.difficulty, d.variants).label || '正常';
-    $('daily-what').textContent = `${day}（UTC） · ${MAPS[d.map].name} · ${rules}`;
+    $('daily-what').textContent = `${day}（UTC） · ${this.routeText(d.map, 'daily')} · ${rules}`;
     const done = this.daily.days[day];
     $('daily-start').classList.toggle('hidden', !!done);
     $('daily-done').classList.toggle('hidden', !done);
@@ -999,7 +1008,7 @@ class Game {
     this.enemies.clear();
     this.bullets.clear();
     this.grenades.clear();
-    this.boss.reset();
+    this.bosses.reset();
     this.pickups.clear();
     this.thrown.clear();
     this.style.clearGhosts();
@@ -1062,6 +1071,22 @@ class Game {
     this.post.bloom.threshold = this.level.bloom.threshold;
     $('map-credit').textContent = this.level.map.credit || '';
     $('view-name').textContent = VIEWS[this.view].name;
+  }
+
+  /** The run's boss (boss.js): a plain Boss, never active, until a final wave starts one. */
+  get boss() {
+    return this.bosses.current;
+  }
+
+  /** Where a run of `mode` from map `start` goes: its maps in order, the last with its boss. '' in endless (no last stage). */
+  routeText(start, mode) {
+    const r = MODES[mode];
+    if (!Number.isFinite(r.waves)) return '';
+    const stages = Math.ceil(r.waves / r.perStage);
+    const maps = Array.from({ length: stages }, (_, i) => MAPS[(start + i) % MAPS.length]);
+    const last = maps.at(-1).boss;
+    const boss = last && BOSSES[last.kind];
+    return `${maps.map((m) => m.name).join(' → ')}${boss ? `（頭目：${boss.cfg.name}）` : ''}`;
   }
 
   get stageMap() {
@@ -1400,7 +1425,7 @@ class Game {
 
   explode(x, z, r, opts = {}) {
     const p = this.player;
-    this.boss.blast(x, z, opts); // right under the helicopter, a barrel or a grenade hurts it
+    this.boss.blast(x, z, opts); // a blast can hurt a boss (boss.js: right under the helicopter, a barrel or a grenade)
     this.fx.explosion(x, z, r);
     this.audio.explosion(this.panFor(x));
     this.level.noise(x, z, 20);

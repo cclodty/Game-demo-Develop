@@ -1,6 +1,7 @@
 // Wave director: builds each wave's roster and feeds enemies in through the
 // stairwell doors and over the roof ledges, telegraphing each spawn.
 
+import { BOSSES } from './boss.js';
 import { TYPES } from './enemies.js';
 
 /**
@@ -95,8 +96,9 @@ export class Waves {
     // every run with this seed, however it is played (rng.js)
     const wr = (this.wr = g.rng.fork('wave', this.wave));
     this.queue = this.compose(this.wave, wr);
-    // the last wave on a map with a boss (maps.js `boss`): the boss instead of the big last wave
-    this.bossWave = this.isFinal && !!g.stageMap.boss;
+    // the last wave on a map with a boss (maps.js `boss`, of a kind boss.js has): the boss instead of the big last wave
+    const boss = g.stageMap.boss;
+    this.bossWave = this.isFinal && !!boss && !!BOSSES[boss.kind];
     if (this.bossWave) this.queue = [];
     this.order = g.level.spawns.map((_, i) => i);
     for (let i = this.order.length - 1; i > 0; i--) {
@@ -129,8 +131,8 @@ export class Waves {
       '站在另一把武器上按 E 交換；1 / 2 或滾輪切換',
     ];
     if (this.bossWave) {
-      g.boss.start(g.stageMap.boss);
-      g.hud.banner('BOSS', '天台直升機 · 最後一波', 'stage');
+      g.bosses.start(boss);
+      g.hud.banner('BOSS', `${g.boss.cfg.name} · 最後一波`, 'stage');
     } else if (this.isFinal) g.hud.banner('FINAL WAVE', `最後一波 · 撐過去就通關`, 'stage');
     else g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
     g.audio.waveStart();
