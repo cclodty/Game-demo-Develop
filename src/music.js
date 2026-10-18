@@ -14,6 +14,10 @@
 // Parts may name a voice: strings or organ (an arp), brass (a pad, its filter
 // opening like a swell) or organ (a pad), horn (a lead); `choir` is a second
 // pad. `shepard` is a tone that seems to rise for ever (`rise` semitones a bar).
+//
+// In the game a song plays at a level (AudioSys.musicLevel, set each wave): a
+// part with `level: 1` waits for a stage's later waves, and at level 2 (the
+// last wave, a boss) the song's `boss` changes take over, its boss section.
 // A lead is a list of [bar, step, semitones above the key, steps long, slide].
 
 /** The chord of a bar: semitones above the key's root, the root first. */
@@ -232,13 +236,14 @@ const undertow = {
   bass: { pattern: 'r---------------', type: 'sawtooth', filter: 320, vol: 0.22, len: 1, sub: 0.9 },
   arp: { pattern: '0.10.10.0.10.10.', voice: 'strings', octave: -1, vol: 0.3, filter: 2600 },
   pad: { voice: 'brass', octave: -1, vol: 0.15, filter: 1800, from: 0 },
-  choir: { vol: 0.11, from: 4 },
+  choir: { vol: 0.11, from: 4, level: 1 },
   lead: {
     voice: 'horn',
     vol: 0.32,
     filter: 1500,
     octave: 0,
     from: 4,
+    level: 1,
     notes: [
       [0, 0, 12, 8], [0, 8, 11, 4], [0, 12, 12, 4],
       [1, 0, 15, 8], [1, 8, 12, 8],
@@ -277,6 +282,7 @@ const countdown = {
     filter: 1600,
     octave: 1,
     from: 4,
+    level: 1,
     notes: [
       [0, 0, 7, 8], [0, 8, 8, 8],
       [1, 0, 10, 8], [1, 8, 12, 8],
@@ -308,13 +314,14 @@ const abyss = {
   bass: { pattern: 'r---------------', type: 'sawtooth', filter: 260, vol: 0.24, len: 1, sub: 1 },
   pad: { voice: 'organ', octave: 0, vol: 0.06, from: 0 },
   arp: { pattern: '0.1.2.1.0.1.2.1.', voice: 'organ', octave: 1, vol: 0.1, from: 2 },
-  choir: { vol: 0.12, from: 4 },
+  choir: { vol: 0.12, from: 4, level: 1 },
   lead: {
     voice: 'horn',
     vol: 0.3,
     filter: 1400,
     octave: 1,
     from: 4,
+    level: 1,
     notes: [
       [0, 0, 7, 16],
       [1, 0, 12, 16],
@@ -324,11 +331,40 @@ const abyss = {
   },
 };
 
+// the boss sections: the drums double up with trailer hits on two and four, the strings run in sixteenths
+undertow.boss = {
+  drums: {
+    kick: ['x.......x.......', 'x.......x.......', 'x.......x.......', 'x...x...x.x.x.xx'],
+    snare: '....x.......x...',
+    tick: 'xxxxxxxxxxxxxxxx',
+    swell: ['................', '................', '................', '........x.......'],
+  },
+  arp: { ...undertow.arp, pattern: '0101010101010101' },
+};
+countdown.boss = {
+  drums: {
+    kick: ['x...x...x...x...', 'x...x...x...x...', 'x...x...x...x...', 'x.x.x.x.x.xxxxxx'],
+    snare: '....x.......x...',
+    tick: 'xxxxxxxxxxxxxxxx',
+    swell: ['................', '................', '................', 'x...............'],
+  },
+  bass: { ...countdown.bass, pattern: 'rrrrrrrrrrrrrrrr' },
+};
+abyss.boss = {
+  drums: {
+    kick: ['x.......x.......', 'x.......x.......', 'x.......x.......', 'x...x...x.x.xxxx'],
+    snare: '........x.......',
+    tick: 'x.x.x.x.x.x.x.x.',
+    swell: ['................', '................', '................', '........x.......'],
+  },
+  arp: { ...abyss.arp, pattern: '0121012101210121' },
+};
+
 export const SONGS = { classic, neon, city, breaks, dream, vendetta, undertow, countdown, abyss };
 
 const hz = (semi, base) => base * Math.pow(2, semi / 12);
 const at16 = (p, bar) => (Array.isArray(p) ? p[bar % p.length] : p);
-const on = (part, bar) => part && bar >= (part.from || 0);
+const on = (part, bar, level) => part && bar >= (part.from || 0) && (part.level || 0) <= level;
 
 /** How many sixteenths a note at `s` lasts: itself and the holds (-) after it. */
 function held(pattern, s) {
@@ -435,6 +471,8 @@ const voice = {
  * on AudioSys `a`'s music buses, `r` the tape rate (1, lower in slow motion).
  */
 export function playStep(a, song, step, at, r = 1) {
+  const level = a.musicLevel ?? 1;
+  if (level >= 2 && song.boss) song = { ...song, ...song.boss };
   const bar = Math.floor(step / 16);
   const loopBar = bar % song.bars;
   const s = step % 16;
@@ -448,7 +486,7 @@ export function playStep(a, song, step, at, r = 1) {
   // drum levels sit against the kick (snare and clap about 4 dB under it, hats about 14); a song's mix scales them
   const mx = { kick: 1, snare: 1, clap: 1, hat: 1, ...song.mix };
   const d = song.drums;
-  if (on(d, bar)) {
+  if (on(d, bar, level)) {
     const hit = (p) => (p ? at16(p, bar)[s] : '.');
     const epic = song.kit === 'epic';
     const k = hit(d.kick);
@@ -474,7 +512,7 @@ export function playStep(a, song, step, at, r = 1) {
   }
 
   const b = song.bass;
-  if (on(b, bar)) {
+  if (on(b, bar, level)) {
     const p = at16(b.pattern, bar);
     const c = p[s];
     if (c !== '.' && c !== '-') {
@@ -485,13 +523,13 @@ export function playStep(a, song, step, at, r = 1) {
   }
 
   const k = song.keys;
-  if (on(k, bar)) {
+  if (on(k, bar, level)) {
     const p = at16(k.pattern, bar);
     if (p[s] === 'x') voice.keys(a, t, r, chord, base, stepDur * held(p, s) * 0.9, k, wet);
   }
 
   const ar = song.arp;
-  if (on(ar, bar)) {
+  if (on(ar, bar, level)) {
     const c = at16(ar.pattern, bar)[s];
     if (c >= '0' && c <= '9') {
       const semi = chord[Number(c) % chord.length] + 12 * (ar.octave || 0) + (ar.upper && s >= ar.upper ? 12 : 0);
@@ -510,11 +548,11 @@ export function playStep(a, song, step, at, r = 1) {
   }
 
   const pd = song.pad;
-  if (on(pd, bar) && s === 0) voice.pad(a, t, r, chord, base, stepDur * 16, pd, pd.voice === 'brass' ? wet : dry);
+  if (on(pd, bar, level) && s === 0) voice.pad(a, t, r, chord, base, stepDur * 16, pd, pd.voice === 'brass' ? wet : dry);
   const ch = song.choir;
-  if (on(ch, bar) && s === 0) voice.pad(a, t, r, chord, base, stepDur * 16, { ...ch, voice: 'choir' }, wet);
+  if (on(ch, bar, level) && s === 0) voice.pad(a, t, r, chord, base, stepDur * 16, { ...ch, voice: 'choir' }, wet);
   const sh = song.shepard;
-  if (on(sh, bar) && s === 0) {
+  if (on(sh, bar, level) && s === 0) {
     // six octaves of one note gliding up `rise` semitones a bar, loudest in the middle octaves: it seems to climb for ever
     const from = (bar * sh.rise) % 12;
     for (let k = 0; k < 6; k++) {
@@ -526,7 +564,7 @@ export function playStep(a, song, step, at, r = 1) {
   }
 
   const l = song.lead;
-  if (on(l, bar)) {
+  if (on(l, bar, level)) {
     for (const [nb, ns, semi, len, slide = 0] of l.notes) {
       if (nb !== loopBar || ns !== s) continue;
       const f = hz(semi + 12 * (l.octave || 0) - 12, base) * r;

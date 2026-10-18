@@ -99,6 +99,8 @@ export class Waves {
     // the last wave on a map with a boss (maps.js `boss`, of a kind boss.js has): the boss instead of the big last wave
     const boss = g.stageMap.boss;
     this.bossWave = this.isFinal && !!boss && !!BOSSES[boss.kind];
+    // the music (audio.js): a stage's first two waves on the base of its song, its later layers after, its boss section for the last
+    g.audio.setLevel(this.isFinal ? 2 : (this.wave - 1) % this.rules.perStage >= 2 ? 1 : 0);
     if (this.bossWave) this.queue = [];
     this.order = g.level.spawns.map((_, i) => i);
     for (let i = this.order.length - 1; i > 0; i--) {

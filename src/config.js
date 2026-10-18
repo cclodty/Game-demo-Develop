@@ -111,9 +111,9 @@ export const BACKEND = {
 };
 
 /** Gamepads (input.js poll, main.js padAim): sticks, the aim distance, the pull onto an enemy. */
-/** The background song (music.js SONGS); ?music=<id> tries another for one visit. */
+/** The background songs (music.js SONGS): one a stage, in this order, round again in endless; ?music=<id> plays just that one for a visit. */
 export const MUSIC = {
-  song: 'classic',
+  playlist: ['undertow', 'countdown', 'abyss'],
 };
 
 export const PAD = {

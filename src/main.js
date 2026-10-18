@@ -593,6 +593,10 @@ class Game {
     this.hud.reset();
     this.notes.reset(MAPS[mapIndex]);
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
+    // the music: the first stage's song from its start, on its base (audio.js)
+    this.audio.setStage(0, true);
+    this.audio.setLevel(0);
+    this.notes.log(`音樂：${this.audio.song.name}`);
     this.telemetry.confirm(); // the switch was on the title screen: playing is leaving it as it is
     $('telemetry-switch').classList.add('hidden');
     if (!this.replay) this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup, input: this.padOn ? 'pad' : 'keyboard', daily: !!this.dailyRun });
@@ -1108,6 +1112,9 @@ class Game {
       this.fx.clear();
       this.level.load(this.stageMap);
       this.notes.log(`轉場 → ${this.stageMap.name}`);
+      this.audio.setStage(this.stage); // the next song comes in on the bar line
+      this.audio.setLevel(0);
+      this.notes.log(`音樂：${this.audio.upcoming.name}`);
       this.applyMapView();
       this.player.placeAtStart();
       this.updateCamera(1, true);

@@ -16,9 +16,50 @@ export class AudioSys {
     this.musicRate = 1;
     this.slow = 0;
     this.last = new Map();
-    // the background song (music.js): config.js MUSIC.song, or ?music=<id> to try another
+    // the background songs (music.js): config.js MUSIC.playlist, one a stage, or ?music=<id> for just that one
     const asked = new URLSearchParams(location.search).get('music');
-    this.song = SONGS[asked] || SONGS[MUSIC.song] || SONGS.classic;
+    this.playlist = SONGS[asked] ? [asked] : MUSIC.playlist.filter((id) => SONGS[id]);
+    if (!this.playlist.length) this.playlist = ['classic'];
+    this.song = SONGS[this.playlist[0]];
+    this.nextSong = null; // the stage's song, waiting for the bar line
+    this.musicLevel = 0; // how much of the song plays (music.js): 0 the base, 1 its later layers, 2 its boss section
+  }
+
+  /** The song for stage `i` of a run. */
+  songFor(i) {
+    return SONGS[this.playlist[i % this.playlist.length]];
+  }
+
+  /** The song playing now, or the one it changes to at the next bar line. */
+  get upcoming() {
+    return this.nextSong || this.song;
+  }
+
+  /** Stage `i`'s song: at the next bar line, or `now` from its start (a new run). */
+  setStage(i, now = false) {
+    const song = this.songFor(i);
+    if (now) {
+      this.nextSong = null;
+      this.useSong(song);
+      this.step = 0;
+      if (this.ctx) this.nextStep = this.ctx.currentTime + 0.05;
+    } else this.nextSong = song === this.song ? null : song;
+  }
+
+  /** 0 the base of the song, 1 with its later layers, 2 its boss section (waves.js sets it each wave). */
+  setLevel(n) {
+    this.musicLevel = n;
+  }
+
+  /** A song takes over the music: its echo's timing and its hall. */
+  useSong(song) {
+    this.song = song;
+    if (!this.delay) return;
+    const dl = song.delay || { steps: 3, send: 0, feedback: 0 };
+    this.delay.delayTime.value = (60 / song.bpm / 4) * dl.steps;
+    this.delaySend.gain.value = dl.send;
+    this.delayFb.gain.value = dl.feedback;
+    if (this.hallSend) this.hallSend.gain.value = song.hall ? song.hall.send : 0;
   }
 
   init() {
@@ -84,8 +125,9 @@ export class AudioSys {
     tone.connect(fb);
     fb.connect(delay);
     tone.connect(this.music);
-    // a song may ask for a hall (song.hall): what goes to musicWet also rings out in a made-up room
-    const hall = this.song.hall;
+    Object.assign(this, { delay, delaySend: send, delayFb: fb, hallSend: null });
+    // a song may ask for a hall (song.hall): what goes to musicWet also rings out in a made-up room (one for every song played here)
+    const hall = this.song.hall || this.playlist.map((id) => SONGS[id].hall).find(Boolean);
     if (hall) {
       const n = Math.ceil(ctx.sampleRate * hall.seconds);
       const ir = ctx.createBuffer(2, n, ctx.sampleRate);
@@ -96,10 +138,11 @@ export class AudioSys {
       const room = ctx.createConvolver();
       room.buffer = ir;
       const hs = ctx.createGain();
-      hs.gain.value = hall.send;
+      hs.gain.value = this.song.hall ? this.song.hall.send : 0;
       this.musicWet.connect(hs);
       hs.connect(room);
       room.connect(this.music);
+      this.hallSend = hs;
     }
 
     const len = ctx.sampleRate * 2;
@@ -482,14 +525,21 @@ export class AudioSys {
     if (!c || c.state !== 'running') return;
     if (this.nextStep < c.currentTime - 0.1) this.nextStep = c.currentTime + 0.02;
     while (this.nextStep < c.currentTime + 0.15) {
+      // a new stage's song comes in on the bar line, from its start
+      if (this.nextSong && this.step % 16 === 0) {
+        this.useSong(this.nextSong);
+        this.nextSong = null;
+        this.step = 0;
+      }
       if (this.musicOn) playStep(this, this.song, this.step, this.nextStep, this.musicRate);
       this.nextStep += 60 / this.song.bpm / 4 / this.musicRate;
       this.step++;
     }
   }
 
-  /** Schedule `seconds` of the song from the start on an offline graph (build() first); ctx.startRendering() then plays it out. */
-  scheduleSong(seconds) {
+  /** Schedule `seconds` of the song from the start, at music `level`, on an offline graph (build() first); ctx.startRendering() then plays it out. */
+  scheduleSong(seconds, level = 1) {
+    this.musicLevel = level;
     const dt = 60 / this.song.bpm / 4;
     for (let n = 0, t = 0.05; t < seconds; n++, t += dt) playStep(this, this.song, n, t, 1);
   }

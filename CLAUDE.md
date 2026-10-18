@@ -69,7 +69,7 @@ src/models.js                loads assets/models/*.glb, fits props to map boxes;
 src/asset-manifest.js        catalogue of every asset we want as a real model (sizes, budgets, prompts)
 src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
-src/music.js                 the songs as data (tempo, chords, step patterns), played by audio.js; config.js MUSIC.song picks one, ?music=<id> tries another
+src/music.js                 the songs as data (tempo, chords, step patterns, layers by level, a boss section), played by audio.js; config.js MUSIC.playlist gives one a stage, ?music=<id> plays just one
 src/boss.js                  each map's boss, the last wave of a run that ends there (maps.js `boss.kind`): helicopter (rooftop), DJ (club), armoured truck (docks), taxi convoy (Senado); what they share (health bar, banners, BOSS bonus, clip) is Boss
 src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
 src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
