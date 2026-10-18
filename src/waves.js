@@ -26,6 +26,7 @@ export class Waves {
     this.wave = 0;
     this.queue = [];
     this.pending = [];
+    this.bossWave = false;
     this.state = 'intermission'; // then 'active', 'transition', and 'done' once an arcade run is cleared; 'warmup' before wave 1 of a first run
     this.timer = 2.4;
     this.maxAlive = 3;
@@ -94,6 +95,9 @@ export class Waves {
     // every run with this seed, however it is played (rng.js)
     const wr = (this.wr = g.rng.fork('wave', this.wave));
     this.queue = this.compose(this.wave, wr);
+    // the last wave on a map with a boss (maps.js `boss`): the boss instead of the big last wave
+    this.bossWave = this.isFinal && !!g.stageMap.boss;
+    if (this.bossWave) this.queue = [];
     this.order = g.level.spawns.map((_, i) => i);
     for (let i = this.order.length - 1; i > 0; i--) {
       const j = wr.int(0, i);
@@ -124,7 +128,10 @@ export class Waves {
       '狙擊槍的子彈會穿透敵人和玻璃',
       '站在另一把武器上按 E 交換；1 / 2 或滾輪切換',
     ];
-    if (this.isFinal) g.hud.banner('FINAL WAVE', `最後一波 · 撐過去就通關`, 'stage');
+    if (this.bossWave) {
+      g.boss.start(g.stageMap.boss);
+      g.hud.banner('BOSS', '天台直升機 · 最後一波', 'stage');
+    } else if (this.isFinal) g.hud.banner('FINAL WAVE', `最後一波 · 撐過去就通關`, 'stage');
     else g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
     g.audio.waveStart();
     if (g.ruleset.pads) g.pickups.refillPads(wr);
@@ -201,7 +208,7 @@ export class Waves {
       this.spawnCd = this.wr.range(0.5, 1.3);
     }
 
-    if (!this.queue.length && !this.pending.length && enemies.aliveCount === 0) {
+    if (!this.queue.length && !this.pending.length && enemies.aliveCount === 0 && !this.game.boss.active) {
       if (!this.hurt) this.cleanWaves++;
       if (this.isFinal) {
         this.state = 'done';

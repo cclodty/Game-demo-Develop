@@ -220,6 +220,44 @@ body.playing * {
   text-align: center;
 }
 
+/* a boss's health bar (hud.js; boss.js) */
+#boss-bar {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+#boss-bar .boss-name {
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #ff5a6a;
+}
+
+#boss-bar .boss-name small {
+  font-family: var(--display);
+  font-weight: normal;
+  color: var(--dim);
+}
+
+#boss-bar .boss-segs {
+  display: flex;
+  gap: 4px;
+}
+
+#boss-bar .boss-segs i {
+  width: 56px;
+  height: 9px;
+  background: #ff3355;
+  box-shadow: 0 0 8px rgba(255, 51, 85, 0.7);
+}
+
+#boss-bar .boss-segs i.lost {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
 #wave-label {
   font-family: var(--display);
   font-size: 30px;

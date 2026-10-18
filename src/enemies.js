@@ -240,6 +240,12 @@ class Enemy {
     this.struck = false;
     this.corpseT = 0;
     this.pooled = false;
+    if (sp.rappel) {
+      // roped down from the helicopter: untouchable on the rope, his own man once down
+      this.y = sp.rappel.height;
+      this.rappelT = sp.rappel.drop;
+      this.spawnLock = sp.rappel.drop;
+    }
     if (sp.climb && !cfg.fly) {
       const out = [-sp.dirX, -sp.dirZ];
       this.enterFrom = { x: sp.x + out[0] * 1.6, z: sp.z + out[1] * 1.6 };
@@ -702,6 +708,14 @@ class Enemy {
       switch (this.state) {
         case 'enter': {
           this.enterT += dt;
+          if (this.rappelT > 0) {
+            this.rappelT -= dt;
+            this.y = Math.max(0, this.sp.rappel.height * (this.rappelT / this.sp.rappel.drop));
+            this.vx = this.vz = 0;
+            want = null;
+            if (this.rappelT <= 0) this.state = 'move';
+            break;
+          }
           if (this.enterFrom) {
             collide = false;
             const t = this.enterT;

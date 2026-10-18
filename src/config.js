@@ -147,6 +147,8 @@ export const CAMERA = {
   lookAhead: 0.24,
   lookAheadMax: 5.5,
   focusZoom: 0.86,
+  bossZoom: 1.4, // a boss in the air (boss.js): the view pulls back this much
+  bossPull: 0.35, // and leans this far from the player towards it
 };
 
 /**

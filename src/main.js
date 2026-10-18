@@ -30,6 +30,7 @@ import { Tutorial, wantWarmup } from './tutorial.js';
 import { clamp, damp, lerp } from './utils.js';
 import { MODE_IDS, MODES, Waves } from './waves.js';
 import { Grenades } from './weapons.js';
+import { Boss } from './boss.js';
 
 const MAP_KEY = 'bullet-ballet.map';
 const MODE_KEY = 'bullet-ballet.mode';
@@ -131,6 +132,7 @@ class Game {
     if (this.startMap) this.level.load(MAPS[this.startMap]);
     this.bullets = new Bullets(this);
     this.grenades = new Grenades(this);
+    this.boss = new Boss(this); // the last wave's boss on a map that has one (boss.js)
     this.pickups = new Pickups(this);
     this.thrown = new Thrown(this);
     this.tutorial = new Tutorial(this);
@@ -940,6 +942,7 @@ class Game {
     this.enemies.clear();
     this.bullets.clear();
     this.grenades.clear();
+    this.boss.reset();
     this.pickups.clear();
     this.thrown.clear();
     this.style.clearGhosts();
@@ -1552,6 +1555,7 @@ class Game {
     if (this.transition) this.updateTransition(h);
     this.player.update(pdt, cmd);
     this.enemies.update(dt);
+    this.boss.update(dt);
     this.level.updateProps(dt);
     this.bullets.update(dt);
     this.grenades.update(dt);
@@ -1627,6 +1631,12 @@ class Game {
       tx += lx;
       tz += lz;
       zoom *= lerp(1, CAMERA.focusZoom, this.focusAmt);
+      if (this.boss.active) {
+        // a boss in the air: pull back and lean towards it, so it is in the picture
+        tx = lerp(tx, this.boss.x, CAMERA.bossPull);
+        tz = lerp(tz, this.boss.z, CAMERA.bossPull);
+        zoom *= CAMERA.bossZoom;
+      }
       if (this.killcamT > 0) {
         tx = lerp(tx, this.killcamPos.x, 0.6);
         tz = lerp(tz, this.killcamPos.z, 0.6);
