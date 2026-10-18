@@ -141,6 +141,10 @@
           <h3 class="maps-title">變體</h3>
           <div id="variant-cards" class="modes three"></div>
         </div>
+        <div class="mode-row hidden" id="coat-row">
+          <h3 class="maps-title">外套</h3>
+          <div id="coat-cards" class="modes four"></div>
+        </div>
         <h3 class="maps-title">選擇起點場景 <span id="maps-note">每 3 波換一個場景</span></h3>
         <div id="map-cards" class="maps"></div>
         <div class="telemetry-switch" id="telemetry-switch">
@@ -149,9 +153,19 @@
         </div>
         <div class="title-links">
           <button type="button" id="open-boards">排行榜 <small>LEADERBOARD</small></button>
+          <button type="button" id="open-achievements">成就 <small>ACHIEVEMENTS</small></button>
           <button type="button" id="open-replays">重播 <small>REPLAYS</small></button>
         </div>
         <div class="start">點擊開始 <span>/ Enter · 1–4 選場景</span></div>
+      </div>
+    </div>
+
+    <div id="achievements" class="screen hidden">
+      <div class="panel">
+        <div class="logo-en go-title">ACHIEVEMENTS</div>
+        <p class="tagline" id="ach-count"></p>
+        <div id="ach-list" class="replay-list"></div>
+        <div class="menu"><button type="button" id="achievements-close">返回 <kbd>Esc</kbd></button></div>
       </div>
     </div>
 

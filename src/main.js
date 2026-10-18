@@ -3,6 +3,7 @@ import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
+import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
 import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PLAYER, RATING, VIEWS } from './config.js';
 import { Enemies } from './enemies.js';
 import { FX } from './fx.js';
@@ -110,13 +111,15 @@ class Game {
     } catch {
       /* storage unavailable */
     }
+    // achievements and what they open (achievements.js); a locked rule pick is not on offer
+    this.achievements = new Achievements(localStorage, (a) => this.onAchievement(a));
     // the run rules picked on the title screen (rules.js); a run fixes them as ruleset
     this.difficulty = 'normal';
     this.variants = [];
     try {
       const saved = JSON.parse(localStorage.getItem(RULES_KEY) || '{}');
       if (DIFFICULTY_IDS.includes(saved.difficulty)) this.difficulty = saved.difficulty;
-      if (Array.isArray(saved.variants)) this.variants = VARIANT_IDS.filter((id) => saved.variants.includes(id));
+      if (Array.isArray(saved.variants)) this.variants = VARIANT_IDS.filter((id) => saved.variants.includes(id) && this.isOpen(id));
     } catch {
       /* storage unavailable or unreadable */
     }
@@ -239,7 +242,30 @@ class Game {
         this.setRules(this.difficulty, this.variants.includes(v) ? this.variants.filter((x) => x !== v) : [...this.variants, v]),
       );
     }
+    // the coat colours (open with an achievement) and the achievements page
+    for (const c of COATS) {
+      const b = document.createElement('button');
+      b.className = 'mode-card';
+      b.type = 'button';
+      b.dataset.coat = c.id;
+      b.style.setProperty('--mode', `#${c.rgb.toString(16).padStart(6, '0')}`);
+      b.innerHTML = `<span class="mode-zh">${c.name}</span>`;
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.achievements.setCoat(c.id);
+        this.player.setCoat(c);
+        this.markRules();
+      });
+      $('coat-cards').appendChild(b);
+    }
+    $('open-achievements').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.showAchievements(true);
+    });
+    $('achievements').addEventListener('click', (e) => e.stopPropagation());
+    $('achievements-close').addEventListener('click', () => this.showAchievements(false));
     this.markRules();
+    if (this.achievements.coatOpen) this.player.setCoat(COATS.find((c) => c.id === this.achievements.coat));
     // the first visit: the local records switch (on unless turned off)
     const tele = $('telemetry-on');
     tele.checked = this.telemetry.on;
@@ -360,6 +386,10 @@ class Game {
         this.showBoards(false);
         return;
       }
+      if (e.code === 'Escape' && !$('achievements').classList.contains('hidden')) {
+        this.showAchievements(false);
+        return;
+      }
       if (e.code === 'Escape' && this.state === 'playing' && this.tutorial.active) return; // Esc skips the warm-up (a recorded control) instead of pausing
       if (e.code === 'Escape' || e.code === 'KeyP') {
         if (this.notes.noteOpen) this.notes.cancelNote();
@@ -416,10 +446,16 @@ class Game {
     $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結` : `每 ${r.perStage} 波換一個場景`;
   }
 
+  /** Whether a variant is on offer: open from the start, or its achievement is done. */
+  isOpen(id) {
+    const v = VARIANTS[id];
+    return !!v && (!v.unlock || this.achievements.has(v.unlock));
+  }
+
   /** Pick the difficulty and variants for the next run (the title screen), and remember them. */
   setRules(difficulty, variants) {
     this.difficulty = DIFFICULTY_IDS.includes(difficulty) ? difficulty : 'normal';
-    this.variants = VARIANT_IDS.filter((id) => variants.includes(id));
+    this.variants = VARIANT_IDS.filter((id) => variants.includes(id) && this.isOpen(id));
     try {
       localStorage.setItem(RULES_KEY, JSON.stringify({ difficulty: this.difficulty, variants: this.variants }));
     } catch {
@@ -430,7 +466,55 @@ class Game {
 
   markRules() {
     for (const c of $('difficulty-cards').children) c.classList.toggle('selected', c.dataset.rule === this.difficulty);
-    for (const c of $('variant-cards').children) c.classList.toggle('selected', this.variants.includes(c.dataset.rule));
+    for (const c of $('variant-cards').children) {
+      c.classList.toggle('selected', this.variants.includes(c.dataset.rule));
+      c.classList.toggle('hidden', !this.isOpen(c.dataset.rule));
+    }
+    const ach = this.achievements;
+    $('coat-row').classList.toggle('hidden', !ach.coatOpen);
+    for (const c of $('coat-cards').children) c.classList.toggle('selected', c.dataset.coat === ach.coat);
+  }
+
+  /** An achievement is done: say so, with what it opens, and put the opened picks on the title. */
+  onAchievement(a) {
+    const opens = Object.values(VARIANTS)
+      .filter((v) => v.unlock === a.id)
+      .map((v) => v.name);
+    if (a.id === COAT_UNLOCK) opens.push('外套顏色');
+    this.hud.toast(`成就：${a.name} <small>${a.en}</small>${opens.length ? `<br>解鎖：${opens.join('、')}` : ''}`);
+    this.notes.log(`成就：${a.name}${opens.length ? `（解鎖 ${opens.join('、')}）` : ''}`);
+    this.audio.pickup();
+    this.markRules();
+  }
+
+  showAchievements(on) {
+    $('achievements').classList.toggle('hidden', !on);
+    $('title').classList.toggle('hidden', on);
+    if (!on) return;
+    const ach = this.achievements;
+    const list = $('ach-list');
+    list.textContent = '';
+    for (const a of ACHIEVEMENTS) {
+      const row = document.createElement('div');
+      row.className = `ach-row${ach.has(a.id) ? ' done' : ''}`;
+      const p = ach.progress(a);
+      const opens = Object.values(VARIANTS)
+        .filter((v) => v.unlock === a.id)
+        .map((v) => v.name);
+      if (a.id === COAT_UNLOCK) opens.push('外套顏色');
+      const cell = (cls, text) => {
+        const s = document.createElement('span');
+        s.className = cls;
+        s.textContent = text;
+        row.appendChild(s);
+      };
+      cell('ach-mark', ach.has(a.id) ? '✓' : p.need > 1 ? `${p.have}/${p.need}` : '');
+      cell('ach-name', `${a.name} ${a.en}`);
+      cell('ach-desc', a.desc);
+      cell('ach-opens', opens.length ? `解鎖：${opens.join('、')}` : '');
+      list.appendChild(row);
+    }
+    $('ach-count').textContent = `已完成 ${ACHIEVEMENTS.filter((a) => ach.has(a.id)).length} / ${ACHIEVEMENTS.length}`;
   }
 
   startRun(mapIndex = this.startMap) {
@@ -470,6 +554,9 @@ class Game {
     }
     this.endClip();
     this.clip.start();
+    this.achievements.startRun();
+    this.achievements.watching = !!this.replay; // a replay earns nothing
+    this.rankSeen = 0;
     this.state = 'playing';
     $('title').classList.add('hidden');
     $('gameover').classList.add('hidden');
@@ -756,6 +843,7 @@ class Game {
 
   /** Leave playback: the keyboard drives the game again and the title's mode comes back. */
   endReplay() {
+    this.achievements.watching = false;
     if (!this.replay) return;
     this.mode = this.replay.mode;
     this.replay = null;
@@ -853,7 +941,7 @@ class Game {
     this.thrown.clear();
     this.style.clearGhosts();
     this.fx.clear();
-    if (this.level.map !== map || this.level.glassUpTo !== this.ruleset.glassUpTo) {
+    if (this.level.map !== map || this.level.glassUpTo !== this.ruleset.glassUpTo || this.level.pansAsBarrels !== this.ruleset.pansAsBarrels) {
       this.level.load(map);
       this.applyMapView();
       this.renderer.compile(this.scene, this.camera);
@@ -1161,6 +1249,10 @@ class Game {
 
     const before = this.score.score;
     this.score.kill(tags);
+    this.achievements.kill(
+      tags.map((t) => t.label),
+      info.bullet ? info.bullet.kills || 0 : 0,
+    );
     this.clip.kill(this.score.score - before);
     this.notes.log(`擊殺 ${e.cfg.label}：${tags.map((t) => t.label).join(' + ')} ×${this.score.mult}`);
     this.addFocus(refill);
@@ -1179,6 +1271,7 @@ class Game {
     if (this.stepCount - this.lastCloseCall < LOGIC_HZ / 4) return;
     this.lastCloseCall = this.stepCount;
     this.notes.log(spin ? '旋轉中子彈穿身（DODGE）' : '子彈擦身（CLOSE CALL）');
+    this.achievements.style(spin ? 'DODGE' : 'CLOSE CALL');
     if (spin) {
       this.score.style('DODGE', 40);
       this.addFocus(0.06);
@@ -1213,6 +1306,7 @@ class Game {
     if (!this.player.alive) return;
     const bonus = 250 * n;
     this.notes.log(`第 ${n} 波清空${stageEnd ? '，準備轉場' : ''}`);
+    this.achievements.wave(!this.waves.hurt);
     this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt });
     this.score.bonus('WAVE CLEAR', bonus);
     this.addFocus(0.35);
@@ -1227,6 +1321,8 @@ class Game {
     if (!this.player.alive) return;
     const bonus = 250 * n;
     this.notes.log(`第 ${n} 波清空：通關（RUN CLEAR）`);
+    this.achievements.wave(!this.waves.hurt);
+    this.achievements.clear();
     this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt });
     this.score.bonus('RUN CLEAR', bonus);
     this.player.invuln = 99; // nothing still flying can take the run away now
@@ -1408,6 +1504,11 @@ class Game {
     this.tutorial.update(h);
     this.waves.update(dt, h);
     this.score.update(dt, h);
+    // the Style rank changed (achievements only listen; nothing here feeds back into play)
+    if (this.score.rank.index !== this.rankSeen) {
+      this.rankSeen = this.score.rank.index;
+      this.achievements.rank(this.score.rank.name, this.level.map.id);
+    }
     if (this.clearT > 0) {
       this.clearT -= h;
       if (this.clearT <= 0) this.gameOver(true);

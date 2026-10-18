@@ -5,6 +5,49 @@ import { Laser } from './fx.js';
 import { angleTo, clamp, damp, rand, wrapAngle } from './utils.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
+/**
+ * Turn the hero texture's teal jacket to `hue` (degrees), or back to the original (null). The
+ * texture is shared by the model's material and its toon twin, so both change.
+ */
+function recolorJacket(skin, hue) {
+  const tex = (skin.mats.find((m) => m.map) || {}).map;
+  if (!tex || !tex.image) return;
+  const src = (tex.userData.jacketSource ??= tex.image);
+  if (hue === null) {
+    tex.image = src;
+    tex.needsUpdate = true;
+    return;
+  }
+  const c = document.createElement('canvas');
+  c.width = src.width;
+  c.height = src.height;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(src, 0, 0);
+  const img = ctx.getImageData(0, 0, c.width, c.height);
+  const d = img.data;
+  const to = new THREE.Color();
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i] / 255;
+    const g = d[i + 1] / 255;
+    const b = d[i + 2] / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const v = max;
+    const s = max ? (max - min) / max : 0;
+    if (s < 0.25 || v < 0.12) continue;
+    let h = max === r ? (g - b) / (max - min) : max === g ? 2 + (b - r) / (max - min) : 4 + (r - g) / (max - min);
+    h = ((h * 60) % 360 + 360) % 360;
+    if (h < 165 || h > 215) continue; // the jacket's teal
+    to.setHSL(hue / 360, s, v * (1 - s / 2));
+    d[i] = Math.round(to.r * 255);
+    d[i + 1] = Math.round(to.g * 255);
+    d[i + 2] = Math.round(to.b * 255);
+  }
+  ctx.putImageData(img, 0, 0);
+  tex.image = c;
+  tex.needsUpdate = true;
+}
+
 export class Player {
   constructor(game) {
     this.game = game;
@@ -67,9 +110,22 @@ export class Player {
     r.inner.rotation.set(0, 0, 0);
     r.inner.position.set(0, 0, 0);
     r.ring.visible = true;
-    attachWeapon(r, PLAYER_WEAPONS.pistols.model);
+    // a variant (rules.js startWeapon) starts the run with a special weapon in hand
+    const first = PLAYER_WEAPONS[this.game.ruleset.startWeapon];
+    if (first && first.id !== 'pistols') {
+      this.special = { id: first.id, ammo: first.ammo, empty: false };
+      this.slot = 'special';
+    }
+    attachWeapon(r, this.weapon.model);
     setFlash(r, 0);
     this.syncRig(0);
+  }
+
+  /** The jacket's colour (an unlock, looks only): the block rig's body, and the jacket in the hero model's texture. */
+  setCoat(coat) {
+    const r = this.rig;
+    for (const m of [r.mats.body, this.game.style.twins.get(r.mats.body)]) if (m) m.color.setHex(coat.rgb);
+    if (r.skin) recolorJacket(r.skin, coat.hue);
   }
 
   /** Put the player back at the map's start (used between stages). */

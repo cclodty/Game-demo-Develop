@@ -13,6 +13,8 @@ export const BASE = {
   glassUpTo: 0, // cover up to this height (m) is glass instead; 0 for none (level.js load)
   aimMul: 1, // enemies' aim time × (enemies.js aimTime)
   styleMul: 1, // Style points × (score.js kill and style)
+  pansAsBarrels: false, // the map's pans are barrels instead (level.js load)
+  startWeapon: 'pistols', // what the player starts with (player.js reset)
 };
 
 export const DIFFICULTIES = {
@@ -26,6 +28,9 @@ export const VARIANTS = {
   dualist: { name: '雙槍主義', en: 'DUALIST', desc: '只有雙槍：武器台不刷新，敵人不掉槍', color: '#ffc861', set: { pads: false, drops: false } },
   noSlowmo: { name: '沒有慢鏡', en: 'NO SLOW-MO', desc: '子彈時間關閉，Style 分 ×2', color: '#4fd8ff', set: { slowmo: false, styleMul: 2 } },
   glassCity: { name: '玻璃之城', en: 'GLASS CITY', desc: '所有掩體換成玻璃，一槍就碎', color: '#9fe8ff', set: { glassUpTo: 1.8 } },
+  // opened by an achievement (achievements.js): hidden on the title until then
+  barrelFest: { name: '油桶節', en: 'BARREL FEST', desc: '平底鑊全部換成油桶', color: '#ff6a3a', set: { pansAsBarrels: true }, unlock: 'useEverything' },
+  smgStart: { name: '雙衝鋒槍起手', en: 'SMG START', desc: '開局就拿著雙衝鋒槍', color: '#ffe066', set: { startWeapon: 'smg' }, unlock: 'bankShot' },
 };
 export const VARIANT_IDS = Object.keys(VARIANTS);
 

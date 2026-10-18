@@ -15,7 +15,8 @@ import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenc
 const _hit = { t: 0, nx: 0, nz: 0 };
 
 class Barrel {
-  constructor(level, x, z, variant = 'barrel') {
+  /** `block`: the built barrel even when a model is loaded (cheaper: three parts instead of the model's seven). */
+  constructor(level, x, z, variant = 'barrel', block = false) {
     this.level = level;
     this.kind = 'barrel';
     this.variant = variant;
@@ -28,7 +29,7 @@ class Barrel {
     const g = new THREE.Group();
     const G = level.geo;
     const M = level.mat;
-    const model = propModel(variant, level.map.id);
+    const model = block ? null : propModel(variant, level.map.id);
     if (model) {
       // a made model; the wrapper takes the fuse wobble without touching its fitted scale
       const body = new THREE.Group();
@@ -417,7 +418,13 @@ export class Level {
     }
     for (const g of map.glass || []) this.addGlass(...g);
     for (const [x, z, v] of map.barrels || []) this.barrels.push(new Barrel(this, x, z, v));
-    for (const [x, z, v] of map.pans || []) this.pans.push(new Pan(this, x, z, v));
+    // a variant (rules.js pansAsBarrels) puts a barrel where each pan was: the built one, as the
+    // model's seven parts (21 draw calls with outlines and shadows) would take the club over its budget
+    this.pansAsBarrels = this.game.ruleset.pansAsBarrels;
+    for (const [x, z, v] of map.pans || []) {
+      if (this.pansAsBarrels) this.barrels.push(new Barrel(this, x, z, 'barrel', true));
+      else this.pans.push(new Pan(this, x, z, v));
+    }
     this.flocks = (map.flocks || []).map(([x, z]) => new Flock(x, z));
     this.props = [...this.barrels, ...this.pans];
     for (const [x, z] of map.pads || []) this.addPad(x, z);

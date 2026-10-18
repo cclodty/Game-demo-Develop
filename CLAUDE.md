@@ -71,6 +71,7 @@ src/ambient.js               pigeons: Flock (logic: where a flock rests, when it
 src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
 src/leaderboard.js           boards: local always, the back end's when config.js BACKEND.url is set (never waited on); nickname rule shared with backend/
 src/daily.js                 the daily challenge: UTC date → seed, map and rules from a rotation table; one try a day; share codes
+src/achievements.js          achievements as data, counted from the game's events (never feeding back into play); unlocks: rules.js variants with `unlock`, coat colours
 src/clip.js                  the best-kill clip: overlapping MediaRecorder recordings of a small copy of the screen, played on the end screen
 src/telemetry.js             local play records: one row per run (start, waves, end and cause, time, played again), carried by the feedback export
 src/rules.js                 run rules: difficulties and variants as data (one switch or number each), read by their systems as game.ruleset
