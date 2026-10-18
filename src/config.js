@@ -111,6 +111,11 @@ export const BACKEND = {
 };
 
 /** Gamepads (input.js poll, main.js padAim): sticks, the aim distance, the pull onto an enemy. */
+/** The background song (music.js SONGS); ?music=<id> tries another for one visit. */
+export const MUSIC = {
+  song: 'classic',
+};
+
 export const PAD = {
   moveAt: 0.35, // the left stick past this (each axis) holds W / A / S / D
   deadzone: 0.3, // the right stick inside this keeps the last aim direction

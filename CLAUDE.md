@@ -37,6 +37,7 @@ npm test                          # senado unit tests + smoke + map validator + 
 npm run test:game                 # slow: every weapon fires, E-swap, a long looting run (~10 min)
 npm run build                     # single-file dist/bullet-ballet.html for sharing (must stay < 16 MB)
 npm run itch                      # that file as index.html in dist/bullet-ballet-itch.zip, for itch.io (docs/itch/README.md)
+npm run music:preview             # each song in src/music.js rendered to dist/music/<id>.wav, to listen to without playing
 npm run assets                    # masters in assets/source/<id>/ → web models in assets/models/
 npm run assets:docs               # regenerate assets/PROMPTS.md, asset-list.*, maps/*.json
 ```
@@ -68,6 +69,7 @@ src/models.js                loads assets/models/*.glb, fits props to map boxes;
 src/asset-manifest.js        catalogue of every asset we want as a real model (sizes, budgets, prompts)
 src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
+src/music.js                 the songs as data (tempo, chords, step patterns), played by audio.js; config.js MUSIC.song picks one, ?music=<id> tries another
 src/boss.js                  the rooftop helicopter boss (the last wave on a map with `boss` in maps.js): flight, searchlight and burst, rappellers, health bar
 src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
 src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)

@@ -11,6 +11,7 @@
     "build": "node scripts/build-single.mjs",
     "itch": "node scripts/itch.mjs",
     "itch:cover": "node scripts/itch-cover.mjs",
+    "music:preview": "node scripts/music-preview.mjs",
     "assets": "node scripts/assets.mjs",
     "assets:docs": "node scripts/asset-docs.mjs",
     "senado:data": "python3 senado/scripts/build_data.py",

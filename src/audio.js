@@ -2,18 +2,9 @@
 // with the game's time scale: slow motion drops pitch, muffles the mix and
 // slows the music down like a tape deck.
 
+import { MUSIC } from './config.js';
+import { playStep, SONGS } from './music.js';
 import { clamp, lerp, rand } from './utils.js';
-
-const BPM = 124;
-// A minor: Am - F - C - G, one bar each. Values are semitones from A.
-const CHORDS = [
-  [0, 3, 7],
-  [-4, 0, 3],
-  [3, 7, 10],
-  [-2, 2, 5],
-];
-const BASS_STEPS = new Set([0, 3, 6, 8, 10, 11, 14]);
-const ARP = [0, 1, 2, 1, 2, 0, 1, 2, 0, 2, 1, 2, 0, 1, 2, 1];
 
 const noteHz = (semi, base = 440) => base * Math.pow(2, semi / 12);
 
@@ -25,6 +16,9 @@ export class AudioSys {
     this.musicRate = 1;
     this.slow = 0;
     this.last = new Map();
+    // the background song (music.js): config.js MUSIC.song, or ?music=<id> to try another
+    const asked = new URLSearchParams(location.search).get('music');
+    this.song = SONGS[asked] || SONGS[MUSIC.song] || SONGS.classic;
   }
 
   init() {
@@ -34,8 +28,15 @@ export class AudioSys {
     }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
-    const ctx = (this.ctx = new AC());
+    this.build(new AC());
+    this.step = 0;
+    this.nextStep = this.ctx.currentTime + 0.1;
+    this.timer = setInterval(() => this.scheduleMusic(), 25);
+  }
 
+  /** The mixing graph on `ctx` (a live AudioContext, or an OfflineAudioContext to render the music to a file). */
+  build(ctx) {
+    this.ctx = ctx;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -16;
     comp.knee.value = 12;
@@ -64,15 +65,30 @@ export class AudioSys {
     this.music = ctx.createGain();
     this.music.gain.value = this.musicOn ? 0.32 : 0;
     this.music.connect(this.musicFilter);
+    // the song's echo: what goes to musicWet also repeats through a filtered feedback delay
+    const dl = this.song.delay || { steps: 3, send: 0, feedback: 0 };
+    this.musicWet = ctx.createGain();
+    this.musicWet.connect(this.music);
+    const send = ctx.createGain();
+    send.gain.value = dl.send;
+    const delay = ctx.createDelay(2);
+    delay.delayTime.value = (60 / this.song.bpm / 4) * dl.steps;
+    const tone = ctx.createBiquadFilter();
+    tone.type = 'lowpass';
+    tone.frequency.value = 2600;
+    const fb = ctx.createGain();
+    fb.gain.value = dl.feedback;
+    this.musicWet.connect(send);
+    send.connect(delay);
+    delay.connect(tone);
+    tone.connect(fb);
+    fb.connect(delay);
+    tone.connect(this.music);
 
     const len = ctx.sampleRate * 2;
     this.noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
     const data = this.noiseBuf.getChannelData(0);
     for (let i = 0; i < len; i++) data[i] = rand(-1, 1);
-
-    this.step = 0;
-    this.nextStep = ctx.currentTime + 0.1;
-    this.timer = setInterval(() => this.scheduleMusic(), 25);
   }
 
   get ready() {
@@ -446,42 +462,15 @@ export class AudioSys {
     if (!c || c.state !== 'running') return;
     if (this.nextStep < c.currentTime - 0.1) this.nextStep = c.currentTime + 0.02;
     while (this.nextStep < c.currentTime + 0.15) {
-      if (this.musicOn) this.playStep(this.step, this.nextStep);
-      this.nextStep += 60 / BPM / 4 / this.musicRate;
-      this.step = (this.step + 1) % 64;
+      if (this.musicOn) playStep(this, this.song, this.step, this.nextStep, this.musicRate);
+      this.nextStep += 60 / this.song.bpm / 4 / this.musicRate;
+      this.step++;
     }
   }
 
-  playStep(step, at) {
-    const r = this.musicRate;
-    const bus = this.music;
-    const bar = Math.floor(step / 16);
-    const s = step % 16;
-    const chord = CHORDS[bar];
-    const stepDur = 60 / BPM / 4 / r;
-
-    if (s % 4 === 0) {
-      this.tone({ type: 'sine', f0: 150 * r, f1: 42 * r, dur: 0.28 / r, vol: 0.7, at, bus });
-    }
-    if (s === 4 || s === 12) {
-      this.noise({ type: 'bandpass', freq: 1800 * r, q: 0.7, dur: 0.2 / r, vol: 0.28, at, bus });
-      this.tone({ type: 'triangle', f0: 210 * r, f1: 120 * r, dur: 0.1 / r, vol: 0.12, at, bus });
-    }
-    if (s % 2 === 0) {
-      this.noise({ type: 'highpass', freq: 8000 * r, dur: (s % 4 === 2 ? 0.08 : 0.03) / r, vol: s % 4 === 2 ? 0.09 : 0.04, at, bus });
-    }
-    if (BASS_STEPS.has(s)) {
-      const semi = chord[0] + (s === 14 ? 12 : 0);
-      this.tone({ type: 'sawtooth', f0: noteHz(semi, 55) * r, dur: stepDur * 1.6, vol: 0.2, at, bus, filter: 520 * r + 120 });
-    }
-    const arpNote = chord[ARP[s]] + (s >= 8 ? 12 : 0);
-    this.tone({ type: 'square', f0: noteHz(arpNote, 440) * r, dur: stepDur * 0.9, vol: 0.028, at, bus, filter: 2600 * r });
-
-    if (s === 0) {
-      for (const semi of chord) {
-        this.tone({ type: 'sawtooth', f0: noteHz(semi, 220) * r * 1.003, dur: stepDur * 16, vol: 0.022, attack: 0.4 / r, at, bus, filter: 900 * r });
-        this.tone({ type: 'sawtooth', f0: noteHz(semi, 220) * r * 0.997, dur: stepDur * 16, vol: 0.022, attack: 0.4 / r, at, bus, filter: 900 * r });
-      }
-    }
+  /** Schedule `seconds` of the song from the start on an offline graph (build() first); ctx.startRendering() then plays it out. */
+  scheduleSong(seconds) {
+    const dt = 60 / this.song.bpm / 4;
+    for (let n = 0, t = 0.05; t < seconds; n++, t += dt) playStep(this, this.song, n, t, 1);
   }
 }
