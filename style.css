@@ -595,7 +595,8 @@ body.playing * {
   opacity: 0.6;
 }
 
-#hint {
+#hint,
+#hint-pad {
   position: absolute;
   left: 20px;
   bottom: 16px;
@@ -607,7 +608,16 @@ body.playing * {
   opacity: 0.75;
 }
 
-#hint b {
+/* a connected pad (main.js pollPad): its hint bar and key names instead of the keyboard's */
+body.pad #hint,
+body:not(.pad) #hint-pad,
+body.pad .keys-only,
+body:not(.pad) .pad-only {
+  display: none;
+}
+
+#hint b,
+#hint-pad b {
   color: var(--ink);
   font-weight: 700;
   margin-right: 3px;

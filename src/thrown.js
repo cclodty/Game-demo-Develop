@@ -28,7 +28,7 @@ export class Thrown {
     this.game = game;
     this.carry = null; // a level prop (pan or barrel) held over the head
     this.list = []; // thrown weapons in flight
-    this.prompt = ''; // HUD hint (HTML), '' for none
+    this.prompt = ''; // HUD hint (HTML, controls as {name}: input.js withLabels), '' for none
   }
 
   clear() {
@@ -233,11 +233,11 @@ export class Thrown {
 
     // HUD hint
     if (!p.alive) this.prompt = '';
-    else if (this.carry) this.prompt = '<b>G</b> / <b>左鍵</b> 擲出';
+    else if (this.carry) this.prompt = '{throw} / {fire} 擲出';
     else {
       const near = this.nearProp();
-      if (near) this.prompt = `<b>G</b> 拿起${Thrown.propName(near)}`;
-      else if (p.special && p.special.empty) this.prompt = `<b>G</b> 擲出空的${PLAYER_WEAPONS[p.special.id].name}`;
+      if (near) this.prompt = `{throw} 拿起${Thrown.propName(near)}`;
+      else if (p.special && p.special.empty) this.prompt = `{throw} 擲出空的${PLAYER_WEAPONS[p.special.id].name}`;
       else this.prompt = '';
     }
   }

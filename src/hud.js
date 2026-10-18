@@ -3,6 +3,7 @@
 
 import * as THREE from 'three';
 import { COMBO_WINDOW, FOCUS, PLAYER } from './config.js';
+import { withLabels } from './input.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
 const $ = (id) => document.getElementById(id);
@@ -113,8 +114,9 @@ export class HUD {
     });
     const q = g.pickups.prompt;
     const t = g.thrown.prompt;
-    this.set('prompt', q ? `e:${q.kind}` : t ? `t:${t}` : '', (v) => {
-      e.prompt.innerHTML = q ? `<b>E</b> 交換為 ${PLAYER_WEAPONS[q.kind].name}` : t || '';
+    const pad = !!g.input.pad; // a connected pad: hints name its buttons
+    this.set('prompt', q ? `${pad}:e:${q.kind}` : t ? `${pad}:t:${t}` : '', (v) => {
+      e.prompt.innerHTML = withLabels(q ? `{swap} 交換為 ${PLAYER_WEAPONS[q.kind].name}` : t || '', pad);
       e.prompt.classList.toggle('show', !!v);
     });
     this.set('reload', reloading ? Math.round(p.reloadProgress * 50) / 50 : 0, (v) => {
@@ -154,7 +156,7 @@ export class HUD {
     });
     this.set('rankFill', Math.round(rank.progress * 50) / 50, (v) => (e.rankFill.style.width = `${v * 100}%`));
 
-    this.set('tutorial', g.tutorial.hint, (v) => {
+    this.set('tutorial', withLabels(g.tutorial.hint, pad), (v) => {
       if (v) e.tutorial.innerHTML = v;
       e.tutorial.classList.toggle('show', !!v);
     });

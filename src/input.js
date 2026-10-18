@@ -1,6 +1,8 @@
-// Keyboard + mouse state. The page's events collect here; once per fixed logic
-// step, latch() turns them into a StepInput, the only input the game logic
-// reads (and what replay.js records).
+// Keyboard, mouse and gamepad state. The page's events (and the pad, polled once
+// a frame) collect here; once per fixed logic step, latch() turns them into a
+// StepInput, the only input the game logic reads (and what replay.js records).
+
+import { PAD } from './config.js';
 
 const BLOCKED = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'Tab', 'Digit1', 'Digit2', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
@@ -15,6 +17,35 @@ export const BUTTONS = [
   'Digit1', 'Digit2', 'Mouse0', 'Mouse2', 'WheelUp', 'WheelDown', 'Escape',
 ];
 const BIT = new Map(BUTTONS.map((c, i) => [c, 1 << i]));
+
+/**
+ * A gamepad in the standard layout (the Gamepad API's 'standard' mapping): each button stands for
+ * one of the controls above, so a pad run is recorded like any other. The left stick holds WASD;
+ * the right stick aims (main.js padAim); Start pauses (not a recorded control).
+ */
+export const PAD_BUTTONS = [
+  [0, 'Space'], // A: spin
+  [1, 'KeyC'], // B: slide
+  [2, 'KeyF'], // X: kick
+  [3, 'KeyG'], // Y: throw
+  [4, 'KeyR'], // LB: reload
+  [5, 'WheelDown'], // RB: the other weapon
+  [6, 'KeyQ'], // LT: bullet time
+  [7, 'Mouse0'], // RT: fire
+  [12, 'KeyE'], // d-pad up: swap for the weapon on the floor
+];
+const PAD_START = 9;
+
+/** How hints name a control, on the keyboard and on a pad: `{name}` in a hint becomes one of these. */
+export const CONTROL_LABELS = {
+  focus: ['<b>Shift</b> 或 <b>Q</b>', '<b>LT</b>'],
+  throw: ['<b>G</b>', '<b>Y</b>'],
+  fire: ['<b>左鍵</b>', '<b>RT</b>'],
+  swap: ['<b>E</b>', '<b>十字鍵 ↑</b>'],
+};
+
+/** A hint (HTML) with its `{control}` names filled in for the keyboard, or for a pad. */
+export const withLabels = (html, pad) => html.replace(/\{(\w+)\}/g, (m, k) => (CONTROL_LABELS[k] ? CONTROL_LABELS[k][pad ? 1 : 0] : m));
 
 // The aim is kept as an offset from the player in 2 cm units (finer than any
 // weapon's spread, coarse enough to keep the record small), the camera yaw in 1/10000 rad.
@@ -79,6 +110,13 @@ const editable = (t) => !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELEC
 
 export class Input {
   constructor() {
+    // a gamepad, read once a display frame (poll): its held controls, the right stick, Start
+    this.pad = null; // the connected pad, or null
+    this.usingPad = false; // the pad aims: its right stick moved more recently than the mouse or the keyboard
+    this.padKeys = new Set();
+    this.padStick = { x: 0, y: 0 };
+    this.padStart = false; // Start pressed since the last poll
+    this.padStartWas = false;
     this.keys = new Set();
     this.pressed = new Set();
     this.mouse = {
@@ -96,15 +134,18 @@ export class Input {
       if (BLOCKED.has(e.code)) e.preventDefault();
       if (!e.repeat) this.pressed.add(e.code);
       this.keys.add(e.code);
+      this.usingPad = false;
     });
     addEventListener('keyup', (e) => this.keys.delete(e.code));
     addEventListener('mousemove', (e) => {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
+      this.usingPad = false;
     });
     addEventListener('mousedown', (e) => {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
+      this.usingPad = false;
       if (e.button === 0) {
         this.mouse.left = true;
         this.mouse.leftPressed = true;
@@ -144,6 +185,46 @@ export class Input {
   }
 
   /**
+   * Read the first connected gamepad (once a display frame). Its buttons and left stick join the
+   * keyboard's controls, held and pressed since the last poll; the right stick and Start are kept
+   * for main.js. Returns the pad, or null.
+   */
+  poll() {
+    let pad = null;
+    try {
+      for (const p of navigator.getGamepads ? navigator.getGamepads() : []) {
+        if (p && p.connected) {
+          pad = p;
+          break;
+        }
+      }
+    } catch {
+      pad = null; // not allowed here (a frame without the permission)
+    }
+    this.pad = pad;
+    const held = new Set();
+    let start = false;
+    if (pad) {
+      const on = (i) => !!pad.buttons[i] && (pad.buttons[i].pressed || pad.buttons[i].value > 0.5);
+      for (const [i, code] of PAD_BUTTONS) if (on(i)) held.add(code);
+      const [lx = 0, ly = 0, rx = 0, ry = 0] = pad.axes;
+      if (lx < -PAD.moveAt) held.add('KeyA');
+      else if (lx > PAD.moveAt) held.add('KeyD');
+      if (ly < -PAD.moveAt) held.add('KeyW');
+      else if (ly > PAD.moveAt) held.add('KeyS');
+      this.padStick.x = rx;
+      this.padStick.y = ry;
+      start = on(PAD_START);
+      if (Math.hypot(rx, ry) > PAD.deadzone) this.usingPad = true;
+    }
+    for (const c of held) if (!this.padKeys.has(c)) this.pressed.add(c);
+    this.padKeys = held;
+    this.padStart = start && !this.padStartWas;
+    this.padStartWas = start;
+    return pad;
+  }
+
+  /**
    * Fill `cmd` for the next logic step and consume the presses. `aim` is the
    * cursor on the floor, or null to keep the step before's aim; (ox, oz) is the
    * player, `yaw` the camera's current yaw.
@@ -152,6 +233,7 @@ export class Input {
     let keys = 0;
     let pressed = 0;
     for (const c of this.keys) keys |= BIT.get(c) || 0;
+    for (const c of this.padKeys) keys |= BIT.get(c) || 0;
     for (const c of this.pressed) pressed |= BIT.get(c) || 0;
     const m = this.mouse;
     if (m.left) keys |= BIT.get('Mouse0');

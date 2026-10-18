@@ -106,6 +106,15 @@ export const BACKEND = {
   url: '',
 };
 
+/** Gamepads (input.js poll, main.js padAim): sticks, the aim distance, the pull onto an enemy. */
+export const PAD = {
+  moveAt: 0.35, // the left stick past this (each axis) holds W / A / S / D
+  deadzone: 0.3, // the right stick inside this keeps the last aim direction
+  aimDistance: 7, // m: the aim point ahead of the player along the right stick
+  assistDeg: 6, // the aim snaps onto the nearest visible enemy this close to the stick's direction
+  assistRange: 25, // m: enemies further off are not snapped to
+};
+
 /** The best-kill clip (clip.js): overlapping recordings of a small copy of the screen. */
 export const CLIP = {
   before: 6, // seconds kept ahead of the best kill

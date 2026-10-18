@@ -4,7 +4,7 @@ import { Bullets } from './bullets.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
-import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PLAYER, RATING, VIEWS } from './config.js';
+import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RATING, VIEWS } from './config.js';
 import { Enemies } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
@@ -149,6 +149,9 @@ class Game {
     this.raycaster = new THREE.Raycaster();
     this.ndc = new THREE.Vector2();
     this.aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GUN_Y);
+    this.padDir = new THREE.Vector2(0, -1); // the right stick's last direction on the floor
+    this.padScreen = new THREE.Vector3();
+    this.padOn = false; // a pad is connected (the hints name its buttons)
     const start = this.level.start;
     this.aimPoint = new THREE.Vector3(start.x, GUN_Y, start.z - 5);
     this.camTarget = new THREE.Vector3(start.x, 0, start.z);
@@ -544,7 +547,7 @@ class Game {
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
     this.telemetry.confirm(); // the switch was on the title screen: playing is leaving it as it is
     $('telemetry-switch').classList.add('hidden');
-    if (!this.replay) this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup });
+    if (!this.replay) this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup, input: this.padOn ? 'pad' : 'keyboard' });
     $('replay-badge').classList.toggle('hidden', !this.replay);
     document.body.classList.toggle('replaying', !!this.replay);
     this.deathCause = '';
@@ -1390,6 +1393,7 @@ class Game {
     const realDt = Math.min(0.05, rawDt);
     this.last = now;
     this.time += realDt;
+    this.pollPad();
     if (this.state !== 'paused') {
       this.updateAim();
       if (this.state === 'playing' || this.state === 'dying') this.updatePlay(this.playDt(realDt));
@@ -1402,12 +1406,64 @@ class Game {
     if ((this.state === 'playing' || this.state === 'dying') && !this.replay) this.clip.frame(realDt); // after the frame is drawn
   }
 
+  /** Once a display frame: read the gamepad; Start pauses and resumes; the hints follow whether one is connected. */
+  pollPad() {
+    const pad = this.input.poll();
+    if (this.input.padStart) {
+      if (this.state === 'playing') this.setPaused(true);
+      else if (this.state === 'paused') this.setPaused(false);
+    }
+    if (!!pad === this.padOn) return;
+    this.padOn = !!pad;
+    document.body.classList.toggle('pad', this.padOn);
+    this.notes.log(this.padOn ? '接上手掣' : '手掣已拔掉');
+    if (this.state === 'playing' || this.state === 'dying') this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'input', device: this.padOn ? 'pad' : 'keyboard' });
+  }
+
   updateAim() {
-    const m = this.input.mouse;
-    this.ndc.set((m.x / innerWidth) * 2 - 1, -(m.y / innerHeight) * 2 + 1);
-    this.raycaster.setFromCamera(this.ndc, this.camera);
-    this.raycaster.ray.intersectPlane(this.aimPlane, this.aimPoint);
+    if (this.input.pad && this.input.usingPad) this.padAim();
+    else {
+      const m = this.input.mouse;
+      this.ndc.set((m.x / innerWidth) * 2 - 1, -(m.y / innerHeight) * 2 + 1);
+      this.raycaster.setFromCamera(this.ndc, this.camera);
+      this.raycaster.ray.intersectPlane(this.aimPlane, this.aimPoint);
+    }
     this.aimFresh = true;
+  }
+
+  /**
+   * Aim with the right stick: a point PAD.aimDistance ahead along it (up the stick is up the
+   * screen, as for WASD), or the nearest visible enemy within PAD.assistDeg of that line. Let go
+   * and the direction stays. The cursor follows, for the crosshair. This is input, recorded as
+   * the step's aim, so a replay needs none of it.
+   */
+  padAim() {
+    const p = this.player;
+    const s = this.input.padStick;
+    if (Math.hypot(s.x, s.y) > PAD.deadzone) {
+      const c = Math.cos(this.camYaw);
+      const n = Math.sin(this.camYaw);
+      this.padDir.set(s.x * c + s.y * n, -s.x * n + s.y * c).normalize();
+    }
+    const dir = this.padDir;
+    let tx = p.x + dir.x * PAD.aimDistance;
+    let tz = p.z + dir.y * PAD.aimDistance;
+    const cosMax = Math.cos((PAD.assistDeg * Math.PI) / 180);
+    let best = PAD.assistRange;
+    for (const e of this.enemies.list) {
+      if (!e.alive) continue;
+      const dx = e.x - p.x;
+      const dz = e.z - p.z;
+      const d = Math.hypot(dx, dz);
+      if (d < 0.5 || d >= best || (dx * dir.x + dz * dir.y) / d < cosMax || !this.level.hasLOS(p.x, p.z, e.x, e.z)) continue;
+      best = d;
+      tx = e.x;
+      tz = e.z;
+    }
+    this.aimPoint.set(tx, GUN_Y, tz);
+    const v = this.padScreen.copy(this.aimPoint).project(this.camera);
+    this.input.mouse.x = ((v.x + 1) / 2) * innerWidth;
+    this.input.mouse.y = ((1 - v.y) / 2) * innerHeight;
   }
 
   /** One displayed frame of a run: as many fixed logic steps as realDt covers, then what is only shown. */
