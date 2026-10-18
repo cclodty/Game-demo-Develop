@@ -36,7 +36,7 @@ after(async () => {
 
 /**
  * Play an arcade run on the rooftop to the end of wave 12 in god mode, every enemy shot down as it
- * arrives, and collect what each wave brought: its roster, spawn order, the points enemies came
+ * arrives and the last wave's boss (every map has one: boss.js) brought down as it comes, and collect what each wave brought: its roster, spawn order, the points enemies came
  * through (with where the player stood when each was picked), and the pads. 'still' does nothing;
  * 'shooter' shoots on the spot; 'busy' shoots, spins (a spin carries the player along) and strafes.
  */
@@ -74,6 +74,7 @@ const playRun = (page, style) =>
         if (style === 'busy' && frame % 150 === 0) inp.pressed.add('Space');
       }
       for (const e of g.enemies.list) if (e.alive && e.spawnLock <= 0) e.die(0, 1, { cause: 'bullet' });
+      if (g.boss.active) g.boss.finish();
       g.updatePlay(1 / 60);
     }
     inp.mouse.left = false;
