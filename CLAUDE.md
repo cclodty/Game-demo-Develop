@@ -57,7 +57,7 @@ src/main.js                  Game: fixed 120 Hz logic steps + per-frame present,
 src/input.js  replay.js      live keyboard/mouse/gamepad (standard layout mapped onto BUTTONS) → one StepInput per logic step; the run's input record (changes only), the last ten kept as replays (.bbr)
 src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, VIEWS
 src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS and the AI state machine
-src/weapons.js bullets.js    player weapon stats, drops, grenades; projectile stepping and ricochet
+src/weapons.js bullets.js    player weapon stats, drops, grenades (the launcher's, and the grenadier's lobbed ones: ring, fuse, kick back, AIRBURST); projectile stepping and ricochet
 src/waves.js  pickups.js     MODES (arcade: 12 waves, then RUN CLEAR; endless), wave composition and spawn pacing; floor weapons and pads
 src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 4 maps as data
 src/nav.js                   grid A* on 0.5 m cells

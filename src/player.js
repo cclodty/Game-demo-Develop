@@ -576,6 +576,7 @@ export class Player {
       }
       hit = true;
     }
+    if (g.grenades.kick(inCone)) hit = true;
     g.audio.kick(hit);
     if (hit) {
       g.shake(0.25);

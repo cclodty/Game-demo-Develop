@@ -199,6 +199,12 @@ export class Bullets {
         const t = segCircle(x0, z0, x1, z1, o.x, o.z, 0.28);
         if (t >= 0 && (!best || t < best.t)) best = { t, type: 'bullet', other: o };
       }
+      // an enemy grenade in the air: met where it is over the floor, whatever its height
+      for (const gr of game.grenades.list) {
+        if (gr.owner !== 'enemy' || gr.landed) continue;
+        const t = segCircle(x0, z0, x1, z1, gr.x, gr.z, gr.lob.hitRadius);
+        if (t >= 0 && (!best || t < best.t)) best = { t, type: 'grenade', grenade: gr };
+      }
     } else {
       const p = game.player;
       if (p.alive && !p.spinning && !p.sliding) {
@@ -265,6 +271,10 @@ export class Bullets {
           b.pierce--;
           b.hits.push(hit.enemy);
         } else b.alive = false;
+        return;
+      case 'grenade':
+        game.grenades.airburst(hit.grenade);
+        b.alive = false;
         return;
       case 'player':
         game.player.hurt(b.damage, b.dx, b.dz, false, b.source && b.source.cfg ? `${b.source.cfg.label} 的子彈` : '子彈');

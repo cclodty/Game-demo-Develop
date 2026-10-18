@@ -144,6 +144,14 @@ export const MODELS = {
     ],
   },
   blade: { asset: 'weapon_blade', hold: 'right', end: 1.15, parts: [[0.05, 0.04, 0.55, 0, 0, 0.9, 'accent']] },
+  grenade: {
+    hold: 'right',
+    end: 0.7,
+    parts: [
+      [0.12, 0.13, 0.12, 0, 0.02, 0.62, 'gun'],
+      [0.04, 0.05, 0.04, 0, 0.11, 0.62, 'accent'],
+    ],
+  },
   detonator: {
     hold: 'right',
     end: 0.7,

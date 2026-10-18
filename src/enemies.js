@@ -112,6 +112,27 @@ export const TYPES = {
     look: { body: 0x2c2a1e, pants: 0x1c1a14, accent: 0xff5a1a, hair: 0x1a1a1a, weapon: 'detonator' },
     spawn: { from: 6, weight: 1.5, max: 2 },
   },
+  grenadier: {
+    label: 'GRENADIER',
+    model: 'rifle', // the rifleman's model, with a bag of grenades on his back
+    hp: 3,
+    speed: 3.0,
+    radius: 0.32,
+    aimTime: 0.6, // the wind-up before a throw (no laser: the ring where it lands is the warning)
+    cooldown: [3.4, 4.6],
+    range: [8, 15], // he keeps this far off and needs no line of sight: the grenade goes over cover
+    weapon: 'grenade',
+    score: 200,
+    lead: [0, 0],
+    turn: 4,
+    // lobbed onto where the player stands: `flight` s in the air (`apex` m high), then `fuse` s on
+    // the ground, when a kick sends it `kickDistance` m back in `kickFlight` s; a blast of `radius` m.
+    // A player's bullet within `hitRadius` m of its shadow (where it is over the floor) sets it off
+    // in the air: AIRBURST, `airburst` points
+    lob: { flight: 2.5, apex: 3, fuse: 0.5, radius: 3, kickDistance: 10, kickFlight: 0.55, hitRadius: 0.6, airburst: 150 },
+    look: { body: 0x2e3324, pants: 0x1c2016, accent: 0x9be22a, hair: 0x3a4422, weapon: 'grenade' },
+    spawn: { from: 5, weight: 1.4, max: 2 },
+  },
 };
 
 const WEAPONS = {
@@ -140,6 +161,7 @@ class Enemy {
     this.turnT = 0; // a kicked bomber charges along (dashX, dashZ) this long
     this.dashX = this.dashZ = 0;
     if (cfg.bomb) this.buildVest();
+    if (cfg.lob) this.buildBag();
     this.idleOffset = rand(0, 10);
     this.game.scene.add(this.rig.root);
     const lc = LASER_COLOR[cfg.weapon] || LASER_COLOR.pistol;
@@ -243,6 +265,24 @@ class Enemy {
     this.lamp = lamp;
   }
 
+  /** The grenadier's bag: an olive canvas box on his back with two grenades strapped to it. */
+  buildBag() {
+    const g = new THREE.Group();
+    const bag = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.46, 0.2), new THREE.MeshStandardMaterial({ color: 0x3d4a2a, roughness: 0.9 }));
+    g.add(bag);
+    const shell = new THREE.MeshStandardMaterial({ color: 0x2c3328, roughness: 0.5, metalness: 0.4 });
+    for (const x of [-0.11, 0.11]) {
+      const nade = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), shell);
+      nade.position.set(x, -0.08, -0.13);
+      g.add(nade);
+    }
+    for (const m of g.children) m.castShadow = true;
+    g.position.set(0, 1.12, -0.24);
+    this.rig.inner.add(g);
+    this.game.style.dress(g);
+    this.bag = g;
+  }
+
   get shieldUp() {
     return !!this.cfg.shield && this.alive && this.shieldDownT <= 0;
   }
@@ -256,7 +296,7 @@ class Enemy {
   }
 
   dispose() {
-    for (const part of [this.shieldMesh, this.vest]) {
+    for (const part of [this.shieldMesh, this.vest, this.bag]) {
       for (const m of part ? part.children : []) {
         m.geometry.dispose();
         m.material.dispose();
@@ -501,6 +541,19 @@ class Enemy {
     this.game.audio.aimWarn(this.game.panFor(this.x));
   }
 
+  /** A grenadier's throw: over any cover, onto where the player stands now. */
+  throwGrenade() {
+    const g = this.game;
+    const p = g.player;
+    const m = this.muzzle();
+    g.grenades.lob(m.x, m.z, p.x, p.z, this.cfg.lob, this);
+    g.audio.toss();
+    this.endAim();
+    this.state = 'recover';
+    this.timer = 0.5;
+    this.fireCd = g.rng.range(this.cfg.cooldown[0], this.cfg.cooldown[1]);
+  }
+
   shoot() {
     const g = this.game;
     const rng = g.rng;
@@ -613,7 +666,9 @@ class Enemy {
         case 'idle':
           break;
         case 'move': {
-          if (this.los && this.fireCd <= 0 && distP < cfg.range[1] + 3 && this.mgr.requestToken(this)) {
+          // a grenadier throws over cover: he needs the distance, not a line of sight
+          const inReach = cfg.lob ? distP < cfg.range[1] + 3 && distP > cfg.lob.radius + 1 : this.los && distP < cfg.range[1] + 3;
+          if (inReach && this.fireCd <= 0 && this.mgr.requestToken(this)) {
             this.startAim();
             break;
           }
@@ -633,7 +688,7 @@ class Enemy {
           const a = this.aimPoint();
           this.aimAngle = turnTowards(this.aimAngle, angleTo(this.x, this.z, a.x, a.z), cfg.turn * dt);
           face = this.aimAngle;
-          if (!this.los) {
+          if (!this.los && !cfg.lob) {
             this.losLost += dt;
             if (this.losLost > 0.35) {
               this.endAim();
@@ -644,6 +699,10 @@ class Enemy {
             }
           } else this.losLost = 0;
           if (cfg.weapon === 'shotgun' && distP > 4) want = [(dxp / distP) * 1.2, (dzp / distP) * 1.2];
+          if (this.aimT >= this.aimTime && cfg.lob) {
+            this.throwGrenade();
+            break;
+          }
           if (this.aimT >= this.aimTime) {
             const w = WEAPONS[cfg.weapon];
             this.state = 'fire';
