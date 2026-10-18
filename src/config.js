@@ -101,6 +101,16 @@ export const WARMUP = {
  * without a hit, and how fast a cleared run was. A run that falls gets no
  * time points. The god-mode bot clears 12 waves with about 206,000 points.
  */
+/** The best-kill clip (clip.js): overlapping recordings of a small copy of the screen. */
+export const CLIP = {
+  before: 6, // seconds kept ahead of the best kill
+  after: 2, // and after it
+  every: 4, // a new recording starts this often (about three run at once)
+  fps: 30,
+  width: 960, // pixels; the height follows the screen
+  bitrate: 2500000, // bits per second
+};
+
 export const RATING = {
   style: 50, // points for the Style score, all of them at stylePar or more
   clean: 30, // points for waves cleared without a hit, all of them when every wave of the run is clean

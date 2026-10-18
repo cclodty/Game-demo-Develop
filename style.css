@@ -1053,7 +1053,8 @@ body.playing * {
   margin-top: 22px;
 }
 
-.menu button {
+.menu button,
+.menu a.button {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1068,13 +1069,16 @@ body.playing * {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-left: 3px solid var(--pink);
   cursor: pointer;
+  text-decoration: none;
   transition:
     background 0.15s,
     transform 0.15s;
 }
 
 .menu button:hover,
-.menu button:focus-visible {
+.menu button:focus-visible,
+.menu a.button:hover,
+.menu a.button:focus-visible {
   background: rgba(255, 63, 164, 0.14);
   transform: translateX(3px);
   outline: none;
@@ -1094,6 +1098,45 @@ body.playing * {
 
 #gameover .menu {
   margin-top: 14px;
+}
+
+/* the best kill plays before the score (clip.js) */
+.go-clip {
+  display: none;
+  width: min(960px, 100%);
+  margin: auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+#gameover.clip-on .go-clip {
+  display: flex;
+}
+
+#gameover.clip-on .panel {
+  display: none;
+}
+
+.go-clip video {
+  width: 100%;
+  max-height: 80vh;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 40px rgba(255, 63, 164, 0.25);
+}
+
+.go-clip-label {
+  font-family: var(--display);
+  font-size: 26px;
+  letter-spacing: 6px;
+  color: var(--gold);
+}
+
+.go-clip-label span {
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: var(--dim);
 }
 
 #gameover.cleared .go-title {

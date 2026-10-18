@@ -164,6 +164,10 @@
     </div>
 
     <div id="gameover" class="screen hidden">
+      <div class="go-clip" id="go-clip">
+        <video id="go-clip-video" muted playsinline></video>
+        <div class="go-clip-label">最佳擊殺 <span>BEST KILL · 點擊略過</span></div>
+      </div>
       <div class="panel small">
         <div class="logo-en red go-title" id="go-title">GAME OVER</div>
         <div class="go-score" id="go-score">0</div>
@@ -188,6 +192,7 @@
         <div class="menu">
           <button type="button" data-act="title">返回主畫面 · 換地圖 <kbd>T</kbd></button>
           <button type="button" data-act="export">匯出回饋 <small class="notes-count"></small> <kbd>⇩</kbd></button>
+          <a class="button hidden" id="go-clip-save" href="#" download="bullet-ballet.webm"><span>存下最佳片段 <small>.webm</small></span> <kbd>⇩</kbd></a>
         </div>
       </div>
     </div>

@@ -69,12 +69,13 @@ src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-tim
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
 src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
 src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
+src/clip.js                  the best-kill clip: overlapping MediaRecorder recordings of a small copy of the screen, played on the end screen
 src/rules.js                 run rules: difficulties and variants as data (one switch or number each), read by their systems as game.ruleset
 src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export
 src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions
 src/senado/                  Largo do Senado data and model code extracted from the senado/ sub-project
 scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, serve.mjs, senado-extract.mjs
-test/                        node:test + playwright; helpers.mjs has the bot
+test/                        node:test + playwright; helpers.mjs has the bot; fixtures/ holds a short recorded clip
 assets/                      SPEC.md, PROMPTS.md, START_HERE.md, asset-list.*, maps/*.json, source/ (masters), models/ (web)
 docs/                        ROADMAP.md, TASKS.md, DECISIONS.md; shots/ holds the screenshots PR descriptions show
 senado/                      the Largo do Senado city-model sub-project (own README, tests, scripts); don't edit from game tasks

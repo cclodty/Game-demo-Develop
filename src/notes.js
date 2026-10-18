@@ -203,7 +203,7 @@ export class Notes {
     p.innerHTML =
       '<div class="dbg-head">數據面板 <span>` 關閉 · N 記下這一刻</span></div>' +
       '<pre id="dbg-stats"></pre>' +
-      '<div class="dbg-opts"><label><input type="checkbox" id="dbg-fps" /> 常駐 FPS 角標</label><label>畫質 <select id="dbg-quality"><option value="high">高</option><option value="low">低：無泛光、無陰影</option></select></label></div>' +
+      '<div class="dbg-opts"><label><input type="checkbox" id="dbg-fps" /> 常駐 FPS 角標</label><label><input type="checkbox" id="dbg-clip" /> 最佳片段錄影</label><label>畫質 <select id="dbg-quality"><option value="high">高</option><option value="low">低：無泛光、無陰影</option></select></label></div>' +
       '<div class="dbg-title">風格</div><div class="dbg-opts" id="dbg-style"></div>' +
       '<div class="dbg-title">手感數字（即時生效，會記住） <button type="button" id="dbg-reset">重設為預設</button></div>' +
       '<div id="dbg-tune"></div>' +
@@ -227,6 +227,13 @@ export class Notes {
     $('dbg-fps').addEventListener('change', (e) => {
       this.setFpsBadge(e.target.checked);
       e.target.blur(); // so the game's keys work again straight away
+    });
+    const clip = $('dbg-clip');
+    clip.checked = this.game.clip.active;
+    clip.disabled = !this.game.clip.supported;
+    clip.addEventListener('change', () => {
+      this.game.clip.setOn(clip.checked);
+      clip.blur();
     });
     const sel = $('dbg-quality');
     sel.value = this.quality;
@@ -273,6 +280,12 @@ export class Notes {
     return `平均 ${avg} fps · 低於 50 fps ${r.below50.toFixed(1)} 秒（${pct}%）· 低於 30 fps ${r.below30.toFixed(1)} 秒 · 最差一格 ${Math.round(r.worst * 1000)} ms · GPU ${this.gpu} · 畫質 ${this.quality === 'low' ? '低' : '高'}`;
   }
 
+  /** Whether the best-kill clip is recording (clip.js), for the stats and the export. */
+  clipState() {
+    const c = this.game.clip;
+    return !c.supported ? '不支援' : c.active ? `開（${c.plan.running} 段）` : '關';
+  }
+
   renderStats() {
     const g = this.game;
     const p = g.player;
@@ -287,7 +300,7 @@ export class Notes {
       `${g.state} · ${g.level.map.name} · 第 ${w.wave} 波（${w.state}，剩 ${w.remaining}）· 敵人 ${g.enemies.aliveCount} · 子彈 ${g.bullets.list.length}`,
       `HP ${Math.max(0, Math.ceil(p.hp))} · (${p.x.toFixed(1)}, ${p.z.toFixed(1)}) · ${p.weapon.name} ${ammo} · ${spin} · 無敵 ${p.invuln > 0 ? p.invuln.toFixed(2) : '—'}`,
       `${fmt(g.score.score)} 分 · 連擊 x${g.score.mult} · 開局後 ${mmss(this.runT)} · 鏡頭 ${VIEWS[g.view].name}`,
-      `這局：${this.perfLine()}`,
+      `這局：${this.perfLine()} · 最佳片段錄影 ${this.clipState()}`,
     ];
     $('dbg-stats').textContent = lines.join('\n');
     if (this.dirty) {
@@ -481,6 +494,7 @@ export class Notes {
       `- 瀏覽器：${navigator.userAgent}`,
       `- 視窗：${innerWidth}×${innerHeight} @${devicePixelRatio}x · 鏡頭 ${VIEWS[g.view].name}`,
       `- 效能（這局到此刻）：${this.perfLine()}`,
+      `- 最佳片段錄影：${this.clipState()}`,
       `- 風格：${Object.entries(SWITCHES).map(([k, l]) => `${l.replace(/（.*$/, '')} ${g.style.on[k] ? '開' : '關'}`).join('、')}`,
       `- 調整過的手感數字：${diff.length ? diffLine(diff) : '無（全部預設）'}`,
       '',

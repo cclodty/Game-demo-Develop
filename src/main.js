@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
 import { buildCharacter, disposeRig } from './characters.js';
+import { Clip } from './clip.js';
 import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PLAYER, RATING, VIEWS } from './config.js';
 import { Enemies } from './enemies.js';
 import { FX } from './fx.js';
@@ -126,6 +127,7 @@ class Game {
     this.score = new Score(this);
     this.waves = new Waves(this);
     this.hud = new HUD(this);
+    this.clip = new Clip(this); // the best kill, recorded for the end screen
     this.post = new PostFX(this.renderer, this.scene, this.camera);
     this.post.setSize(innerWidth, innerHeight);
     this.post.bloom.enabled = this.quality !== 'low';
@@ -243,8 +245,10 @@ class Game {
     this.markMapCard();
     $('title').addEventListener('click', () => start());
     $('gameover').addEventListener('click', () => {
-      if (performance.now() - this.overAt > 700) start();
+      if (this.clipOn) this.endClip(); // a click skips the clip
+      else if (performance.now() - this.overAt > 700) start();
     });
+    $('go-clip-save').addEventListener('click', (e) => e.stopPropagation()); // saving is not restarting
     $('pause').addEventListener('click', () => this.setPaused(false));
     const menu = {
       resume: () => this.setPaused(false),
@@ -282,6 +286,7 @@ class Game {
         if (this.state === 'playing') this.hud.feed(on ? 'MUSIC ON' : 'MUSIC OFF', 0, 'dim');
       } else if (e.code === 'Enter') {
         if (this.state === 'title') start();
+        else if (this.clipOn) this.endClip();
         else if (this.state === 'over' && performance.now() - this.overAt > 700) start();
       } else if (this.state === 'title' && /^Digit[1-9]$/.test(e.code)) {
         const i = Number(e.code.slice(5)) - 1;
@@ -358,6 +363,8 @@ class Game {
       this.waves.startWarmup();
       this.tutorial.start();
     }
+    this.endClip();
+    this.clip.start();
     this.state = 'playing';
     $('title').classList.add('hidden');
     $('gameover').classList.add('hidden');
@@ -535,6 +542,54 @@ class Game {
     $('gameover').classList.remove('hidden');
     document.body.classList.remove('playing');
     this.hud.show(false);
+    this.showClip();
+  }
+
+  /** The end screen opens on the run's best kill when there is a recording of it, then shows the score. */
+  showClip() {
+    const save = $('go-clip-save');
+    save.classList.add('hidden');
+    const at = this.overAt;
+    if (this.clip.active && this.clip.plan.best > 0) this.setClipOn(true); // the score waits while the recording is fetched
+    this.clip.finish().then((c) => {
+      if (this.state !== 'over' || this.overAt !== at) return; // a new run started meanwhile
+      if (!c) return this.endClip();
+      if (this.clipUrl) URL.revokeObjectURL(this.clipUrl);
+      this.clipUrl = URL.createObjectURL(c.blob);
+      this.notes.log(`最佳片段：${Math.round(c.points).toLocaleString('en-US')} 分的擊殺，${c.length.toFixed(1)} 秒`);
+      save.href = this.clipUrl;
+      save.download = `bullet-ballet-${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.webm`;
+      save.classList.remove('hidden');
+      const video = $('go-clip-video');
+      const end = c.offset + c.length;
+      video.onloadedmetadata = () => {
+        if (c.offset > 0) video.currentTime = c.offset;
+        video.play().catch(() => this.endClip());
+      };
+      video.ontimeupdate = () => {
+        if (video.currentTime >= end) this.endClip();
+      };
+      video.onended = video.onerror = () => this.endClip();
+      video.src = this.clipUrl;
+      clearTimeout(this.clipTimer);
+      this.clipTimer = setTimeout(() => this.endClip(), (c.length + 3) * 1000); // in case the video never says it ended
+      this.setClipOn(true);
+      return undefined;
+    });
+  }
+
+  setClipOn(on) {
+    this.clipOn = on;
+    $('gameover').classList.toggle('clip-on', on);
+  }
+
+  /** The clip is over (or skipped): stop it and show the score. */
+  endClip() {
+    if (!this.clipOn) return;
+    clearTimeout(this.clipTimer);
+    const video = $('go-clip-video');
+    video.pause();
+    this.setClipOn(false);
   }
 
   /** The arcade grade on the end screen: the letter, its three parts, and a hint at the weakest one. */
@@ -645,7 +700,9 @@ class Game {
     if (info.bullet && info.bullet.kills >= 2) tags.push({ label: 'COLLATERAL', pts: 150 * (info.bullet.kills - 1), cls: 'gold' });
     if (last) tags.push({ label: 'LAST ONE', pts: 100 });
 
+    const before = this.score.score;
     this.score.kill(tags);
+    this.clip.kill(this.score.score - before);
     this.notes.log(`擊殺 ${e.cfg.label}：${tags.map((t) => t.label).join(' + ')} ×${this.score.mult}`);
     this.addFocus(refill);
     this.hud.hitMarker(true);
@@ -784,6 +841,7 @@ class Game {
     if (this.state !== 'playing' && this.state !== 'dying') this.input.dropEdges();
     this.notes.update(realDt, rawDt);
     this.render();
+    if (this.state === 'playing' || this.state === 'dying') this.clip.frame(realDt); // after the frame is drawn
   }
 
   updateAim() {
