@@ -183,6 +183,57 @@ const POSES = {
   blade: { lx: 0.95, ly: 0, rx: 0.5, ry: 0 },
 };
 
+/**
+ * Key poses (風格第二批): the held shapes of the slide, the spin and a carry overhead, in place of
+ * a body tilted by code, on the block rig and a worn model alike. In the rig's own space (x to its
+ * left, y up, z ahead, metres): `lift`, `ahead` and `lean` (radians, back is negative) move and tip
+ * the whole body; `footL`/`footR` place each foot from straight under its hip, and `kneeL`/`kneeR` say
+ * which way that knee points (a worn model's legs reach the feet there with their knees; a block leg,
+ * one piece, points at the foot); `chest` curls a worn model's spine forward (negative arches it).
+ * `block` overrides for the block rig. `still`: the legs' part only standing; walking, the gait keeps them.
+ */
+export const KEY_POSES = {
+  // a baseball slide: lying back, the right leg out straight in front, the left folded under it
+  slide: { lift: -0.4, ahead: 0.5, lean: -0.8, chest: 0.5, footL: [0.06, 0.3, 0.3], footR: [0, 0.14, 0.62], kneeL: [0.2, 0.4, 1], kneeR: [0, 1, 0.3] },
+  // a pirouette: up on the left foot, the right knee turned out and its foot at the left knee (retiré)
+  spin: { lift: 0.05, ahead: 0, lean: 0, chest: 0.08, footL: [0, 0, 0], footR: [0.2, 0.4, 0.06], kneeL: [0, 0, 1], kneeR: [-1, 0.1, 0.5], block: { footR: [-0.35, 0.45, 0.35] } },
+  // a weight overhead: feet planted wide, knees soft, the back arched
+  carry: { lift: -0.03, ahead: 0, lean: -0.08, chest: -0.14, footL: [0.26, 0.03, 0.04], footR: [-0.26, 0.03, -0.04], kneeL: [0.4, 0, 1], kneeR: [-0.4, 0, 1], still: true },
+};
+
+/**
+ * Hold a key pose over the gait animateRig() just set: `name` from KEY_POSES at weight `w` (0–1), or
+ * null to stand straight. finishRig() carries it over to a worn model.
+ */
+export function keyPose(rig, name, w = 1) {
+  const an = rig.anim;
+  const k = name ? KEY_POSES[name] : null;
+  if (!k || w <= 0) {
+    rig.inner.position.y = rig.inner.position.z = 0;
+    rig.inner.rotation.x = 0;
+    rig.legL.rotation.z = rig.legR.rotation.z = 0;
+    return;
+  }
+  const legs = k.still ? w * (1 - Math.min(1, an.moveAmt * 2)) : w;
+  const b = { ...k, ...k.block };
+  an.key = k;
+  an.keyW = w;
+  an.keyLegs = legs;
+  rig.inner.position.y = k.lift * legs;
+  rig.inner.position.z = k.ahead * legs;
+  rig.inner.rotation.x = k.lean * w;
+  // each block leg points from its hip at where its foot goes
+  for (const [leg, [dx, dy, dz]] of [
+    [rig.legL, b.footL],
+    [rig.legR, b.footR],
+  ]) {
+    const l = Math.hypot(dx, dy - BODY.hip, dz);
+    leg.rotation.x += (Math.atan2(-dz / l, -(dy - BODY.hip) / l) - leg.rotation.x) * legs;
+    leg.rotation.z = Math.asin(dx / l) * legs;
+  }
+  an.legR = rig.legR.rotation.x;
+}
+
 function partMesh(p, mats) {
   const [w, h, d, x, y, z, m] = p;
   const mesh = new THREE.Mesh(box(w, h, d, x, y, z), m === 'wood' ? woodMat : mats[m]);
@@ -434,6 +485,9 @@ export function animateRig(rig, phase, moveAmt, moveDir) {
   const bob = Math.abs(Math.cos(phase)) * 0.04 * moveAmt;
   rig.legL.rotation.x = swing;
   rig.legR.rotation.x = -swing;
+  rig.legL.rotation.z = rig.legR.rotation.z = 0;
+  an.legR = -swing; // where the right leg is before a kick moves it (skin.js copies the difference)
+  an.key = null; // keyPose() sets one after this
   rig.torso.position.y = BODY.torsoY + bob;
   rig.head.position.y = BODY.headY + bob;
 }

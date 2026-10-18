@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GUN_Y, PLAYER } from './config.js';
-import { animateRig, attachWeapon, buildCharacter, deathPose, finishRig, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
+import { animateRig, attachWeapon, buildCharacter, deathPose, finishRig, keyPose, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { angleTo, clamp, damp, rand, wrapAngle } from './utils.js';
 import { PLAYER_WEAPONS } from './weapons.js';
@@ -651,6 +651,7 @@ export class Player {
     this.vx = this.deathDx * 6;
     this.vz = this.deathDz * 6;
     this.rig.root.rotation.y = Math.atan2(-this.deathDx, -this.deathDz);
+    keyPose(this.rig, null); // fall from standing, not from where a slide or a spin left the body
     this.aimLaser.hide();
     this.splitLaser.hide();
     this.rig.ring.visible = false;
@@ -687,24 +688,13 @@ export class Player {
     if (!this.game.style.poseDue(r, this.game.worldTime)) return;
     animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
 
-    if (this.spinT > 0) {
-      const k = 1 - this.spinT / PLAYER.spinDuration;
-      r.inner.rotation.y = this.spinYaw();
-      r.inner.position.y = Math.sin(k * Math.PI) * 0.3;
-    } else {
-      r.inner.rotation.y = 0;
-      r.inner.position.y = 0;
-    }
-    if (this.slideT > 0) {
-      // lie back along the slide: body low and tilted, legs out in front
-      const k = 1 - this.slideT / PLAYER.slideDuration;
-      const e = Math.min(1, k * 4) * Math.min(1, (1 - k) * 4);
-      r.inner.position.y = -0.38 * e;
-      r.inner.rotation.x = -0.75 * e;
-      r.legL.rotation.x = r.legR.rotation.x = -1.3 * e;
-    } else {
-      r.inner.rotation.x = 0;
-    }
+    // the moves' key poses (characters.js KEY_POSES), held, with one in-between at each end
+    const carrying = !!(this.game.thrown && this.game.thrown.carry);
+    r.inner.rotation.y = this.spinYaw();
+    const held = (k) => (k < 0.12 || k > 0.88 ? 0.5 : 1);
+    if (this.slideT > 0) keyPose(r, 'slide', held(1 - this.slideT / PLAYER.slideDuration));
+    else if (this.spinT > 0) keyPose(r, 'spin', held(1 - this.spinT / PLAYER.spinDuration));
+    else keyPose(r, carrying ? 'carry' : null);
     if (this.kickT > 0) {
       const k = 1 - this.kickT / 0.28;
       r.legR.rotation.x = -1.7 * Math.sin(k * Math.PI);
@@ -725,9 +715,11 @@ export class Player {
       r.armL.rotation.y = pose.ly;
     }
     r.armR.rotation.y = pose.ry;
-    const carrying = !!(this.game.thrown && this.game.thrown.carry);
-    r.armL.rotation.x = carrying ? -2.7 : pose.lx;
-    r.armR.rotation.x = carrying ? -2.7 : pose.rx;
+    // the guns stay level with the aim however the body leans (a slide lies back, an execution leans in)
+    const level = -r.inner.rotation.x;
+    r.armL.rotation.x = (carrying ? -2.7 : pose.lx) + level;
+    r.armR.rotation.x = (carrying ? -2.7 : pose.rx) + level;
+    r.anchor.rotation.x = r.center.rotation.x = level;
     if (r.hold === 'dual') {
       r.armL.position.z = -this.recoilL * 0.14;
       r.armR.position.z = -this.recoilR * 0.14;

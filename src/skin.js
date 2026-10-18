@@ -26,6 +26,10 @@ const _s = new THREE.Vector3();
 const _el = new THREE.Vector3();
 const _h = new THREE.Vector3();
 const _side = new THREE.Vector3();
+const _footAt = new THREE.Vector3();
+const _hipAt = new THREE.Vector3();
+const _kneeAt = new THREE.Vector3();
+const _off = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const _qi = new THREE.Quaternion();
 const _qw = new THREE.Quaternion();
@@ -73,6 +77,8 @@ const PARTS = {
   foreArm: ['forearm', 'lowerarm', 'elbow'],
   hand: ['hand', 'wrist'],
   upLeg: ['upleg', 'upperleg', 'thigh'],
+  lowLeg: ['leg', 'lowerleg', 'lowleg', 'calf', 'shin', 'knee'],
+  foot: ['foot', 'ankle'],
 };
 
 const boneKids = (b) => b.children.filter((c) => c.isBone);
@@ -114,6 +120,8 @@ export function findBones(root, overrides = {}) {
     if (!found[`upperArm${s}`] && found[`hand${s}`]) found[`upperArm${s}`] = found[`hand${s}`].parent?.parent;
     if (!found[`foreArm${s}`] && found[`upperArm${s}`]) found[`foreArm${s}`] = mainChild(found[`upperArm${s}`]);
     if (!found[`hand${s}`] && found[`foreArm${s}`]) found[`hand${s}`] = mainChild(found[`foreArm${s}`]);
+    if (!found[`lowLeg${s}`] && found[`upLeg${s}`]) found[`lowLeg${s}`] = mainChild(found[`upLeg${s}`]);
+    if (!found[`foot${s}`] && found[`lowLeg${s}`]) found[`foot${s}`] = mainChild(found[`lowLeg${s}`]);
   }
   if (!found.spine && found.hips) found.spine = boneKids(found.hips).find((c) => sideOf(c.name) === 0) || null;
   return found;
@@ -367,7 +375,9 @@ export function poseSkin(rig, time) {
   const an = rig.anim;
   const b = skin.bones;
   const A = skin.actions;
-  const moving = clamp(an.moveAmt, 0, 1);
+  const key = an.key;
+  // a key pose's legs take over from the run clip (a carry's, standing only, leaves it be)
+  const moving = clamp(an.moveAmt, 0, 1) * (key && !key.still ? 1 - an.keyW : 1);
 
   let rel = 0;
   let back = false;
@@ -405,8 +415,26 @@ export function poseSkin(rig, time) {
     turnBone(b.hips, UP, yaw);
     turnBone(b.spine, UP, -yaw);
   }
-  // the block rig's kick, on the right thigh: how far its leg is past the gait's -swing
-  const kick = rig.legR.rotation.x + an.swing;
+  // a key pose (characters.js KEY_POSES): each foot placed from under its hip in the rig's space
+  // (at the clip's ankle height), the knee bent towards its pole by a two-bone reach; the chest curled
+  if (key && an.keyLegs > 0.01) {
+    const legs = an.keyLegs;
+    for (const k of ['L', 'R']) {
+      const up = b[`upLeg${k}`];
+      const low = b[`lowLeg${k}`];
+      const foot = b[`foot${k}`];
+      if (!up || !low || !foot) continue;
+      const [dx, dy, dz] = key[`foot${k}`];
+      const hip = rig.inner.worldToLocal(up.getWorldPosition(_hipAt));
+      const at = rig.inner.worldToLocal(foot.getWorldPosition(_footAt));
+      rig.inner.localToWorld(at.set(at.x + (hip.x + dx - at.x) * legs, at.y + dy * legs, at.z + (hip.z + dz - at.z) * legs));
+      rig.inner.worldToLocal(low.getWorldPosition(_kneeAt)).add(_off.fromArray(key[`knee${k}`]));
+      reach(up, low, foot, _footAt, rig.inner.localToWorld(_kneeAt));
+    }
+  }
+  if (key && b.spine && key.chest) turnBone(b.spine, side, key.chest * an.keyW);
+  // the block rig's kick, on the right thigh: how far its leg is past where the gait (and a key pose) put it
+  const kick = rig.legR.rotation.x - an.legR;
   if (Math.abs(kick) > 0.02 && b.upLegR) turnBone(b.upLegR, side, kick);
 
   // hands on the weapons: the chest squares up to the aim (an idle clip's twist would
