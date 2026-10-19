@@ -121,7 +121,7 @@ test('玻璃之城: on every map each box of cover is glass, a bullet breaks it,
     // boxes of cover up to 1.8 m inside the play area (the parapets and kerbs around it are its edge, not cover)
     const cover = (L) => {
       const { halfW: W, halfD: D } = L.bounds;
-      return L.solids.filter((s) => !s.poly && s.kind !== 'glass' && s.h <= 1.8 && s.minX > -W && s.maxX < W && s.minZ > -D && s.maxZ < D).length;
+      return L.solids.filter((s) => !s.poly && s.kind !== 'glass' && !s.door && s.h <= 1.8 && s.minX > -W && s.maxX < W && s.minZ > -D && s.maxZ < D).length; // a door (fixtures.js) is a door, not cover
     };
     for (let map = 0; map < g.maps.length; map++) {
       window.run(map, 'normal');

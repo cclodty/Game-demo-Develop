@@ -2,7 +2,7 @@
 // you can read, dodge, deflect and ricochet them.
 
 import * as THREE from 'three';
-import { BULLET, GUN_Y, PLAYER } from './config.js';
+import { BULLET, GUN_Y, PAN, PLAYER } from './config.js';
 import { pointSegDist2, segCircle } from './utils.js';
 
 function trailGeometry(headW, tailW) {
@@ -104,6 +104,7 @@ export class Bullets {
     b.reflected = false;
     b.dodgedSpin = false;
     b.source = o.source || null;
+    b.homeRun = false; // set by batBack: a bullet of the pool keeps nothing from its last life
     this.list.push(b);
     this.updateVisual(b);
     return b;
@@ -256,6 +257,12 @@ export class Bullets {
         b.alive = false;
         return;
       }
+      case 'extinguisher':
+        hit.prop.hit(1, b.dx, b.dz);
+        fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 6, [7, 7, 7], 6);
+        game.audio.impact(pan);
+        b.alive = false;
+        return;
       case 'barrel':
         hit.prop.hit(b.owner === 'player' ? Math.max(1, b.damage) : 0.5, b.dx, b.dz);
         fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 8, [7, 3, 1], 6);
@@ -268,6 +275,14 @@ export class Bullets {
       case 'pan':
         if (b.owner === 'player' && hit.prop.y > 0.6) this.scatter(b, hit.prop);
         else this.ricochet(b, hit.prop);
+        return;
+      case 'lamp':
+      case 'sign':
+      case 'shutter':
+        // a fixture (fixtures.js): the player's bullets work it, anyone else's just stop
+        if (b.owner === 'player') hit.prop.shot(b);
+        else fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 4, [6, 1.4, 0.6], 5);
+        b.alive = false;
         return;
       case 'enemy':
         if (hit.enemy.hit(b) === 'blocked') {
@@ -302,6 +317,41 @@ export class Bullets {
         return;
       }
     }
+  }
+
+  /**
+   * The pan's swing meets an enemy bullet (player.js parry): it turns round as the player's own, aimed at
+   * the nearest enemy in sight (else straight back), fast; a kill by it is a HOME RUN. A sniper's shot
+   * batted back is a GONG.
+   */
+  batBack(b) {
+    const game = this.game;
+    const sniper = !!(b.source && b.source.cfg && b.source.cfg.weapon === 'sniper');
+    const target = game.enemies.nearestVisible(b.x, b.z, 32);
+    let nx = -b.dx;
+    let nz = -b.dz;
+    if (target) {
+      nx = target.x - b.x;
+      nz = target.z - b.z;
+    }
+    const l = Math.hypot(nx, nz) || 1;
+    b.dx = nx / l;
+    b.dz = nz / l;
+    b.owner = 'player';
+    b.damage = PAN.batDamage;
+    b.speed = Math.max(b.speed, PAN.batSpeed);
+    b.homeRun = true;
+    b.hits = [];
+    b.trailLen = 0;
+    b.range = b.traveled + 40;
+    this.setLook(b, 'ricochet');
+    game.fx.sparks(b.x, GUN_Y, b.z, b.dx, b.dz, 14, [7, 7, 5], 10, 0.8);
+    game.fx.flash(b.x, GUN_Y, b.z, 0xfff0c0, 30, 0.2, 7);
+    game.audio.ricochet(game.panFor(b.x));
+    if (sniper) {
+      game.score.style('GONG', 150, true);
+      game.notes.log('鑊擋下狙擊彈（GONG）');
+    } else game.notes.log('鑊打回子彈');
   }
 
   ricochet(b, panProp) {

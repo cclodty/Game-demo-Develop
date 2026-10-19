@@ -40,6 +40,31 @@ export const PLAYER = {
   execInvuln: 0.3, // s untouchable at its start
 };
 
+/** The pan in hand (工具 ①, thrown.js / player.js smash): F swings it. */
+export const PAN = {
+  arc: 1.6, // radians either side of the facing the swing reaches
+  reach: 2.3, // m
+  power: 16, // how hard whoever is hit flies (dazed: an execution follows)
+  damage: 2, // a thug has 3
+  swing: 0.3, // s the swing shows (and, later, parries)
+  barrelFly: 12, // m/s a barrel is batted off at; it goes off where it lands
+  handY: 1.0, // m: where it rides in the hand
+  parry: 0.25, // s from the start of the swing in which an enemy bullet or grenade in the arc is batted back
+  batSpeed: 70, // m/s a batted bullet leaves at, towards the nearest enemy (HOME RUN when it kills)
+  batDamage: 3, // a thug has 3
+};
+
+/** The umbrella (工具 ③, thrown.js / player.js shield): F opens it in front for a moment; G throws it like a dart. */
+export const UMBRELLA = {
+  open: 0.8, // s it stays open
+  cooldown: 1.2, // s after it closes before it opens again
+  arc: 1.22, // radians either side of the facing it covers (±70°)
+  reach: 1.3, // m in front of the player a bullet is caught
+  block: 40, // PARASOL points per bullet caught…
+  blockCap: 200, // …up to this much per opening
+  dartDamage: 3, // thrown: a thug has 3
+};
+
 export const FOCUS = {
   worldScale: 0.2, // world speed while in bullet time
   playerScale: 0.55, // the player is slowed less than the world
@@ -68,7 +93,10 @@ export const COMBO_WINDOW = 3.2;
  * same move again right after itself gains `repeat` times what it gained the
  * time before; a different move gains in full again. A hit drops `hit`
  * ranks; after `idle` seconds without a gain the gauge drains `drain` ranks a
- * second. Times are real seconds. The rank only shows: it changes no score.
+ * second. Standing still (under `campSpeed` m/s) for `camp` seconds with
+ * enemies about drains `campDrain` a second at once (Style 推進): the gauge
+ * wants you moving. A kill `roam` m or more from the last one is a ROAM.
+ * Times are real seconds. The rank only shows: it changes no score.
  */
 export const RANK = {
   names: ['D', 'C', 'B', 'A', 'S', 'SS', 'SSS'],
@@ -80,6 +108,48 @@ export const RANK = {
   hit: 1,
   idle: 5,
   drain: 0.5,
+  camp: 3, // s standing still before the gauge starts to go
+  campDrain: 1, // ranks a second while camping (twice the idle drain)
+  campSpeed: 1, // m/s: slower than this is standing still
+  roam: 8, // m from the last kill for a ROAM
+  roamPts: 60,
+};
+
+/**
+ * How enemies close in (敵人掩體與包抄; enemies.js, TYPES[type].tactic). A
+ * gunner with `tactic: 'cover'` goes behind a box that stands between him and
+ * the player, ducks there, and fights by stepping out (peek); a pair of
+ * rushers with 'flank' split up and arrive from two sides; 'advance' is the
+ * old straight approach.
+ */
+export const AI = {
+  coverSearch: 8, // m: how far a gunner looks for a box to hide behind
+  coverHeight: 0.9, // m: lower cover hides nobody
+  coverGap: 0.55, // m between the cover's face and where he stands
+  duck: [0.8, 1.4], // s hidden between peeks
+  peek: 0.6, // s he stays out after his shot before ducking again
+  peekTimeout: 1.5, // s stepped out without a shot before he gives the spot up
+  peeks: 3, // shots from one spot before he leaves it and comes on
+  rest: 6, // s after leaving a spot before he looks for another; the last man standing never hides
+  flankAngle: 60, // degrees off the straight line each of a pair of rushers takes
+  flankSwing: 0.9, // how wide the arc is: the point he heads for lies this × his distance from the player
+  flankClose: 3, // m: from here they just come straight at you
+};
+
+/**
+ * Waves played in beats (波次拍子; waves.js, the MODES with `beats`): the
+ * wave's roster is split into beats of a few enemies that come in together at
+ * one spot after a telegraph, with quiet between. Endless keeps its trickle.
+ */
+export const BEATS = {
+  size: [3, 6], // enemies a beat brings, least and most (the roster is split as evenly as that allows)
+  finaleSize: [5, 8], // the last wave's beats are bigger
+  telegraph: 1.2, // s the spot's rings burn before they come
+  quiet: 1.5, // s of nothing after a beat is cleared (or spent) before the next telegraph
+  next: 1, // the next beat comes when this many or fewer still stand…
+  after: 12, // …or this many s after the beat came, whatever stands
+  spread: 18, // m: a second door this close to the beat's door shares its enemies
+  clean: 100, // CLEAN BEAT: a beat cleared without taking a hit
 };
 
 /** Things in the maps that play along (環境互動). */
@@ -89,6 +159,31 @@ export const ENV = {
   flockBlind: 0.5, // world seconds before he can aim again (a kill meanwhile is a PIGEON STRIKE)
   flockScare: 1.5, // metres: a player bullet passing this close to a resting flock startles it
   flockAway: [14, 24], // world seconds a startled flock stays away
+  // fixtures (fixtures.js): street lamps and hanging signs
+  lampHits: 2, // player bullets that put a street lamp out
+  darkRadius: 4, // m: the dark pool under a lamp shot out…
+  darkTime: 10, // …for this many world seconds, in which the enemies inside cannot aim (a kill there is BLACKOUT)
+  signHits: 3, // bullets on a hanging sign's bracket before the board drops
+  signFall: 0.45, // s from the bracket breaking to the board on the floor
+  signBlast: 1.2, // m: whoever stands this close to where it lands is CRUSHED
+  signDamage: 60, // what the player takes under it
+  doorOpen: 4, // s a door stays open before it swings shut (if nobody stands in it)
+  doorSlam: 2, // damage a kicked-open door does to whoever stands behind it (and a stun: an execution follows)
+  slamPower: 12, // how hard the door throws him
+  shutterFall: 0.5, // s from the lock giving to the shutter on the ground
+  shutterDamage: 60, // what the player takes under a shutter
+  // a kicked LPG cylinder jets off (level.js Barrel.rocket) and bursts on an enemy or when its time is up: ROCKET CAN
+  rocketTime: 1.5, // s of flight
+  rocketAccel: 26, // m/s² along its way
+  rocketSpeed: 14, // m/s at most
+  // a fire extinguisher (level.js Extinguisher): shot, it bursts into a cloud nobody aims from (SMOKE); kicked, it tumbles about
+  smokeRadius: 3, // m
+  smokeTime: 6, // s the cloud lasts
+  tumbleTime: 2.5, // s a kicked one careers about, bowling over whoever it meets
+  tumbleSpeed: 10, // m/s it keeps while it does
+  // water (level.js `water`): an enemy knocked over the edge of it is gone (SPLASH); props that land in it sink
+  splashSpeed: 4, // m/s towards the water a knocked-over enemy needs to go in
+  splashReach: 0.6, // m beyond his body the water has to be
 };
 
 /** The 60-second warm-up on a first run (src/tutorial.js). */

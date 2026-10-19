@@ -3,7 +3,7 @@
 // ground connected. Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gameHarness, problems, snap } from './helpers.mjs';
+import { gameHarness, OUT, problems, snap } from './helpers.mjs';
 
 let h;
 let page;
@@ -125,5 +125,59 @@ test('every map validates', async () => {
     assert.ok(r.rendered.tris <= r.budget.tris, `${r.map}: ${r.rendered.tris} rendered triangles per frame, budget ${r.budget.tris}`);
     assert.ok(r.rendered.calls <= r.budget.calls, `${r.map}: ${r.rendered.calls} draw calls per frame, budget ${r.budget.calls}`);
   }
+  assert.deepEqual(problems(logs), []);
+});
+
+/** Solids inside the arena (not the edge walls), as centres and sizes. */
+const authoredSolids = (i) =>
+  page.evaluate((i) => {
+    const g = window.game;
+    g.frame = () => {};
+    g.level.load(g.maps[i]);
+    const { halfW: W, halfD: D } = g.level.bounds;
+    return g.level.solids
+      .filter((s) => !s.poly && !s.door && s.kind !== 'glass' && s.minX > -W + 0.1 && s.maxX < W - 0.1 && s.minZ > -D + 0.1 && s.maxZ < D - 0.1)
+      .map((s) => ({ x: (s.minX + s.maxX) / 2, z: (s.minZ + s.maxZ) / 2, w: s.maxX - s.minX, d: s.maxZ - s.minZ }));
+  }, i);
+
+test('the maps with stages are not mirror images of themselves, and each stage is a real, open spot', async () => {
+  const n = await mapCount();
+  let staged = 0;
+  for (let i = 0; i < n; i++) {
+    const info = await page.evaluate((i) => {
+      const m = window.game.maps[i];
+      return { id: m.id, stages: m.stages || null };
+    }, i);
+    if (!info.stages) continue;
+    staged++;
+    const solids = await authoredSolids(i);
+    // a solid with a twin across the map's centre line (same place mirrored in x, same size) counts as symmetric
+    let twins = 0;
+    for (const a of solids) {
+      if (solids.some((b) => b !== a && Math.abs(a.x + b.x) < 0.3 && Math.abs(a.z - b.z) < 0.3 && Math.abs(a.w - b.w) < 0.3 && Math.abs(a.d - b.d) < 0.3)) twins++;
+    }
+    assert.ok(twins / solids.length < 0.3, `${info.id}: ${twins} of ${solids.length} pieces of cover have a mirror twin`);
+    assert.ok(info.stages.length >= 3, `${info.id}: ${info.stages.length} stages`);
+    for (const st of info.stages) {
+      assert.ok(st.name && st.en && st.move && Array.isArray(st.at), `${info.id}: a stage has a name, an English name, a move and a spot`);
+      const open = await page.evaluate(([x, z]) => {
+        const L = window.game.level;
+        return Math.abs(x) < L.bounds.halfW && Math.abs(z) < L.bounds.halfD && L.nav.isWalkable(x, z);
+      }, st.at);
+      assert.ok(open, `${info.id}: the stage ${st.en} at ${st.at} is open ground inside the map`);
+    }
+    await page.evaluate(() => {
+      const g = window.game;
+      const { halfW, halfD } = g.level.bounds;
+      const cam = g.camera;
+      cam.position.set(0, Math.max(halfW, halfD) * 2.35, 0.01);
+      cam.up.set(0, 0, -1);
+      cam.lookAt(0, 0, 0);
+      cam.updateProjectionMatrix();
+      g.renderer.render(g.scene, cam);
+    });
+    await page.screenshot({ path: new URL(`top-${info.id}.png`, OUT).pathname });
+  }
+  assert.ok(staged >= 2, `${staged} maps carry stages`);
   assert.deepEqual(problems(logs), []);
 });

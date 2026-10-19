@@ -51,15 +51,15 @@ const playRun = (page, style) =>
     g.waves.startWave = () => {
       start0();
       const w = g.waves;
-      waves.push({ n: w.wave, map: g.level.map.id, roster: [...w.queue], order: [...w.order], doors: g.level.spawns.map((sp) => [sp.ex, sp.ez]), picks: [], pads: g.level.pads.map((p) => p.pickup && p.pickup.kind) });
+      waves.push({ n: w.wave, map: g.level.map.id, roster: [...w.queue], order: [...w.order], stages: [...w.stageOrder], doors: g.level.spawns.map((sp) => [sp.ex, sp.ez]), picks: [], pads: g.level.pads.map((p) => p.pickup && p.pickup.kind) });
     };
-    const pick0 = g.waves.pickSpawn.bind(g.waves);
-    g.waves.pickSpawn = (type) => {
-      const from = g.waves.orderI;
-      const sp = pick0(type);
-      const min = (TYPES[type] && TYPES[type].spawn && TYPES[type].spawn.minDist) || 9; // a sniper wants a far door
-      waves.at(-1).picks.push({ from, min, at: g.level.spawns.indexOf(sp), px: g.player.x, pz: g.player.z });
-      return sp;
+    // every beat's doors (pickSpots): where it came through, and where the player stood when it was picked
+    const spots0 = g.waves.pickSpots.bind(g.waves);
+    g.waves.pickSpots = (beat) => {
+      const spots = spots0(beat);
+      const far = beat.find((t) => TYPES[t].spawn && TYPES[t].spawn.minDist);
+      waves.at(-1).picks.push({ stage: g.waves.stage ? g.level.map.stages.indexOf(g.waves.stage) : -1, min: far ? TYPES[far].spawn.minDist : 7.5, at: spots.map((sp) => g.level.spawns.indexOf(sp)), px: g.player.x, pz: g.player.z });
+      return spots;
     };
     const inp = g.input;
     let frame = 0;
@@ -99,34 +99,28 @@ test('the same seed played three ways meets the same twelve waves: rosters, spaw
         assert.equal(a.map, b.map, `wave ${i + 1}: map`);
         assert.deepEqual(a.roster, b.roster, `wave ${i + 1}: roster`);
         assert.deepEqual(a.order, b.order, `wave ${i + 1}: spawn order`);
+        assert.deepEqual(a.stages, b.stages, `wave ${i + 1}: the stages the beats visit`);
         assert.deepEqual(a.pads, b.pads, `wave ${i + 1}: pads`);
       }
     }
-    // standing still or shooting on the spot: the very same doors, in the wave's order
+    // standing still or shooting on the spot: the very same doors
     assert.deepEqual(doors(shooter), doors(still), 'the same doors when the player stays put');
-    for (const w of still.waves.slice(0, 4)) {
-      // the rooftop (waves 1-4): every door suits a player at the start, so the doors are the order itself
-      assert.deepEqual(
-        w.picks.map((p) => p.at),
-        w.picks.map((_, k) => w.order[k % w.order.length]),
-        `wave ${w.n}: the order, door by door`,
-      );
-    }
-    // walking about: each enemy takes the next door in the order that is 9–45 m from the player (a sniper: 18–45 m)
-    let moved = 0;
-    for (const w of busy.waves) {
-      for (const p of w.picks) {
-        const d = (i) => Math.hypot(w.doors[i][0] - p.px, w.doors[i][1] - p.pz);
-        let want = -1;
-        for (let k = 0; k < w.order.length && want < 0; k++) {
-          const i = w.order[(p.from + k) % w.order.length];
-          if (d(i) > p.min && d(i) < 45) want = i;
+    // every beat came through the doors nearest to its stage that were not on top of the player (a sniper's beat: not within 18 m)
+    let picks = 0;
+    for (const r of [still, busy]) {
+      for (const w of r.waves) {
+        for (const p of w.picks) {
+          if (p.stage < 0) continue; // a map without stages (not yet): the wave's door order
+          picks++;
+          const [sx, sz] = (await page.evaluate((id) => window.game.maps.find((m) => m.id === id).stages.map((s) => s.at), w.map))[p.stage];
+          const far = (i) => Math.hypot(w.doors[i][0] - p.px, w.doors[i][1] - p.pz) > p.min;
+          const toStage = (i) => Math.hypot(w.doors[i][0] - sx, w.doors[i][1] - sz);
+          const suits = w.doors.map((_, i) => i).filter(far).sort((a, b) => toStage(a) - toStage(b));
+          if (suits.length) assert.equal(p.at[0], suits[0], `wave ${w.n}: the beat's first door is the nearest to its stage that suits`);
         }
-        if (want >= 0) assert.equal(p.at, want, `wave ${w.n}: the next door that suits`);
-        if (p.at !== w.order[p.from % w.order.length]) moved++;
       }
     }
-    assert.ok(moved > 0, 'walking up to a door did move an enemy on to the next one');
+    assert.ok(picks > 0, 'beats were picked at stages');
     assert.deepEqual(problems(logs), []);
   } finally {
     await page.close();

@@ -38,7 +38,7 @@ export class NavGrid {
         const x = this.minX + (c + 0.5) * cell;
         let blocked = 0;
         for (const s of solids) {
-          if (!s.alive) continue;
+          if (!s.alive || s.passable) continue; // a door: shut to sight and bodies, open to paths (fixtures.js)
           if (x <= s.minX - inflate || x >= s.maxX + inflate || z <= s.minZ - inflate || z >= s.maxZ + inflate) continue;
           if (!s.poly || pointInPoly(x, z, s.poly) || polyDist2(x, z, s.poly) < inf2) {
             blocked = 1;

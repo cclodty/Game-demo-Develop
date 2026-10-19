@@ -228,10 +228,11 @@ export class Grenades {
    * The player kicks: an enemy grenade on the ground in the kick's cone (`inCone(x, z, reach)` from
    * player.js gives the direction) flies lob.kickDistance m that way and bursts on what it meets.
    */
-  kick(inCone) {
+  /** A kick (or the pan's swing, `air` true: in the air as well) sends an enemy grenade in the arc back the way it is pointed. */
+  kick(inCone, air = false) {
     let kicked = false;
     for (const g of this.list) {
-      if (g.owner !== 'enemy' || !g.landed) continue;
+      if (g.owner !== 'enemy' || (!g.landed && !air)) continue;
       const dir = inCone(g.x, g.z, PLAYER.kickRange + 0.3);
       if (!dir) continue;
       this.game.scene.remove(g.ring);

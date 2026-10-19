@@ -157,6 +157,7 @@ export class HUD {
       );
     });
     this.set('rankFill', Math.round(rank.progress * 50) / 50, (v) => (e.rankFill.style.width = `${v * 100}%`));
+    this.set('rankCamp', rank.camping, (v) => e.rank.classList.toggle('camp', v)); // standing still: the gauge blinks red as it drains
 
     this.set('tutorial', withLabels(g.tutorial.hint, pad), (v) => {
       if (v) e.tutorial.innerHTML = v;
@@ -177,7 +178,15 @@ export class HUD {
     const wv = g.waves;
     const where = g.ruleset.label ? `${g.level.map.name} · ${g.ruleset.label}` : g.level.map.name;
     const sub =
-      wv.state === 'warmup' ? `熱身 · ${where}` : wv.state === 'active' ? `剩餘敵人 ${wv.remaining} · ${where}` : wv.state === 'done' ? `全部 ${wv.wave} 波清空 · ${where}` : wv.wave > 0 ? `下一波準備中… · ${where}` : `準備… · ${where}`;
+      wv.state === 'warmup'
+        ? `熱身 · ${where}`
+        : wv.state === 'active'
+          ? `剩餘敵人 ${wv.remaining}${wv.beats.length ? ` · 第 ${wv.beatNo}/${wv.beats.length} 拍${wv.stage ? ` · ${wv.stage.name} ${wv.stage.en}` : ''}` : ''} · ${where}`
+          : wv.state === 'done'
+            ? `全部 ${wv.wave} 波清空 · ${where}`
+            : wv.wave > 0
+              ? `下一波準備中… · ${where}`
+              : `準備… · ${where}`;
     this.set('waveSub', sub, (v) => (e.waveSub.textContent = v));
 
     const m = g.input.mouse;

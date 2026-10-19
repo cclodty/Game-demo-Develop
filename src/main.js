@@ -4,8 +4,8 @@ import { Bullets } from './bullets.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
-import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RATING, VIEWS } from './config.js';
-import { Enemies } from './enemies.js';
+import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, VIEWS } from './config.js';
+import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
 import { Input, padLabel, StepInput } from './input.js';
@@ -99,6 +99,7 @@ class Game {
     this.fx = new FX(this);
     this.style = new Style(this); // the look; before the level, whose materials it converts as they load
     this.maps = MAPS;
+    this.enemyTypes = ENEMY_TYPES; // for the tests and the stats panel
     this.startMap = 0;
     try {
       this.startMap = Math.min(MAPS.length - 1, Math.max(0, Number(localStorage.getItem(MAP_KEY)) || 0));
@@ -179,6 +180,7 @@ class Game {
     this.overAt = 0;
     this.worldTime = 0;
     this.lastKillAt = -9;
+    this.lastKillPos = null; // where the last kill fell (ROAM)
     this.lastCloseCall = -LOGIC_HZ; // a logic step number
     this.time = 0; // real time for what is only shown (camera shake, title sway, pulses)
     this.last = performance.now();
@@ -1041,6 +1043,7 @@ class Game {
     this.clearT = 0;
     this.worldTime = 0;
     this.lastKillAt = -9;
+    this.lastKillPos = null; // where the last kill fell (ROAM)
     this.cmd = new StepInput();
     this.acc = 0;
     this.stepCount = 0;
@@ -1328,8 +1331,17 @@ class Game {
       refill += 0.08;
     }
     if (info.cause === 'explosion') tags.push(info.chain ? { label: 'CHAIN', pts: 120, cls: 'gold' } : { label: 'BOOM', pts: 120, cls: 'gold' });
+    if (info.rocket) tags.push({ label: 'ROCKET CAN', pts: 150, cls: 'gold' });
     if (info.cause === 'kick') tags.push({ label: 'KICK', pts: 150, cls: 'gold' });
     if (info.cause === 'strike') tags.push({ label: 'STRIKE!', pts: 200, cls: 'gold' });
+    if (info.cause === 'crushed') tags.push({ label: 'CRUSHED', pts: 200, cls: 'gold' });
+    if (info.cause === 'slam') tags.push({ label: 'SLAM', pts: 120, cls: 'gold' });
+    if (info.cause === 'shutter') tags.push({ label: 'SHUTTER', pts: 200, cls: 'gold' });
+    if (info.cause === 'splash') tags.push({ label: 'SPLASH', pts: 150, cls: 'gold' });
+    if (info.cause === 'smash') tags.push({ label: 'PAN SMASH', pts: 120, cls: 'gold' });
+    if (info.bullet && info.bullet.homeRun) tags.push({ label: 'HOME RUN', pts: 200, cls: 'gold' });
+    if (this.level.darkAt(e.x, e.z)) tags.push({ label: 'BLACKOUT', pts: 100, cls: 'gold' });
+    if (this.level.smokeAt(e.x, e.z)) tags.push({ label: 'SMOKE', pts: 80, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });
     if (e.blindT > 0) tags.push({ label: 'PIGEON STRIKE', pts: 80, cls: 'gold' });
     if (info.cause === 'bullet') {
@@ -1337,7 +1349,9 @@ class Game {
       else if (d > 16) tags.push({ label: 'LONG SHOT', pts: 80 });
     }
     if (this.worldTime - this.lastKillAt < 0.5) tags.push({ label: 'MULTI KILL', pts: 100, cls: 'pink' });
+    if (this.lastKillPos && Math.hypot(e.x - this.lastKillPos.x, e.z - this.lastKillPos.z) >= RANK.roam) tags.push({ label: 'ROAM', pts: RANK.roamPts, cls: 'cyan' });
     this.lastKillAt = this.worldTime;
+    this.lastKillPos = { x: e.x, z: e.z };
     const last = this.waves.finishedSpawning && this.enemies.aliveCount === 0;
     if (info.bullet && info.bullet.kills >= 2) tags.push({ label: 'COLLATERAL', pts: 150 * (info.bullet.kills - 1), cls: 'gold' });
     if (last) tags.push({ label: 'LAST ONE', pts: 100 });
@@ -1382,6 +1396,7 @@ class Game {
     this.score.breakCombo();
     this.score.rank.hit();
     this.waves.hurt = true;
+    this.waves.beatHurt = true;
     this.hurtFx = Math.min(1, this.hurtFx + 0.45 + dmg / 60);
     this.shake(0.35);
     this.audio.hurt();
@@ -1404,6 +1419,7 @@ class Game {
     this.achievements.wave(!this.waves.hurt);
     this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt });
     this.score.bonus('WAVE CLEAR', bonus);
+    this.level.waveEnd(); // shutters roll back up
     this.addFocus(0.35);
     this.player.hp = PLAYER.hp;
     const next = stageEnd ? ` · 下一站：${MAPS[(this.startMap + this.stage + 1) % MAPS.length].name}` : '';
@@ -1442,7 +1458,7 @@ class Game {
       const d = Math.hypot(e.x - x, e.z - z);
       if (d > r + e.radius || !this.level.hasLOS(x, z, e.x, e.z)) continue;
       const k = 1 / (d || 1);
-      e.blast((e.x - x) * k, (e.z - z) * k, d < r * 0.65 ? 20 : 5, !!opts.chain);
+      e.blast((e.x - x) * k, (e.z - z) * k, d < r * 0.65 ? 20 : 5, !!opts.chain, !!opts.rocket);
     }
     for (const e of this.enemies.corpses) {
       const d = Math.hypot(e.x - x, e.z - z);
@@ -1660,7 +1676,9 @@ class Game {
     this.pickups.update(dt, h, cmd);
     this.tutorial.update(h);
     this.waves.update(dt, h);
-    this.score.update(dt, h);
+    // standing still while enemies are about drains the Style rank (RANK.camp)
+    const busy = this.waves.state === 'active' && this.enemies.aliveCount > 0 && this.player.alive;
+    this.score.update(dt, h, !busy || Math.hypot(this.player.vx, this.player.vz) >= RANK.campSpeed);
     // the Style rank changed (achievements only listen; nothing here feeds back into play)
     if (this.score.rank.index !== this.rankSeen) {
       this.rankSeen = this.score.rank.index;

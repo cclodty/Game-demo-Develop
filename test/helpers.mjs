@@ -121,14 +121,34 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
               target = e;
             }
           }
-          if (target) {
+          // a boss with a weak point the banner tells the player about (boss.js): the armoured truck's back
+          // door while it unloads. Shots into it count only from behind, so the bot walks round to there and fires.
+          const boss = g.boss;
+          let door = null;
+          let goal = null;
+          let behind = false;
+          if (boss.active && boss.def && boss.def.kind === 'truck' && boss.state === 'unload') {
+            const bx = -Math.sin(boss.heading);
+            const bz = -Math.cos(boss.heading);
+            const back = boss.cfg.size.l / 2;
+            door = { x: boss.x + bx * (back + 0.1), z: boss.z + bz * (back + 0.1) };
+            goal = { x: boss.x + bx * (back + 5), z: boss.z + bz * (back + 5) };
+            behind = (p.x - boss.x) * bx + (p.z - boss.z) * bz > back + 0.5;
+          }
+          const aimAt = (x, z) => {
+            const v = new g.aimPoint.constructor(x, 1.35, z).project(g.camera);
+            inp.mouse.x = (v.x * 0.5 + 0.5) * innerWidth;
+            inp.mouse.y = (-v.y * 0.5 + 0.5) * innerHeight;
+          };
+          if (door) {
+            aimAt(door.x, door.z);
+            inp.mouse.left = behind;
+          } else if (target) {
             if (!target.jx || random() < 0.03) {
               target.jx = (random() - 0.5) * 2.4;
               target.jz = (random() - 0.5) * 2.4;
             }
-            const v = new g.aimPoint.constructor(target.x + target.jx, 1.35, target.z + target.jz).project(g.camera);
-            inp.mouse.x = (v.x * 0.5 + 0.5) * innerWidth;
-            inp.mouse.y = (-v.y * 0.5 + 0.5) * innerHeight;
+            aimAt(target.x + target.jx, target.z + target.jz);
             inp.mouse.left = i % 30 < 12;
           } else inp.mouse.left = false;
           wanderT -= dt;
@@ -143,10 +163,24 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
             }
             if (random() < 0.3) wanderX = wanderZ = 0;
           }
-          if (wanderX > 0.3) inp.keys.add('KeyD');
-          if (wanderX < -0.3) inp.keys.add('KeyA');
-          if (wanderZ > 0.3) inp.keys.add('KeyS');
-          if (wanderZ < -0.3) inp.keys.add('KeyW');
+          let kx = wanderX;
+          let kz = wanderZ;
+          if (goal) {
+            // to the spot behind the truck: W is up the screen, so the world direction turns by the camera's yaw (player.js)
+            kx = goal.x - p.x;
+            kz = goal.z - p.z;
+            if (Math.hypot(kx, kz) < 1.5) kx = kz = 0;
+            const yaw = g.camYaw;
+            if (yaw) {
+              const c = Math.cos(yaw);
+              const s = Math.sin(yaw);
+              [kx, kz] = [kx * c - kz * s, kx * s + kz * c];
+            }
+          }
+          if (kx > 0.3) inp.keys.add('KeyD');
+          if (kx < -0.3) inp.keys.add('KeyA');
+          if (kz > 0.3) inp.keys.add('KeyS');
+          if (kz < -0.3) inp.keys.add('KeyW');
           const aimers = g.enemies.list.filter((e) => e.aiming).length;
           if (aimers >= 2 && !g.focusActive && g.focusMeter > 0.4) inp.pressed.add('ShiftLeft');
           if (aimers === 0 && g.focusActive && random() < 0.02) inp.pressed.add('ShiftLeft');

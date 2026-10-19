@@ -44,6 +44,7 @@ const PAD_SHOULDERS = { lb: 4, rb: 5, both: 'KeyQ', lbAlone: 'KeyR', rbAlone: 'W
 export const CONTROL_LABELS = {
   focus: ['<b>Shift</b> 或 <b>Q</b>', '<b>LB</b>+<b>RB</b>'],
   throw: ['<b>G</b>', '<b>Y</b>'],
+  kick: ['<b>F</b>', '<b>X</b>'],
   fire: ['<b>左鍵</b>', '<b>RT</b>'],
   swap: ['<b>E</b>', '<b>十字鍵 ↑</b>'],
 };
