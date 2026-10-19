@@ -510,7 +510,7 @@ export class Notes {
       `- 最近的重播：${g.replays.list.slice(0, 3).map((r) => r.name).join('、') || '沒有'}（存在這部電腦，標題畫面「重播」可下載）`,
       `- 手掣：${g.input.pads.length ? g.input.pads.map((p) => `${g.input.pad && g.input.pad.index === p.index ? '使用中 ' : ''}#${p.index}「${p.id}」（${p.mapping === 'standard' ? '標準佈局' : '非標準'}）`).join('；') : '沒有接上'}`,
       `- 風格：${Object.entries(SWITCHES).map(([k, l]) => `${l.replace(/（.*$/, '')} ${g.style.on[k] ? '開' : '關'}`).join('、')}`,
-      `- 設定：音樂 ${Math.round(g.settings.music * 100)}%、音效 ${Math.round(g.settings.sfx * 100)}%、改過的鍵：${g.settings.changedKeys().length ? g.settings.changedKeys().map(([n, k]) => `${n} = ${keyName(k)}`).join('、') : '無'}`,
+      `- 設定：音樂 ${Math.round(g.settings.music * 100)}%、音效 ${Math.round(g.settings.sfx * 100)}%、曲目 ${g.audio.asked ? `?music=${g.audio.asked}` : g.audio.choice ? g.audio.song.name : '每個場景輪流'}、改過的鍵：${g.settings.changedKeys().length ? g.settings.changedKeys().map(([n, k]) => `${n} = ${keyName(k)}`).join('、') : '無'}`,
       `- 調整過的手感數字：${diff.length ? diffLine(diff) : '無（全部預設）'}`,
       '',
     ];

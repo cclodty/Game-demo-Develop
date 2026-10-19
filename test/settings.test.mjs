@@ -3,7 +3,8 @@
 // keyboard and on a pad. A key is rebound by pressing the next one; a key
 // another action had swaps over. The logic reads controls, not keys, so a run
 // on rebound keys records and replays like any other. E picks things up (and
-// swaps a pad's weapon), G throws. Run: npm test
+// swaps a pad's weapon), G throws. The song (音樂 ④): one for every stage, or
+// the playlist; ?music= on the address wins for the visit. Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ACTIONS, PAD_BUTTONS } from '../src/input.js';
@@ -149,6 +150,70 @@ test('the page: volumes move the mix and survive a reload; a rebound key drives 
   }
 });
 
+test('the song: the settings pick one song for every stage or the playlist, and a reload keeps it; ?music= on the address wins for the visit', { timeout: 120000 }, async () => {
+  const { page, logs } = await h.open('?seed=22');
+  try {
+    const r = await page.evaluate(async () => {
+      const { SONGS } = await import('/src/music.js');
+      const g = window.game;
+      const id = (song) => Object.keys(SONGS).find((k) => SONGS[k] === song);
+      g.showSettings(true);
+      const sel = document.getElementById('set-song');
+      const before = { value: sel.value, options: sel.options.length, disabled: sel.disabled, playlist: [...g.audio.playlist], stages: [0, 1, 2].map((i) => id(g.audio.songFor(i))) };
+      sel.value = 'swing';
+      sel.dispatchEvent(new window.Event('change', { bubbles: true }));
+      const picked = { setting: g.settings.song, playlist: [...g.audio.playlist], upcoming: id(g.audio.upcoming), stages: [0, 1, 2].map((i) => id(g.audio.songFor(i))), stored: JSON.parse(localStorage.getItem('bullet-ballet.settings')).song };
+      return { before, picked, names: [...sel.options].slice(0, 3).map((o) => o.textContent) };
+    });
+    assert.deepEqual([r.before.value, r.before.options, r.before.disabled], ['auto', 15, false], 'the playlist and every song to pick from');
+    assert.deepEqual(r.before.stages, ['undertow', 'countdown', 'abyss'], 'auto: one a stage');
+    assert.match(r.names[0], /^每個場景輪流（暗湧 → 倒數 → 深淵）$/);
+    assert.deepEqual([r.picked.setting, r.picked.playlist, r.picked.upcoming, r.picked.stages, r.picked.stored], ['swing', ['swing'], 'swing', ['swing', 'swing', 'swing'], 'swing'], 'one song for every stage, saved');
+    // a reload keeps it; back to auto
+    await page.reload();
+    await page.waitForFunction(() => window.game && typeof window.game.startRun === 'function', null, { timeout: 120000 });
+    const again = await page.evaluate(async () => {
+      const { SONGS } = await import('/src/music.js');
+      const g = window.game;
+      const id = (song) => Object.keys(SONGS).find((k) => SONGS[k] === song);
+      g.showSettings(true);
+      const sel = document.getElementById('set-song');
+      const kept = { setting: g.settings.song, value: sel.value, song: id(g.audio.song) };
+      sel.value = 'auto';
+      sel.dispatchEvent(new window.Event('change', { bubbles: true }));
+      return { kept, auto: { setting: g.settings.song, playlist: [...g.audio.playlist] } };
+    });
+    assert.deepEqual(again.kept, { setting: 'swing', value: 'swing', song: 'swing' }, 'kept over a reload');
+    assert.deepEqual(again.auto, { setting: 'auto', playlist: ['undertow', 'countdown', 'abyss'] });
+    assert.deepEqual(problems(logs), []);
+  } finally {
+    await page.close();
+  }
+  // the address wins: ?music= over a saved choice, and the page says so
+  const { page: p2, logs: logs2 } = await h.open('?music=neon');
+  try {
+    const r = await p2.evaluate(async () => {
+      const { SONGS } = await import('/src/music.js');
+      const g = window.game;
+      g.settings.song = 'swing';
+      g.settings.save();
+      g.applySettings();
+      g.showSettings(true);
+      const sel = document.getElementById('set-song');
+      const out = { playlist: [...g.audio.playlist], value: sel.value, disabled: sel.disabled, note: document.getElementById('set-song-note').textContent, song: Object.keys(SONGS).find((k) => SONGS[k] === g.audio.song), exported: g.notes.exportText().split('\n').find((l) => l.startsWith('- 設定：')) };
+      g.settings.reset();
+      g.applySettings();
+      return out;
+    });
+    assert.deepEqual([r.playlist, r.value, r.disabled, r.song], [['neon'], 'neon', true, 'neon'], '?music=neon plays neon whatever the setting');
+    assert.match(r.note, /\?music=neon/);
+    assert.match(r.exported, /曲目 \?music=neon/);
+    assert.deepEqual(problems(logs2), []);
+  } finally {
+    await p2.close();
+  }
+});
+
 test('E picks up what lies here, swaps a weapon on a pad instead when one is there, and G throws; the pad binds a button; the page opens from the pause menu', { timeout: 120000 }, async () => {
   const { page, logs } = await h.open('?seed=22');
   try {
@@ -255,7 +320,7 @@ test('E picks up what lies here, swaps a weapon on a pad instead when one is the
     const back = await page.evaluate(() => ({ settings: document.getElementById('settings').classList.contains('hidden'), pause: !document.getElementById('pause').classList.contains('hidden'), state: window.game.state }));
     assert.deepEqual(back, { settings: true, pause: true, state: 'paused' });
     const exported = await page.evaluate(() => window.game.notes.exportText());
-    assert.match(exported, /設定：音樂 100%、音效 100%、改過的鍵：無/);
+    assert.match(exported, /設定：音樂 100%、音效 100%、曲目 每個場景輪流、改過的鍵：無/);
     assert.deepEqual(problems(logs), []);
   } finally {
     await page.close();

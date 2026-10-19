@@ -32,6 +32,7 @@ import { clamp, damp, lerp } from './utils.js';
 import { MODE_IDS, MODES, Waves } from './waves.js';
 import { Grenades } from './weapons.js';
 import { BOSSES, Bosses } from './boss.js';
+import { SONGS } from './music.js';
 
 const MAP_KEY = 'bullet-ballet.map';
 const MODE_KEY = 'bullet-ballet.mode';
@@ -311,6 +312,12 @@ class Game {
         $(`set-${id}-v`).textContent = `${Math.round(this.settings[id] * 100)}%`;
       });
     }
+    $('set-song').addEventListener('change', (e) => {
+      this.settings.song = e.target.value;
+      this.settings.save();
+      this.applySettings();
+      this.renderSettings();
+    });
     $('set-keys').addEventListener('click', (e) => {
       const b = e.target.closest('button.bind');
       if (!b) return;
@@ -585,6 +592,8 @@ class Game {
     const s = this.settings;
     this.input.setBindings(s);
     this.audio.setVolumes(s.music, s.sfx);
+    this.audio.setChoice(s.song);
+    this.audio.setStage(this.stage || 0, !this.audio.ctx); // a new choice comes in on the bar line (at once before the music has started)
     const strip = ACTIONS.filter((a) => a.strip).map((a) => `<span><b>${keyName(s.keys[a.id])}${a.id === 'focus' && s.keys.focus === 'ShiftLeft' ? ' / Q' : ''}</b> ${a.strip}</span>`);
     strip.splice(6, 0, '<span><b>1 / 2</b> 切換</span>');
     strip.splice(strip.length - 1, 0, '<span><b>Esc</b> 暫停</span>');
@@ -608,6 +617,13 @@ class Game {
       $(`set-${id}`).value = String(Math.round(s[id] * 100));
       $(`set-${id}-v`).textContent = `${Math.round(s[id] * 100)}%`;
     }
+    // the song: the playlist (one a stage) or any one song for every stage; a ?music= on the address wins for this visit
+    const sel = $('set-song');
+    const auto = `每個場景輪流（${this.audio.defaultPlaylist.map((id) => SONGS[id].name.split(' ')[0]).join(' → ')}）`;
+    const options = [['auto', auto], ...Object.entries(SONGS).map(([id, song]) => [id, song.name])];
+    sel.innerHTML = options.map(([id, name]) => `<option value="${id}"${(this.audio.asked || s.song) === id ? ' selected' : ''}>${name}</option>`).join('');
+    sel.disabled = !!this.audio.asked;
+    $('set-song-note').textContent = this.audio.asked ? `這次由網址的 ?music=${this.audio.asked} 指定` : '';
     const rows = ACTIONS.map((a) => {
       const listening = (pad) => this.binding && this.binding.id === a.id && this.binding.pad === pad;
       const key = listening(false) ? '<span class="listening">按一個鍵…</span>' : keyName(s.keys[a.id]);

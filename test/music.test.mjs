@@ -4,6 +4,8 @@
 // old tune's trouble: everything 15–25 dB under it); ?music=<id> picks a song.
 // The music follows the fight (音樂 ③): a beat's telegraph leaves only the kick,
 // a big sound ducks it, and GONG & DRUM keeps only its percussion in bullet time.
+// 音樂 ④ adds three more directions (HK ACTION, FADO NOIR, LO-FI), a wordless
+// voice (the vox) and the settings' choice of song (settings.test.mjs).
 // Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -54,7 +56,7 @@ test('every song renders: sound, no clipping, and its boss section too; in the n
       }
       return out;
     });
-    assert.deepEqual(Object.keys(r).sort(), ['abyss', 'breaks', 'city', 'classic', 'countdown', 'dream', 'gong', 'neon', 'swing', 'undertow', 'vendetta']);
+    assert.deepEqual(Object.keys(r).sort(), ['abyss', 'breaks', 'city', 'classic', 'countdown', 'dream', 'fado', 'gong', 'hkaction', 'lofi', 'neon', 'swing', 'undertow', 'vendetta']);
     for (const [id, { all, parts, name, boss }] of Object.entries(r)) {
       if (boss) assert.ok(boss.finite && boss.peak < 1 && boss.db > all.db - 3, `${name}: its boss section plays, unclipped, as loud or louder (${boss.db.toFixed(1)} vs ${all.db.toFixed(1)} dBFS, peak ${boss.peak.toFixed(2)})`);
       assert.ok(all.finite, `${name}: no broken samples`);
@@ -95,7 +97,7 @@ test('the songs the game plays: config.js MUSIC.playlist, one a stage, or ?music
   const neon = await pick('?music=neon');
   assert.deepEqual([neon.id, neon.stages], ['neon', ['neon', 'neon', 'neon', 'neon']], '?music= plays just that one');
   assert.equal((await pick('?music=city')).id, 'city');
-  for (const id of ['dream', 'vendetta', 'countdown', 'abyss', 'gong', 'swing']) assert.equal((await pick(`?music=${id}`)).id, id);
+  for (const id of ['dream', 'vendetta', 'countdown', 'abyss', 'gong', 'swing', 'hkaction', 'fado', 'lofi']) assert.equal((await pick(`?music=${id}`)).id, id);
   assert.equal((await pick('?music=nonsense')).id, 'undertow');
 });
 

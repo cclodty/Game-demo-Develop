@@ -26,7 +26,12 @@
 // (`parts`, and `drums` within the drums), the rest dropping out. Cantonese
 // opera percussion (鑼鼓): block 木魚, shadi 沙的, gong 大鑼, cymbal 鈸; and a
 // brush for a brushed snare. A bass may be an upright (voice 'upright'), a lead
-// a muted trumpet ('mute') or a suona ('suona').
+// a muted trumpet ('mute') or a suona ('suona'). The vox (音樂 ④) is a wordless
+// voice: a saw through the formants of a vowel ('ah', 'oo'), two of them beating
+// slowly like vibrato; a lead or a pad may use it. No words: a synth cannot sing
+// a lyric; that would need recorded vocals as audio files. An arp may be a nylon
+// guitar ('nylon') or a tremolo-picked steel string ('steel'), and `arp2` is a
+// second arpeggio. `crackle` among the drums is vinyl dust.
 
 /** The chord of a bar: semitones above the key's root, the root first. */
 const CHORD = {
@@ -469,7 +474,149 @@ const swing = {
   },
 };
 
-export const SONGS = { classic, neon, city, breaks, dream, vendetta, undertow, countdown, abyss, gong, swing };
+/**
+ * 港產動作 HK ACTION (音樂 ④): the funk of an eighties Hong Kong action picture. A syncopated kick, a
+ * gritty slap bass, a clavinet-like stab on the off-beats, a brass pad from the second bar and a horn riff
+ * for the later waves, over i7–IV7–i7–VII in E minor at 108 BPM.
+ */
+const hkaction = {
+  name: '港產動作 HK ACTION',
+  bpm: 108,
+  key: 164.81,
+  bars: 4,
+  chords: [CHORD.m7(0), CHORD.d7(5), CHORD.m7(0), CHORD.M(-2)],
+  delay: { steps: 3, send: 0.12, feedback: 0.2 },
+  mix: { kick: 1, snare: 0.9, hat: 0.9 },
+  drums: {
+    kick: 'x..x..x.x..x..x.',
+    snare: '....x.......x...',
+    hat: 'x.x.x.x.x.x.x.x.',
+    open: '......x.......x.',
+  },
+  bass: { pattern: 'r.r.o.r..5.r.o.r', voice: 'grit', filter: 700, vol: 0.26, len: 0.5 },
+  keys: { pattern: '..x.x...x.x...x.', voice: 'epiano', vol: 0.32 },
+  pad: { voice: 'brass', octave: -1, vol: 0.1, filter: 1600, from: 2, level: 1 },
+  lead: {
+    voice: 'horn',
+    vol: 0.3,
+    filter: 1700,
+    octave: 1,
+    from: 4,
+    level: 1,
+    notes: [
+      [0, 0, 7, 2], [0, 2, 10, 2], [0, 4, 12, 3], [0, 8, 10, 2], [0, 10, 7, 2], [0, 12, 5, 4],
+      [1, 0, 12, 2], [1, 2, 15, 2], [1, 4, 17, 4], [1, 8, 15, 2], [1, 10, 12, 6],
+      [2, 0, 7, 2], [2, 2, 10, 2], [2, 4, 12, 3], [2, 8, 15, 2], [2, 10, 12, 2], [2, 12, 10, 4],
+      [3, 0, 10, 4], [3, 4, 14, 4], [3, 8, 12, 8, -2],
+    ],
+  },
+  boss: {
+    mix: { kick: 1.1, snare: 1, hat: 0.9 },
+    drums: { kick: 'x..x..x.x..x.x.x', snare: '....x..x....x..x', hat: 'xxxxxxxxxxxxxxxx', open: '......x.......x.' },
+  },
+};
+
+/**
+ * 葡韻 FADO NOIR (音樂 ④): Macau's Portuguese half, after dark. A nylon guitar's arpeggio, the Portuguese
+ * guitar's tremolo picking from the second bar, an upright bass, a brush on the two and four, and a wordless
+ * voice (the vox) singing over it for the later waves: i–iv–V7–i in A minor at 96 BPM.
+ */
+const fado = {
+  name: '葡韻 FADO NOIR',
+  bpm: 96,
+  key: 220,
+  bars: 4,
+  chords: [CHORD.m(0), CHORD.m(5), CHORD.d7(7), CHORD.m(0)],
+  delay: { steps: 6, send: 0.14, feedback: 0.3 },
+  hall: { seconds: 2.4, send: 0.3 },
+  mix: { kick: 0.7, hat: 0.6 },
+  drums: {
+    kick: 'x.......x.......',
+    brush: '....X.......X...',
+    hat: '..x...x...x...x.',
+  },
+  bass: { pattern: 'r.......5.......', voice: 'upright', vol: 0.3, len: 1.2 },
+  arp: { pattern: '0.1.2.1.0.1.2.1.', voice: 'nylon', octave: 0, vol: 0.2 },
+  arp2: { pattern: '2222111100001111', voice: 'steel', octave: 1, vol: 0.09, from: 2 },
+  lead: {
+    voice: 'vox',
+    vowel: 'ah',
+    vol: 0.24,
+    octave: 0,
+    from: 4,
+    level: 1,
+    notes: [
+      [0, 0, 12, 8], [0, 8, 10, 8],
+      [1, 0, 8, 6], [1, 6, 10, 2], [1, 8, 5, 8],
+      [2, 0, 7, 8], [2, 8, 11, 8],
+      [3, 0, 12, 12, -2], [3, 12, 10, 4],
+    ],
+  },
+  boss: {
+    mix: { kick: 0.9, hat: 0.7 },
+    drums: { kick: 'x...x...x...x...', brush: 'g.g.X.g.g.g.X.g.', hat: 'x.x.x.x.x.x.x.x.' },
+    arp2: { pattern: '2222111100001111', voice: 'steel', octave: 1, vol: 0.12, from: 0 },
+  },
+};
+
+/**
+ * 夜街 LO-FI (音樂 ④): a late street after the neon goes off. A dusty kick and snare swung under an electric
+ * piano playing sevenths, a sub bass, vinyl crackle, an "ooh" of the vox from the later waves and a soft
+ * melody over it: ii7–V7–I7–vi7 in C at 84 BPM.
+ */
+const lofi = {
+  name: '夜街 LO-FI',
+  bpm: 84,
+  key: 261.63,
+  bars: 4,
+  swing: 0.3,
+  chords: [CHORD.m7(2), CHORD.d7(7), CHORD.M7(0), CHORD.m7(9)],
+  delay: { steps: 3, send: 0.1, feedback: 0.3 },
+  mix: { kick: 0.85, snare: 0.75, hat: 0.5 },
+  drums: {
+    kick: 'x.....x...x.....',
+    snare: '....x.......x...',
+    hat: 'x.x.x.x.x.x.x.x.',
+    crackle: 'x..x.x..x...x.x.',
+  },
+  bass: { pattern: 'r.......r...r...', type: 'sine', filter: 300, vol: 0.32, len: 1.2, sub: 0.6 },
+  keys: { pattern: 'x.......x...x...', voice: 'epiano', vol: 0.26 },
+  pad: { voice: 'vox', vowel: 'oo', octave: 0, vol: 0.05, from: 4, level: 1 },
+  lead: {
+    type: 'triangle',
+    vol: 0.16,
+    filter: 2200,
+    octave: 1,
+    from: 6,
+    level: 1,
+    notes: [
+      [0, 0, 9, 4], [0, 4, 12, 4], [0, 8, 14, 6],
+      [1, 0, 11, 4], [1, 4, 14, 2], [1, 6, 12, 2], [1, 8, 7, 8],
+      [2, 0, 4, 4], [2, 4, 7, 4], [2, 8, 11, 6],
+      [3, 0, 9, 8], [3, 8, 7, 8, -2],
+    ],
+  },
+  boss: {
+    mix: { kick: 1, snare: 0.9, hat: 0.6 },
+    drums: { kick: 'x..x..x.x..x..x.', snare: '....x.......x..x', hat: 'xxxxxxxxxxxxxxxx', crackle: 'x..x.x..x...x.x.' },
+  },
+};
+
+export const SONGS = { classic, neon, city, breaks, dream, vendetta, undertow, countdown, abyss, gong, swing, hkaction, fado, lofi };
+
+/** The formants of a vowel for the vox: [frequency, weight], the mouth's resonances. */
+const VOWELS = {
+  ah: [
+    [700, 1],
+    [1200, 0.5],
+    [2600, 0.25],
+  ],
+  oo: [
+    [300, 1],
+    [870, 0.4],
+    [2240, 0.15],
+  ],
+};
 
 const hz = (semi, base) => base * Math.pow(2, semi / 12);
 const at16 = (p, bar) => (Array.isArray(p) ? p[bar % p.length] : p);
@@ -553,6 +700,26 @@ const voice = {
     a.noise({ type: 'bandpass', freq: 3300 * r, q: 2, dur: 0.35 / r, vol: vol * 0.7, at, bus });
     a.tone({ type: 'square', f0: 2300 * r, f1: 2100 * r, dur: 0.2 / r, vol: vol * 0.08, at, bus });
   },
+  crackle(a, at, r, vol, bus) {
+    // vinyl dust: two clicks a hair apart
+    for (const d of [0, 0.007]) a.noise({ type: 'highpass', freq: 4000 * r, dur: 0.006 / r, vol, at, delay: d / r, bus });
+  },
+  nylon(a, at, r, f, dur, vol, bus) {
+    // a nylon string plucked: round, quick to go
+    a.tone({ type: 'triangle', f0: f, dur, vol, attack: 0.003 / r, at, bus, filter: 2400 * r });
+    a.tone({ type: 'sine', f0: f, dur: dur * 0.7, vol: vol * 0.6, attack: 0.003 / r, at, bus });
+  },
+  steel(a, at, r, f, dur, vol, bus) {
+    // the Portuguese guitar's steel course, picked fast: bright, a pair of strings a hair apart
+    for (const d of [1, 1.003]) a.tone({ type: 'sawtooth', f0: f * d, dur, vol: vol * 0.6, attack: 0.002 / r, at, bus, filter: 3000 * r });
+    a.tone({ type: 'triangle', f0: f * 2, dur: dur * 0.5, vol: vol * 0.3, attack: 0.002 / r, at, bus });
+  },
+  /** A wordless voice: a saw through a vowel's formants, two a hair apart so they beat slowly, like vibrato. */
+  vox(a, at, r, f, dur, vol, bus, vowel = 'ah', f1 = 0, attack = 0.12) {
+    for (const [fc, w] of VOWELS[vowel] || VOWELS.ah) {
+      for (const d of [0.998, 1.004]) a.tone({ type: 'sawtooth', f0: f * d, f1: f1 ? f1 * d : 0, dur, vol: vol * w, attack: attack / r, at, bus, filter: fc * r, filterType: 'bandpass', q: 7 });
+    }
+  },
   brush(a, at, r, vol, bus, swish = false) {
     // a brushed snare: a swish stirred across the head, or a hit
     a.noise({ type: 'bandpass', freq: 2400 * r, q: 0.6, dur: (swish ? 0.18 : 0.12) / r, attack: (swish ? 0.05 : 0.004) / r, vol, at, bus });
@@ -594,6 +761,9 @@ const voice = {
       if (p.voice === 'brass') {
         // low brass: the filter opens over the first beat, a braam
         for (const d of [0.996, 1.004]) a.tone({ type: 'sawtooth', f0: f * d, dur, vol: p.vol, attack: 0.09 / r, at, bus, filter: 180 * r, filterTo: p.filter * r, sweep: 0.5 / r });
+      } else if (p.voice === 'vox') {
+        // voices holding the chord on a vowel, slow to come in
+        voice.vox(a, at, r, f, dur, p.vol, bus, p.vowel || 'oo', 0, 0.5);
       } else if (p.voice === 'organ') {
         // an organ: the note and its first harmonics, held
         for (const [h, k] of [
@@ -661,6 +831,7 @@ export function playStep(a, song, step, at, r = 1) {
     if (o !== '.') voice.hat(a, t, r, 0.09 * mx.hat, dry, true);
     const tm = hit(d.tom, 'tom');
     if (tm !== '.') voice.tom(a, t, r, (tm === 'X' ? 0.95 : 0.75) * (mx.tom || 1), wet, 1.3 - (s / 16) * 0.6);
+    if (hit(d.crackle, 'crackle') !== '.') voice.crackle(a, t, r, 0.12 * (mx.crackle || 1), dry);
     // the 鑼鼓 and the brush (a 'g' is a swish): levels against the kick like the rest
     const bl = hit(d.block, 'block');
     if (bl !== '.') voice.block(a, t, r, (bl === 'X' ? 0.3 : 0.22) * mx.block, dry);
@@ -691,8 +862,8 @@ export function playStep(a, song, step, at, r = 1) {
     if (p[s] === 'x') voice.keys(a, t, r, chord, base, stepDur * held(p, s) * 0.9, k, wet);
   }
 
-  const ar = song.arp;
-  if (on(ar, bar, level) && plays('arp')) {
+  for (const ar of [song.arp, song.arp2]) {
+    if (!on(ar, bar, level) || !plays('arp')) continue;
     const c = at16(ar.pattern, bar)[s];
     if (c >= '0' && c <= '9') {
       const semi = chord[Number(c) % chord.length] + 12 * (ar.octave || 0) + (ar.upper && s >= ar.upper ? 12 : 0);
@@ -706,7 +877,9 @@ export function playStep(a, song, step, at, r = 1) {
           [3, 0.2],
         ])
           a.tone({ type: 'sine', f0: hz(semi, base) * r * h, dur: stepDur * 1.8, vol: ar.vol * k, attack: 0.02 / r, at: t, bus: wet });
-      } else a.tone({ type: ar.type, f0: hz(semi, base) * r, dur: stepDur * 0.9, vol: ar.vol, at: t, bus: wet, filter: ar.filter * r });
+      } else if (ar.voice === 'nylon') voice.nylon(a, t, r, hz(semi, base) * r, stepDur * 2.2, ar.vol, wet);
+      else if (ar.voice === 'steel') voice.steel(a, t, r, hz(semi, base) * r, stepDur * 0.9, ar.vol, wet);
+      else a.tone({ type: ar.type, f0: hz(semi, base) * r, dur: stepDur * 0.9, vol: ar.vol, at: t, bus: wet, filter: ar.filter * r });
     }
   }
 
@@ -740,6 +913,8 @@ export function playStep(a, song, step, at, r = 1) {
         // a muted trumpet: a saw through a narrow band (the mute's honk), a thin square for the bite
         a.tone({ type: 'sawtooth', f0: f, f1, dur, vol: l.vol, attack: 0.03 / r, at: t, bus: wet, filter: l.filter * r, filterType: 'bandpass', q: 3 });
         a.tone({ type: 'square', f0: f * 1.003, f1: f1 * 1.003, dur, vol: l.vol * 0.35, attack: 0.03 / r, at: t, bus: wet, filter: 2600 * r });
+      } else if (l.voice === 'vox') {
+        voice.vox(a, t, r, f, dur, l.vol, wet, l.vowel, f1);
       } else if (l.voice === 'suona') {
         // a suona: a bright saw through a band round its formant, with a reedy edge an octave up
         a.tone({ type: 'sawtooth', f0: f, f1, dur, vol: l.vol, attack: 0.02 / r, at: t, bus: wet, filter: l.filter * r, filterType: 'bandpass', q: 1.4 });

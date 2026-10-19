@@ -2326,6 +2326,29 @@ body.playing #debug {
   letter-spacing: 1px;
 }
 
+.set-row select {
+  flex: 1;
+  padding: 6px 10px;
+  font: inherit;
+  color: inherit;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--dim);
+  border-radius: 4px;
+  accent-color: var(--pink);
+}
+
+.set-row select:disabled {
+  opacity: 0.5;
+}
+
+.set-row .set-song-note {
+  min-width: 0;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: var(--dim);
+}
+
 .set-note {
   display: block;
   margin-top: 4px;
