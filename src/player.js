@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GUN_Y, PAN, PLAYER } from './config.js';
+import { GUN_Y, PAN, PLAYER, UMBRELLA } from './config.js';
 import { animateRig, attachWeapon, buildCharacter, deathPose, finishRig, keyPose, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { carryHands } from './thrown.js';
@@ -99,6 +99,9 @@ export class Player {
     this.kickCd = 0;
     this.kickT = 0;
     this.swingT = 0; // the pan's swing (smash)
+    this.shieldT = 0; // the umbrella open (shield)
+    this.shieldCd = 0;
+    this.shieldHits = 0;
     this.execT = 0; // an execution under way: s left
     this.splitTarget = null;
     this.sinceHurt = 99;
@@ -389,9 +392,17 @@ export class Player {
       this.swingT -= dt;
       if (g.thrown.inHand && this.swingT > PAN.swing - PAN.parry) this.parry();
     }
+    this.shieldCd -= dt;
+    if (this.shieldT > 0) {
+      this.shieldT -= dt;
+      if (g.thrown.inHand && g.thrown.carry.kind === 'umbrella') this.shield();
+      else this.shieldT = 0;
+      if (g.thrown.carry && g.thrown.carry.kind === 'umbrella') g.thrown.carry.open(this.shieldT > 0 ? Math.min(1, (UMBRELLA.open - this.shieldT) * 8) : 0);
+    }
     if (input.hit('KeyF') && this.execT <= 0) {
       const down = this.executable();
       if (down) this.execute(down);
+      else if (g.thrown.inHand && g.thrown.carry.kind === 'umbrella') this.openUmbrella();
       else if (this.kickCd <= 0) {
         if (g.thrown.inHand) this.smash();
         else this.kick();
@@ -626,6 +637,34 @@ export class Player {
     return hit;
   }
 
+  /** F with the umbrella in hand: it opens in front for UMBRELLA.open s, then needs UMBRELLA.cooldown before it opens again. */
+  openUmbrella() {
+    if (this.shieldCd > 0 || this.shieldT > 0) return false;
+    this.shieldT = UMBRELLA.open;
+    this.shieldCd = UMBRELLA.open + UMBRELLA.cooldown;
+    this.shieldHits = 0;
+    this.game.audio.slide();
+    this.game.notes.log('開傘');
+    return true;
+  }
+
+  /** The open umbrella: every enemy bullet within UMBRELLA.reach in the arc in front stops in the canopy (PARASOL points, capped per opening). */
+  shield() {
+    const g = this.game;
+    for (const b of g.bullets.list) {
+      if (!b.alive || b.owner !== 'enemy') continue;
+      // in front only: the kick's cone takes anything within 0.3 m whatever the angle, which would swallow a shot in the back
+      const dx = b.x - this.x;
+      const dz = b.z - this.z;
+      if (Math.hypot(dx, dz) > UMBRELLA.reach || Math.abs(wrapAngle(Math.atan2(dx, dz) - this.facing)) > UMBRELLA.arc) continue;
+      b.alive = false;
+      g.fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 5, [7, 3, 6], 5);
+      g.audio.deflect(g.panFor(b.x));
+      if (this.shieldHits * UMBRELLA.block < UMBRELLA.blockCap) g.score.style('PARASOL', UMBRELLA.block, true);
+      this.shieldHits++;
+    }
+  }
+
   /** The swing's first PAN.parry seconds: enemy bullets in the arc are batted back (bullets.js batBack), grenades in the air too. */
   parry() {
     const g = this.game;
@@ -826,9 +865,11 @@ export class Player {
       r.armR.rotation.y = -0.45;
     }
     if (inHand) {
-      // the pan hangs from the right hand by the hip; the swing brings it up and across (after the guns' arm lines, which it replaces)
+      // the pan hangs from the right hand by the hip; the swing brings it up and across; an open umbrella is held out ahead
+      // (after the guns' arm lines, which this replaces)
       const k = this.swingT > 0 ? Math.sin((1 - this.swingT / PAN.swing) * Math.PI) : 0;
-      r.armR.rotation.set(0.95 - 1.7 * k, -0.15 + 0.8 * k, 0);
+      const out = this.shieldT > 0 ? 1 : 0;
+      r.armR.rotation.set(0.95 - 1.7 * k - 0.95 * out, -0.15 + 0.8 * k + 0.15 * out, 0);
     }
     r.anchor.rotation.x = r.center.rotation.x = level;
     if (r.hold === 'dual') {

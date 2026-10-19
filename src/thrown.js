@@ -6,7 +6,7 @@
 // everything else; height only decides when a thing lands.
 
 import { BODY, buildWeaponModel } from './characters.js';
-import { PAN, PLAYER } from './config.js';
+import { PAN, PLAYER, UMBRELLA } from './config.js';
 import { clamp, rand, segCircle } from './utils.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
@@ -63,6 +63,7 @@ export class Thrown {
   static propName(prop) {
     if (prop.kind === 'pan') return prop.variant === 'tray' ? '托盤' : '平底鑊';
     if (prop.kind === 'extinguisher') return '滅火筒';
+    if (prop.kind === 'umbrella') return '雨傘';
     return prop.variant === 'gas' ? '氣罐' : prop.variant === 'lpg' ? '石油氣樽' : '油桶';
   }
 
@@ -106,17 +107,25 @@ export class Thrown {
     g.audio.pickup();
     const name = Thrown.propName(prop);
     g.notes.log(`拿起${name}`);
-    if (prop.kind === 'pan') {
-      // into the right hand: the pistol there is put away, the left one keeps firing, F swings the pan
+    if (prop.kind === 'pan' || prop.kind === 'umbrella') {
+      // into the right hand: the pistol there is put away, the left one keeps firing, F swings the pan or opens the umbrella
       const p = g.player;
       if (p.slot !== 'pistols') p.equip('pistols');
       this.inHand = true;
       this.showRightGun(false);
       p.rig.armR.add(prop.mesh);
-      prop.mesh.position.set(0, -0.08, BODY.armLen * p.rig.scale);
-      prop.mesh.rotation.set(Math.PI / 2, 0, 0);
+      if (prop.kind === 'pan') {
+        prop.mesh.position.set(0, -0.08, BODY.armLen * p.rig.scale);
+        prop.mesh.rotation.set(Math.PI / 2, 0, 0);
+      } else {
+        // the stick in the fist, the furled canopy ahead
+        prop.mesh.position.set(0, -0.05, BODY.armLen * p.rig.scale - 0.5);
+        prop.mesh.rotation.set(Math.PI / 2, 0, 0);
+        prop.tilt.rotation.set(0, 0, 0);
+        prop.tilt.position.y = 0;
+      }
       prop.y = PAN.handY;
-      g.hud.toast(`${name} <small>F 鑊擊 · G 擲出</small>`);
+      g.hud.toast(`${name} <small>${prop.kind === 'pan' ? 'F 鑊擊' : 'F 開傘'} · G 擲出</small>`);
     } else g.hud.toast(`${name} <small>G / 左鍵 擲出</small>`);
     return true;
   }
@@ -134,6 +143,11 @@ export class Thrown {
       g.level.root.attach(prop.mesh);
       prop.mesh.rotation.set(0, prop.angle || 0, 0);
       prop.mesh.position.set(prop.x, prop.y, prop.z);
+      if (prop.kind === 'umbrella') {
+        prop.open(0);
+        prop.tilt.rotation.set(Math.PI / 2, 0, 0.3);
+        prop.tilt.position.y = 0.05;
+      }
       this.inHand = false;
       this.showRightGun(true);
     }
@@ -162,6 +176,12 @@ export class Thrown {
     prop.thrown = true;
     launch(prop, p.x + dx * 0.6, p.z + dz * 0.6, fromHand ? PAN.handY : CARRY_Y - 0.3, dx, dz, dist, 0.5 + dist * 0.035);
     if (prop.kind === 'pan') prop.spin = 14;
+    if (prop.kind === 'umbrella') {
+      // a dart: point first, flat
+      prop.spin = 0;
+      prop.tilt.rotation.set(Math.PI / 2, 0, 0);
+      prop.tilt.position.y = 0;
+    }
     g.audio.toss();
     g.notes.log(`擲出${Thrown.propName(prop)}`);
     return true;
@@ -239,7 +259,7 @@ export class Thrown {
           this.hitEnemy(e, q, 1);
           q.ignite(0.02);
         } else {
-          this.hitEnemy(e, q, 2);
+          this.hitEnemy(e, q, q.kind === 'umbrella' ? UMBRELLA.dartDamage : 2);
           q.vx *= -0.3;
           q.vz *= -0.3;
           q.vy = Math.max(q.vy, 3);
@@ -290,7 +310,7 @@ export class Thrown {
 
     // HUD hint
     if (!p.alive) this.prompt = '';
-    else if (this.carry) this.prompt = this.inHand ? '{kick} 鑊擊 · {throw} 擲出' : '{throw} / {fire} 擲出';
+    else if (this.carry) this.prompt = this.inHand ? (this.carry.kind === 'pan' ? '{kick} 鑊擊 · {throw} 擲出' : '{kick} 開傘 · {throw} 擲出') : '{throw} / {fire} 擲出';
     else {
       const near = this.nearProp();
       if (near) this.prompt = `{throw} 拿起${Thrown.propName(near)}`;

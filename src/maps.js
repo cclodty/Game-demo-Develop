@@ -130,7 +130,7 @@ const rooftop = {
   ],
   barrels: [[-6, -3.4], [-12, -2], [3.5, -10], [-19.5, 13], [5.2, 12.4], [-9, -11, 'lpg'], [13, 8.5], [15, 7.2, 'gas'], [16.5, 9.5], [14, 11.5], [12, 10.5]],
   pans: [[2.5, -1.5], [-1.5, 1.5], [-14, -9], [12.5, -8.5], [-16, 7], [6, 10]],
-  tools: [[-13, -9.5, 'extinguisher']], // things to pick up and use: a fire extinguisher in the greenhouse
+  tools: [[-13, -9.5, 'extinguisher'], [-3, 9, 'umbrella'], [16, 0, 'umbrella']], // things to pick up and use: a fire extinguisher in the greenhouse, two umbrellas left in the rain
   // fixtures (fixtures.js): street lamps that go dark when shot out, hanging signs that drop on whoever is under them, a gate in the barrier
   fixtures: [[-6, 7, 'lamp'], [8, 5, 'lamp'], [12, -3, 'sign', 180], [-12, 11, 'sign', 0], [0, -8, 'door', 0, 2, 1.25]],
   pads: [[-9, 1], [11, 2]],

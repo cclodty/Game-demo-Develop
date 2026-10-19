@@ -314,6 +314,75 @@ class Extinguisher {
   }
 }
 
+/** An umbrella (雨傘): carried in the hand (thrown.js), opened in front by F (player.js shield), thrown like a dart. */
+class Umbrella {
+  constructor(level, x, z) {
+    this.level = level;
+    this.kind = 'umbrella';
+    this.variant = 'umbrella';
+    this.home = [x, z];
+    this.r = 0.25;
+    const g = new THREE.Group();
+    const stick = new THREE.Mesh(level.geo.unit, level.mat.darkMetal);
+    stick.scale.set(0.035, 1.0, 0.035);
+    stick.position.y = 0.5;
+    const canopy = new THREE.Mesh(level.geo.canopy, level.mat.umbrella);
+    canopy.position.y = 0.98;
+    canopy.scale.set(0.3, 1, 0.3); // furled
+    g.add(stick, canopy);
+    g.traverse((m) => {
+      if (m.isMesh) m.castShadow = true;
+    });
+    this.canopy = canopy;
+    this.tilt = g;
+    this.mesh = new THREE.Group();
+    this.mesh.add(g);
+    level.add(this.mesh);
+    this.reset();
+  }
+
+  reset() {
+    [this.x, this.z] = this.home;
+    this.vx = this.vz = 0;
+    this.y = 0;
+    this.vy = 0;
+    this.spin = 0;
+    this.alive = true;
+    this.carried = false;
+    this.thrown = false;
+    this.mesh.visible = true;
+    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.rotation.set(0, 0, 0);
+    this.tilt.rotation.set(Math.PI / 2, 0, 0.3); // lying on the floor
+    this.tilt.position.y = 0.05;
+    this.open(0);
+  }
+
+  /** How far open, 0 (furled) to 1. */
+  open(k) {
+    const s = 0.3 + 0.7 * k;
+    this.canopy.scale.set(s, 1, s);
+  }
+
+  update(dt) {
+    if (this.carried) return;
+    if (this.y > 0 || this.vy !== 0) {
+      this.vy -= 22 * dt;
+      this.y += this.vy * dt;
+      this.tilt.rotation.x += this.spin * dt;
+      if (this.y <= 0) {
+        this.y = 0;
+        this.vy = 0;
+        this.thrown = false;
+        this.spin = 0;
+        this.tilt.rotation.set(Math.PI / 2, 0, 0.3);
+      }
+    }
+    this.mesh.position.set(this.x, this.y, this.z);
+    if (this.thrown) this.mesh.rotation.y = Math.atan2(this.vx, this.vz);
+  }
+}
+
 class Pan {
   constructor(level, x, z, variant = 'pan') {
     this.level = level;
@@ -473,6 +542,7 @@ export class Level {
       extinguisher: new THREE.CylinderGeometry(0.12, 0.12, 0.55, 12),
       extHead: new THREE.CylinderGeometry(0.05, 0.08, 0.14, 8),
       cloud: new THREE.CircleGeometry(ENV.smokeRadius, 36).rotateX(-Math.PI / 2),
+      canopy: new THREE.ConeGeometry(0.6, 0.28, 10, 1, true),
       lpgCollar: new THREE.CylinderGeometry(0.14, 0.18, 0.18, 10, 1, true),
       pan: new THREE.CylinderGeometry(0.38, 0.32, 0.07, 20),
       panRim: new THREE.TorusGeometry(0.38, 0.03, 6, 24),
@@ -509,6 +579,7 @@ export class Level {
       lpg: std({ color: 0xe8652a, roughness: 0.45, metalness: 0.35, emissive: 0xff4400, emissiveIntensity: 0.15 }),
       extinguisher: std({ color: 0xc8202a, roughness: 0.4, metalness: 0.4 }),
       cloud: new THREE.MeshBasicMaterial({ color: 0xf0f2f4, transparent: true, opacity: 0.3, depthWrite: false }),
+      umbrella: std({ color: 0xff3fa4, roughness: 0.6, side: THREE.DoubleSide }),
       pan: std({ color: 0x22242a, roughness: 0.3, metalness: 0.85 }),
       tray: std({ color: 0xb8bcc6, roughness: 0.2, metalness: 0.95 }),
       panRim: std({ color: 0xffd38a, emissive: 0xffb347, emissiveIntensity: 1.4, metalness: 0.9, roughness: 0.25 }),
@@ -633,7 +704,11 @@ export class Level {
     }
     this.flocks = (map.flocks || []).map(([x, z]) => new Flock(x, z));
     this.water = (map.water || []).map((w) => ({ ...w }));
-    for (const [x, z, kind] of map.tools || []) if (kind === 'extinguisher') this.tools.push(new Extinguisher(this, x, z)); // things to pick up and use (more kinds come with their cards)
+    for (const [x, z, kind] of map.tools || []) {
+      // things to pick up and use (more kinds come with their cards)
+      if (kind === 'extinguisher') this.tools.push(new Extinguisher(this, x, z));
+      else if (kind === 'umbrella') this.tools.push(new Umbrella(this, x, z));
+    }
     this.fixtures = buildFixtures(this, map.fixtures); // lamps and signs: fixed props that play along (fixtures.js)
     this.props = [...this.barrels, ...this.pans, ...this.tools, ...this.fixtures];
     for (const [x, z] of map.pads || []) this.addPad(x, z);
