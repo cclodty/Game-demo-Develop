@@ -1,4 +1,5 @@
-// Settings (設定, playtest feedback ②): the music and sound volumes, and which
+// Settings (設定, playtest feedback ②): the music and sound volumes, the song
+// (音樂 ④: one for every stage, or the playlist), and which
 // key (and which pad button) drives each rebindable action. Kept in
 // localStorage. The game logic never sees a key: input.js turns a physical
 // key into the action's control code before it reaches a step, so a run
@@ -20,6 +21,7 @@ export class Settings {
     this.storage = storage;
     this.music = 1; // 0–1, on top of the mix's own level
     this.sfx = 1;
+    this.song = 'auto'; // a song's id (music.js SONGS) for every stage, or 'auto': the playlist, one a stage
     this.keys = {}; // action id → physical key code
     this.pad = {}; // action id → pad button index
     this.reset(false);
@@ -32,6 +34,7 @@ export class Settings {
     if (data && typeof data === 'object') {
       if (Number.isFinite(data.music)) this.music = Math.min(1, Math.max(0, data.music));
       if (Number.isFinite(data.sfx)) this.sfx = Math.min(1, Math.max(0, data.sfx));
+      if (typeof data.song === 'string') this.song = data.song;
       for (const a of ACTIONS) {
         if (data.keys && typeof data.keys[a.id] === 'string') this.keys[a.id] = data.keys[a.id];
         if (data.pad && Number.isInteger(data.pad[a.id])) this.pad[a.id] = data.pad[a.id];
@@ -43,6 +46,7 @@ export class Settings {
   reset(save = true) {
     this.music = 1;
     this.sfx = 1;
+    this.song = 'auto';
     this.keys = {};
     this.pad = {};
     for (const a of ACTIONS) {
@@ -55,7 +59,7 @@ export class Settings {
 
   save() {
     try {
-      this.storage.setItem(KEY, JSON.stringify({ music: this.music, sfx: this.sfx, keys: this.keys, pad: this.pad }));
+      this.storage.setItem(KEY, JSON.stringify({ music: this.music, sfx: this.sfx, song: this.song, keys: this.keys, pad: this.pad }));
     } catch {
       /* storage full or unavailable */
     }

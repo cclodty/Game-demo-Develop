@@ -18,14 +18,24 @@ export class AudioSys {
     this.musicRate = 1;
     this.slow = 0;
     this.last = new Map();
-    // the background songs (music.js): config.js MUSIC.playlist, one a stage, or ?music=<id> for just that one
+    // the background songs (music.js): config.js MUSIC.playlist, one a stage; the settings' choice of one song instead
+    // (setChoice); or ?music=<id> for just that one on this visit, over both
     const asked = new URLSearchParams(location.search).get('music');
-    this.playlist = SONGS[asked] ? [asked] : MUSIC.playlist.filter((id) => SONGS[id]);
-    if (!this.playlist.length) this.playlist = ['classic'];
+    this.asked = SONGS[asked] ? asked : null;
+    this.defaultPlaylist = MUSIC.playlist.filter((id) => SONGS[id]);
+    if (!this.defaultPlaylist.length) this.defaultPlaylist = ['classic'];
+    this.choice = null;
+    this.playlist = this.asked ? [this.asked] : this.defaultPlaylist;
     this.song = SONGS[this.playlist[0]];
     this.nextSong = null; // the stage's song, waiting for the bar line
     this.musicLevel = 0; // how much of the song plays (music.js): 0 the base, 1 its later layers, 2 its boss section
     this.kickOnly = false; // a beat's doors telegraphed (waves.js setBeat): the kick alone until it lands
+  }
+
+  /** The settings' choice (settings.js `song`): a song's id to play for every stage, or 'auto' for the playlist; ?music= wins. */
+  setChoice(id) {
+    this.choice = id !== 'auto' && SONGS[id] ? id : null;
+    this.playlist = this.asked ? [this.asked] : this.choice ? [this.choice] : this.defaultPlaylist;
   }
 
   /** The song for stage `i` of a run. */
