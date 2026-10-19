@@ -12,6 +12,8 @@ export class AudioSys {
   constructor() {
     this.ctx = null;
     this.musicOn = true;
+    this.musicVol = 1; // the settings' volumes (setVolumes), 0–1 on top of the mix
+    this.sfxVol = 1;
     this.pitch = 1;
     this.musicRate = 1;
     this.slow = 0;
@@ -23,6 +25,7 @@ export class AudioSys {
     this.song = SONGS[this.playlist[0]];
     this.nextSong = null; // the stage's song, waiting for the bar line
     this.musicLevel = 0; // how much of the song plays (music.js): 0 the base, 1 its later layers, 2 its boss section
+    this.kickOnly = false; // a beat's doors telegraphed (waves.js setBeat): the kick alone until it lands
   }
 
   /** The song for stage `i` of a run. */
@@ -49,6 +52,29 @@ export class AudioSys {
   /** 0 the base of the song, 1 with its later layers, 2 its boss section (waves.js sets it each wave). */
   setLevel(n) {
     this.musicLevel = n;
+  }
+
+  /** The beats (waves.js): 'telegraph' leaves only the kick playing, 'live' and 'quiet' bring the song back. */
+  setBeat(phase) {
+    this.kickOnly = phase === 'telegraph';
+  }
+
+  /** The music's level with everything on: the mix's, the settings' volume, muted when off. */
+  get musicGain() {
+    return this.musicOn ? 0.32 * this.musicVol : 0;
+  }
+
+  /** A big sound (an explosion, the player's death): the music dips to `depth` of itself for `hold` s and comes back over `release` s. */
+  duck(depth = 0.3, hold = 0.12, release = 0.6, at = null) {
+    if (!this.ctx) return;
+    const g = this.music.gain;
+    const t = at ?? this.ctx.currentTime;
+    const base = this.musicGain;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    g.linearRampToValueAtTime(base * depth, t + 0.03);
+    g.setValueAtTime(base * depth, t + hold);
+    g.setTargetAtTime(base, t + hold, release / 3);
   }
 
   /** A song takes over the music: its echo's timing and its hall. */
@@ -95,7 +121,7 @@ export class AudioSys {
     this.sfxFilter.frequency.value = 20000;
     this.sfxFilter.connect(this.master);
     this.sfx = ctx.createGain();
-    this.sfx.gain.value = 0.9;
+    this.sfx.gain.value = 0.9 * this.sfxVol;
     this.sfx.connect(this.sfxFilter);
 
     this.musicFilter = ctx.createBiquadFilter();
@@ -104,7 +130,7 @@ export class AudioSys {
     this.musicFilter.Q.value = 0.9;
     this.musicFilter.connect(this.master);
     this.music = ctx.createGain();
-    this.music.gain.value = this.musicOn ? 0.32 : 0;
+    this.music.gain.value = this.musicOn ? 0.32 * this.musicVol : 0;
     this.music.connect(this.musicFilter);
     // the song's echo: what goes to musicWet also repeats through a filtered feedback delay
     const dl = this.song.delay || { steps: 3, send: 0, feedback: 0 };
@@ -165,8 +191,22 @@ export class AudioSys {
 
   toggleMusic() {
     this.musicOn = !this.musicOn;
-    if (this.music) this.music.gain.setTargetAtTime(this.musicOn ? 0.32 : 0, this.ctx.currentTime, 0.1);
+    if (this.music) {
+      this.music.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.music.gain.setTargetAtTime(this.musicGain, this.ctx.currentTime, 0.1);
+    }
     return this.musicOn;
+  }
+
+  /** The settings page's volumes, 0–1 each (settings.js): the music's and the sound effects' gains follow. */
+  setVolumes(music, sfx) {
+    this.musicVol = music;
+    this.sfxVol = sfx;
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.music.gain.cancelScheduledValues(t);
+    this.music.gain.setTargetAtTime(this.musicGain, t, 0.05);
+    this.sfx.gain.setTargetAtTime(0.9 * sfx, t, 0.05);
   }
 
   /** slow: 0 = real time, 1 = full bullet time. */
@@ -340,6 +380,7 @@ export class AudioSys {
 
   explosion(pan = 0) {
     if (!this.ready) return;
+    this.duck();
     const p = this.pitch;
     this.noise({ type: 'lowpass', freq: 2200 * p, freqEnd: 70 * p, dur: 1.5 / p, vol: 0.95, attack: 0.004, pan });
     this.tone({ type: 'sine', f0: 80 * p, f1: 24 * p, dur: 1.0 / p, vol: 0.85, pan });
@@ -521,6 +562,7 @@ export class AudioSys {
 
   death() {
     if (!this.ready) return;
+    this.duck(0.2, 0.6, 1.5);
     this.tone({ type: 'sine', f0: 320, f1: 35, dur: 1.8, vol: 0.45 });
     this.noise({ type: 'lowpass', freq: 1500, freqEnd: 60, dur: 1.8, vol: 0.4 });
   }
@@ -544,10 +586,13 @@ export class AudioSys {
     }
   }
 
-  /** Schedule `seconds` of the song from the start, at music `level`, on an offline graph (build() first); ctx.startRendering() then plays it out. */
-  scheduleSong(seconds, level = 1) {
+  /**
+   * Schedule `seconds` of the song from the start, at music `level` and tape `rate` (1, or musicRate in bullet time: setSlow first),
+   * on an offline graph (build() first); ctx.startRendering() then plays it out.
+   */
+  scheduleSong(seconds, level = 1, rate = 1) {
     this.musicLevel = level;
-    const dt = 60 / this.song.bpm / 4;
-    for (let n = 0, t = 0.05; t < seconds; n++, t += dt) playStep(this, this.song, n, t, 1);
+    const dt = 60 / this.song.bpm / 4 / rate;
+    for (let n = 0, t = 0.05; t < seconds; n++, t += dt) playStep(this, this.song, n, t, rate);
   }
 }

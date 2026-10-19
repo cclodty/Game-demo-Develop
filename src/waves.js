@@ -137,6 +137,7 @@ export class Waves {
     this.beatI = 0;
     this.beatPhase = 'quiet';
     this.beatT = 0.3;
+    g.audio.setBeat('quiet');
     this.beatSpots = [];
     this.beatHurt = false;
     this.stage = null;
@@ -231,6 +232,7 @@ export class Waves {
       this.beatPhase = 'telegraph';
       this.beatT = BEATS.telegraph;
       g.audio.beat();
+      g.audio.setBeat('telegraph'); // the music drops to the kick until they come
     } else if (this.beatPhase === 'telegraph') {
       for (const sp of this.beatSpots) sp.heat = 1;
       this.beatT -= dt;
@@ -245,6 +247,7 @@ export class Waves {
       this.beatPhase = 'live';
       this.beatT = 0;
       this.beatHurt = false;
+      g.audio.setBeat('live');
       const count = {};
       for (const t of beat) count[t] = (count[t] || 0) + 1;
       g.notes.log(`第 ${this.beatI} 拍${this.stage ? `（${this.stage.name}）` : ''}出場：${Object.entries(count).map(([t, n]) => `${TYPES[t].label}×${n}`).join(' ')}`);

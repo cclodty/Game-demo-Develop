@@ -148,6 +148,11 @@ class Barrel {
         this.ignite(0.02);
         break;
       }
+      if (!this.rocketHit && g.boss.rammed(this.x, this.z, this.r)) {
+        // a boss in its way (boss.js: the heavy gunner): it bursts on him
+        this.rocketHit = true;
+        this.ignite(0.02);
+      }
       if (this.rocketT <= 0) {
         this.rocketHit = true;
         this.ignite(0.02);
@@ -199,6 +204,7 @@ class Extinguisher {
     this.cloud.position.y = 0.02;
     this.cloud.userData.noOutline = true;
     level.add(this.cloud);
+    this.marker = toolMarker(level);
     this.reset();
   }
 
@@ -220,6 +226,7 @@ class Extinguisher {
     this.mesh.rotation.set(0, 0, 0);
     this.tilt.rotation.set(0, 0, 0);
     this.cloud.visible = false;
+    this.marker.visible = true;
   }
 
   /** A bullet: it bursts. */
@@ -261,12 +268,15 @@ class Extinguisher {
 
   update(dt) {
     const g = this.level.game;
+    this.marker.visible = this.alive && !this.carried && !this.thrown && this.smokeT <= 0 && this.tumbleT <= 0 && this.y <= 0.05;
+    if (this.marker.visible) pulseMarker(this.marker, this.x, this.z, this.level.time + this.home[0]);
     if (this.smokeT > 0) {
       this.smokeT -= dt;
       if (this.smokeT <= 0) {
         this.alive = false;
         this.mesh.visible = false;
         this.cloud.visible = false;
+        this.marker.visible = false;
         return;
       }
       if (++this.puff % 6 === 0) g.fx.smokePuff(this.x + rand(-1.6, 1.6), 0.4, this.z + rand(-1.6, 1.6), 1, 1.0, 0.88, 0.9);
@@ -314,7 +324,11 @@ class Extinguisher {
   }
 }
 
-/** An umbrella (雨傘): carried in the hand (thrown.js), opened in front by F (player.js shield), thrown like a dart. */
+/**
+ * An umbrella (雨傘): carried in the hand (thrown.js), held open in front while F is held (player.js shield), thrown
+ * like a dart. It takes UMBRELLA.hits bullets, then the ribs give (break) and it is gone. On the floor it has a
+ * marker ring like a pan's, a crook handle and a fat furled head, so it reads as an umbrella from above.
+ */
 class Umbrella {
   constructor(level, x, z) {
     this.level = level;
@@ -326,10 +340,12 @@ class Umbrella {
     const stick = new THREE.Mesh(level.geo.unit, level.mat.darkMetal);
     stick.scale.set(0.035, 1.0, 0.035);
     stick.position.y = 0.5;
+    const crook = new THREE.Mesh(level.geo.crook, level.mat.darkMetal); // the handle's hook at the bottom
+    crook.position.set(0.09, 0.02, 0);
+    crook.rotation.z = Math.PI;
     const canopy = new THREE.Mesh(level.geo.canopy, level.mat.umbrella);
     canopy.position.y = 0.98;
-    canopy.scale.set(0.3, 1, 0.3); // furled
-    g.add(stick, canopy);
+    g.add(stick, crook, canopy);
     g.traverse((m) => {
       if (m.isMesh) m.castShadow = true;
     });
@@ -338,6 +354,7 @@ class Umbrella {
     this.mesh = new THREE.Group();
     this.mesh.add(g);
     level.add(this.mesh);
+    this.marker = toolMarker(level);
     this.reset();
   }
 
@@ -347,6 +364,9 @@ class Umbrella {
     this.y = 0;
     this.vy = 0;
     this.spin = 0;
+    this.hits = 0; // bullets caught so far (player.js shield)
+    this.broken = false;
+    this.brokenT = 0;
     this.alive = true;
     this.carried = false;
     this.thrown = false;
@@ -355,16 +375,37 @@ class Umbrella {
     this.mesh.rotation.set(0, 0, 0);
     this.tilt.rotation.set(Math.PI / 2, 0, 0.3); // lying on the floor
     this.tilt.position.y = 0.05;
+    this.marker.visible = true;
     this.open(0);
   }
 
-  /** How far open, 0 (furled) to 1. */
+  /** How far open, 0 (furled) to 1; a broken one stays inside out. */
   open(k) {
-    const s = 0.3 + 0.7 * k;
+    if (this.broken) return;
+    const s = 0.45 + 0.55 * k; // furled it keeps a fat head, so it reads from above
     this.canopy.scale.set(s, 1, s);
   }
 
+  /** The ribs give: the canopy turns inside out and the umbrella lies there a moment before it is gone. */
+  break() {
+    const g = this.level.game;
+    this.broken = true;
+    this.brokenT = 1.5;
+    this.canopy.scale.set(1, -0.6, 1);
+    g.fx.debris(this.x, 1, this.z, 0, 0, 6, [1, 0.25, 0.64], 0.06);
+    g.audio.glass(g.panFor(this.x));
+    g.notes.log('雨傘擋滿子彈，傘骨外翻報廢');
+  }
+
   update(dt) {
+    if (this.broken) {
+      this.brokenT -= dt;
+      if (this.brokenT <= 0) {
+        this.alive = false;
+        this.mesh.visible = false;
+      }
+    }
+    this.marker.visible = this.alive && !this.carried && !this.thrown && !this.broken && this.y <= 0.05;
     if (this.carried) return;
     if (this.y > 0 || this.vy !== 0) {
       this.vy -= 22 * dt;
@@ -380,7 +421,21 @@ class Umbrella {
     }
     this.mesh.position.set(this.x, this.y, this.z);
     if (this.thrown) this.mesh.rotation.y = Math.atan2(this.vx, this.vz);
+    pulseMarker(this.marker, this.x, this.z, this.level.time + this.home[0]);
   }
+}
+
+/** The ring on the floor under a tool, as under a pan: what can be picked up shows it. */
+function toolMarker(level) {
+  const m = new THREE.Mesh(level.geo.panMarker, level.mat.panMarker);
+  m.position.y = 0.06;
+  level.add(m);
+  return m;
+}
+
+function pulseMarker(marker, x, z, t) {
+  marker.position.set(x, 0.06, z);
+  marker.scale.setScalar(0.9 + (0.5 + 0.5 * Math.sin(t * 3)) * 0.25);
 }
 
 class Pan {
@@ -543,6 +598,7 @@ export class Level {
       extHead: new THREE.CylinderGeometry(0.05, 0.08, 0.14, 8),
       cloud: new THREE.CircleGeometry(ENV.smokeRadius, 36).rotateX(-Math.PI / 2),
       canopy: new THREE.ConeGeometry(0.6, 0.28, 10, 1, true),
+      crook: new THREE.TorusGeometry(0.09, 0.02, 6, 10, Math.PI), // an umbrella's handle
       lpgCollar: new THREE.CylinderGeometry(0.14, 0.18, 0.18, 10, 1, true),
       pan: new THREE.CylinderGeometry(0.38, 0.32, 0.07, 20),
       panRim: new THREE.TorusGeometry(0.38, 0.03, 6, 24),

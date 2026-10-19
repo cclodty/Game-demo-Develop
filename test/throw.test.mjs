@@ -108,7 +108,7 @@ test('G picks up a pan, throws it at the cursor, and the hit enemy is stunned', 
     pan.vx = pan.vz = pan.vy = 0;
     window.step(1);
     const before = { prompt: g.thrown.prompt };
-    window.step(1, { press: ['KeyG'] });
+    window.step(1, { press: ['KeyE'] });
     const held = { carry: g.thrown.carry === pan, carried: pan.carried, y: pan.y, prompt: g.thrown.prompt, hud: document.getElementById('prompt').textContent };
     window.step(10);
     const rides = Math.hypot(pan.x - p.x, pan.z - p.z) < 0.01 && (pan.y > 2 || g.thrown.inHand); // a barrel overhead, a pan in the hand (test/pan.test.mjs)
@@ -226,7 +226,7 @@ test('a thrown barrel explodes where it lands', { timeout: 60000 }, async () => 
     barrel.x = p.x - 1;
     barrel.z = p.z;
     barrel.vx = barrel.vz = 0;
-    window.step(1, { press: ['KeyG'] });
+    window.step(1, { press: ['KeyE'] });
     const held = g.thrown.carry === barrel;
     window.aimEast();
     window.step(1, { press: ['KeyG'] });

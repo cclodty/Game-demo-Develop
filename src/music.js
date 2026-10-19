@@ -19,6 +19,14 @@
 // part with `level: 1` waits for a stage's later waves, and at level 2 (the
 // last wave, a boss) the song's `boss` changes take over, its boss section.
 // A lead is a list of [bar, step, semitones above the key, steps long, slide].
+//
+// The music follows the fight too (音樂 ③): while a beat's doors are telegraphed
+// (waves.js, AudioSys.kickOnly) only the kick plays, and everything comes back
+// as the beat lands; a song's `slow` says what of it is left in bullet time
+// (`parts`, and `drums` within the drums), the rest dropping out. Cantonese
+// opera percussion (鑼鼓): block 木魚, shadi 沙的, gong 大鑼, cymbal 鈸; and a
+// brush for a brushed snare. A bass may be an upright (voice 'upright'), a lead
+// a muted trumpet ('mute') or a suona ('suona').
 
 /** The chord of a bar: semitones above the key's root, the root first. */
 const CHORD = {
@@ -360,7 +368,108 @@ abyss.boss = {
   arp: { ...abyss.arp, pattern: '0121012101210121' },
 };
 
-export const SONGS = { classic, neon, city, breaks, dream, vendetta, undertow, countdown, abyss };
+/**
+ * 鑼鼓電子 GONG & DRUM (音樂 ③, a new direction): Cantonese opera percussion over a house floor. Woodblock
+ * and shadi keep a busy time, the big gong and cymbals punctuate the phrase, a four-on-the-floor kick
+ * and an off-beat bass carry it, and a suona line comes in for the later waves. In bullet time only the
+ * 鑼鼓 are left. i–i–VII–i in A minor.
+ */
+const gong = {
+  name: '鑼鼓電子 GONG & DRUM',
+  bpm: 128,
+  key: 220,
+  bars: 4,
+  chords: [CHORD.m(0), CHORD.m(0), CHORD.M(-2), CHORD.m(0)],
+  delay: { steps: 3, send: 0.14, feedback: 0.22 },
+  mix: { kick: 1, hat: 0.8 },
+  drums: {
+    kick: 'x...x...x...x...',
+    open: '..x...x...x...x.',
+    block: ['x.xx.x.xx.x.x.xx', 'x.xx.x.xx.x.xxxx', 'x.xx.x.xx.x.x.xx', 'xxxxx.x.xxxxX.X.'],
+    shadi: ['x..x..x...x..x..', 'x..x..x...x.x.x.', 'x..x..x...x..x..', 'x.x.x.x.xxxxx...'],
+    gong: ['............x...', '................', '............x...', 'X...........x...'],
+    cymbal: ['....x.......x...', '....x.......x...', '....x.......x...', '....x...x.x.X...'],
+  },
+  bass: { pattern: '..r...r...r...r.', type: 'sawtooth', filter: 520, vol: 0.27, len: 0.9, sub: 0.8 },
+  lead: {
+    voice: 'suona',
+    vol: 0.34,
+    filter: 1900,
+    octave: 1,
+    from: 4,
+    level: 1,
+    notes: [
+      [0, 0, 12, 2], [0, 2, 15, 2], [0, 4, 12, 4], [0, 8, 10, 2], [0, 10, 7, 6],
+      [1, 0, 5, 2], [1, 2, 7, 2], [1, 4, 10, 4], [1, 8, 12, 8],
+      [2, 0, 15, 2], [2, 2, 17, 2], [2, 4, 15, 4], [2, 8, 12, 2], [2, 10, 10, 6],
+      [3, 0, 7, 4], [3, 4, 5, 4], [3, 8, 0, 8, 2],
+    ],
+  },
+  slow: { parts: ['drums'], drums: ['block', 'shadi', 'gong', 'cymbal'] }, // bullet time: the 鑼鼓 alone
+  // the boss section: the percussion doubles up, the gong every two bars
+  boss: {
+    mix: { kick: 1.15, hat: 0.8 },
+    drums: {
+      kick: 'x...x...x...x.x.',
+      open: '..x...x...x...x.',
+      block: 'xxxxx.xxxxxxx.xx',
+      shadi: 'x.x.x.x.x.x.xxxx',
+      gong: ['X...............', '............x...'],
+      cymbal: 'x...x...x...X.x.',
+    },
+  },
+};
+
+/**
+ * 電子搖擺 ELECTRO SWING (音樂 ③, a new direction): a brushed kit swung over a house kick, a walking upright
+ * bass, electric piano stabs on the off-beats and a muted trumpet for the later waves. i–iv–V7–i in A minor
+ * at 118 BPM; bullet time plays it at tape half speed like the others.
+ */
+const swing = {
+  name: '電子搖擺 ELECTRO SWING',
+  bpm: 118,
+  key: 220,
+  bars: 4,
+  swing: 0.4,
+  chords: [CHORD.m(0), CHORD.m(5), CHORD.d7(7), CHORD.m(0)],
+  delay: { steps: 3, send: 0.18, feedback: 0.25 },
+  mix: { kick: 0.95, clap: 0.6, hat: 0.9 },
+  drums: {
+    kick: 'x...x...x...x...',
+    brush: 'g.g.X.g.g.g.X.g.',
+    hat: '..x...x...x...x.',
+    clap: '....x.......x...',
+  },
+  bass: { pattern: 'r...3...5...7...', voice: 'upright', vol: 0.3, len: 0.9 },
+  keys: { pattern: '..x...x...x...x.', voice: 'epiano', vol: 0.24 },
+  lead: {
+    voice: 'mute',
+    vol: 0.3,
+    filter: 1500,
+    octave: 1,
+    from: 4,
+    level: 1,
+    notes: [
+      [0, 0, 12, 3], [0, 3, 15, 1], [0, 4, 12, 2], [0, 6, 10, 2], [0, 8, 7, 4], [0, 12, 10, 4],
+      [1, 0, 17, 3], [1, 3, 15, 1], [1, 4, 17, 2], [1, 6, 15, 2], [1, 8, 12, 8],
+      [2, 0, 19, 3], [2, 3, 17, 1], [2, 4, 14, 2], [2, 6, 11, 2], [2, 8, 14, 4], [2, 12, 11, 4],
+      [3, 0, 12, 6], [3, 6, 10, 2], [3, 8, 7, 4], [3, 12, 12, 4, -2],
+    ],
+  },
+  // the boss section: the brush gives way to a snare on every beat, double-time hats
+  boss: {
+    mix: { kick: 1, clap: 0.6, hat: 1 },
+    drums: {
+      kick: 'x...x...x...x...',
+      snare: '....X.......X...',
+      brush: 'g.g.g.g.g.g.g.g.',
+      hat: 'x.x.x.x.x.x.x.x.',
+      clap: '....x.......x...',
+    },
+  },
+};
+
+export const SONGS = { classic, neon, city, breaks, dream, vendetta, undertow, countdown, abyss, gong, swing };
 
 const hz = (semi, base) => base * Math.pow(2, semi / 12);
 const at16 = (p, bar) => (Array.isArray(p) ? p[bar % p.length] : p);
@@ -416,6 +525,39 @@ const voice = {
   hat(a, at, r, vol, bus, open = false) {
     a.noise({ type: 'highpass', freq: (open ? 7000 : 8500) * r, dur: (open ? 0.22 : 0.035) / r, vol, at, bus });
   },
+  // Cantonese opera percussion (鑼鼓)
+  block(a, at, r, vol, bus) {
+    // 木魚: a woody tok
+    a.tone({ type: 'sine', f0: 1150 * r, f1: 880 * r, dur: 0.06 / r, vol, at, bus });
+    a.noise({ type: 'bandpass', freq: 2600 * r, q: 4, dur: 0.02 / r, vol: vol * 0.5, at, bus });
+  },
+  shadi(a, at, r, vol, bus) {
+    // 沙的: the small high drum, a sharp dik
+    a.noise({ type: 'bandpass', freq: 3200 * r, q: 2.5, dur: 0.05 / r, vol, at, bus });
+    a.tone({ type: 'triangle', f0: 1400 * r, f1: 700 * r, dur: 0.05 / r, vol: vol * 0.6, at, bus });
+  },
+  gong(a, at, r, vol, bus) {
+    // 大鑼: inharmonic partials that sag in pitch after the hit, the Cantonese gong's "wong"
+    for (const [k, w] of [
+      [1, 1],
+      [1.47, 0.6],
+      [2.09, 0.4],
+      [2.74, 0.25],
+    ])
+      a.tone({ type: 'sine', f0: 180 * k * 1.06 * r, f1: 180 * k * 0.94 * r, dur: 1.6 / r, vol: vol * w, attack: 0.02 / r, at, bus });
+    a.noise({ type: 'bandpass', freq: 900 * r, q: 1, dur: 0.25 / r, vol: vol * 0.4, at, bus });
+  },
+  cymbal(a, at, r, vol, bus) {
+    // 鈸: a pair of cymbals clashed
+    a.noise({ type: 'highpass', freq: 5000 * r, dur: 0.5 / r, vol, at, bus });
+    a.noise({ type: 'bandpass', freq: 3300 * r, q: 2, dur: 0.35 / r, vol: vol * 0.7, at, bus });
+    a.tone({ type: 'square', f0: 2300 * r, f1: 2100 * r, dur: 0.2 / r, vol: vol * 0.08, at, bus });
+  },
+  brush(a, at, r, vol, bus, swish = false) {
+    // a brushed snare: a swish stirred across the head, or a hit
+    a.noise({ type: 'bandpass', freq: 2400 * r, q: 0.6, dur: (swish ? 0.18 : 0.12) / r, attack: (swish ? 0.05 : 0.004) / r, vol, at, bus });
+    if (!swish) a.tone({ type: 'triangle', f0: 190 * r, f1: 140 * r, dur: 0.06 / r, vol: vol * 0.3, at, bus });
+  },
   bass(a, at, r, f, dur, b, bus) {
     if (b.voice === 'reese') {
       for (const k of [0.994, 1.006]) a.tone({ type: 'sawtooth', f0: f * k * r, dur, vol: b.vol, attack: 0.02 / r, at, bus, filter: b.filter * r });
@@ -423,6 +565,11 @@ const voice = {
       // rough: a saw and a square a hair apart, through one filter
       a.tone({ type: 'sawtooth', f0: f * r, dur, vol: b.vol, at, bus, filter: b.filter * r });
       a.tone({ type: 'square', f0: f * 1.005 * r, dur, vol: b.vol * 0.7, at, bus, filter: b.filter * r });
+    } else if (b.voice === 'upright') {
+      // a plucked upright: the string's body, a round fundamental under it, the pluck's click
+      a.tone({ type: 'triangle', f0: f * r, dur, vol: b.vol, attack: 0.004 / r, at, bus, filter: 420 * r });
+      a.tone({ type: 'sine', f0: f * r, dur: dur * 0.8, vol: b.vol * 0.8, attack: 0.004 / r, at, bus });
+      a.noise({ type: 'bandpass', freq: 1200 * r, q: 1.5, dur: 0.015 / r, vol: b.vol * 0.25, at, bus });
     } else {
       a.tone({ type: b.type || 'sawtooth', f0: f * r, dur, vol: b.vol, at, bus, filter: b.filter * r + 100 });
     }
@@ -473,6 +620,11 @@ const voice = {
 export function playStep(a, song, step, at, r = 1) {
   const level = a.musicLevel ?? 1;
   if (level >= 2 && song.boss) song = { ...song, ...song.boss };
+  // what of the song plays now: the kick alone while a beat is telegraphed; in bullet time what its `slow` keeps
+  const kickOnly = !!a.kickOnly;
+  const slow = (a.slow || 0) > 0.5 && song.slow ? song.slow : null;
+  const plays = (part) => !kickOnly && (!slow || slow.parts.includes(part));
+  const drumPlays = (name) => (kickOnly ? name === 'kick' : !slow || !slow.drums || slow.drums.includes(name));
   const bar = Math.floor(step / 16);
   const loopBar = bar % song.bars;
   const s = step % 16;
@@ -484,35 +636,46 @@ export function playStep(a, song, step, at, r = 1) {
   const base = song.key;
 
   // drum levels sit against the kick (snare and clap about 4 dB under it, hats about 14); a song's mix scales them
-  const mx = { kick: 1, snare: 1, clap: 1, hat: 1, ...song.mix };
+  const mx = { kick: 1, snare: 1, clap: 1, hat: 1, block: 1, shadi: 1, gong: 1, cymbal: 1, brush: 1, ...song.mix };
   const d = song.drums;
-  if (on(d, bar, level)) {
-    const hit = (p) => (p ? at16(p, bar)[s] : '.');
+  if (on(d, bar, level) && (kickOnly || plays('drums'))) {
+    const hit = (p, name) => (p && drumPlays(name) ? at16(p, bar)[s] : '.');
     const epic = song.kit === 'epic';
-    const k = hit(d.kick);
+    const k = hit(d.kick, 'kick');
     if (k !== '.') {
       if (epic) voice.taiko(a, t, r, (k === 'X' ? 0.62 : 0.55) * mx.kick, wet);
       else voice.kick(a, t, r, (k === 'X' ? 0.52 : 0.45) * mx.kick, dry);
     }
-    const sn = hit(d.snare);
+    const sn = hit(d.snare, 'snare');
     if (sn !== '.') {
       if (epic) voice.hit(a, t, r, (sn === 'X' ? 0.9 : 0.7) * mx.snare, wet);
       else voice.snare(a, t, r, (sn === 'g' ? 0.18 : sn === 'X' ? 1 : 0.78) * mx.snare, sn === 'g' ? dry : wet);
     }
-    if (hit(d.tick) !== '.') voice.tick(a, t, r, 0.1 * (mx.tick || 1), dry);
-    if (hit(d.swell) !== '.') voice.swell(a, t, r, stepDur * (16 - s), 0.14 * (mx.swell || 1), wet);
-    const cl = hit(d.clap);
+    if (hit(d.tick, 'tick') !== '.') voice.tick(a, t, r, 0.1 * (mx.tick || 1), dry);
+    if (hit(d.swell, 'swell') !== '.') voice.swell(a, t, r, stepDur * (16 - s), 0.14 * (mx.swell || 1), wet);
+    const cl = hit(d.clap, 'clap');
     if (cl !== '.') voice.clap(a, t, r, 1.3 * mx.clap, wet);
-    const h = hit(d.hat);
+    const h = hit(d.hat, 'hat');
     if (h !== '.') voice.hat(a, t, r, (h === 'X' ? 0.3 : 0.19) * mx.hat, dry);
-    const o = hit(d.open);
+    const o = hit(d.open, 'open');
     if (o !== '.') voice.hat(a, t, r, 0.09 * mx.hat, dry, true);
-    const tm = hit(d.tom);
+    const tm = hit(d.tom, 'tom');
     if (tm !== '.') voice.tom(a, t, r, (tm === 'X' ? 0.95 : 0.75) * (mx.tom || 1), wet, 1.3 - (s / 16) * 0.6);
+    // the 鑼鼓 and the brush (a 'g' is a swish): levels against the kick like the rest
+    const bl = hit(d.block, 'block');
+    if (bl !== '.') voice.block(a, t, r, (bl === 'X' ? 0.3 : 0.22) * mx.block, dry);
+    const sd = hit(d.shadi, 'shadi');
+    if (sd !== '.') voice.shadi(a, t, r, (sd === 'X' ? 0.4 : 0.3) * mx.shadi, dry);
+    const gg = hit(d.gong, 'gong');
+    if (gg !== '.') voice.gong(a, t, r, (gg === 'X' ? 0.6 : 0.45) * mx.gong, wet);
+    const cy = hit(d.cymbal, 'cymbal');
+    if (cy !== '.') voice.cymbal(a, t, r, (cy === 'X' ? 0.45 : 0.32) * mx.cymbal, wet);
+    const br = hit(d.brush, 'brush');
+    if (br !== '.') voice.brush(a, t, r, (br === 'g' ? 0.14 : br === 'X' ? 0.7 : 0.5) * mx.brush, br === 'g' ? dry : wet, br === 'g');
   }
 
   const b = song.bass;
-  if (on(b, bar, level)) {
+  if (on(b, bar, level) && plays('bass')) {
     const p = at16(b.pattern, bar);
     const c = p[s];
     if (c !== '.' && c !== '-') {
@@ -523,13 +686,13 @@ export function playStep(a, song, step, at, r = 1) {
   }
 
   const k = song.keys;
-  if (on(k, bar, level)) {
+  if (on(k, bar, level) && plays('keys')) {
     const p = at16(k.pattern, bar);
     if (p[s] === 'x') voice.keys(a, t, r, chord, base, stepDur * held(p, s) * 0.9, k, wet);
   }
 
   const ar = song.arp;
-  if (on(ar, bar, level)) {
+  if (on(ar, bar, level) && plays('arp')) {
     const c = at16(ar.pattern, bar)[s];
     if (c >= '0' && c <= '9') {
       const semi = chord[Number(c) % chord.length] + 12 * (ar.octave || 0) + (ar.upper && s >= ar.upper ? 12 : 0);
@@ -548,11 +711,11 @@ export function playStep(a, song, step, at, r = 1) {
   }
 
   const pd = song.pad;
-  if (on(pd, bar, level) && s === 0) voice.pad(a, t, r, chord, base, stepDur * 16, pd, pd.voice === 'brass' ? wet : dry);
+  if (on(pd, bar, level) && s === 0 && plays('pad')) voice.pad(a, t, r, chord, base, stepDur * 16, pd, pd.voice === 'brass' ? wet : dry);
   const ch = song.choir;
-  if (on(ch, bar, level) && s === 0) voice.pad(a, t, r, chord, base, stepDur * 16, { ...ch, voice: 'choir' }, wet);
+  if (on(ch, bar, level) && s === 0 && plays('choir')) voice.pad(a, t, r, chord, base, stepDur * 16, { ...ch, voice: 'choir' }, wet);
   const sh = song.shepard;
-  if (on(sh, bar, level) && s === 0) {
+  if (on(sh, bar, level) && s === 0 && plays('shepard')) {
     // six octaves of one note gliding up `rise` semitones a bar, loudest in the middle octaves: it seems to climb for ever
     const from = (bar * sh.rise) % 12;
     for (let k = 0; k < 6; k++) {
@@ -564,14 +727,24 @@ export function playStep(a, song, step, at, r = 1) {
   }
 
   const l = song.lead;
-  if (on(l, bar, level)) {
+  if (on(l, bar, level) && plays('lead')) {
     for (const [nb, ns, semi, len, slide = 0] of l.notes) {
       if (nb !== loopBar || ns !== s) continue;
       const f = hz(semi + 12 * (l.octave || 0) - 12, base) * r;
+      const f1 = slide ? f * Math.pow(2, slide / 12) : 0;
+      const dur = stepDur * len * 0.95;
       if (l.voice === 'horn') {
         // a horn: two saws, a soft swell in, the filter opening a little as it sounds
-        for (const d of [0.996, 1.004]) a.tone({ type: 'sawtooth', f0: f * d, dur: stepDur * len * 0.95, vol: l.vol, attack: 0.07 / r, at: t, bus: wet, filter: l.filter * 0.6 * r, filterTo: l.filter * r, sweep: 0.25 / r });
-      } else a.tone({ type: l.type, f0: f, f1: slide ? f * Math.pow(2, slide / 12) : 0, dur: stepDur * len * 0.95, vol: l.vol, attack: 0.01 / r, at: t, bus: wet, filter: l.filter * r });
+        for (const d of [0.996, 1.004]) a.tone({ type: 'sawtooth', f0: f * d, dur, vol: l.vol, attack: 0.07 / r, at: t, bus: wet, filter: l.filter * 0.6 * r, filterTo: l.filter * r, sweep: 0.25 / r });
+      } else if (l.voice === 'mute') {
+        // a muted trumpet: a saw through a narrow band (the mute's honk), a thin square for the bite
+        a.tone({ type: 'sawtooth', f0: f, f1, dur, vol: l.vol, attack: 0.03 / r, at: t, bus: wet, filter: l.filter * r, filterType: 'bandpass', q: 3 });
+        a.tone({ type: 'square', f0: f * 1.003, f1: f1 * 1.003, dur, vol: l.vol * 0.35, attack: 0.03 / r, at: t, bus: wet, filter: 2600 * r });
+      } else if (l.voice === 'suona') {
+        // a suona: a bright saw through a band round its formant, with a reedy edge an octave up
+        a.tone({ type: 'sawtooth', f0: f, f1, dur, vol: l.vol, attack: 0.02 / r, at: t, bus: wet, filter: l.filter * r, filterType: 'bandpass', q: 1.4 });
+        a.tone({ type: 'sawtooth', f0: f * 2.004, f1: f1 * 2.004, dur, vol: l.vol * 0.3, attack: 0.02 / r, at: t, bus: wet, filter: l.filter * 2 * r });
+      } else a.tone({ type: l.type, f0: f, f1, dur, vol: l.vol, attack: 0.01 / r, at: t, bus: wet, filter: l.filter * r });
     }
   }
 }

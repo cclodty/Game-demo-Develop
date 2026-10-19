@@ -54,14 +54,15 @@ export const PAN = {
   batDamage: 3, // a thug has 3
 };
 
-/** The umbrella (工具 ③, thrown.js / player.js shield): F opens it in front for a moment; G throws it like a dart. */
+/** The umbrella (工具 ③, thrown.js / player.js shield): held open in front while F is held; G throws it like a dart. */
 export const UMBRELLA = {
-  open: 0.8, // s it stays open
-  cooldown: 1.2, // s after it closes before it opens again
+  cooldown: 0.4, // s after it closes before it opens again (no flicker)
   arc: 1.22, // radians either side of the facing it covers (±70°)
   reach: 1.3, // m in front of the player a bullet is caught
   block: 40, // PARASOL points per bullet caught…
   blockCap: 200, // …up to this much per opening
+  hits: 6, // bullets it takes before the ribs give and it is done for
+  walkMul: 0.6, // walking speed × while it is open (and no slide)
   dartDamage: 3, // thrown: a thug has 3
 };
 

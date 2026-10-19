@@ -108,7 +108,7 @@ test('G takes the pan into the right hand: the right pistol is put away, the lef
     const alternate = free.length === 2 && free[0] !== free[1] && free.every((s) => s !== 0);
     window.play(30);
     g.bullets.clear();
-    window.play(1, ['KeyG']);
+    window.play(1, ['KeyE']);
     const held = { inHand: g.thrown.inHand, carry: g.thrown.carry === pan, parent: pan.mesh.parent === p.rig.armR, slot: p.slot, rightGun: p.rig.weaponParts.filter((m) => m.parent === p.rig.armR).map((m) => m.visible), prompt: g.thrown.prompt };
     g.hud.update(1 / 60);
     const hud = document.getElementById('prompt').textContent;
@@ -135,7 +135,7 @@ test('the swing: the thug in the arc flies dazed (then F executes him), the blad
     const g = window.game;
     const pan = window.begin();
     const p = g.player;
-    window.play(1, ['KeyG']);
+    window.play(1, ['KeyE']);
     const tags = window.tags();
     // a thug 1.6 m ahead, a little to the left; a blade 1.6 m ahead to the right
     const thug = window.post('grunt', -0.7, 2.6);
@@ -157,7 +157,7 @@ test('the swing: the thug in the arc flies dazed (then F executes him), the blad
     b.vx = b.vz = b.vy = 0;
     b.y = 0;
     const far = window.post('grunt', 0, -2);
-    window.play(1, ['KeyG']);
+    window.play(1, ['KeyE']);
     window.play(1, ['KeyF']);
     const flying = { y: b.y, thrown: b.thrown, vz: b.vz };
     let n = 0;
@@ -182,7 +182,7 @@ test('G throws the pan from the hand; the right pistol comes back; a barrel stil
     const g = window.game;
     const pan = window.begin();
     const p = g.player;
-    window.play(1, ['KeyG']);
+    window.play(1, ['KeyE']);
     const e = window.post('grunt', 0, -1);
     window.play(1, ['KeyG']);
     const thrown = { inHand: g.thrown.inHand, carry: g.thrown.carry, flying: pan.thrown && pan.vy > 0, parent: pan.mesh.parent === g.level.root, rightGun: p.rig.weaponParts.filter((m) => m.parent === p.rig.armR).every((m) => m.visible) };
@@ -197,7 +197,7 @@ test('G throws the pan from the hand; the right pistol comes back; a barrel stil
     b.z = p.z;
     b.y = 0;
     b.vx = b.vz = b.vy = 0;
-    window.play(1, ['KeyG']);
+    window.play(1, ['KeyE']);
     window.play(5);
     const barrel = { carry: g.thrown.carry === b, inHand: g.thrown.inHand, y: b.y };
     return { thrown, stunned, barrel };

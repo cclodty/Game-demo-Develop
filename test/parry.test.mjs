@@ -33,7 +33,7 @@ before(async () => {
         pan.y = 0.05;
         pan.vx = pan.vz = pan.vy = 0;
         window.play(1);
-        window.play(1, ['KeyG']);
+        window.play(1, ['KeyE']);
       }
     };
     window.play = (n, keys = []) => {

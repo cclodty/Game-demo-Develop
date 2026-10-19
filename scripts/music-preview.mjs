@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Listen to the songs without playing (音樂): renders each song in music.js to a WAV file, through
 // the game's own synth and mix (an OfflineAudioContext in a headless browser), so a song can be
-// judged and compared before it goes in, each brought to the same loudness.
-// `npm run music:preview [seconds] [id ...]` → dist/music/<id>.wav
+// judged and compared before it goes in, each brought to the same loudness. Each song also renders
+// as bullet time hears it (tape rate 0.55, the music filter closed, what the song's `slow` keeps).
+// `npm run music:preview [seconds] [id ...]` → dist/music/<id>.wav and <id>-slow.wav
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,10 +16,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 /**
  * Render song `id` for `seconds` in `page` (on the game's server): a 16-bit stereo WAV, as bytes.
  * `loud`: bring it to about -16 dBFS (peaks kept under 0.95), so songs can be compared by ear.
+ * `slow`: as bullet time hears it (AudioSys.setSlow(1): the tape rate, the closed filter, the song's `slow`).
  */
-export async function renderSong(page, id, seconds, loud = false) {
+export async function renderSong(page, id, seconds, loud = false, slow = false) {
   const b64 = await page.evaluate(
-    async ([id, seconds, loud]) => {
+    async ([id, seconds, loud, slow]) => {
       const { AudioSys } = await import('/src/audio.js');
       const { SONGS } = await import('/src/music.js');
       const rate = 44100;
@@ -26,7 +28,8 @@ export async function renderSong(page, id, seconds, loud = false) {
       a.song = SONGS[id];
       const ctx = new window.OfflineAudioContext(2, Math.ceil(rate * seconds), rate);
       a.build(ctx);
-      a.scheduleSong(seconds);
+      if (slow) a.setSlow(1);
+      a.scheduleSong(seconds, 1, slow ? a.musicRate : 1);
       const buf = await ctx.startRendering();
       const n = buf.length;
       const L = buf.getChannelData(0);
@@ -61,7 +64,7 @@ export async function renderSong(page, id, seconds, loud = false) {
       for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
       return btoa(bin);
     },
-    [id, seconds, loud],
+    [id, seconds, loud, slow],
   );
   return Buffer.from(b64, 'base64');
 }
@@ -81,6 +84,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const wav = await renderSong(page, id, seconds, true);
     fs.writeFileSync(path.join(dir, `${id}.wav`), wav);
     console.log(`dist/music/${id}.wav  ${SONGS[id].name}  ${SONGS[id].bpm} BPM  ${seconds} s`);
+    const slow = await renderSong(page, id, seconds, true, true);
+    fs.writeFileSync(path.join(dir, `${id}-slow.wav`), slow);
+    console.log(`dist/music/${id}-slow.wav  ${SONGS[id].name}  bullet time  ${seconds} s`);
   }
   await browser.close();
   await server.close();

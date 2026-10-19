@@ -1,6 +1,7 @@
-// The docks' boss (碼頭頭目): an arcade run that ends on the docks meets the
-// armoured truck on its last wave. It drives in and round a loop between the
-// containers, shoving barrels aside. Its roof gun sweeps a burst onto a red
+// The armoured truck (碼頭頭目, the docks' boss until 頭目重做 ②): the docks' last
+// wave is the heavy gunner now (gunner.test.mjs); the truck stays in boss.js as
+// a kind a map can ask for, so this test puts it back on the docks for its run.
+// It drives in and round a loop between the containers, shoving barrels aside. Its roof gun sweeps a burst onto a red
 // line; every so often it turns on the player, paints its path red for 1.2 s
 // and charges (35 HP to a player in the way; a slide or a spin gets through).
 // Bullets do nothing to the armour; a blast beside it takes a segment, and so
@@ -20,6 +21,8 @@ before(async () => {
   await page.evaluate(() => {
     const g = window.game;
     g.frame = () => {};
+    // the truck's definition, as the docks carried it: where it drives in from, and its loop between the containers
+    g.maps.find((m) => m.id === 'docks').boss = { kind: 'truck', from: [-30, 0.8], loop: [[-16, 0.8], [16, 0.8], [13, 4.6], [13, 11.3], [-11, 11.3], [-12.5, 8.8], [-16, 5]] };
     /** An arcade run from the rooftop, moved on to its third stage (the docks) and the start of wave 12. */
     window.toFinal = () => {
       g.setRules('normal', []);

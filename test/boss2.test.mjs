@@ -73,7 +73,7 @@ test('a thrown barrel and a launcher grenade under it each take a segment; it re
     barrel.x = p.x + 0.4;
     barrel.z = p.z;
     window.step();
-    g.input.pressed.add('KeyG'); // pick it up
+    g.input.pressed.add('KeyE'); // pick it up
     window.step(true, { x: b.x, z: b.z });
     out.carried = g.thrown.carry === barrel;
     g.input.pressed.add('KeyG'); // and throw it under the helicopter
