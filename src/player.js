@@ -374,7 +374,9 @@ export class Player {
       this.startReload();
     }
     // --- carry / throw (G); a carried thing is thrown with G or the left button
-    if (input.hit('KeyG')) g.thrown.action();
+    // E picks up what lies here (a pad's weapon swap has first call: pickups.js); G throws
+    if (input.hit('KeyE') && !g.pickups.prompt) g.thrown.pickAction();
+    if (input.hit('KeyG')) g.thrown.throwAction();
     const carrying = !!g.thrown.carry && !g.thrown.inHand; // a pan in hand leaves the left gun free: only a load overhead is thrown by the left button
     if (carrying && input.mouse.leftPressed) g.thrown.throwCarried();
     if (input.mouse.left && this.fireCd <= 0 && !carrying && this.execT <= 0) {

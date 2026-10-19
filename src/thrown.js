@@ -7,6 +7,7 @@
 
 import { BODY, buildWeaponModel } from './characters.js';
 import { PAN, PLAYER, UMBRELLA } from './config.js';
+import { withLabels } from './input.js';
 import { clamp, rand, segCircle } from './utils.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
@@ -86,12 +87,18 @@ export class Thrown {
   }
 
   /** G: throw what is carried, else pick up what is near, else throw an emptied weapon. */
-  action() {
+  /** The pick-up key (E, the same as a pad's swap): take what lies at the feet; carrying something already, nothing. */
+  pickAction() {
+    if (this.carry) return false;
+    const prop = this.nearProp();
+    return prop ? this.pickUp(prop) : false;
+  }
+
+  /** The throw key (G): throw what is carried, else an emptied special weapon. */
+  throwAction() {
     const g = this.game;
     const p = g.player;
     if (this.carry) return this.throwCarried();
-    const prop = this.nearProp();
-    if (prop) return this.pickUp(prop);
     if (p.special && p.special.empty) return this.throwGun();
     g.audio.denied();
     return false;
@@ -125,8 +132,8 @@ export class Thrown {
         prop.tilt.position.y = 0;
       }
       prop.y = PAN.handY;
-      g.hud.toast(`${name} <small>${prop.kind === 'pan' ? 'F 鑊擊' : 'F 開傘'} · G 擲出</small>`);
-    } else g.hud.toast(`${name} <small>G / 左鍵 擲出</small>`);
+      g.hud.toast(withLabels(`${name} <small>${prop.kind === 'pan' ? '{kick} 鑊擊' : '按住 {kick} 開傘'} · {throw} 擲出</small>`, g.padOn));
+    } else g.hud.toast(withLabels(`${name} <small>{throw} / {fire} 擲出</small>`, g.padOn));
     return true;
   }
 
@@ -313,7 +320,7 @@ export class Thrown {
     else if (this.carry) this.prompt = this.inHand ? (this.carry.kind === 'pan' ? '{kick} 鑊擊 · {throw} 擲出' : '按住 {kick} 開傘 · {throw} 擲出') : '{throw} / {fire} 擲出';
     else {
       const near = this.nearProp();
-      if (near) this.prompt = `{throw} 拿起${Thrown.propName(near)}`;
+      if (near) this.prompt = `{pick} 拿起${Thrown.propName(near)}`;
       else if (p.special && p.special.empty) this.prompt = `{throw} 擲出空的${PLAYER_WEAPONS[p.special.id].name}`;
       else this.prompt = '';
     }

@@ -87,7 +87,7 @@ test('held open: three bullets from the front stop in it (PARASOL), one from beh
     const g = window.game;
     const u = window.begin();
     const p = g.player;
-    window.play(1, ['KeyG']);
+    window.play(1, ['KeyE']);
     const held = { inHand: g.thrown.inHand, kind: g.thrown.carry && g.thrown.carry.kind, prompt: g.thrown.prompt };
     const e = window.post('grunt', 0, -6);
     const S = window.watch();
@@ -140,7 +140,7 @@ test('open, the player walks at 0.6× and cannot slide; PARASOL is capped at 200
     const free = z0 - p.z;
     p.x = 0;
     p.z = 4;
-    window.play(1, ['KeyG']);
+    window.play(1, ['KeyE']);
     const z1 = p.z;
     window.play(120, [], ['KeyF'], true);
     const shielded = z1 - p.z;
@@ -155,7 +155,7 @@ test('open, the player walks at 0.6× and cannot slide; PARASOL is capped at 200
     window.play(60);
     // the cap: five bullets are 200; the sixth breaks it (next test), so a fresh umbrella and five bullets here
     const u2 = window.begin();
-    window.play(1, ['KeyG']);
+    window.play(1, ['KeyE']);
     const e = window.post('grunt', 0, -6);
     const S = window.watch();
     window.play(6, [], ['KeyF']);
@@ -182,7 +182,7 @@ test('the sixth bullet breaks it: out of the hand, inside out, gone in 1.5 s, an
     const u = window.begin();
     const p = g.player;
     const markerBefore = { shown: u.marker.visible, ext: g.level.tools.find((t) => t.kind === 'extinguisher').marker.visible };
-    window.play(1, ['KeyG']);
+    window.play(1, ['KeyE']);
     const markerCarried = u.marker.visible;
     const e = window.post('grunt', 0, -6);
     const S = window.watch();
@@ -201,7 +201,7 @@ test('the sixth bullet breaks it: out of the hand, inside out, gone in 1.5 s, an
     // the dart: a whole umbrella again
     const u2 = window.begin();
     const t = window.post('grunt', 0, 0);
-    window.play(1, ['KeyG']);
+    window.play(1, ['KeyE']);
     window.play(1, ['KeyG']);
     const thrown = { inHand: g.thrown.inHand, flying: u2.thrown };
     let hit = null;

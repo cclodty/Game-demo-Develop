@@ -19,6 +19,34 @@ export const BUTTONS = [
 const BIT = new Map(BUTTONS.map((c, i) => [c, 1 << i]));
 
 /**
+ * What the settings page can rebind (settings.js): each drives one control code of BUTTONS, has a
+ * default key, the name hints use, and a short label for the HUD's key strip (`strip`, '' for none).
+ * `ui` ones are keys main.js reads outside the recorded input (the camera, a note, the music).
+ * Fixed and not here: the movement keys, Esc, the digits, the stats panel.
+ */
+export const ACTIONS = [
+  { id: 'focus', name: '子彈時間', en: 'BULLET TIME', control: 'ShiftLeft', key: 'ShiftLeft', alts: ['ShiftRight', 'KeyQ'], strip: '子彈時間', padFixed: 'LB+RB' },
+  { id: 'fire', name: '射擊', en: 'FIRE', control: 'Mouse0', key: 'Mouse0', strip: '' },
+  { id: 'split', name: '分離瞄準 · 瞄準鏡', en: 'SPLIT AIM', control: 'Mouse2', key: 'Mouse2', strip: '分離瞄準' },
+  { id: 'spin', name: '旋轉閃避', en: 'SPIN', control: 'Space', key: 'Space', strip: '旋轉閃避' },
+  { id: 'slide', name: '滑鏟', en: 'SLIDE', control: 'KeyC', key: 'KeyC', strip: '滑鏟' },
+  { id: 'kick', name: '踢 · 鑊擊 · 開傘', en: 'KICK', control: 'KeyF', key: 'KeyF', strip: '踢' },
+  { id: 'pick', name: '拾取 · 交換武器', en: 'PICK UP', control: 'KeyE', key: 'KeyE', strip: '拾取 · 交換' },
+  { id: 'throw', name: '擲出', en: 'THROW', control: 'KeyG', key: 'KeyG', strip: '擲' },
+  { id: 'reload', name: '換彈', en: 'RELOAD', control: 'KeyR', key: 'KeyR', strip: '換彈', padFixed: 'LB' },
+  { id: 'view', name: '換鏡頭', en: 'CAMERA', control: 'KeyV', key: 'KeyV', ui: true, strip: '鏡頭' },
+  { id: 'music', name: '音樂開關', en: 'MUSIC', control: 'KeyM', key: 'KeyM', ui: true, strip: '音樂' },
+  { id: 'note', name: '記下這一刻', en: 'NOTE', control: 'KeyN', key: 'KeyN', ui: true, strip: '回饋' },
+];
+
+const KEY_NAMES = { Space: 'Space', ShiftLeft: 'Shift', ShiftRight: '右 Shift', ControlLeft: 'Ctrl', ControlRight: '右 Ctrl', AltLeft: 'Alt', AltRight: '右 Alt', Tab: 'Tab', Backquote: '`', Enter: 'Enter', Backspace: '⌫', CapsLock: 'Caps', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Mouse0: '左鍵', Mouse1: '中鍵', Mouse2: '右鍵', Mouse3: '滑鼠 4', Mouse4: '滑鼠 5', Comma: ',', Period: '.', Slash: '/', Semicolon: ';', Quote: "'", BracketLeft: '[', BracketRight: ']', Minus: '-', Equal: '=', Backslash: '\\' };
+/** How a key code reads to a person: KeyF → F, Digit1 → 1, Space, Shift, 左鍵… */
+export const keyName = (code) => KEY_NAMES[code] || (/^Key[A-Z]$/.test(code) ? code.slice(3) : /^Digit\d$/.test(code) ? code.slice(5) : /^Numpad(\d)$/.test(code) ? `數字鍵 ${code.slice(6)}` : code);
+const PAD_NAMES = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'Back', 'Start', 'L3', 'R3', '十字鍵 ↑', '十字鍵 ↓', '十字鍵 ←', '十字鍵 →'];
+/** How a standard pad's button reads. */
+export const padButtonName = (i) => PAD_NAMES[i] || `按鈕 ${i}`;
+
+/**
  * A gamepad in the standard layout (the Gamepad API's 'standard' mapping): each button stands for
  * one of the controls above, so a pad run is recorded like any other. The left stick holds WASD;
  * the right stick aims (main.js padAim); Start pauses (not a recorded control). LB and RB are read
@@ -40,14 +68,30 @@ const PAD_START = 9;
  */
 const PAD_SHOULDERS = { lb: 4, rb: 5, both: 'KeyQ', lbAlone: 'KeyR', rbAlone: 'WheelDown' };
 
-/** How hints name a control, on the keyboard and on a pad: `{name}` in a hint becomes one of these. */
+/**
+ * How hints name a control, on the keyboard and on a pad: `{name}` in a hint becomes one of these.
+ * The keyboard side follows the bindings (refreshLabels, from Input.setBindings); `swap` is the pick-up key.
+ */
 export const CONTROL_LABELS = {
   focus: ['<b>Shift</b> 或 <b>Q</b>', '<b>LB</b>+<b>RB</b>'],
   throw: ['<b>G</b>', '<b>Y</b>'],
   kick: ['<b>F</b>', '<b>X</b>'],
   fire: ['<b>左鍵</b>', '<b>RT</b>'],
   swap: ['<b>E</b>', '<b>十字鍵 ↑</b>'],
+  pick: ['<b>E</b>', '<b>十字鍵 ↑</b>'],
 };
+
+/** The labels follow the bindings: `keys` and `pad` are action id → key code / pad button. */
+export function refreshLabels(keys, pad) {
+  const k = (id) => `<b>${keyName(keys[id])}</b>`;
+  const b = (id) => (Number.isInteger(pad[id]) ? `<b>${padButtonName(pad[id])}</b>` : '—');
+  CONTROL_LABELS.focus = [keys.focus === 'ShiftLeft' ? '<b>Shift</b> 或 <b>Q</b>' : k('focus'), '<b>LB</b>+<b>RB</b>'];
+  CONTROL_LABELS.throw = [k('throw'), b('throw')];
+  CONTROL_LABELS.kick = [k('kick'), b('kick')];
+  CONTROL_LABELS.fire = [k('fire'), b('fire')];
+  CONTROL_LABELS.pick = [k('pick'), b('pick')];
+  CONTROL_LABELS.swap = CONTROL_LABELS.pick;
+}
 
 /** A pad's name as the browser gives it, shortened: no vendor numbers, no "(STANDARD GAMEPAD …)". */
 export const padLabel = (id) =>
@@ -128,6 +172,13 @@ export class Input {
     this.padTouch = new Map(); // slot → the buttons down and sticks pushed at the last poll, to see a new touch
     this.pads = []; // every pad the browser lists ({ index, id, mapping }), for the feedback export
     this.usingPad = false; // the pad aims: its right stick moved more recently than the mouse or the keyboard
+    // the bindings (settings.js, setBindings): physical key → control; the default keys that drive nothing now;
+    // pad button → control; and the pad button newly pressed at the last poll (the settings page binds with it)
+    this.keyTo = new Map();
+    this.rebound = new Set();
+    this.padMap = new Map(PAD_BUTTONS);
+    this.padWas = new Set();
+    this.padPress = -1;
     this.padKeys = new Set();
     this.padStick = { x: 0, y: 0 };
     this.padStart = false; // Start pressed since the last poll
@@ -148,11 +199,16 @@ export class Input {
     addEventListener('keydown', (e) => {
       if (editable(e.target)) return;
       if (BLOCKED.has(e.code)) e.preventDefault();
-      if (!e.repeat) this.pressed.add(e.code);
-      this.keys.add(e.code);
+      const c = this.translate(e.code);
+      if (c === null) return;
+      if (!e.repeat) this.pressed.add(c);
+      this.keys.add(c);
       this.usingPad = false;
     });
-    addEventListener('keyup', (e) => this.keys.delete(e.code));
+    addEventListener('keyup', (e) => {
+      const c = this.translate(e.code);
+      if (c) this.keys.delete(c);
+    });
     addEventListener('mousemove', (e) => {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
@@ -162,25 +218,66 @@ export class Input {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
       this.usingPad = false;
-      if (e.button === 0) {
+      // a mouse button bound to a key's action counts as that key; the buttons' own controls as before
+      const c = this.translate(`Mouse${e.button}`);
+      if (c === 'Mouse0') {
         this.mouse.left = true;
         this.mouse.leftPressed = true;
-      } else if (e.button === 2) {
+      } else if (c === 'Mouse2') {
         this.mouse.right = true;
         this.mouse.rightPressed = true;
+      } else if (c) {
+        this.pressed.add(c);
+        this.keys.add(c);
       }
     });
     addEventListener('mouseup', (e) => {
-      if (e.button === 0) this.mouse.left = false;
-      else if (e.button === 2) {
+      const c = this.translate(`Mouse${e.button}`);
+      if (c === 'Mouse0') this.mouse.left = false;
+      else if (c === 'Mouse2') {
         this.mouse.right = false;
         this.mouse.rightReleased = true;
-      }
+      } else if (c) this.keys.delete(c);
     });
     this.wheel = 0;
     addEventListener('wheel', (e) => (this.wheel += Math.sign(e.deltaY)), { passive: true });
     addEventListener('contextmenu', (e) => e.preventDefault());
     addEventListener('blur', () => this.releaseAll());
+  }
+
+  /**
+   * The settings' bindings: each action's key drives its control, a default key another action took over
+   * drives nothing, and the pad's buttons stand for the controls the settings say.
+   */
+  setBindings(settings) {
+    this.keyTo = new Map();
+    this.rebound = new Set();
+    this.padMap = new Map();
+    for (const a of ACTIONS) {
+      const key = settings.keys[a.id] || a.key;
+      this.keyTo.set(key, a.control);
+      for (const alt of a.alts || []) if (!this.keyTo.has(alt)) this.keyTo.set(alt, a.control);
+      if (key !== a.key) this.rebound.add(a.key);
+      const b = settings.pad[a.id];
+      if (Number.isInteger(b) && !a.ui) this.padMap.set(b, a.control);
+    }
+    for (const k of this.keyTo.keys()) this.rebound.delete(k);
+    this.keys.clear();
+    refreshLabels(settings.keys, settings.pad);
+  }
+
+  /** The control a physical key (or `Mouse<n>`) drives: itself when nothing is bound over it, null when its default owner moved away. */
+  translate(code) {
+    if (this.keyTo.has(code)) return this.keyTo.get(code);
+    return this.rebound.has(code) ? null : code;
+  }
+
+  /** The rebindable action a physical key drives, or null (main.js reads the ui ones by this). */
+  actionOf(code) {
+    const c = this.translate(code);
+    if (c === null) return null;
+    const a = ACTIONS.find((x) => x.control === c);
+    return a ? a.id : null;
   }
 
   releaseAll() {
@@ -241,7 +338,17 @@ export class Input {
     let start = false;
     if (pad) {
       const on = (i) => !!pad.buttons[i] && (pad.buttons[i].pressed || pad.buttons[i].value > 0.5);
-      for (const [i, code] of PAD_BUTTONS) if (on(i)) held.add(code);
+      for (const [i, code] of this.padMap) if (on(i)) held.add(code);
+      // the button newly down this poll, for the settings page's pad binding
+      this.padPress = -1;
+      const now = new Set();
+      pad.buttons.forEach((b, i) => {
+        if (b && (b.pressed || b.value > 0.5)) {
+          now.add(i);
+          if (!this.padWas.has(i)) this.padPress = i;
+        }
+      });
+      this.padWas = now;
       const [lx = 0, ly = 0, rx = 0, ry = 0] = pad.axes;
       if (lx < -PAD.moveAt) held.add('KeyA');
       else if (lx > PAD.moveAt) held.add('KeyD');
@@ -254,6 +361,8 @@ export class Input {
       this.shoulders(on(PAD_SHOULDERS.lb), on(PAD_SHOULDERS.rb));
     } else {
       this.shoulders(false, false);
+      this.padPress = -1;
+      this.padWas = new Set();
     }
     for (const c of held) if (!this.padKeys.has(c)) this.pressed.add(c);
     this.padKeys = held;

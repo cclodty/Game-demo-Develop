@@ -8,7 +8,7 @@ import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, VIEWS } from
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
-import { Input, padLabel, StepInput } from './input.js';
+import { ACTIONS, Input, keyName, padButtonName, padLabel, StepInput } from './input.js';
 import { Level } from './level.js';
 import { MAPS } from './maps.js';
 import { loadedCharacters, loadModels } from './models.js';
@@ -26,6 +26,7 @@ import { rate, Score } from './score.js';
 import { Style } from './style.js';
 import { Telemetry } from './telemetry.js';
 import { Thrown } from './thrown.js';
+import { Settings } from './settings.js';
 import { Tutorial, wantWarmup } from './tutorial.js';
 import { clamp, damp, lerp } from './utils.js';
 import { MODE_IDS, MODES, Waves } from './waves.js';
@@ -143,6 +144,10 @@ class Game {
     this.score = new Score(this);
     this.waves = new Waves(this);
     this.hud = new HUD(this);
+    // the settings (settings.js): volumes and bindings, applied to the input, the audio and the hints
+    this.settings = new Settings(localStorage);
+    this.binding = null; // { id, pad } while the settings page waits for a key or a pad button
+    this.applySettings();
     this.clip = new Clip(this); // the best kill, recorded for the end screen
     this.telemetry = new Telemetry(); // each run's record in this browser, for the feedback export
     this.post = new PostFX(this.renderer, this.scene, this.camera);
@@ -285,6 +290,43 @@ class Game {
     });
     $('help').addEventListener('click', (e) => e.stopPropagation());
     $('help-close').addEventListener('click', () => this.showHelp(false));
+    // the settings page, over the title or the pause menu
+    $('open-settings').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.showSettings(true);
+    });
+    $('settings').addEventListener('click', (e) => e.stopPropagation());
+    $('settings-close').addEventListener('click', () => this.showSettings(false));
+    $('set-reset').addEventListener('click', () => {
+      this.settings.reset();
+      this.binding = null;
+      this.applySettings();
+      this.renderSettings();
+    });
+    for (const id of ['music', 'sfx']) {
+      $(`set-${id}`).addEventListener('input', (e) => {
+        this.settings[id] = Number(e.target.value) / 100;
+        this.settings.save();
+        this.applySettings();
+        $(`set-${id}-v`).textContent = `${Math.round(this.settings[id] * 100)}%`;
+      });
+    }
+    $('set-keys').addEventListener('click', (e) => {
+      const b = e.target.closest('button.bind');
+      if (!b) return;
+      this.binding = { id: b.dataset.action, pad: b.dataset.pad === '1' };
+      this.renderSettings();
+    });
+    // a middle or right mouse button can be bound too; a left click anywhere stops listening
+    $('settings').addEventListener('mousedown', (e) => {
+      if (!this.binding || this.binding.pad) return;
+      if (e.button === 0) return;
+      e.preventDefault();
+      this.settings.bindKey(this.binding.id, `Mouse${e.button}`);
+      this.binding = null;
+      this.applySettings();
+      this.renderSettings();
+    });
     this.markRules();
     if (this.achievements.coatOpen) this.player.setCoat(COATS.find((c) => c.id === this.achievements.coat));
     // the first visit: the local records switch (on unless turned off)
@@ -382,6 +424,7 @@ class Game {
     $('go-clip-save').addEventListener('click', (e) => e.stopPropagation()); // saving is not restarting
     $('pause').addEventListener('click', () => this.setPaused(false));
     const menu = {
+      settings: () => this.showSettings(true),
       resume: () => this.setPaused(false),
       restart: () => (this.dailyRun ? this.toTitle() : start()), // a daily has one try
       title: () => this.toTitle(),
@@ -396,6 +439,22 @@ class Game {
     }
     addEventListener('keydown', (e) => {
       if (isTyping(e.target)) return; // the note box handles its own keys
+      if (this.binding) {
+        // the settings page waits for a key: this one is it (Esc cancels; a pad binding ignores the keyboard)
+        e.preventDefault();
+        if (e.code !== 'Escape' && !this.binding.pad) this.settings.bindKey(this.binding.id, e.code);
+        if (e.code === 'Escape' || !this.binding.pad) {
+          this.binding = null;
+          this.applySettings();
+          this.renderSettings();
+        }
+        return;
+      }
+      if (e.code === 'Escape' && !$('settings').classList.contains('hidden')) {
+        this.showSettings(false);
+        return;
+      }
+      const act = this.input.actionOf(e.code); // the rebindable ui keys: the camera, the music, a note
       if (this.replay && (this.state === 'playing' || this.state === 'dying')) {
         // a replay: 1 / 2 / 3 for half, normal and double speed, Esc to leave; the game's own keys do nothing
         const speed = { Digit1: 0.5, Digit2: 1, Digit3: 2 }[e.code];
@@ -426,17 +485,17 @@ class Game {
         else if (this.state === 'paused') this.setPaused(false);
       } else if (e.code === 'Backquote') {
         this.notes.togglePanel();
-      } else if (e.code === 'KeyN' && (this.state === 'playing' || this.state === 'paused')) {
-        e.preventDefault(); // or the N lands in the note box it just focused
+      } else if (act === 'note' && (this.state === 'playing' || this.state === 'paused')) {
+        e.preventDefault(); // or the key lands in the note box it just focused
         this.notes.openNote();
       } else if (e.code === 'KeyR' && this.state === 'paused') {
         if (this.dailyRun) this.toTitle();
         else start();
       } else if (e.code === 'KeyT') {
         if (this.state === 'paused' || (this.state === 'over' && performance.now() - this.overAt > 700)) this.toTitle();
-      } else if (e.code === 'KeyV' && this.state !== 'paused') {
+      } else if (act === 'view' && this.state !== 'paused') {
         this.cycleView();
-      } else if (e.code === 'KeyM') {
+      } else if (act === 'music') {
         const on = this.audio.toggleMusic();
         if (this.state === 'playing') this.hud.feed(on ? 'MUSIC ON' : 'MUSIC OFF', 0, 'dim');
       } else if (e.code === 'Enter') {
@@ -519,6 +578,46 @@ class Game {
   showRules(on) {
     $('rules-fold').classList.toggle('hidden', !on);
     $('open-rules').setAttribute('aria-expanded', String(on));
+  }
+
+  /** The settings take effect: the input's bindings, the audio's volumes, the hints' key names and the HUD's key strip. */
+  applySettings() {
+    const s = this.settings;
+    this.input.setBindings(s);
+    this.audio.setVolumes(s.music, s.sfx);
+    const strip = ACTIONS.filter((a) => a.strip).map((a) => `<span><b>${keyName(s.keys[a.id])}${a.id === 'focus' && s.keys.focus === 'ShiftLeft' ? ' / Q' : ''}</b> ${a.strip}</span>`);
+    strip.splice(6, 0, '<span><b>1 / 2</b> 切換</span>');
+    strip.splice(strip.length - 1, 0, '<span><b>Esc</b> 暫停</span>');
+    $('hint').innerHTML = strip.join('');
+    this.hud.update(0);
+  }
+
+  /** The settings page, over the title or the pause menu. */
+  showSettings(on) {
+    $('settings').classList.toggle('hidden', !on);
+    if (this.state === 'paused') $('pause').classList.toggle('hidden', on);
+    else $('title').classList.toggle('hidden', on);
+    if (!on) this.binding = null;
+    if (on) this.renderSettings();
+  }
+
+  /** What the settings page shows: the sliders, and a key and a pad button for every action. */
+  renderSettings() {
+    const s = this.settings;
+    for (const id of ['music', 'sfx']) {
+      $(`set-${id}`).value = String(Math.round(s[id] * 100));
+      $(`set-${id}-v`).textContent = `${Math.round(s[id] * 100)}%`;
+    }
+    const rows = ACTIONS.map((a) => {
+      const listening = (pad) => this.binding && this.binding.id === a.id && this.binding.pad === pad;
+      const key = listening(false) ? '<span class="listening">按一個鍵…</span>' : keyName(s.keys[a.id]);
+      // the pad column: a button to rebind, or the fixed shoulder combination (LB+RB, LB alone) or nothing for a ui key
+      const fixed = a.ui ? '—' : a.padFixed || null;
+      const pad = listening(true) ? '<span class="listening">按手掣按鈕…</span>' : Number.isInteger(s.pad[a.id]) ? padButtonName(s.pad[a.id]) : '—';
+      return `<div class="set-key"><span class="set-name">${a.name} <small>${a.en}</small></span><button type="button" class="bind${listening(false) ? ' on' : ''}" data-action="${a.id}" data-pad="0">${key}</button>${fixed ? `<span class="set-none">${fixed}</span>` : `<button type="button" class="bind${listening(true) ? ' on' : ''}" data-action="${a.id}" data-pad="1">${pad}</button>`}</div>`;
+    });
+    $('set-keys').innerHTML = `<div class="set-key set-head"><span></span><span>鍵盤</span><span>手掣</span></div>${rows.join('')}`;
+    $('set-msg').textContent = this.binding ? (this.binding.pad ? '按下手掣上的一個按鈕；Esc 取消' : '按下新的鍵（中鍵、右鍵也可以）；Esc 取消') : '';
   }
 
   /** The controls and tips page, over the title. */
@@ -1518,6 +1617,13 @@ class Game {
   /** Once a display frame: read the gamepad; Start pauses and resumes; the hints follow whether one is connected. */
   pollPad() {
     const pad = this.input.poll();
+    if (this.binding && this.binding.pad && this.input.padPress >= 0) {
+      // the settings page waits for a pad button: this one is it
+      this.settings.bindPad(this.binding.id, this.input.padPress);
+      this.binding = null;
+      this.applySettings();
+      this.renderSettings();
+    }
     if (this.input.padStart) {
       if (this.state === 'playing') this.setPaused(true);
       else if (this.state === 'paused') this.setPaused(false);

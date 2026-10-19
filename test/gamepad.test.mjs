@@ -332,7 +332,7 @@ test('connecting a pad switches the hints to its buttons; unplugging switches th
       g.hud.update(1 / 60);
       return document.getElementById('prompt').textContent;
     });
-    assert.match(prompt, /^Y 拿起/);
+    assert.match(prompt, /^十字鍵 ↑ 拿起/); // the pad's pick-up is the swap button (d-pad up)
     // unplugged
     await page.evaluate(() => {
       window.pads = [null];
@@ -341,7 +341,7 @@ test('connecting a pad switches the hints to its buttons; unplugging switches th
     const back = await read();
     assert.deepEqual([back.pad, back.keysBar, back.padBar], [false, true, false]);
     assert.equal(back.focusKey, 'Shift / Q');
-    assert.match(back.prompt, /^G 拿起/);
+    assert.match(back.prompt, /^E 拿起/); // E picks up now; G throws
     // the local records say what each run was played with
     const rows = await page.evaluate(() => {
       const g = window.game;

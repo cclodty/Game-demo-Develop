@@ -2291,3 +2291,100 @@ body.playing #debug {
   border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 2px 4px;
 }
+
+/* the settings page (index.html #settings, main.js renderSettings) */
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 10px 0;
+}
+
+.set-row label {
+  min-width: 110px;
+  font-weight: 700;
+}
+
+.set-row label small,
+.set-key .set-name small {
+  margin-left: 6px;
+  font-family: var(--display);
+  letter-spacing: 2px;
+  color: var(--dim);
+}
+
+.set-row input[type='range'] {
+  flex: 1;
+  accent-color: var(--pink);
+}
+
+.set-row .set-v {
+  min-width: 44px;
+  text-align: right;
+  font-family: var(--display);
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+.set-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: normal;
+  color: var(--dim);
+}
+
+.set-keys {
+  display: grid;
+  grid-template-columns: 1fr 150px 150px;
+  gap: 6px 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.set-key {
+  display: contents;
+}
+
+.set-key.set-head span {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  text-align: center;
+}
+
+.set-key .set-name {
+  font-weight: 700;
+}
+
+.set-key .bind {
+  padding: 6px 10px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+  text-align: center;
+}
+
+.set-key .bind:hover,
+.set-key .bind:focus-visible {
+  background: rgba(255, 63, 164, 0.14);
+  outline: none;
+}
+
+.set-key .bind.on {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 1px var(--pink) inset;
+}
+
+.set-key .listening {
+  color: var(--pink);
+}
+
+.set-key .set-none {
+  text-align: center;
+  color: var(--dim);
+}

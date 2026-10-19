@@ -12,6 +12,8 @@ export class AudioSys {
   constructor() {
     this.ctx = null;
     this.musicOn = true;
+    this.musicVol = 1; // the settings' volumes (setVolumes), 0–1 on top of the mix
+    this.sfxVol = 1;
     this.pitch = 1;
     this.musicRate = 1;
     this.slow = 0;
@@ -95,7 +97,7 @@ export class AudioSys {
     this.sfxFilter.frequency.value = 20000;
     this.sfxFilter.connect(this.master);
     this.sfx = ctx.createGain();
-    this.sfx.gain.value = 0.9;
+    this.sfx.gain.value = 0.9 * this.sfxVol;
     this.sfx.connect(this.sfxFilter);
 
     this.musicFilter = ctx.createBiquadFilter();
@@ -104,7 +106,7 @@ export class AudioSys {
     this.musicFilter.Q.value = 0.9;
     this.musicFilter.connect(this.master);
     this.music = ctx.createGain();
-    this.music.gain.value = this.musicOn ? 0.32 : 0;
+    this.music.gain.value = this.musicOn ? 0.32 * this.musicVol : 0;
     this.music.connect(this.musicFilter);
     // the song's echo: what goes to musicWet also repeats through a filtered feedback delay
     const dl = this.song.delay || { steps: 3, send: 0, feedback: 0 };
@@ -165,8 +167,18 @@ export class AudioSys {
 
   toggleMusic() {
     this.musicOn = !this.musicOn;
-    if (this.music) this.music.gain.setTargetAtTime(this.musicOn ? 0.32 : 0, this.ctx.currentTime, 0.1);
+    if (this.music) this.music.gain.setTargetAtTime(this.musicOn ? 0.32 * this.musicVol : 0, this.ctx.currentTime, 0.1);
     return this.musicOn;
+  }
+
+  /** The settings page's volumes, 0–1 each (settings.js): the music's and the sound effects' gains follow. */
+  setVolumes(music, sfx) {
+    this.musicVol = music;
+    this.sfxVol = sfx;
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.music.gain.setTargetAtTime(this.musicOn ? 0.32 * music : 0, t, 0.05);
+    this.sfx.gain.setTargetAtTime(0.9 * sfx, t, 0.05);
   }
 
   /** slow: 0 = real time, 1 = full bullet time. */
