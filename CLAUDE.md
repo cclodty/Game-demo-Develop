@@ -37,7 +37,7 @@ npm test                          # senado unit tests + smoke + map validator + 
 npm run test:game                 # slow: every weapon fires, E-swap, a long looting run (~10 min)
 npm run build                     # single-file dist/bullet-ballet.html for sharing (must stay < 16 MB)
 npm run itch                      # that file as index.html in dist/bullet-ballet-itch.zip, for itch.io (docs/itch/README.md)
-npm run music:preview             # each song in src/music.js rendered to dist/music/<id>.wav, to listen to without playing
+npm run music:preview             # each song in src/music.js rendered to dist/music/<id>.wav (+ <id>-slow.wav as bullet time hears it), to listen to without playing
 npm run assets                    # masters in assets/source/<id>/ → web models in assets/models/
 npm run assets:docs               # regenerate assets/PROMPTS.md, asset-list.*, maps/*.json
 ```

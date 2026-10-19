@@ -776,10 +776,15 @@
   - [x] npm run lint && npm test 通過
 - 這次不做：直升機與的士車隊；踢門甩他（門只甩小兵）；他自己的模型（先用大隻佬模型放大 1.35 倍加鋼板）
 
-### 音樂 ③：新方向草稿（估計：半天）
+### ✅ 音樂 ③：新方向草稿（估計：半天）— 2026-10-19 完成
 - 目標：現在的暗湧系列（電影式張力）和霓虹卡通畫風不合拍。做兩段 20 秒的新方向草稿，各有子彈時間版，開發者揀：**鑼鼓電子 GONG & DRUM**——粵劇鑼鼓點（木魚、沙的、大鑼、鈸）配 house 底鼓與低音，子彈時間只剩鑼鼓；**電子搖擺 ELECTRO SWING**——刷鼓、低音大提琴走音、弱音小號式的主旋律、118 BPM，子彈時間半速。另外兩個引擎改動不管揀哪首都做：音樂跟拍子走（拍子預告時只剩底鼓，一拍落地時全部進來）；大音效時音樂自動壓低（ducking）
 - 涉及：`src/music.js`（兩首新曲）、`src/audio.js`（跟拍子的層、ducking）、`scripts/music-preview.mjs`
-- 驗收：兩個音檔加子彈時間版在 `dist/music/`；`?music=gong`、`?music=swing` 可試；`test/music.test.mjs` 擴充（出聲、不爆音）；拍子預告時只有底鼓層；npm run lint && npm test 通過
+- 驗收：
+  - [x] 兩首新曲是 `src/music.js` 的資料（gong、swing），`npm run music:preview` 連每首的子彈時間版（`<id>-slow.wav`）一起輸出到 `dist/music/`
+  - [x] `?music=gong`、`?music=swing` 可試（`test/music.test.mjs`）
+  - [x] 兩首都出聲、不爆音、頭目段更響；貝斯、鍵盤、主旋律都在底鼓 12 dB 之內
+  - [x] 拍子預告時只剩底鼓、一拍落地全部進來（`waves.js` → `audio.setBeat`）；鑼鼓電子在子彈時間只剩鑼鼓（歌的 `slow`）；爆炸、死亡時音樂壓低 6 dB 以上、一秒內回來（`audio.duck`）
+  - [x] npm run lint && npm test 通過
 - 這次不做：換遊戲預設曲（開發者揀了才換）、真樂器取樣
 
 ### 人物動作：先試開關，再決定（估計：半天，開發者先試）
