@@ -713,6 +713,7 @@ export class Player {
       g.notes.log(`鑊擊中 ${e.cfg.label}`);
       hit = true;
     }
+    if (g.boss.melee(inCone, PAN.reach, 'smash')) hit = true; // a boss within reach of a swing (boss.js: the blade queen's window)
     for (const p of g.level.props) {
       if (!p.alive || p.fixed || p.carried) continue;
       const dir = inCone(p.x, p.z, PAN.reach + p.r);
@@ -756,6 +757,7 @@ export class Player {
       e.kick(dir.x, dir.z, 14);
       hit = true;
     }
+    if (g.boss.melee(inCone, PLAYER.kickRange, 'kick')) hit = true;
     for (const p of g.level.props) {
       if (!p.alive || p.fixed) continue;
       const dir = inCone(p.x, p.z, PLAYER.kickRange + p.r);

@@ -147,6 +147,7 @@ export const MODELS = {
     support: [0.15, 0.3, 0.42],
   },
   blade: { asset: 'weapon_blade', hold: 'right', end: 1.15, parts: [[0.05, 0.04, 0.55, 0, 0, 0.9, 'accent']] },
+  blades: { asset: 'weapon_blade', hold: 'dual', end: 1.15, parts: [[0.05, 0.04, 0.55, 0, 0, 0.9, 'accent']] }, // one in each hand (the club's blade queen, boss.js)
   grenade: {
     hold: 'right',
     end: 0.7,

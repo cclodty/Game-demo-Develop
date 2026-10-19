@@ -1,5 +1,7 @@
-// The club's boss (夜店頭目): an arcade run that ends in the club meets the DJ
-// on its last wave. The DJ is behind bulletproof glass round the booth. The
+// The DJ (夜店頭目, the club's boss until 頭目重做 ①): the club's last wave is the
+// blade queen now (blade.test.mjs); the DJ stays in boss.js as a kind a map can
+// ask for, so this test puts him back on the club for its run. He is behind
+// bulletproof glass round the booth. The
 // dance floor works to the beat (0.5 s of world time): a pattern of tiles
 // lights up red for two beats, then zaps a player standing on a lit tile (a
 // spin rides it out). Ten hits blow a speaker by the booth and the glass
@@ -19,6 +21,8 @@ before(async () => {
   await page.evaluate(() => {
     const g = window.game;
     g.frame = () => {};
+    // the DJ's definition, as the club carried it: where he stands, the booth, the speakers, the ways round them to close, the floor
+    g.maps.find((m) => m.id === 'club').boss = { kind: 'dj', at: [6, -11.6], booth: [6, -10], speakers: [[2.6, -10.6], [9.4, -10.6]], gaps: [[3, -12.15, 2, 3.7], [9, -12.15, 2, 3.7]], floor: [-6, -5, 12, 8] };
     /** An arcade run from Senado, moved on to its third stage (the club) and the start of wave 12. */
     window.toFinal = () => {
       g.setRules('normal', []);

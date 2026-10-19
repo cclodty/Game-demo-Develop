@@ -399,15 +399,15 @@ export class Style {
 
   // ------------------------------------------------------------ afterimages
 
-  ghostMaterial() {
-    const [r, g, b] = STYLE.ghostColor;
+  ghostMaterial(color = STYLE.ghostColor) {
+    const [r, g, b] = color;
     return new THREE.MeshBasicMaterial({ color: new THREE.Color(r, g, b), transparent: true, opacity: STYLE.ghostAlpha, depthWrite: false, blending: THREE.AdditiveBlending });
   }
 
-  buildGhost(rig) {
+  buildGhost(rig, color) {
     const group = new THREE.Group();
     group.userData.ghost = true;
-    const g = { rig, kind: rig.skin ? 'skin' : 'block', group, mat: this.ghostMaterial(), life: 0, busy: false, src: [], dst: [] };
+    const g = { rig, kind: rig.skin ? 'skin' : 'block', group, mat: this.ghostMaterial(color), life: 0, busy: false, src: [], dst: [] };
     if (rig.skin) {
       const model = cloneSkinned(rig.skin.model);
       rig.skin.model.traverse((o) => g.src.push(o));
@@ -428,15 +428,15 @@ export class Style {
     return g;
   }
 
-  /** Leave an afterimage of a rig's current pose where it stands. */
-  snapshot(rig) {
+  /** Leave an afterimage of a rig's current pose where it stands; `color` [r, g, b] instead of the player's cyan (a boss's: boss.js). */
+  snapshot(rig, color = undefined) {
     if (!this.ghostsOn) return;
     const { pool, live } = this.ghosts;
     const kind = rig.skin ? 'skin' : 'block';
     let g = pool.find((q) => !q.busy && q.rig === rig && q.kind === kind);
     if (!g) {
       if (live.length >= MAX_GHOSTS) this.release(live[0]);
-      g = this.buildGhost(rig);
+      g = this.buildGhost(rig, color);
       pool.push(g);
     }
     const src = rig.skin ? rig.skin.root : rig.inner;

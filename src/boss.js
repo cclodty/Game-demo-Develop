@@ -20,7 +20,19 @@
 // blast next to it) and the glass slides down for DJ.open s; DJ.perSegment hits on the DJ then
 // take a segment and the glass comes straight back up. A blown speaker is back after a while.
 // Thugs come in through the doors every DJ.crew.every s. Shots fly over the booth while the DJ
-// is on (`pass`, bullets.js), at the glass or the DJ.
+// is on (`pass`, bullets.js), at the glass or the DJ. The club's default boss is now the blade
+// queen (below); the DJ stays as a kind a map can ask for.
+//
+// blade, the club's blade queen (夜店刀后, 頭目重做 ①): a knife fighter with a blade in each hand who
+// crouches at one of the map's perches (`boss.perches`: the lounge, the top of the DJ booth, the glass
+// walk, the bar) and dashes at the player, afterimages behind her, too fast for a shot to find (shots
+// pass through her while she dashes; at a perch a blade turns them aside). She stops BLADE.dash.stop m
+// short, raises both blades for BLADE.tell.time s (the window: a shot takes a segment, a pan smash or a
+// batted-back bullet two, a kick shoves her back and holds the window open) and cuts (a spin dodges it);
+// then she dashes off to another perch. Her dash runs through a player who neither slides under nor
+// spins past her. From the first segment lost she dashes faster and may feint a hop to the player's
+// other side before the real tell, one more a segment lost. A blast beside her takes a segment too.
+// No crew: she fights alone.
 //
 // truck, the docks' armoured truck (碼頭頭目): it drives a loop between the containers (the map's
 // `boss.loop`), shoving barrels and pans out of its way. Its roof gun draws a red line onto the
@@ -42,11 +54,11 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { BODY, buildCharacter, disposeRig, setFlash } from './characters.js';
+import { animateRig, BODY, buildCharacter, disposeRig, finishRig, setFlash } from './characters.js';
 import { GUN_Y } from './config.js';
 import { addCutaway } from './cutaway.js';
 import { Laser } from './fx.js';
-import { clamp, lerp, segAABB, segCircle, smoothstep, wrapAngle } from './utils.js';
+import { angleTo, clamp, damp, lerp, segAABB, segCircle, smoothstep, turnTowards, wrapAngle } from './utils.js';
 
 export const HELI = {
   label: 'HELICOPTER', // the HUD bar's English name; names its bullets in the notes, as an enemy's label does
@@ -91,6 +103,30 @@ export const DJ = {
   open: 4, // s the glass stays down after a speaker blows
   perSegment: 3, // hits on the DJ while the glass is down that take a segment (and bring the glass back up)
   crew: { first: 6, every: 16, count: 2, maxAlive: 6 }, // thugs through the doors: s in, then every s, while fewer than maxAlive are about
+};
+
+export const BLADE = {
+  label: 'BLADE QUEEN',
+  name: '夜店刀后',
+  short: '刀后',
+  downed: '擊倒',
+  pull: false, // on the floor with the player: the camera stays put
+  segments: 5,
+  bonus: 2000,
+  radius: 0.4, // her body, for shots and the player's reach
+  // crouched at a perch (maps.js `boss.perches`) before each attack: s on the first, then within `wait`, `faster` less a segment lost
+  perch: { first: 1.6, wait: [1.1, 1.9], faster: 0.1 },
+  // the dash: m/s (+ `perSegment` a segment lost); she stops `stop` m short of the player; from `ram` s into a dash, running
+  // through a player who neither slides nor spins costs him `hit` HP; an afterimage every `ghostEvery` world s; a chase longer
+  // than `giveUp` s is broken off
+  dash: { speed: 14, perSegment: 2.5, stop: 1.7, ram: 0.1, hit: 20, ghostEvery: 0.04, giveUp: 5 },
+  tell: { time: 0.5, turn: 2.5 }, // the blades up before the cut: the window to hurt her; she tracks the player at `turn` rad/s meanwhile
+  feint: { chance: 0.6, max: 3 }, // from the first segment lost: a hop to the player's other side before the real tell, up to one a segment lost
+  cut: { time: 0.22, arc: 1.1, reach: 1.9, dmg: 28, lunge: 6 }, // the cut: s, ± rad in front, m, HP, and the m/s she lunges with it
+  reel: 0.45, // s she staggers after a hit in the window, then dashes off
+  smash: 2, // segments a pan smash (or a batted-back bullet: HOME RUN) in the window takes
+  kick: { back: 7, extend: 0.5 }, // a kick in the window: shoved back at this m/s and the window stays open `extend` s longer
+  blast: 2.6, // m: a blast this close takes a segment (not while she dashes)
 };
 
 export const TRUCK = {
@@ -200,12 +236,17 @@ export class Boss {
   /** A player shot hit a level solid (bullets.js), in case it is one of the boss's. */
   shotSolid() {}
 
-  /** One segment off; the last brings it down (goDown). */
-  hurt() {
+  /** The player's kick or pan smash (player.js): `inCone(x, z, reach)` says whether it reaches; true if it struck the boss. */
+  melee() {
+    return false;
+  }
+
+  /** One segment off (`how` says what did it); the last brings it down (goDown). */
+  hurt(how = '中彈') {
     const g = this.game;
     const c = this.cfg;
     this.hp--;
-    g.notes.log(`${c.short}中彈（剩 ${this.hp} 段）`);
+    g.notes.log(`${c.short}${how}（剩 ${this.hp} 段）`);
     if (this.hp <= 0) this.goDown();
     else g.hud.banner('HIT', `${c.short} · 剩 ${this.hp} 段`, 'clear');
   }
@@ -845,6 +886,409 @@ class Dj extends Boss {
       this.tiles.instanceColor.setXYZ(i, c[0], c[1], c[2]);
     }
     this.tiles.instanceColor.needsUpdate = true;
+  }
+}
+
+const GHOST = [1.3, 0.2, 1.1]; // the blade queen's afterimages: magenta, under the bloom threshold on its own like the player's cyan
+
+/** The club's blade queen. */
+class Blade extends Boss {
+  constructor(game) {
+    super(game, BLADE);
+    this.rig = null;
+    this.reset();
+  }
+
+  reset() {
+    if (this.rig) {
+      this.game.scene.remove(this.rig.root);
+      disposeRig(this.rig);
+      this.bladeMat.dispose();
+      this.rig = null;
+    }
+    super.reset();
+    this.state = 'idle';
+    this.perches = [];
+  }
+
+  /** The final wave in the club: `def` is the map's (maps.js `boss`: her perches, [x, z] or [x, z, height]). */
+  start(def) {
+    this.reset();
+    super.start(def);
+    const g = this.game;
+    this.perches = def.perches.map(([x, z, y = 0]) => ({ x, z, y }));
+    this.perchI = g.rng.int(0, this.perches.length - 1);
+    const at = this.perches[this.perchI];
+    this.x = at.x;
+    this.z = at.z;
+    this.y = at.y;
+    this.vx = this.vz = 0;
+    this.facing = angleTo(this.x, this.z, g.player.x, g.player.z);
+    // perch (crouched, turning shots aside), dash (at the player), feint (a hop to his other side), tell (the window),
+    // cut, reel (hit in the window), retreat (to a perch), down
+    this.state = 'perch';
+    this.timer = BLADE.perch.first;
+    this.goal = { x: this.x, z: this.z };
+    this.dashT = 0;
+    this.path = null;
+    this.pathT = 0;
+    this.feints = 0;
+    this.taken = false; // a segment taken in this window
+    this.kicked = false; // the window held open by a kick already
+    this.struck = false;
+    this.dodged = false;
+    this.ramCd = 0;
+    this.ghostT = 0;
+    this.phase = 0;
+    this.flash = 0;
+    this.glow = 0; // the blades' light, up through the tell
+    this.firstTell = true;
+    this.deflectLogT = 0;
+    this.build();
+  }
+
+  /** The look: the blade runner's rig a size up, a blade in each hand that lights up for the tell. */
+  build() {
+    const g = this.game;
+    this.rig = buildCharacter({ body: 0x141418, pants: 0x101014, accent: 0xff2bd0, hair: 0x0a0a0a, weapon: 'blades', scale: 1.12, ring: 0.5, model: 'rusher' });
+    this.bladeMat = new THREE.MeshBasicMaterial({ color: 0xff2bd0 });
+    for (const part of this.rig.weaponParts) {
+      part.traverse((o) => {
+        if (o.isMesh && !o.userData.hull) o.material = this.bladeMat;
+      });
+    }
+    g.scene.add(this.rig.root);
+    this.sync();
+  }
+
+  /** Segments lost so far: she gets faster and trickier with each. */
+  get lost() {
+    return this.cfg.segments - this.hp;
+  }
+
+  get dashing() {
+    return this.state === 'dash' || this.state === 'feint' || this.state === 'retreat';
+  }
+
+  /** Her dash speed now (m/s). */
+  speed() {
+    return BLADE.dash.speed + BLADE.dash.perSegment * this.lost;
+  }
+
+  faceTo(x, z, maxStep) {
+    this.facing = turnTowards(this.facing, angleTo(this.x, this.z, x, z), maxStep);
+  }
+
+  /** One logic step. */
+  update(dt) {
+    if (!this.active) return;
+    const g = this.game;
+    const p = g.player;
+    this.t += dt;
+    this.timer -= dt;
+    this.ramCd -= dt;
+    this.deflectLogT -= dt;
+    this.flash = Math.max(0, this.flash - dt * 5);
+    this.glow = clamp(this.glow + (this.state === 'tell' ? 6 : -6) * dt, 0, 1);
+    switch (this.state) {
+      case 'perch':
+        this.faceTo(p.x, p.z, 4 * dt);
+        if (this.timer <= 0) this.dashTo(p.x, p.z, 'dash');
+        break;
+      case 'dash':
+      case 'feint':
+      case 'retreat':
+        this.updateDash(dt);
+        break;
+      case 'tell':
+        this.faceTo(p.x, p.z, BLADE.tell.turn * dt);
+        if (this.timer <= 0) {
+          this.state = 'cut';
+          this.timer = BLADE.cut.time;
+          this.struck = false;
+          this.vx = Math.sin(this.facing) * BLADE.cut.lunge;
+          this.vz = Math.cos(this.facing) * BLADE.cut.lunge;
+          g.audio.slash();
+        }
+        break;
+      case 'cut':
+        this.slash();
+        if (this.timer <= 0) this.retreat();
+        break;
+      case 'reel':
+        if (this.timer <= 0) this.retreat();
+        break;
+    }
+    if (!this.dashing) {
+      // on her feet: the shove of a kick or the lunge of a cut carries her a little, and nobody stands inside her
+      const f = Math.exp(-6 * dt);
+      this.x += this.vx * dt;
+      this.z += this.vz * dt;
+      this.vx *= f;
+      this.vz *= f;
+      if (this.y < 0.5) g.level.collideCircle(this, BLADE.radius);
+      this.shove(p);
+    }
+    // up on a raised perch (the booth) while she waits there, and as she lands back on one
+    const perch = this.perches[this.perchI];
+    const wantY = this.state === 'perch' || (this.state === 'retreat' && Math.hypot(perch.x - this.x, perch.z - this.z) < 1) ? perch.y : 0;
+    this.y = damp(this.y, wantY, 14, dt);
+    this.sync();
+  }
+
+  /** Off towards (x, z): `state` is 'dash' (at the player), 'feint' (a hop to his other side) or 'retreat' (to a perch). */
+  dashTo(x, z, state) {
+    this.state = state;
+    this.goal = { x, z };
+    this.dashT = 0;
+    this.path = null;
+    this.pathT = 0;
+    this.dodged = false;
+    this.vx = this.vz = 0;
+    if (state === 'dash') {
+      this.feints = Math.min(this.lost, BLADE.feint.max);
+      this.game.audio.slide();
+    }
+  }
+
+  /** A dash: along the nav grid's path to the goal (the player, wherever he is now), through anyone in the way. */
+  updateDash(dt) {
+    const g = this.game;
+    const L = g.level;
+    const p = g.player;
+    const D = BLADE.dash;
+    this.dashT += dt;
+    if (this.state === 'dash' && p.alive) {
+      this.goal.x = p.x;
+      this.goal.z = p.z;
+    }
+    const { x: gx, z: gz } = this.goal;
+    const dist = Math.hypot(gx - this.x, gz - this.z);
+    const stop = this.state === 'dash' ? D.stop : 0.35;
+    if (dist <= stop || this.dashT > D.giveUp) {
+      this.arrive(dist <= stop);
+      return;
+    }
+    this.pathT -= dt;
+    if (!this.path || this.pathT <= 0) {
+      this.path = L.nav.findPath(this.x, this.z, gx, gz) || [{ x: gx, z: gz }];
+      this.pathT = 0.2;
+    }
+    while (this.path.length > 1 && Math.hypot(this.path[0].x - this.x, this.path[0].z - this.z) < 0.4) this.path.shift();
+    const w = this.path[0];
+    this.faceTo(w.x, w.z, 14 * dt);
+    const sp = this.speed();
+    const step = Math.min(sp * dt, dist);
+    this.x += Math.sin(this.facing) * step;
+    this.z += Math.cos(this.facing) * step;
+    if (this.y < 0.5) L.collideCircle(this, BLADE.radius);
+    this.phase += dt * sp * 1.6;
+    // running through the player (once she is up to speed: a player she stood beside is passed, not hit): knocked flying,
+    // unless he slides under or spins past her (DODGE)
+    if (p.alive && this.dashT >= D.ram && Math.hypot(p.x - this.x, p.z - this.z) < BLADE.radius + 0.4) {
+      if (p.sliding || p.spinning) {
+        if (!this.dodged) {
+          this.dodged = true;
+          g.score.style('DODGE', 40, true);
+          g.notes.log('閃過刀后的衝刺');
+        }
+      } else if (this.ramCd <= 0) {
+        this.ramCd = 0.8;
+        if (p.hurt(D.hit, Math.sin(this.facing), Math.cos(this.facing), false, '刀后撞飛')) g.shake(0.35);
+      }
+    }
+    this.ghostT -= dt;
+    if (this.ghostT <= 0) {
+      this.ghostT = D.ghostEvery;
+      g.style.snapshot(this.rig, GHOST);
+    }
+  }
+
+  /** The dash is over: at a perch she crouches; at the player she feints or raises the blades; a chase given up ends at a perch. */
+  arrive(reached) {
+    const g = this.game;
+    const p = g.player;
+    if (this.state !== 'retreat' && !reached) {
+      this.retreat();
+      return;
+    }
+    if (this.state === 'retreat') {
+      const at = this.perches[this.perchI];
+      this.x = at.x;
+      this.z = at.z;
+      this.state = 'perch';
+      const W = BLADE.perch;
+      this.timer = g.rng.range(W.wait[0], W.wait[1]) * (1 - W.faster * this.lost);
+      return;
+    }
+    if (this.feints > 0 && g.rng.next() < BLADE.feint.chance) {
+      this.feints--;
+      const d = Math.hypot(p.x - this.x, p.z - this.z) || 1;
+      const ux = (p.x - this.x) / d;
+      const uz = (p.z - this.z) / d;
+      this.dashTo(p.x + ux * BLADE.dash.stop, p.z + uz * BLADE.dash.stop, 'feint');
+      return;
+    }
+    this.tell();
+  }
+
+  /** The blades go up: the window. */
+  tell() {
+    const g = this.game;
+    this.state = 'tell';
+    this.timer = BLADE.tell.time;
+    this.taken = false;
+    this.kicked = false;
+    this.vx = this.vz = 0;
+    this.faceTo(g.player.x, g.player.z, Math.PI);
+    g.audio.aimWarn(g.panFor(this.x));
+    g.fx.ring(this.x, this.z, BLADE.cut.reach, BLADE.tell.time, 0xff2bd0, 3);
+    if (this.firstTell) {
+      this.firstTell = false;
+      g.hud.banner('OPENING', '亮刀的半秒：開火、鑊擊或踢', 'clear');
+    }
+  }
+
+  /** The cut: once, on a player within reach and the arc in front (a spin dodges it: player.hurt). */
+  slash() {
+    if (this.struck) return;
+    const g = this.game;
+    const p = g.player;
+    if (!p.alive) return;
+    const dx = p.x - this.x;
+    const dz = p.z - this.z;
+    const d = Math.hypot(dx, dz);
+    if (d > BLADE.cut.reach + 0.3 || Math.abs(wrapAngle(Math.atan2(dx, dz) - this.facing)) > BLADE.cut.arc) return;
+    this.struck = true;
+    if (p.hurt(BLADE.cut.dmg, dx / d, dz / d, false, '刀后的刀')) g.shake(0.4);
+    else if (p.spinning) {
+      g.score.style('DODGE', 40, true);
+      g.notes.log('旋轉閃過刀后的刀');
+    }
+  }
+
+  /** Off to another perch. */
+  retreat() {
+    const n = this.perches.length;
+    if (n > 1) this.perchI = (this.perchI + 1 + this.game.rng.int(0, n - 2)) % n;
+    const at = this.perches[this.perchI];
+    this.dashTo(at.x, at.z, 'retreat');
+  }
+
+  /** Nobody stands inside her while she is on her feet. */
+  shove(p) {
+    if (!p.alive || this.y >= 0.5) return;
+    const dx = p.x - this.x;
+    const dz = p.z - this.z;
+    const d = Math.hypot(dx, dz);
+    const rr = BLADE.radius + 0.3;
+    if (d >= rr || d < 1e-4) return;
+    p.x += (dx / d) * (rr - d);
+    p.z += (dz / d) * (rr - d);
+  }
+
+  shotAt(x0, z0, x1, z1) {
+    if (!this.active || this.dashing) return null; // a dash: the shot flies through where she was
+    const t = segCircle(x0, z0, x1, z1, this.x, this.z, BLADE.radius);
+    return t >= 0 ? { t, part: this.state === 'tell' ? 'open' : this.state === 'perch' ? 'guard' : 'body' } : null;
+  }
+
+  shot(b, part) {
+    const g = this.game;
+    if (part === 'guard') {
+      // perched, she turns the shot aside with a blade
+      g.fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 6, [7, 2, 6], 7);
+      g.audio.deflect(g.panFor(b.x));
+      if (this.deflectLogT <= 0) {
+        this.deflectLogT = 2;
+        g.notes.log('刀后格開子彈：等她亮刀');
+      }
+      return true;
+    }
+    this.flash = 1;
+    g.fx.blood(b.x, GUN_Y, b.z, b.dx, b.dz, 8);
+    g.audio.flesh(g.panFor(b.x));
+    if (part === 'open' && !this.taken) this.wound(b.homeRun ? BLADE.smash : 1, b.homeRun ? '被擋回的子彈打中' : '中彈');
+    return true;
+  }
+
+  /** Hurt in the window: `n` segments off (`how` says by what), and she breaks off reeling. */
+  wound(n, how) {
+    this.taken = true;
+    for (let i = 0; i < n && this.active; i++) this.hurt(how);
+    if (!this.active) return;
+    this.state = 'reel';
+    this.timer = BLADE.reel;
+    this.vx = -Math.sin(this.facing) * 3;
+    this.vz = -Math.cos(this.facing) * 3;
+  }
+
+  /** The player's kick or pan smash (player.js) in the window: a smash takes BLADE.smash segments; a kick shoves her and holds the window open. */
+  melee(inCone, reach, kind) {
+    if (!this.active || this.state !== 'tell') return false;
+    const dir = inCone(this.x, this.z, reach + BLADE.radius);
+    if (!dir) return false;
+    const g = this.game;
+    this.flash = 1;
+    if (kind === 'smash') {
+      g.notes.log('鑊擊中刀后');
+      this.wound(BLADE.smash, '捱了一鑊');
+      return true;
+    }
+    this.vx = dir.x * BLADE.kick.back;
+    this.vz = dir.z * BLADE.kick.back;
+    if (!this.kicked) {
+      this.kicked = true;
+      this.timer += BLADE.kick.extend;
+    }
+    g.notes.log('踢退刀后：刀還亮着');
+    return true;
+  }
+
+  /** A blast beside her (a barrel, a grenade) takes a segment, unless she is mid-dash. */
+  blast(x, z) {
+    if (!this.active || this.dashing || Math.hypot(x - this.x, z - this.z) > BLADE.blast) return;
+    this.flash = 1;
+    this.taken = true;
+    this.hurt('被炸到');
+    if (!this.active) return;
+    this.state = 'reel';
+    this.timer = BLADE.reel;
+  }
+
+  /** The last segment: she drops where she stands. */
+  goDown() {
+    const g = this.game;
+    this.state = 'down';
+    this.vx = this.vz = 0;
+    g.fx.flash(this.x, 1.2, this.z, 0xff2bd0, 40, 0.4, 10);
+    g.fx.blood(this.x, 1, this.z, 0, 0, 20);
+    g.notes.log('刀后倒下');
+    g.hud.banner('BOSS DOWN', '刀后倒下了', 'clear');
+    this.finish();
+    this.sync();
+  }
+
+  /** Where she is drawn: crouched at a perch, leaning into a dash, blades up and alight for the tell, down on the floor at the end. */
+  sync() {
+    const g = this.game;
+    const r = this.rig;
+    const S = this.state;
+    r.root.position.set(this.x, this.y + g.level.groundY(this.x, this.z), this.z);
+    r.root.rotation.y = this.facing;
+    setFlash(r, this.flash * 2.5);
+    this.bladeMat.color.setRGB(1 + this.glow * 3, 0.17 + this.glow * 0.6, 0.82 + this.glow * 2);
+    // her ring reads from across the floor (the worn model is dark): brighter still through the tell
+    r.ring.material.color.setRGB(S === 'tell' ? 2.6 : 1.2, S === 'tell' ? 0.3 : 0.12, S === 'tell' ? 1.4 : 0.75);
+    if (!g.style.poseDue(r, g.worldTime)) return;
+    animateRig(r, this.phase, this.dashing ? 1 : 0, this.facing);
+    const arm = S === 'tell' ? -2.4 : S === 'cut' ? 0.7 : S === 'reel' ? -0.9 : this.dashing ? 1.2 : 0.55;
+    r.armL.rotation.x = r.armR.rotation.x = arm;
+    r.armL.rotation.z = S === 'tell' ? -0.5 : 0;
+    r.armR.rotation.z = S === 'tell' ? 0.5 : 0;
+    r.inner.rotation.x = S === 'down' ? 1.45 : S === 'perch' ? 0.45 : this.dashing ? 0.3 : S === 'reel' ? -0.3 : 0;
+    r.inner.position.y = S === 'down' ? 0.15 : S === 'perch' ? -0.2 : 0;
+    finishRig(r, g.worldTime);
   }
 }
 
@@ -1798,6 +2242,7 @@ class Convoy extends Boss {
 export const BOSSES = {
   heli: { make: (game) => new Heli(game), cfg: HELI },
   dj: { make: (game) => new Dj(game), cfg: DJ },
+  blade: { make: (game) => new Blade(game), cfg: BLADE },
   truck: { make: (game) => new Truck(game), cfg: TRUCK },
   convoy: { make: (game) => new Convoy(game), cfg: CONVOY },
 };

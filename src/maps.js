@@ -207,9 +207,9 @@ const club = {
     rain: false,
   },
   floor: 'club',
-  // the last wave of a run that ends here (boss.js): the DJ behind the booth's glass, a speaker either side, the
-  // dance floor's tiles ([x, z] of its corner, columns, rows); `gaps` closes the ways round the speakers to the DJ's side for the fight
-  boss: { kind: 'dj', at: [6, -11.6], booth: [6, -10], speakers: [[2.6, -10.6], [9.4, -10.6]], gaps: [[3, -12.15, 2, 3.7], [9, -12.15, 2, 3.7]], floor: [-6, -5, 12, 8] },
+  // the last wave of a run that ends here (boss.js): the blade queen, dashing between her perches ([x, z] or [x, z, height]:
+  // the lounge between the sofas, the top of the DJ booth, the glass walk, the floor before the bar)
+  boss: { kind: 'blade', perches: [[15.5, 0], [6, -10, 1.3], [-13.5, 3], [-12, -8.5]] },
   edges: { n: [3.2, 'clubWall', 'neonPink'], s: [0.9, 'clubWall', 'neonCyan'], w: [3.2, 'clubWall', 'neonCyan'], e: [3.2, 'clubWall', 'neonCyan'] },
   // Four stages: the long bar with its flap, the DJ booth, the lounge in the east, a glass walk in the west.
   solids: [
