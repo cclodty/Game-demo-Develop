@@ -99,9 +99,10 @@ export class Player {
     this.kickCd = 0;
     this.kickT = 0;
     this.swingT = 0; // the pan's swing (smash)
-    this.shieldT = 0; // the umbrella open (shield)
+    this.shieldOn = false; // the umbrella held open (shield): F held with it in hand
+    this.shieldK = 0; // how far open it shows, 0–1
     this.shieldCd = 0;
-    this.shieldHits = 0;
+    this.shieldHits = 0; // bullets caught in this opening (the PARASOL cap)
     this.execT = 0; // an execution under way: s left
     this.splitTarget = null;
     this.sinceHurt = 99;
@@ -273,7 +274,7 @@ export class Player {
 
     // slide: only out of a run, locked to the direction of travel; a spin can cut it short
     const curSp = Math.hypot(this.vx, this.vz);
-    if (input.hit('KeyC') && this.slideCd <= 0 && this.slideT <= 0 && this.spinT <= 0 && this.execT <= 0 && curSp >= PLAYER.slideMinSpeed) {
+    if (input.hit('KeyC') && this.slideCd <= 0 && this.slideT <= 0 && this.spinT <= 0 && this.execT <= 0 && !this.shieldOn && curSp >= PLAYER.slideMinSpeed) {
       this.slideT = PLAYER.slideDuration;
       this.slideDirX = this.vx / curSp;
       this.slideDirZ = this.vz / curSp;
@@ -304,7 +305,7 @@ export class Player {
     let tx;
     let tz;
     let accel = PLAYER.accel;
-    const speed = PLAYER.speed * (w.moveMul || 1);
+    const speed = PLAYER.speed * (w.moveMul || 1) * (this.shieldOn ? UMBRELLA.walkMul : 1); // an open umbrella is a walk
     if (this.execT > 0) {
       // an execution: standing over him until it is done
       this.execT -= dt;
@@ -392,18 +393,28 @@ export class Player {
       this.swingT -= dt;
       if (g.thrown.inHand && this.swingT > PAN.swing - PAN.parry) this.parry();
     }
+    // the umbrella: open while F is held with it in hand (and no execution is due), shut when let go
     this.shieldCd -= dt;
-    if (this.shieldT > 0) {
-      this.shieldT -= dt;
-      if (g.thrown.inHand && g.thrown.carry.kind === 'umbrella') this.shield();
-      else this.shieldT = 0;
-      if (g.thrown.carry && g.thrown.carry.kind === 'umbrella') g.thrown.carry.open(this.shieldT > 0 ? Math.min(1, (UMBRELLA.open - this.shieldT) * 8) : 0);
+    const umbrella = g.thrown.inHand && g.thrown.carry.kind === 'umbrella' ? g.thrown.carry : null;
+    const wantShield = !!umbrella && input.down('KeyF') && this.execT <= 0 && !this.executable();
+    if (wantShield && !this.shieldOn && this.shieldCd <= 0) {
+      this.shieldOn = true;
+      this.shieldHits = 0;
+      g.audio.slide();
+      g.notes.log('開傘');
+    } else if (!wantShield && this.shieldOn) {
+      this.shieldOn = false;
+      this.shieldCd = UMBRELLA.cooldown;
     }
+    if (this.shieldOn) this.shield(umbrella);
+    this.shieldK = clamp(this.shieldK + (this.shieldOn ? 8 : -8) * dt, 0, 1);
+    if (umbrella) umbrella.open(this.shieldK);
     if (input.hit('KeyF') && this.execT <= 0) {
       const down = this.executable();
       if (down) this.execute(down);
-      else if (g.thrown.inHand && g.thrown.carry.kind === 'umbrella') this.openUmbrella();
-      else if (this.kickCd <= 0) {
+      else if (umbrella) {
+        // the umbrella's F is the hold above: not a kick
+      } else if (this.kickCd <= 0) {
         if (g.thrown.inHand) this.smash();
         else this.kick();
       }
@@ -637,19 +648,11 @@ export class Player {
     return hit;
   }
 
-  /** F with the umbrella in hand: it opens in front for UMBRELLA.open s, then needs UMBRELLA.cooldown before it opens again. */
-  openUmbrella() {
-    if (this.shieldCd > 0 || this.shieldT > 0) return false;
-    this.shieldT = UMBRELLA.open;
-    this.shieldCd = UMBRELLA.open + UMBRELLA.cooldown;
-    this.shieldHits = 0;
-    this.game.audio.slide();
-    this.game.notes.log('開傘');
-    return true;
-  }
-
-  /** The open umbrella: every enemy bullet within UMBRELLA.reach in the arc in front stops in the canopy (PARASOL points, capped per opening). */
-  shield() {
+  /**
+   * The open umbrella: every enemy bullet within UMBRELLA.reach in the arc in front stops in the canopy (PARASOL
+   * points, capped per opening). Each one wears it: at UMBRELLA.hits the ribs give and it falls from the hand, done for.
+   */
+  shield(umbrella) {
     const g = this.game;
     for (const b of g.bullets.list) {
       if (!b.alive || b.owner !== 'enemy') continue;
@@ -662,6 +665,20 @@ export class Player {
       g.audio.deflect(g.panFor(b.x));
       if (this.shieldHits * UMBRELLA.block < UMBRELLA.blockCap) g.score.style('PARASOL', UMBRELLA.block, true);
       this.shieldHits++;
+      if (++umbrella.hits >= UMBRELLA.hits) {
+        // broken: out of the hand onto the floor in front, inside out, and no more shielding
+        this.shieldOn = false;
+        this.shieldCd = UMBRELLA.cooldown;
+        g.thrown.release(umbrella);
+        g.thrown.carry = null;
+        umbrella.x = this.x + Math.sin(this.facing) * 0.6;
+        umbrella.z = this.z + Math.cos(this.facing) * 0.6;
+        umbrella.y = 0.3;
+        umbrella.vx = umbrella.vz = 0;
+        umbrella.vy = 1;
+        umbrella.break();
+        return;
+      }
     }
   }
 
@@ -868,7 +885,7 @@ export class Player {
       // the pan hangs from the right hand by the hip; the swing brings it up and across; an open umbrella is held out ahead
       // (after the guns' arm lines, which this replaces)
       const k = this.swingT > 0 ? Math.sin((1 - this.swingT / PAN.swing) * Math.PI) : 0;
-      const out = this.shieldT > 0 ? 1 : 0;
+      const out = this.shieldK;
       r.armR.rotation.set(0.95 - 1.7 * k - 0.95 * out, -0.15 + 0.8 * k + 0.15 * out, 0);
     }
     r.anchor.rotation.x = r.center.rotation.x = level;

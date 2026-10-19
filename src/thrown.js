@@ -73,7 +73,7 @@ export class Thrown {
     let best = null;
     let bd = PLAYER.throwReach;
     for (const q of this.game.level.props) {
-      if (!q.alive || q.carried || q.fixed || (q.y || 0) > 0.6) continue;
+      if (!q.alive || q.carried || q.fixed || q.broken || (q.y || 0) > 0.6) continue;
       if (q.kind === 'barrel' && (q.fuse >= 0 || q.rocketT > 0)) continue;
       if (q.kind === 'extinguisher' && q.smokeT > 0) continue;
       const d = Math.hypot(q.x - p.x, q.z - p.z) - q.r;
@@ -310,7 +310,7 @@ export class Thrown {
 
     // HUD hint
     if (!p.alive) this.prompt = '';
-    else if (this.carry) this.prompt = this.inHand ? (this.carry.kind === 'pan' ? '{kick} 鑊擊 · {throw} 擲出' : '{kick} 開傘 · {throw} 擲出') : '{throw} / {fire} 擲出';
+    else if (this.carry) this.prompt = this.inHand ? (this.carry.kind === 'pan' ? '{kick} 鑊擊 · {throw} 擲出' : '按住 {kick} 開傘 · {throw} 擲出') : '{throw} / {fire} 擲出';
     else {
       const near = this.nearProp();
       if (near) this.prompt = `{throw} 拿起${Thrown.propName(near)}`;
