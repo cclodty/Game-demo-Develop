@@ -423,9 +423,10 @@ const docks = {
     rain: true,
   },
   floor: 'asphalt',
-  // the last wave of a run that ends here (boss.js): the armoured truck, driving in from the west round a loop
-  // that clears every container (barrels and pans in its way are shoved aside)
-  boss: { kind: 'truck', from: [-30, 0.8], loop: [[-16, 0.8], [16, 0.8], [13, 4.6], [13, 11.3], [-11, 11.3], [-12.5, 8.8], [-16, 5]] },
+  // the last wave of a run that ends here (boss.js): the heavy gunner, in through the west gate (`from` off the map, `at` just
+  // inside) and after the player. The cover below still keeps the old truck's roads (its `loop`) clear, so the truck kind
+  // can come back as data
+  boss: { kind: 'gunner', from: [-26, -8], at: [-19.5, -8] },
   edges: { n: [3.6, 'warehouse', null], s: [0.45, 'curb', null], w: [2.2, 'fence', null], e: [2.2, 'fence', null] },
   solids: [
     [-14, -6, 6, 2.4, 2.6, 'containerRed'],
@@ -447,7 +448,8 @@ const docks = {
     [6, -3.6, 3.6, 0.25, 1.9],
     [-21.6, 4.5, 0.25, 3.4, 1.9],
   ],
-  barrels: [[4.5, -12, 'gas'], [-21.5, -4, 'gas'], [21.5, 3, 'gas'], [-1, 11.5, 'gas'], [-12, -12, 'gas'], [-11, 1.5], [13.5, -8.5], [3, 3.5], [-16, 12.5], [15, 12]],
+  // three LPG cylinders for the boss (boss.js: a kicked one jets into the heavy gunner), in the open and off his way in
+  barrels: [[4.5, -12, 'gas'], [-21.5, -4, 'gas'], [21.5, 3, 'gas'], [-1, 11.5, 'gas'], [-12, -12, 'gas'], [-11, 1.5], [13.5, -8.5], [3, 3.5], [-16, 12.5], [15, 12], [-18, 0, 'lpg'], [15, -1.5, 'lpg'], [2, 8, 'lpg']],
   pans: [[-4, -12.5], [7, 1.5], [-12, 9], [17, -11], [3, 12.5]],
   tools: [[-4, 9, 'extinguisher']],
   water: [{ x: 0, z: 17, w: 52, d: 4 }], // the harbour beyond the south curb: whoever is knocked over it is gone

@@ -148,6 +148,11 @@ class Barrel {
         this.ignite(0.02);
         break;
       }
+      if (!this.rocketHit && g.boss.rammed(this.x, this.z, this.r)) {
+        // a boss in its way (boss.js: the heavy gunner): it bursts on him
+        this.rocketHit = true;
+        this.ignite(0.02);
+      }
       if (this.rocketT <= 0) {
         this.rocketHit = true;
         this.ignite(0.02);

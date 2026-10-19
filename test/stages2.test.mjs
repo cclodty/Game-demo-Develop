@@ -69,6 +69,8 @@ test('every map carries stages now, each off the boss vehicles’ roads by more 
 test('the armoured truck smashes through the loading-bay shutter dropped across its road, and the opening is open again', { timeout: 120000 }, async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
+    // the truck is a kind the docks can ask for (boss.js; the map's default is the heavy gunner now): put it back for this run
+    g.maps.find((m) => m.id === 'docks').boss = { kind: 'truck', from: [-30, 0.8], loop: [[-16, 0.8], [16, 0.8], [13, 4.6], [13, 11.3], [-11, 11.3], [-12.5, 8.8], [-16, 5]] };
     g.setRules('normal', []);
     g.setMode('arcade');
     g.startRun(0);

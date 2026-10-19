@@ -48,7 +48,19 @@
 // short bursts onto a red line. The two escorts are the way in: CONVOY.tyres hits (or a blast)
 // flatten an escort's tyres and it pulls aside for good. Until both are out the lead shrugs
 // everything off; alone, it slows down, and CONVOY.perSegment hits (or a blast beside it) take
-// a segment. A moving car runs into a player in its way (not one sliding or spinning).
+// a segment. A moving car runs into a player in its way (not one sliding or spinning). The docks'
+// default boss is now the heavy gunner (below); the truck stays as a kind a map can ask for.
+//
+// gunner, the docks' heavy gunner (碼頭重炮, 頭目重做 ②): a big man behind a steel plate with a
+// machine gun, in through the west gate and after the player at GUNNER.speed m/s, turning slowly.
+// Shots from within the plate's arc glance off; shots on his back (or on him while he staggers)
+// count, GUNNER.perSegment to a segment. Every gun.every s he plants his feet, draws a red line onto
+// the player for gun.warn s and sweeps a long burst across it; every mortar.every s he lobs
+// mortar.rounds shells onto the player's spot, each marked by a red ring on the ground for its flight.
+// Under a lamp shot out or in an extinguisher's cloud he cannot see: no sweep, no shells, and a
+// sweep under way is broken off. A blast beside him (a barrel, a grenade, a kicked LPG cylinder that
+// runs into him) takes a segment and staggers him; a kick, a pan smash or a thug bowled into him only
+// staggers him, plate down. No crew.
 //
 // Logic: a boss runs in the fixed steps on game.rng and the world, and resets with the run.
 
@@ -156,6 +168,32 @@ export const TRUCK = {
   wreck: { burn: 1.6, radius: 4.5 }, // brought down: s burning, then the blast
 };
 
+export const GUNNER = {
+  label: 'HEAVY GUNNER',
+  name: '碼頭重炮',
+  short: '重炮',
+  downed: '擊倒',
+  pull: false,
+  segments: 5,
+  bonus: 2000,
+  radius: 0.55, // his body, for shots and the player's reach
+  speed: 1.5, // m/s after the player; `enter` m/s in through the gate
+  enter: 2.5,
+  turn: 1.4, // rad/s: he turns slowly, so a run round him gets behind the plate
+  plate: 70, // degrees either side of his facing the steel plate covers: a shot from there glances off
+  perSegment: 4, // hits on his back (or on him while he staggers) that take a segment
+  // the sweep: every `every` s (first after `first`) he plants his feet, a red line onto the player for `warn` s, then `shots`
+  // rounds `interval` s apart at `speed` m/s for `dmg`, swept across ± `sweep` rad round that spot; he needs a clear line
+  gun: { first: 3, every: 4, warn: 0.8, shots: 24, interval: 0.045, speed: 30, dmg: 10, sweep: 0.7, range: 24 },
+  // the mortar: every `every` s (first after `first`) `rounds` shells onto the player's spot, the others within `scatter` m of it;
+  // each is marked by a red ring on the ground for lob.flight s and bursts on landing (lob: weapons.js Grenades.lob)
+  mortar: { first: 7, every: 12, rounds: 3, scatter: 2.4, lob: { flight: 1.5, apex: 7, fuse: 0.05, radius: 2.4, kickDistance: 10, kickFlight: 0.55, hitRadius: 0.6, airburst: 150 } },
+  near: 2.2, // m: this close he stops walking and turns on the player
+  stagger: { kick: 0.7, smash: 1.3, bowl: 1.2, blast: 1.2 }, // s he reels (plate down, aim dropped) after a kick, a pan smash, a thug bowled into him, a blast
+  bowl: 5, // m/s a kicked thug needs to stagger him
+  blast: 2.8, // m: a blast this close takes a segment
+};
+
 export const CONVOY = {
   label: 'TAXI CONVOY',
   name: '的士車隊',
@@ -235,6 +273,11 @@ export class Boss {
 
   /** A player shot hit a level solid (bullets.js), in case it is one of the boss's. */
   shotSolid() {}
+
+  /** A kicked LPG cylinder in flight (level.js Barrel.rocket) is at (x, z), radius r: true if it has run into the boss (it bursts there). */
+  rammed() {
+    return false;
+  }
 
   /** The player's kick or pan smash (player.js): `inCone(x, z, reach)` says whether it reaches; true if it struck the boss. */
   melee() {
@@ -1812,6 +1855,379 @@ class Truck extends Boss {
 }
 
 /** A polyline walked by distance: point and direction at `s` m along it (looping if `loop`). */
+/** The docks' heavy gunner. */
+class Gunner extends Boss {
+  constructor(game) {
+    super(game, GUNNER);
+    this.rig = null;
+    this.reset();
+  }
+
+  reset() {
+    if (this.rig) {
+      const g = this.game;
+      g.scene.remove(this.rig.root);
+      disposeRig(this.rig);
+      for (const m of this.plateMats) m.dispose();
+      this.laser.dispose(g.scene);
+      this.rig = null;
+    }
+    super.reset();
+    this.state = 'idle';
+  }
+
+  /** The final wave on the docks: `def` is the map's (maps.js `boss`: `from` off the map, `at` just inside it). */
+  start(def) {
+    this.reset();
+    super.start(def);
+    this.from = { x: def.from[0], z: def.from[1] };
+    this.at = { x: def.at[0], z: def.at[1] };
+    this.x = this.from.x;
+    this.z = this.from.z;
+    this.facing = angleTo(this.x, this.z, this.at.x, this.at.z);
+    this.state = 'enter'; // enter (in through the gate), walk (after the player), plant (the sweep), stagger, down
+    this.timer = 0;
+    this.gunState = 'idle'; // idle, warn, fire
+    this.gunT = GUNNER.gun.first;
+    this.gunTimer = 0;
+    this.shots = 0;
+    this.lock = null;
+    this.lineA = 0; // where the line points while he fires
+    this.mortarT = GUNNER.mortar.first;
+    this.hits = 0; // on his back, towards the next segment
+    this.blind = false; // in the dark or in a cloud: he sees nobody
+    this.blindLogged = false;
+    this.plateLogT = 0;
+    this.firstWarn = true;
+    this.path = null;
+    this.pathT = 0;
+    this.phase = 0;
+    this.flash = 0;
+    this.plateFlash = 0;
+    this.build();
+  }
+
+  /** The look: the brute's rig a size up with the minigun, a steel plate with an orange strap in front of him, his red line. */
+  build() {
+    const g = this.game;
+    this.rig = buildCharacter({ body: 0x3b3e48, pants: 0x22242c, accent: 0xff8a2a, hair: 0x55585f, weapon: 'minigun', scale: 1.35, ring: 0.5, model: 'brute' });
+    const panelMat = new THREE.MeshStandardMaterial({ color: 0x4a5058, roughness: 0.45, metalness: 0.6, emissive: 0xffffff, emissiveIntensity: 0 });
+    const strapMat = new THREE.MeshStandardMaterial({ color: 0xff8a2a, emissive: 0xff8a2a, emissiveIntensity: 0.9 });
+    this.plateMats = [panelMat, strapMat];
+    const plate = new THREE.Group();
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.5, 0.08), panelMat);
+    panel.position.set(0, 0.75, 0);
+    const strap = new THREE.Mesh(new THREE.BoxGeometry(1.14, 0.1, 0.1), strapMat);
+    strap.position.set(0, 1.35, 0);
+    plate.add(panel, strap);
+    for (const m of plate.children) m.castShadow = true;
+    plate.position.set(0, 0.2, 0.5); // hinged low in front: it tilts forward when he staggers
+    this.rig.inner.add(plate);
+    g.style.dress(plate);
+    this.plate = plate;
+    this.laser = new Laser(g.scene, 0xff2020);
+    g.scene.add(this.rig.root);
+    this.sync();
+  }
+
+  faceTo(x, z, maxStep) {
+    this.facing = turnTowards(this.facing, angleTo(this.x, this.z, x, z), maxStep);
+  }
+
+  /** One logic step. */
+  update(dt) {
+    if (!this.active) return;
+    const g = this.game;
+    const L = g.level;
+    this.t += dt;
+    this.timer -= dt;
+    this.plateLogT -= dt;
+    this.flash = Math.max(0, this.flash - dt * 5);
+    this.plateFlash = Math.max(0, this.plateFlash - dt * 6);
+    this.blind = this.state !== 'enter' && (L.darkAt(this.x, this.z) || L.smokeAt(this.x, this.z));
+    if (this.blind && !this.blindLogged) {
+      this.blindLogged = true;
+      g.notes.log(L.darkAt(this.x, this.z) ? '重炮在黑暗中失去目標' : '重炮在白霧中失去目標');
+    } else if (!this.blind) this.blindLogged = false;
+    switch (this.state) {
+      case 'enter': {
+        // in through the gate (and the fence) at a steady walk
+        const d = Math.hypot(this.at.x - this.x, this.at.z - this.z);
+        const step = Math.min(GUNNER.enter * dt, d);
+        this.facing = angleTo(this.x, this.z, this.at.x, this.at.z);
+        this.x += Math.sin(this.facing) * step;
+        this.z += Math.cos(this.facing) * step;
+        this.phase += dt * GUNNER.enter * 2.2;
+        if (d <= 0.05) this.state = 'walk';
+        break;
+      }
+      case 'walk':
+        this.walk(dt);
+        break;
+      case 'plant':
+        if (this.lock) this.faceTo(this.lock.x, this.lock.z, GUNNER.turn * 2 * dt);
+        break;
+      case 'stagger':
+        if (this.timer <= 0) this.state = 'walk';
+        break;
+    }
+    if (this.state !== 'enter') {
+      L.collideCircle(this, GUNNER.radius);
+      this.shove();
+      this.bowled();
+    }
+    if (this.state === 'walk' || this.state === 'plant') {
+      this.updateGun(dt);
+      this.updateMortar(dt);
+    }
+    this.sync();
+  }
+
+  /** After the player along the nav grid, turning on him at his own slow rate; this close he stands and turns. */
+  walk(dt) {
+    const g = this.game;
+    const L = g.level;
+    const p = g.player;
+    if (!p.alive) return;
+    this.faceTo(p.x, p.z, GUNNER.turn * dt);
+    const dist = Math.hypot(p.x - this.x, p.z - this.z);
+    if (dist < GUNNER.near) return;
+    this.pathT -= dt;
+    if (!this.path || this.pathT <= 0) {
+      this.path = L.nav.findPath(this.x, this.z, p.x, p.z) || [{ x: p.x, z: p.z }];
+      this.pathT = 0.4;
+    }
+    while (this.path.length > 1 && Math.hypot(this.path[0].x - this.x, this.path[0].z - this.z) < 0.5) this.path.shift();
+    const w = this.path[0];
+    const a = angleTo(this.x, this.z, w.x, w.z);
+    this.x += Math.sin(a) * GUNNER.speed * dt;
+    this.z += Math.cos(a) * GUNNER.speed * dt;
+    this.phase += dt * GUNNER.speed * 2.2;
+  }
+
+  /** The sweep: a red line onto the player, then the burst across it; he stands for it, and loses it blinded. */
+  updateGun(dt) {
+    const g = this.game;
+    const p = g.player;
+    const G = GUNNER.gun;
+    switch (this.gunState) {
+      case 'idle':
+        this.gunT -= dt;
+        if (this.gunT <= 0 && !this.blind && p.alive && this.state === 'walk' && Math.hypot(p.x - this.x, p.z - this.z) < G.range && g.level.hasLOS(this.x, this.z, p.x, p.z)) {
+          this.gunState = 'warn';
+          this.gunTimer = G.warn;
+          this.lock = { x: p.x, z: p.z };
+          this.lineA = angleTo(this.x, this.z, p.x, p.z);
+          this.state = 'plant';
+          g.audio.aimWarn(g.panFor(this.x));
+          if (this.firstWarn) {
+            this.firstWarn = false;
+            g.hud.banner('STEEL PLATE', '正面打不穿：繞到他背後', 'clear');
+          }
+        }
+        break;
+      case 'warn':
+        this.gunTimer -= dt;
+        if (this.blind) {
+          this.endSweep();
+          g.notes.log('重炮看不見了，收起紅線');
+        } else if (this.gunTimer <= 0) {
+          this.gunState = 'fire';
+          this.shots = G.shots;
+          this.gunTimer = 0;
+        }
+        break;
+      case 'fire':
+        this.gunTimer -= dt;
+        while (this.gunTimer <= 0 && this.shots > 0) {
+          this.fire();
+          this.shots--;
+          this.gunTimer += G.interval;
+        }
+        if (this.shots <= 0) this.endSweep();
+        break;
+    }
+  }
+
+  endSweep() {
+    this.gunState = 'idle';
+    this.gunT = GUNNER.gun.every;
+    this.lock = null;
+    if (this.state === 'plant') this.state = 'walk';
+  }
+
+  /** One round of the sweep, across the locked spot from one side to the other. */
+  fire() {
+    const g = this.game;
+    const G = GUNNER.gun;
+    const k = G.shots > 1 ? (G.shots - this.shots) / (G.shots - 1) : 0.5;
+    const a = (this.lineA = angleTo(this.x, this.z, this.lock.x, this.lock.z) + (k - 0.5) * 2 * G.sweep);
+    const dx = Math.sin(a);
+    const dz = Math.cos(a);
+    // the source is the boss as the game sees it (game.boss): its label names the bullets that hit
+    g.bullets.spawn({ x: this.x + dx * 1.2, z: this.z + dz * 1.2, dx, dz, speed: G.speed, owner: 'enemy', damage: G.dmg, range: G.range, source: g.boss });
+    g.audio.shot('minigun', g.panFor(this.x));
+  }
+
+  /** The mortar: shells onto the player's spot, rings on the ground first; none while he cannot see. */
+  updateMortar(dt) {
+    const g = this.game;
+    const p = g.player;
+    const M = GUNNER.mortar;
+    this.mortarT -= dt;
+    if (this.mortarT > 0 || this.blind || !p.alive) return;
+    this.mortarT = M.every;
+    for (let i = 0; i < M.rounds; i++) {
+      const a = g.rng.range(0, Math.PI * 2);
+      const r = i === 0 ? 0 : g.rng.range(0.8, M.scatter);
+      g.grenades.lob(this.x, this.z, p.x + Math.sin(a) * r, p.z + Math.cos(a) * r, M.lob, MORTAR_SOURCE);
+    }
+    g.audio.shot('launcher', g.panFor(this.x));
+    g.notes.log('重炮發射迫擊砲：看地上的紅圈');
+  }
+
+  /** He reels for `t` s: plate down (shots from the front count), the sweep dropped. */
+  stagger(t, how) {
+    if (!this.active || this.state === 'enter') return;
+    this.state = 'stagger';
+    this.timer = Math.max(this.timer, t);
+    this.flash = 1;
+    this.endSweep();
+    this.path = null;
+    if (how) this.game.notes.log(how);
+  }
+
+  /** Nobody stands inside him, and barrels and pans roll out of his way. */
+  shove() {
+    const g = this.game;
+    const out = (o, r) => {
+      const dx = o.x - this.x;
+      const dz = o.z - this.z;
+      const d = Math.hypot(dx, dz);
+      const rr = GUNNER.radius + r;
+      if (d >= rr || d < 1e-4) return;
+      o.x += (dx / d) * (rr - d);
+      o.z += (dz / d) * (rr - d);
+    };
+    const p = g.player;
+    if (p.alive) out(p, 0.35);
+    for (const e of g.enemies.list) if (e.alive) out(e, e.radius);
+    for (const o of g.level.props) if (o.alive && !o.carried && !o.fixed && (o.y || 0) < 1) out(o, o.r);
+  }
+
+  /** A thug kicked into him (bowling) knocks him off balance. */
+  bowled() {
+    for (const e of this.game.enemies.list) {
+      if (e.stunT <= 0) {
+        e.bowledBoss = false;
+        continue;
+      }
+      if (!e.alive || e.bowledBoss || e.cfg.fly || Math.hypot(e.vx, e.vz) < GUNNER.bowl) continue;
+      if (Math.hypot(e.x - this.x, e.z - this.z) > GUNNER.radius + e.radius + 0.15) continue;
+      e.bowledBoss = true;
+      e.vx *= 0.2;
+      e.vz *= 0.2;
+      this.game.audio.kick(true);
+      this.stagger(GUNNER.stagger.bowl, '打手撞到重炮身上，他一個踉蹌');
+    }
+  }
+
+  shotAt(x0, z0, x1, z1) {
+    if (!this.active) return null;
+    const t = segCircle(x0, z0, x1, z1, this.x, this.z, GUNNER.radius);
+    if (t < 0) return null;
+    // where on him it lands: within the plate's arc of his facing it glances off, unless he staggers
+    const hx = x0 + (x1 - x0) * t;
+    const hz = z0 + (z1 - z0) * t;
+    const a = Math.abs(wrapAngle(Math.atan2(hx - this.x, hz - this.z) - this.facing));
+    const plate = this.state !== 'stagger' && a <= (GUNNER.plate * Math.PI) / 180;
+    return { t, part: plate ? 'plate' : 'body' };
+  }
+
+  shot(b, part) {
+    const g = this.game;
+    if (part === 'plate') {
+      this.plateFlash = 1;
+      g.fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 6, [7, 5, 2], 7);
+      g.audio.deflect(g.panFor(b.x));
+      if (this.plateLogT <= 0) {
+        this.plateLogT = 2;
+        g.notes.log('子彈打在重炮的鋼板上：繞到背後');
+      }
+      return true;
+    }
+    this.flash = 1;
+    g.fx.blood(b.x, GUN_Y, b.z, b.dx, b.dz, 8);
+    g.audio.flesh(g.panFor(b.x));
+    if (++this.hits >= GUNNER.perSegment) {
+      this.hits = 0;
+      this.hurt(this.state === 'stagger' ? '踉蹌中中彈' : '背後中彈');
+    }
+    return true;
+  }
+
+  /** The player's kick or pan smash (player.js): he staggers, plate down; no segment. */
+  melee(inCone, reach, kind) {
+    if (!this.active || this.state === 'enter') return false;
+    const dir = inCone(this.x, this.z, reach + GUNNER.radius);
+    if (!dir) return false;
+    this.x += dir.x * 0.3;
+    this.z += dir.z * 0.3;
+    this.stagger(kind === 'smash' ? GUNNER.stagger.smash : GUNNER.stagger.kick, kind === 'smash' ? '鑊擊中重炮：鋼板垂下' : '踢得重炮一個踉蹌');
+    return true;
+  }
+
+  rammed(x, z, r) {
+    return this.active && this.state !== 'enter' && Math.hypot(x - this.x, z - this.z) <= GUNNER.radius + r + 0.1;
+  }
+
+  /** A blast beside him takes a segment and staggers him. */
+  blast(x, z, opts = {}) {
+    if (!this.active || this.state === 'enter' || Math.hypot(x - this.x, z - this.z) > GUNNER.blast) return;
+    this.flash = 1;
+    this.hits = 0;
+    this.hurt(opts.rocket ? '被火箭油桶炸中' : '被炸到');
+    if (this.active) this.stagger(GUNNER.stagger.blast);
+  }
+
+  /** The last segment: he goes down where he stands. */
+  goDown() {
+    const g = this.game;
+    this.state = 'down';
+    this.endSweep();
+    g.fx.flash(this.x, 1.4, this.z, 0xff8a2a, 40, 0.4, 10);
+    g.fx.blood(this.x, 1, this.z, 0, 0, 20);
+    g.notes.log('重炮倒下');
+    g.hud.banner('BOSS DOWN', '重炮倒下了', 'clear');
+    this.finish();
+    this.sync();
+  }
+
+  /** Where he is drawn: the walk, the plate (tilted forward when he staggers), his red line, down on the ground at the end. */
+  sync() {
+    const g = this.game;
+    const r = this.rig;
+    const S = this.state;
+    r.root.position.set(this.x, g.level.groundY(this.x, this.z), this.z);
+    r.root.rotation.y = this.facing;
+    setFlash(r, this.flash * 2.5);
+    this.plateMats[0].emissiveIntensity = this.plateFlash * 1.5;
+    r.ring.material.color.setRGB(this.gunState === 'idle' ? 1 : 2.2, 0.35, 0.08);
+    if (this.gunState === 'warn' && this.lock) this.laser.set(this.x, this.z, this.lock.x, this.lock.z, 0.07, 1.5 + 2 * clamp(1 - this.gunTimer / GUNNER.gun.warn, 0, 1), GUN_Y);
+    else if (this.gunState === 'fire') this.laser.set(this.x, this.z, this.x + Math.sin(this.lineA) * GUNNER.gun.range, this.z + Math.cos(this.lineA) * GUNNER.gun.range, 0.05, 3, GUN_Y);
+    else this.laser.hide();
+    if (!g.style.poseDue(r, g.worldTime)) return;
+    const walking = S === 'enter' || (S === 'walk' && this.path);
+    animateRig(r, this.phase, walking ? 1 : 0, this.facing);
+    this.plate.rotation.x = S === 'stagger' ? 1.1 : S === 'down' ? 1.5 : 0;
+    r.inner.rotation.x = S === 'down' ? 1.45 : S === 'stagger' ? -0.25 : 0;
+    r.inner.position.y = S === 'down' ? 0.15 : 0;
+    finishRig(r, g.worldTime);
+  }
+}
+
+const MORTAR_SOURCE = { cfg: { label: '重炮' } }; // names the shells that hurt the player (weapons.js lob)
+
 class Road {
   constructor(points, loop) {
     this.pts = points.map(([x, z]) => ({ x, z }));
@@ -2244,6 +2660,7 @@ export const BOSSES = {
   dj: { make: (game) => new Dj(game), cfg: DJ },
   blade: { make: (game) => new Blade(game), cfg: BLADE },
   truck: { make: (game) => new Truck(game), cfg: TRUCK },
+  gunner: { make: (game) => new Gunner(game), cfg: GUNNER },
   convoy: { make: (game) => new Convoy(game), cfg: CONVOY },
 };
 
