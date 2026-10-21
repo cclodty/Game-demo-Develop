@@ -207,7 +207,7 @@ const club = {
     rain: false,
   },
   floor: 'club',
-  // the last wave of a run that ends here (boss.js): the blade queen, dashing between her perches ([x, z] or [x, z, height]:
+  // the stage's last wave here (boss.js): the blade queen, dashing between her perches ([x, z] or [x, z, height]:
   // the lounge between the sofas, the top of the DJ booth, the glass walk, the floor before the bar)
   boss: { kind: 'blade', perches: [[15.5, 0], [6, -10, 1.3], [-13.5, 3], [-12, -8.5]] },
   edges: { n: [3.2, 'clubWall', 'neonPink'], s: [0.9, 'clubWall', 'neonCyan'], w: [3.2, 'clubWall', 'neonCyan'], e: [3.2, 'clubWall', 'neonCyan'] },
@@ -423,7 +423,7 @@ const docks = {
     rain: true,
   },
   floor: 'asphalt',
-  // the last wave of a run that ends here (boss.js): the heavy gunner, in through the west gate (`from` off the map, `at` just
+  // the stage's last wave here (boss.js): the heavy gunner, in through the west gate (`from` off the map, `at` just
   // inside) and after the player. The cover below still keeps the old truck's roads (its `loop`) clear, so the truck kind
   // can come back as data
   boss: { kind: 'gunner', from: [-26, -8], at: [-19.5, -8] },
@@ -578,7 +578,7 @@ const senado = {
   // the buildings across the avenue, between the camera and the square: above 1.2 m, seen through;
   // and up the square, any building within 6 m of the line from the player to the camera, whole (level.js updateFade)
   fade: { above: 1.2, follow: 6 },
-  // the last wave of a run that ends here (boss.js): the taxi convoy, in along the avenue from the east, then round
+  // the stage's last wave here (boss.js): the taxi convoy, in along the avenue from the east, then round
   // the fountain on a loop that clears the buildings, the stalls and the lamps
   boss: {
     kind: 'convoy',

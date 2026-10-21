@@ -167,9 +167,11 @@ export class HUD {
     const last = g.waves.rules.waves; // arcade runs show how far there is to go
     const waveLabel = g.waves.wave > 0 ? `WAVE ${g.waves.wave}${Number.isFinite(last) ? ` / ${last}` : ''}` : '';
     this.set('wave', waveLabel, (v) => (e.wave.textContent = v));
-    // a boss: its name and health bar, one segment a hit
-    this.set('bossName', g.boss.active ? g.boss.cfg.name : '', (v) => {
-      if (v) e.bossBar.querySelector('.boss-name').innerHTML = `${v} <small>${g.boss.cfg.label}</small>`;
+    // a boss: its name and health bar, one segment a hit (a stage's boss has fewer than the run's last)
+    this.set('bossName', g.boss.active ? `${g.boss.cfg.name}/${g.boss.segments}` : '', (v) => {
+      if (!v) return;
+      e.bossBar.querySelector('.boss-name').innerHTML = `${g.boss.cfg.name} <small>${g.boss.cfg.label}</small>`;
+      e.bossBar.querySelector('.boss-segs').innerHTML = '<i></i>'.repeat(g.boss.segments);
     });
     this.set('boss', g.boss.active ? g.boss.hp : -1, (v) => {
       e.bossBar.classList.toggle('hidden', v < 0);

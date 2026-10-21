@@ -1389,6 +1389,22 @@ export class Level {
     this.rebuildNav();
   }
 
+  /**
+   * A boss wave starts (waves.js): every barrel and gas cylinder that went up comes back where it
+   * began, so the fight has what it is won with (the helicopter fears only blasts) however the
+   * waves before it went. Those still standing stay where they are.
+   */
+  restock() {
+    let n = 0;
+    for (const b of this.barrels) {
+      if (b.alive) continue;
+      b.reset();
+      n++;
+    }
+    if (n) this.game.notes.log(`頭目戰：油桶補回 ${n} 個`);
+    return n;
+  }
+
   // -------------------------------------------------------------- update
 
   updateProps(dt) {

@@ -135,7 +135,7 @@ class Game {
     if (this.startMap) this.level.load(MAPS[this.startMap]);
     this.bullets = new Bullets(this);
     this.grenades = new Grenades(this);
-    this.bosses = new Bosses(this); // the last wave's boss on a map that has one (boss.js)
+    this.bosses = new Bosses(this); // each stage's last wave: the boss of its map, if it has one (boss.js)
     this.boss = this.bosses.view; // whichever boss this run has, as one object
     this.pickups = new Pickups(this);
     this.thrown = new Thrown(this);
@@ -1196,15 +1196,17 @@ class Game {
     $('view-name').textContent = VIEWS[this.view].name;
   }
 
-  /** Where a run of `mode` from map `start` goes: its maps in order, the last with its boss. '' in endless (no last stage). */
+  /** Where a run of `mode` from map `start` goes: its maps in order, then their bosses (each stage's last wave). '' in endless (no last stage). */
   routeText(start, mode) {
     const r = MODES[mode];
     if (!Number.isFinite(r.waves)) return '';
     const stages = Math.ceil(r.waves / r.perStage);
     const maps = Array.from({ length: stages }, (_, i) => MAPS[(start + i) % MAPS.length]);
-    const last = maps.at(-1).boss;
-    const boss = last && BOSSES[last.kind];
-    return `${maps.map((m) => m.name).join(' → ')}${boss ? `（頭目：${boss.cfg.name}）` : ''}`;
+    const bosses = maps
+      .map((m, i) => (r.midBoss || i === stages - 1) && m.boss && BOSSES[m.boss.kind])
+      .filter(Boolean)
+      .map((b) => b.cfg.route || b.cfg.short);
+    return `${maps.map((m) => m.name).join(' → ')}${bosses.length ? `（頭目：${bosses.join('、')}）` : ''}`;
   }
 
   get stageMap() {
@@ -1222,6 +1224,7 @@ class Game {
     if (!tr.loaded && tr.t >= 0.65) {
       tr.loaded = true;
       this.stage++;
+      this.bosses.reset(); // the stage's boss, down, goes with its map
       this.enemies.clear();
       this.bullets.clear();
       this.grenades.clear();

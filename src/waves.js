@@ -9,15 +9,17 @@ import { TYPES } from './enemies.js';
 import { clamp } from './utils.js';
 
 /**
- * The ways to play a run. Arcade ends: its last wave stands in for a boss
- * for now, half as big again with one more brute. Input records store a
- * mode's place in this list, so only ever append.
+ * The ways to play a run. In arcade (and the daily) a stage's last wave is
+ * that map's boss (maps.js `boss`): the run's last in full, the others
+ * shorter (`midBoss`: segments and BOSS bonus); a last stage without a boss
+ * gets the big last wave, half as big again with one more brute. Input
+ * records store a mode's place in this list, so only ever append.
  */
 export const MODES = {
-  arcade: { name: '街機', en: 'ARCADE', color: '#ffc861', desc: '12 波一局，約十分鐘 · 打完有結算', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, graded: true, beats: true },
+  arcade: { name: '街機', en: 'ARCADE', color: '#ffc861', desc: '12 波一局，約十分鐘 · 打完有結算', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, bonus: 1000 }, graded: true, beats: true },
   endless: { name: '無盡', en: 'ENDLESS', color: '#2ee8ff', desc: '打到倒下為止', waves: Infinity, perStage: 3 },
   // the daily challenge (daily.js): an arcade run on the day's seed, map and rules; started from its own title card
-  daily: { name: '每日挑戰', en: 'DAILY', color: '#ff4fa3', desc: '全世界同一局，每天一次', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, graded: true, daily: true, beats: true },
+  daily: { name: '每日挑戰', en: 'DAILY', color: '#ff4fa3', desc: '全世界同一局，每天一次', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, bonus: 1000 }, graded: true, daily: true, beats: true },
 };
 export const MODE_IDS = Object.keys(MODES);
 
@@ -114,12 +116,17 @@ export class Waves {
     // every run with this seed, however it is played (rng.js)
     const wr = (this.wr = g.rng.fork('wave', this.wave));
     this.queue = this.compose(this.wave, wr);
-    // the last wave on a map with a boss (maps.js `boss`, of a kind boss.js has): the boss instead of the big last wave
+    // a stage's last wave on a map with a boss (maps.js `boss`, of a kind boss.js has), in a mode with
+    // stage bosses (`midBoss`), and the run's last wave in any: the boss instead of the wave
     const boss = g.stageMap.boss;
-    this.bossWave = this.isFinal && !!boss && !!BOSSES[boss.kind];
-    // the music (audio.js): a stage's first two waves on the base of its song, its later layers after, its boss section for the last
-    g.audio.setLevel(this.isFinal ? 2 : (this.wave - 1) % this.rules.perStage >= 2 ? 1 : 0);
-    if (this.bossWave) this.queue = [];
+    const stageEnd = this.wave % this.rules.perStage === 0;
+    this.bossWave = !!boss && !!BOSSES[boss.kind] && (this.isFinal || (stageEnd && !!this.rules.midBoss));
+    // the music (audio.js): a stage's first two waves on the base of its song, its later layers after, its boss section for a boss and the last wave
+    g.audio.setLevel(this.isFinal || this.bossWave ? 2 : (this.wave - 1) % this.rules.perStage >= 2 ? 1 : 0);
+    if (this.bossWave) {
+      this.queue = [];
+      g.level.restock(); // what the boss is fought with (the barrels the helicopter fears) is back where it began
+    }
     this.order = g.level.spawns.map((_, i) => i);
     for (let i = this.order.length - 1; i > 0; i--) {
       const j = wr.int(0, i);
@@ -166,8 +173,8 @@ export class Waves {
       '站在另一把武器上按 E 交換；1 / 2 或滾輪切換',
     ];
     if (this.bossWave) {
-      g.bosses.start(boss);
-      g.hud.banner('BOSS', `${g.boss.cfg.name} · 最後一波`, 'stage');
+      g.bosses.start(boss, this.isFinal ? null : this.rules.midBoss); // the last in full, a stage's shorter
+      g.hud.banner('BOSS', `${g.boss.cfg.name} · ${this.isFinal ? '最後一波' : '打倒就轉場'}`, 'stage');
     } else if (this.isFinal) g.hud.banner('FINAL WAVE', `最後一波 · 撐過去就通關`, 'stage');
     else g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
     g.audio.waveStart();
