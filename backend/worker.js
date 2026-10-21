@@ -23,7 +23,7 @@ export const LIMITS = {
   bodyBytes: 160 * 1024, // the JSON around it (base64 is a third larger)
   nameLength: 16,
   maxScore: 99999999,
-  maps: 4,
+  maps: 5,
   top: 100,
   around: 3, // places above and below the player's own
   statsDays: 30,

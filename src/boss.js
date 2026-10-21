@@ -1,9 +1,10 @@
-// The last wave's boss (頭目). When an arcade run ends on a map with a boss (maps.js `boss`,
-// whose `kind` is one of BOSSES), its final wave is that boss instead of the big last wave.
-// What every boss shares is in Boss: segments of health on the HUD bar, a HIT banner for each,
-// and once it is down the BOSS bonus, the run's clip and the end of the wave (`downed`). Each
-// kind brings its own moves. game.boss always stands for the boss of the moment
-// (Bosses.view), so a test reads its fields whatever its kind.
+// A stage's boss (頭目). In an arcade run every stage's last wave on a map with a boss (maps.js
+// `boss`, whose `kind` is one of BOSSES) is that boss instead of the wave: waves 4 and 8 a shorter
+// fight (waves.js MODES `midBoss`), the run's last (wave 12) in full. What every boss shares is
+// in Boss: segments of health on the HUD bar, a HIT banner for each, and once it is down the
+// BOSS bonus, the run's clip and the end of the wave (`downed`). Each kind brings its own moves.
+// game.boss always stands for the boss of the moment (Bosses.view), so a test reads its fields
+// whatever its kind.
 //
 // heli, the rooftop helicopter (頭目 ①②): it flies in from off the map and circles over the helipad, HELI.altitude m up, out of reach of
 // bullets. Its searchlight sweeps the roof and follows a player it comes near; a player who
@@ -12,7 +13,7 @@
 // Only a blast right under it hurts it (頭目 ②): a thrown barrel (one that flies under it goes off
 // there) or a grenade going off within hit.radius m of where it is over the roof takes one
 // segment, and it reels for hit.reel s without firing. The fifth brings it down: it falls onto the
-// pad and bursts (crash.radius m: get clear), the BOSS bonus is paid and the run is cleared.
+// pad and bursts (crash.radius m: get clear), the BOSS bonus is paid and the wave ends.
 // dj, the club's DJ (夜店頭目): behind bulletproof glass round the booth, out of reach. The
 // dance floor works to the beat (DJ.beat s of world time, so bullet time slows it too): a
 // pattern of tiles lights up red for DJ.floor.warn beats, then zaps whoever stands on a lit
@@ -198,6 +199,7 @@ export const CONVOY = {
   label: 'TAXI CONVOY',
   name: '的士車隊',
   short: '頭車',
+  route: '車隊', // in the route (main.js routeText); the others use `short`
   downed: '擊毀',
   pull: false,
   segments: 5,
@@ -231,16 +233,23 @@ export class Boss {
     this.active = false;
     this.downed = false;
     this.hp = 0;
+    this.segments = 0; // this fight's (start)
+    this.bonus = 0;
     this.x = this.z = 0;
     this.pass = null; // a solid player shots fly over while this boss is on (bullets.js)
   }
 
-  /** The final wave: `def` is the map's (maps.js `boss`). */
-  start(def) {
+  /**
+   * Its wave: `def` is the map's (maps.js `boss`); `size` ({ segments, bonus }) a stage's shorter
+   * fight (waves.js MODES `midBoss`), else the run's last in full (cfg.segments, cfg.bonus).
+   */
+  start(def, size = null) {
     this.def = def;
     this.active = true;
     this.downed = false;
-    this.hp = this.cfg.segments;
+    this.segments = size ? size.segments : this.cfg.segments;
+    this.bonus = size ? size.bonus : this.cfg.bonus;
+    this.hp = this.segments;
     this.t = 0;
     this.game.notes.log(`頭目：${this.cfg.name}`);
   }
@@ -304,9 +313,9 @@ export class Boss {
     const c = this.cfg;
     this.active = false;
     this.downed = true;
-    g.score.bonus('BOSS', c.bonus);
+    g.score.bonus('BOSS', this.bonus);
     g.clip.kill(Number.MAX_SAFE_INTEGER); // the boss going down is the run's clip, whatever else it had
-    g.notes.log(`${c.downed}${c.short}：BOSS +${c.bonus}`);
+    g.notes.log(`${c.downed}${c.short}：BOSS +${this.bonus}`);
   }
 }
 
@@ -335,10 +344,10 @@ class Heli extends Boss {
     this.climbers = [];
   }
 
-  /** The final wave on the rooftop: `def` is the map's (maps.js `boss`: its pad and where it flies in from). */
-  start(def) {
+  /** Its wave on the rooftop: `def` is the map's (maps.js `boss`: its pad and where it flies in from). */
+  start(def, size) {
     this.reset();
-    super.start(def);
+    super.start(def, size);
     this.theta = 0;
     const [px, pz] = def.pad;
     this.pad = { x: px, z: pz };
@@ -655,10 +664,10 @@ class Dj extends Boss {
     this.state = 'idle';
   }
 
-  /** The final wave in the club: `def` is the map's (maps.js `boss`: where the DJ stands, the booth, the speakers, the dance floor). */
-  start(def) {
+  /** Its wave in the club: `def` is the map's (maps.js `boss`: where the DJ stands, the booth, the speakers, the dance floor). */
+  start(def, size) {
     this.reset();
-    super.start(def);
+    super.start(def, size);
     const g = this.game;
     const L = g.level;
     [this.x, this.z] = def.at;
@@ -954,10 +963,10 @@ class Blade extends Boss {
     this.perches = [];
   }
 
-  /** The final wave in the club: `def` is the map's (maps.js `boss`: her perches, [x, z] or [x, z, height]). */
-  start(def) {
+  /** Its wave in the club: `def` is the map's (maps.js `boss`: her perches, [x, z] or [x, z, height]). */
+  start(def, size) {
     this.reset();
-    super.start(def);
+    super.start(def, size);
     const g = this.game;
     this.perches = def.perches.map(([x, z, y = 0]) => ({ x, z, y }));
     this.perchI = g.rng.int(0, this.perches.length - 1);
@@ -1006,7 +1015,7 @@ class Blade extends Boss {
 
   /** Segments lost so far: she gets faster and trickier with each. */
   get lost() {
-    return this.cfg.segments - this.hp;
+    return this.segments - this.hp;
   }
 
   get dashing() {
@@ -1359,10 +1368,10 @@ class Truck extends Boss {
     this.state = 'enter';
   }
 
-  /** The final wave on the docks: `def` is the map's (maps.js `boss`: its loop, and where it drives in from). */
-  start(def) {
+  /** Its wave on the docks: `def` is the map's (maps.js `boss`: its loop, and where it drives in from). */
+  start(def, size) {
     this.reset();
-    super.start(def);
+    super.start(def, size);
     this.loop = def.loop.map(([x, z]) => ({ x, z }));
     this.from = { x: def.from[0], z: def.from[1] };
     this.x = this.from.x;
@@ -1876,10 +1885,10 @@ class Gunner extends Boss {
     this.state = 'idle';
   }
 
-  /** The final wave on the docks: `def` is the map's (maps.js `boss`: `from` off the map, `at` just inside it). */
-  start(def) {
+  /** Its wave on the docks: `def` is the map's (maps.js `boss`: `from` off the map, `at` just inside it). */
+  start(def, size) {
     this.reset();
-    super.start(def);
+    super.start(def, size);
     this.from = { x: def.from[0], z: def.from[1] };
     this.at = { x: def.at[0], z: def.at[1] };
     this.x = this.from.x;
@@ -2288,10 +2297,10 @@ class Convoy extends Boss {
     this.state = 'drive';
   }
 
-  /** The final wave in Senado: `def` is the map's (maps.js `boss`: the road in, and the loop round the fountain). */
-  start(def) {
+  /** Its wave in Senado: `def` is the map's (maps.js `boss`: the road in, and the loop round the fountain). */
+  start(def, size) {
     this.reset();
-    super.start(def);
+    super.start(def, size);
     this.entry = new Road(def.entry, false);
     this.ring = new Road(def.loop, true);
     // where the road in meets the loop
@@ -2664,7 +2673,7 @@ export const BOSSES = {
   convoy: { make: (game) => new Convoy(game), cfg: CONVOY },
 };
 
-/** The run's boss: none until a final wave starts one; each kind is built once and reused. */
+/** The run's boss: none until a boss wave starts one; each kind is built once and reused. */
 export class Bosses {
   constructor(game) {
     this.game = game;
@@ -2672,7 +2681,7 @@ export class Bosses {
     this.made = {};
     this.current = this.none;
     // game.boss: one object that is always the current boss (its fields and methods), so whoever holds it
-    // (a test, from before the final wave) sees the boss of the moment
+    // (a test, from before the boss wave) sees the boss of the moment
     this.view = new Proxy(
       {},
       {
@@ -2688,13 +2697,13 @@ export class Bosses {
     );
   }
 
-  /** The final wave on a map with a boss: `def` is the map's (maps.js `boss`). */
-  start(def) {
+  /** A boss wave on a map with a boss: `def` is the map's (maps.js `boss`), `size` a stage's shorter fight (Boss.start). */
+  start(def, size = null) {
     this.reset();
     const kind = BOSSES[def.kind];
     if (!kind) return;
     this.current = this.made[def.kind] || (this.made[def.kind] = kind.make(this.game));
-    this.current.start(def);
+    this.current.start(def, size);
   }
 
   /** No boss (a new run, a restart, the title). */

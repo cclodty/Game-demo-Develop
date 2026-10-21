@@ -9,15 +9,17 @@ import { TYPES } from './enemies.js';
 import { clamp } from './utils.js';
 
 /**
- * The ways to play a run. Arcade ends: its last wave stands in for a boss
- * for now, half as big again with one more brute. Input records store a
- * mode's place in this list, so only ever append.
+ * The ways to play a run. In arcade (and the daily) a stage's last wave is
+ * that map's boss (maps.js `boss`): the run's last in full, the others
+ * shorter (`midBoss`: segments and BOSS bonus); a last stage without a boss
+ * gets the big last wave, half as big again with one more brute. Input
+ * records store a mode's place in this list, so only ever append.
  */
 export const MODES = {
-  arcade: { name: '街機', en: 'ARCADE', color: '#ffc861', desc: '12 波一局，約十分鐘 · 打完有結算', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, graded: true, beats: true },
+  arcade: { name: '街機', en: 'ARCADE', color: '#ffc861', desc: '12 波一局，約十分鐘 · 打完有結算', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, bonus: 1000 }, graded: true, beats: true },
   endless: { name: '無盡', en: 'ENDLESS', color: '#2ee8ff', desc: '打到倒下為止', waves: Infinity, perStage: 3 },
   // the daily challenge (daily.js): an arcade run on the day's seed, map and rules; started from its own title card
-  daily: { name: '每日挑戰', en: 'DAILY', color: '#ff4fa3', desc: '全世界同一局，每天一次', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, graded: true, daily: true, beats: true },
+  daily: { name: '每日挑戰', en: 'DAILY', color: '#ff4fa3', desc: '全世界同一局，每天一次', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, bonus: 1000 }, graded: true, daily: true, beats: true },
 };
 export const MODE_IDS = Object.keys(MODES);
 
@@ -42,12 +44,14 @@ export class Waves {
     this.orderI = 0;
     this.wr = null; // this wave's stream
     this.hurt = false; // the player took damage this wave
+    this.shots = 0; // the player's shots this wave (player.js fire; none is 赤手空拳)
     this.cleanWaves = 0;
     this.beats = []; // the wave's roster in beats (modes with `beats`); empty for a trickle
     this.beatI = 0; // beats launched so far
     this.beatPhase = 'quiet'; // 'quiet' → 'telegraph' → 'live' → 'quiet' …
     this.beatT = 0;
     this.beatSpots = []; // the spawn points the beat being telegraphed comes through
+    this.beatPerches = []; // and the balconies it sends men up to (pickPerches)
     this.beatHurt = false; // the player took damage during the beat that is live
     this.stageOrder = []; // the map's stages (maps.js) in the order this wave's beats visit them
     this.stage = null; // the stage of the beat being telegraphed or live
@@ -114,12 +118,17 @@ export class Waves {
     // every run with this seed, however it is played (rng.js)
     const wr = (this.wr = g.rng.fork('wave', this.wave));
     this.queue = this.compose(this.wave, wr);
-    // the last wave on a map with a boss (maps.js `boss`, of a kind boss.js has): the boss instead of the big last wave
+    // a stage's last wave on a map with a boss (maps.js `boss`, of a kind boss.js has), in a mode with
+    // stage bosses (`midBoss`), and the run's last wave in any: the boss instead of the wave
     const boss = g.stageMap.boss;
-    this.bossWave = this.isFinal && !!boss && !!BOSSES[boss.kind];
-    // the music (audio.js): a stage's first two waves on the base of its song, its later layers after, its boss section for the last
-    g.audio.setLevel(this.isFinal ? 2 : (this.wave - 1) % this.rules.perStage >= 2 ? 1 : 0);
-    if (this.bossWave) this.queue = [];
+    const stageEnd = this.wave % this.rules.perStage === 0;
+    this.bossWave = !!boss && !!BOSSES[boss.kind] && (this.isFinal || (stageEnd && !!this.rules.midBoss));
+    // the music (audio.js): a stage's first two waves on the base of its song, its later layers after, its boss section for a boss and the last wave
+    g.audio.setLevel(this.isFinal || this.bossWave ? 2 : (this.wave - 1) % this.rules.perStage >= 2 ? 1 : 0);
+    if (this.bossWave) {
+      this.queue = [];
+      g.level.restock(); // what the boss is fought with (the barrels the helicopter fears) is back where it began
+    }
     this.order = g.level.spawns.map((_, i) => i);
     for (let i = this.order.length - 1; i > 0; i--) {
       const j = wr.int(0, i);
@@ -133,12 +142,14 @@ export class Waves {
     this.state = 'active';
     this.spawnCd = 0.3;
     this.hurt = false;
+    this.shots = 0;
     this.beats = this.rules.beats && !this.bossWave ? this.splitBeats(this.queue) : [];
     this.beatI = 0;
     this.beatPhase = 'quiet';
     this.beatT = 0.3;
     g.audio.setBeat('quiet');
     this.beatSpots = [];
+    this.beatPerches = [];
     this.beatHurt = false;
     this.stage = null;
     // the stages the beats visit, in an order of the wave's own (so every run with this seed sees the same)
@@ -166,8 +177,8 @@ export class Waves {
       '站在另一把武器上按 E 交換；1 / 2 或滾輪切換',
     ];
     if (this.bossWave) {
-      g.bosses.start(boss);
-      g.hud.banner('BOSS', `${g.boss.cfg.name} · 最後一波`, 'stage');
+      g.bosses.start(boss, this.isFinal ? null : this.rules.midBoss); // the last in full, a stage's shorter
+      g.hud.banner('BOSS', `${g.boss.cfg.name} · ${this.isFinal ? '最後一波' : '打倒就轉場'}`, 'stage');
     } else if (this.isFinal) g.hud.banner('FINAL WAVE', `最後一波 · 撐過去就通關`, 'stage');
     else g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
     g.audio.waveStart();
@@ -222,6 +233,27 @@ export class Waves {
     return [anchor, second || anchor];
   }
 
+  /**
+   * The balconies a beat sends men up to (maps.js perches, level.js balconies): none to BEATS.perch of its men who
+   * can stand on one (enemies.js TYPES `perch`), as many as the wave's stream draws, each to a balcony nobody stands
+   * on that is not over the player (BEATS.perchClear), nearest where the beat plays out first. None on a map without.
+   */
+  pickPerches(beat) {
+    const g = this.game;
+    const L = g.level;
+    if (!L.balconies.length) return [];
+    const most = Math.min(BEATS.perch, beat.filter((t) => TYPES[t].perch).length);
+    const n = Math.floor(this.wr.range(0, most + 1));
+    if (!n) return [];
+    const p = g.player;
+    const taken = new Set(g.enemies.list.filter((e) => e.alive && e.perch).map((e) => e.sp));
+    const [sx, sz] = this.stage ? this.stage.at : [this.beatSpots[0].ex, this.beatSpots[0].ez];
+    return L.balconies
+      .filter((b) => !taken.has(b) && Math.hypot(b.ex - p.x, b.ez - p.z) > BEATS.perchClear)
+      .sort((a, b) => Math.hypot(a.ex - sx, a.ez - sz) - Math.hypot(b.ex - sx, b.ez - sz))
+      .slice(0, n);
+  }
+
   /** The beats of a wave: quiet, the telegraph at the beat's doors, then everyone in at once; the next when few stand or time is up. */
   updateBeats(dt, enemies) {
     const g = this.game;
@@ -229,18 +261,21 @@ export class Waves {
       this.beatT -= dt;
       if (this.beatT > 0 || this.beatI >= this.beats.length) return;
       this.beatSpots = this.pickSpots(this.beats[this.beatI]);
+      this.beatPerches = this.pickPerches(this.beats[this.beatI]);
       this.beatPhase = 'telegraph';
       this.beatT = BEATS.telegraph;
       g.audio.beat();
       g.audio.setBeat('telegraph'); // the music drops to the kick until they come
     } else if (this.beatPhase === 'telegraph') {
-      for (const sp of this.beatSpots) sp.heat = 1;
+      for (const sp of [...this.beatSpots, ...this.beatPerches]) sp.heat = 1;
       this.beatT -= dt;
       if (this.beatT > 0) return;
       const beat = this.beats[this.beatI];
+      const up = [...this.beatPerches];
       beat.forEach((type, i) => {
         const far = TYPES[type].spawn && TYPES[type].spawn.minDist; // a sniper keeps to the door picked for his distance
-        this.pending.push({ type, sp: far ? this.beatSpots[0] : this.beatSpots[i % 2], t: 0.05 * i });
+        const sp = TYPES[type].perch && up.length ? up.shift() : far ? this.beatSpots[0] : this.beatSpots[i % 2];
+        this.pending.push({ type, sp, t: 0.05 * i });
       });
       this.queue.splice(0, beat.length);
       this.beatI++;
@@ -250,7 +285,8 @@ export class Waves {
       g.audio.setBeat('live');
       const count = {};
       for (const t of beat) count[t] = (count[t] || 0) + 1;
-      g.notes.log(`第 ${this.beatI} 拍${this.stage ? `（${this.stage.name}）` : ''}出場：${Object.entries(count).map(([t, n]) => `${TYPES[t].label}×${n}`).join(' ')}`);
+      const perched = this.beatPerches.length ? `，${this.beatPerches.length} 個上露台` : '';
+      g.notes.log(`第 ${this.beatI} 拍${this.stage ? `（${this.stage.name}）` : ''}出場：${Object.entries(count).map(([t, n]) => `${TYPES[t].label}×${n}`).join(' ')}${perched}`);
     } else {
       this.beatT += dt;
       if (this.pending.length) return;

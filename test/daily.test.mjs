@@ -12,12 +12,12 @@ import { gameHarness, OUT, problems } from './helpers.mjs';
 
 const at = (iso) => Date.parse(iso);
 
-test('a day is a seed, a map and rules; the next day another; the table turns over every week', () => {
+test('a day is a seed, a map and rules; the next day another; the table turns over once its rows are used (nine days)', () => {
   const a = dailyFor('2026-10-18');
   assert.deepEqual(dailyFor('2026-10-18'), a, 'the same day, the same run');
   const b = dailyFor('2026-10-19');
   assert.notEqual(b.seed, a.seed);
-  assert.equal(dailyFor(dayBefore('2026-10-18', -ROTATION.length)).map, a.map, 'the table repeats after a week');
+  assert.equal(dailyFor(dayBefore('2026-10-18', -ROTATION.length)).map, a.map, 'the table repeats after its length');
   assert.equal(new Set(Array.from({ length: 7 }, (_, i) => dailyFor(dayBefore('2026-10-18', -i)).seed)).size, 7, 'seven days, seven seeds');
   // the day is UTC
   assert.equal(utcDay(at('2026-10-18T23:59:59Z')), '2026-10-18');
@@ -131,7 +131,7 @@ test('two pages on the same day meet the same run; the next day differs; a secon
         if (near) g.aimPoint.set(near.x, g.aimPoint.y, near.z);
         g.aimFresh = true;
         g.updatePlay(1 / 60);
-        if (n === 60 * 45) g.player.hp = 1; // and soon after
+        if (n >= 60 * 45) g.player.hp = Math.min(g.player.hp, 1); // and soon after (a cleared wave fills the bar again: kept low)
       }
       g.input.mouse.left = false;
       return {

@@ -5,12 +5,13 @@
 // non-colliding scenery and animations.
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Pigeons } from './ambient.js';
 import { CALCADA, FACADE, GLAZING, LOUVRE } from './senado/assets.js';
 import SENADO_DATA from './senado/data.js';
 import { buildSenado, FOUNTAIN } from './senado/model.js';
 import { SENADO, toGame } from './senado/transform.js';
-import { helipadTexture, neonSignTexture, windowTexture } from './textures.js';
+import { brickTexture, helipadTexture, neonSignTexture, shopfrontTexture, tileTexture, windowTexture } from './textures.js';
 import { pick, rand, TAU } from './utils.js';
 
 // ------------------------------------------------------------ scenery helpers
@@ -131,6 +132,7 @@ const rooftop = {
   barrels: [[-6, -3.4], [-12, -2], [3.5, -10], [-19.5, 13], [5.2, 12.4], [-9, -11, 'lpg'], [13, 8.5], [15, 7.2, 'gas'], [16.5, 9.5], [14, 11.5], [12, 10.5]],
   pans: [[2.5, -1.5], [-1.5, 1.5], [-14, -9], [12.5, -8.5], [-16, 7], [6, 10]],
   tools: [[-13, -9.5, 'extinguisher'], [-3, 9, 'umbrella'], [16, 0, 'umbrella']], // things to pick up and use: a fire extinguisher in the greenhouse, two umbrellas left in the rain
+  spots: { barrels: [[0, 9.5], [6, 6.5], [13.5, 1.5], [-0.5, -5.5]], pans: [[-14, 1.5], [-14, 12.5], [-8.5, -7], [4.5, -7]], tools: [[0.5, -13], [12.5, 13.5], [19.5, -13.5]] }, // the daily's spare places (level.js dealProps): beside cover, near each kind's own
   // fixtures (fixtures.js): street lamps that go dark when shot out, hanging signs that drop on whoever is under them, a gate in the barrier
   fixtures: [[-6, 7, 'lamp'], [8, 5, 'lamp'], [12, -3, 'sign', 180], [-12, 11, 'sign', 0], [0, -8, 'door', 0, 2, 1.25]],
   pads: [[-9, 1], [11, 2]],
@@ -207,7 +209,7 @@ const club = {
     rain: false,
   },
   floor: 'club',
-  // the last wave of a run that ends here (boss.js): the blade queen, dashing between her perches ([x, z] or [x, z, height]:
+  // the stage's last wave here (boss.js): the blade queen, dashing between her perches ([x, z] or [x, z, height]:
   // the lounge between the sofas, the top of the DJ booth, the glass walk, the floor before the bar)
   boss: { kind: 'blade', perches: [[15.5, 0], [6, -10, 1.3], [-13.5, 3], [-12, -8.5]] },
   edges: { n: [3.2, 'clubWall', 'neonPink'], s: [0.9, 'clubWall', 'neonCyan'], w: [3.2, 'clubWall', 'neonCyan'], e: [3.2, 'clubWall', 'neonCyan'] },
@@ -240,6 +242,7 @@ const club = {
   barrels: [[-5.5, -12.2, 'gas'], [12.5, -12, 'gas'], [11.5, 12], [-17.5, 12], [17.5, -11.5]],
   pans: [[-3, -1.5, 'tray'], [2, 1, 'tray'], [0, 4, 'tray'], [-15, -7, 'tray'], [15, -8.5, 'tray'], [-2.5, 12, 'tray'], [-13.5, 4.5, 'tray']],
   tools: [[-8.5, 0, 'extinguisher']], // one: the club's draw-call budget (400) is the tightest of the maps
+  spots: { barrels: [[0, -10], [-9, -7.5], [9.5, 6.5], [10.5, -6.5]], pans: [[-15.5, -1], [-8, 2.5], [-8, 10], [5.5, 6]], tools: [[2.5, 8.5], [-15.5, -12], [3.5, -7]] },
   fixtures: [[-6, 0, 'lamp'], [-4, -7.5, 'sign', 180], [-12, -10.2, 'door', 0, 2, 1.2]], // the bar's flap
   stages: [
     { name: '長吧', en: 'THE BAR', at: [-12, -8.5], move: 'slide' },
@@ -366,20 +369,28 @@ const club = {
     const shelf = L.glass.find((g) => g.z < -12);
     if (shelf) {
       const bottleGeo = L.own(new THREE.CylinderGeometry(0.07, 0.08, 0.34, 6));
-      const bottleMats = [0x3fe68a, 0xffb347, 0x9fe8ff, 0xff5a8a].map((c) =>
-        L.own(new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.6, transparent: true, opacity: 0.85 })),
-      );
+      const colours = [0x3fe68a, 0xffb347, 0x9fe8ff, 0xff5a8a].map((c) => new THREE.Color(c));
+      // one mesh, the colours in its vertices (they only ever go together, with the shelf): one draw call, not one a
+      // bottle; and always the whole shelf long, so whether it is in view never hangs on how the colours fell (a mesh
+      // a colour, its extent drawn at random, put the club's frame over its budget one load in two)
+      const geos = [];
+      const boards = [];
       for (const y of [0.55, 1.15, 1.7]) {
-        const board = new THREE.Mesh(L.geo.unit, L.mat.bar);
-        board.scale.set(shelf.w, 0.04, 0.34);
-        board.position.y = y - 0.2;
-        shelf.mesh.add(board);
+        boards.push(new THREE.BoxGeometry(shelf.w, 0.04, 0.34).translate(0, y - 0.2, 0));
         for (let x = -shelf.w / 2 + 0.25; x < shelf.w / 2 - 0.1; x += rand(0.22, 0.4)) {
-          const b = new THREE.Mesh(bottleGeo, pick(bottleMats));
-          b.position.set(x, y - 0.02, rand(-0.05, 0.05));
-          shelf.mesh.add(b);
+          const geo = bottleGeo.clone().translate(x, y - 0.02, rand(-0.05, 0.05));
+          const rgb = pick(colours).toArray();
+          const n = geo.attributes.position.count;
+          geo.setAttribute('color', new THREE.Float32BufferAttribute(Array.from({ length: n * 3 }, (_, k) => rgb[k % 3]), 3));
+          geos.push(geo);
         }
       }
+      const bottles = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.85 }); // lit from within
+      const merged = L.own(mergeGeometries(geos));
+      // its bounds are the shelf's, not where the last bottle happened to stand: in view or not, the same every load
+      merged.boundingSphere = new THREE.Box3(new THREE.Vector3(-shelf.w / 2, 0, -0.2), new THREE.Vector3(shelf.w / 2, 1.9, 0.2)).getBoundingSphere(new THREE.Sphere());
+      shelf.mesh.add(new THREE.Mesh(merged, L.own(bottles)), new THREE.Mesh(L.own(mergeGeometries(boards)), L.mat.bar)); // the three boards one mesh too
+      for (const g of [...geos, ...boards]) g.dispose();
     }
 
     sign(
@@ -423,7 +434,7 @@ const docks = {
     rain: true,
   },
   floor: 'asphalt',
-  // the last wave of a run that ends here (boss.js): the heavy gunner, in through the west gate (`from` off the map, `at` just
+  // the stage's last wave here (boss.js): the heavy gunner, in through the west gate (`from` off the map, `at` just
   // inside) and after the player. The cover below still keeps the old truck's roads (its `loop`) clear, so the truck kind
   // can come back as data
   boss: { kind: 'gunner', from: [-26, -8], at: [-19.5, -8] },
@@ -451,7 +462,10 @@ const docks = {
   // three LPG cylinders for the boss (boss.js: a kicked one jets into the heavy gunner), in the open and off his way in
   barrels: [[4.5, -12, 'gas'], [-21.5, -4, 'gas'], [21.5, 3, 'gas'], [-1, 11.5, 'gas'], [-12, -12, 'gas'], [-11, 1.5], [13.5, -8.5], [3, 3.5], [-16, 12.5], [15, 12], [-18, 0, 'lpg'], [15, -1.5, 'lpg'], [2, 8, 'lpg']],
   pans: [[-4, -12.5], [7, 1.5], [-12, 9], [17, -11], [3, 12.5]],
-  tools: [[-4, 9, 'extinguisher']],
+  // a fire extinguisher; two fishing nets by the quay; two hand trolleys at the ends of the road through the middle,
+  // facing down it, to be kicked along it ([x, z, kind, facing]: the deck's front turned this far from +x)
+  tools: [[-4, 9, 'extinguisher'], [-7, 12.5, 'net'], [11.5, 12.5, 'net'], [-19.5, 1.8, 'trolley', 0], [18, 1.6, 'trolley', Math.PI]],
+  spots: { barrels: [[-21.5, 10.5], [-10, -6.5], [-2.5, 1.5], [2.5, -6.5]], pans: [[-17.5, 7], [-10, 3.5], [8.5, 10.5], [9, -4]], tools: [[8, -1], [-10, -3.5], [-20.5, 13.5]] },
   water: [{ x: 0, z: 17, w: 52, d: 4 }], // the harbour beyond the south curb: whoever is knocked over it is gone
   // where the beats play out (waves.js); the truck's roads (boss.loop) stay clear of cover
   stages: [
@@ -575,9 +589,10 @@ const senado = {
   start: [2, 54],
   camera: { dist: 31, pitch: 72, fov: 30 },
   cutaway: true,
-  // the buildings across the avenue, between the camera and the square: above 1.2 m, seen through
-  fade: { above: 1.2 },
-  // the last wave of a run that ends here (boss.js): the taxi convoy, in along the avenue from the east, then round
+  // the buildings across the avenue, between the camera and the square: above 1.2 m, seen through;
+  // and up the square, any building within 6 m of the line from the player to the camera, whole (level.js updateFade)
+  fade: { above: 1.2, follow: 6 },
+  // the stage's last wave here (boss.js): the taxi convoy, in along the avenue from the east, then round
   // the fountain on a loop that clears the buildings, the stalls and the lamps
   boss: {
     kind: 'convoy',
@@ -643,6 +658,7 @@ const senado = {
   // pigeon flocks resting on the square: they burst into the air at shots, blasts and runners (PIGEON STRIKE)
   flocks: [[-6, 46], [8, 44], [0, 22], [-10, -64]],
   tools: [[-3, 52, 'extinguisher']],
+  spots: { barrels: [[-15.5, 49.5], [6.5, 7.5], [15, 52], [-8, 46]], pans: [[-13.5, 44], [7, 4], [-16, -69], [-4.5, -10]], tools: [[-6.5, 65.5], [-16.5, 55], [10.5, 55]] },
   // where the beats play out (waves.js), off the convoy's road (boss): beside the fountain's pool, the square before
   // St Dominic's, the narrow stretch, and the corner by the post office at the avenue
   stages: [
@@ -675,7 +691,7 @@ const senado = {
       else img.addEventListener('load', () => (t.needsUpdate = true), { once: true });
       return t;
     };
-    const { root } = buildSenado(SENADO_DATA, {
+    const { root, pickTables } = buildSenado(SENADO_DATA, {
       mode: 'viewer',
       calcadaTexture: tex('CALCADA'),
       louvreTexture: tex('LOUVRE'),
@@ -697,6 +713,53 @@ const senado = {
           m.color.setRGB(0.8, 0.78, 0.74);
           m.emissive.setRGB(0.15, 0.14, 0.13);
         }
+      }
+    });
+
+    // Every building taller than the fade height gets a number, and its vertices carry it, so the
+    // camera can see through it whole while it stands between the camera and the player (`fade.follow`).
+    // Merged buildings know their owner per triangle; the rooftop clutter lies inside a footprint.
+    const number = new Map();
+    const feet = [];
+    for (const b of SENADO_DATA.buildings.concat(SENADO_DATA.parts)) {
+      if (b.h <= L.map.fade.above) continue;
+      const pts = b.outer.map(([x, y]) => toGame(x, y));
+      const n = L.addFadeable(pts, b.h);
+      number.set(b, n);
+      number.set(b.id, n);
+      feet.push({ n, pts, minX: Math.min(...pts.map((q) => q[0])), maxX: Math.max(...pts.map((q) => q[0])), minZ: Math.min(...pts.map((q) => q[1])), maxZ: Math.max(...pts.map((q) => q[1])) });
+    }
+    const footOf = (x, z) => {
+      for (const f of feet) {
+        if (x < f.minX || x > f.maxX || z < f.minZ || z > f.maxZ) continue;
+        let inside = false;
+        for (let i = 0, j = f.pts.length - 1; i < f.pts.length; j = i++) {
+          const [ax, az] = f.pts[j];
+          const [bx, bz] = f.pts[i];
+          if (az > z !== bz > z && x < ax + ((z - az) / (bz - az)) * (bx - ax)) inside = !inside;
+        }
+        if (inside) return f.n;
+      }
+      return 0;
+    };
+    wrap.updateMatrixWorld(true);
+    const v = new THREE.Vector3();
+    root.traverse((o) => {
+      if (!o.isMesh) return;
+      const kind = o.userData.kind;
+      if (kind === 'building') L.markFade(o.geometry, number.get(o.userData.id) || 0);
+      else if (kind === 'merged') {
+        const { triOwner, list } = pickTables.find((t) => t.mesh === o);
+        const owner = new Float32Array(o.geometry.attributes.position.count);
+        const ix = o.geometry.index.array;
+        for (let t = 0; t < triOwner.length; t++) for (let k = 0; k < 3; k++) owner[ix[t * 3 + k]] = number.get(list[triOwner[t]]) || 0;
+        L.markFade(o.geometry, (i) => owner[i]);
+      } else if (kind === 'rooftops') {
+        const pos = o.geometry.attributes.position;
+        L.markFade(o.geometry, (i) => {
+          v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+          return footOf(v.x, v.z);
+        });
       }
     });
 
@@ -761,4 +824,338 @@ const senado = {
   },
 };
 
-export const MAPS = [rooftop, club, docks, senado];
+// ----------------------------------------------------------- Rua da Felicidade
+
+// 福隆新街: the street runs west to east (x) between two rows of two-storey shops, `road` m either side of its
+// middle; each row is `depth` m of room behind a `wall` m front, out to the map's edge. A lane crosses it at
+// `lane` (x from, to). Six shops are open (`FEL_SHOPS`); the rest of each row is solid building.
+const FEL = { halfW: 30, halfD: 10, road: 3, depth: 5, wall: 0.3, bay: 4.6, h: 6.6, door: 2, shutter: 2.4, lane: [5.8, 8.7] };
+
+// The open shops, west to east in each row: `x` the middle of the room, `side` the row (n or s), `front` what shuts
+// its street opening (a wooden door, or at the lane's mouth a roller shutter), `back` the wall with a door onto the
+// lane (e or w). The names are made up, as every name in the game is but the places'.
+const FEL_SHOPS = [
+  { x: -16.5, side: 'n', front: 'door', name: '雲樓茶室', en: 'WAN LAU TEA ROOM' },
+  { x: 3.5, side: 'n', front: 'shutter', back: 'e', name: '祥興五金', en: 'CHEUNG HING HARDWARE' },
+  { x: 19.5, side: 'n', front: 'door', name: '銀燕冰室', en: 'NGAN YIN CAFE' },
+  { x: -22.5, side: 's', front: 'door', name: '海昌海味', en: 'HOI CHEONG DRIED SEAFOOD' },
+  { x: -3.5, side: 's', front: 'door', name: '福星押', en: 'FOOK SING PAWN' },
+  { x: 11, side: 's', front: 'door', back: 'w', name: '瑞興雲吞', en: 'SUI HING WONTON' },
+];
+
+/**
+ * The street's walls as data: for each row, the solid blocks between the shops and the lane, and each open
+ * shop's front (two pieces beside its opening), side walls (one split by a back door) and back; and the doors and
+ * shutters that close the openings (fixtures.js).
+ */
+function felicidadeWalls() {
+  const { halfW: W, halfD: D, road: S, depth, wall: t, bay, h } = FEL;
+  const solids = [];
+  const fixtures = [];
+  for (const side of ['n', 's']) {
+    const sz = side === 'n' ? -1 : 1;
+    const shops = FEL_SHOPS.filter((s) => s.side === side);
+    const gaps = [...shops.map((s) => [s.x - bay / 2, s.x + bay / 2]), FEL.lane].sort((a, b) => a[0] - b[0]);
+    let x0 = -W;
+    for (const [a, b] of [...gaps, [W, W]]) {
+      if (a - x0 > 0.05) solids.push([(x0 + a) / 2, (sz * (S + D)) / 2, a - x0, D - S, h, 'brick']);
+      x0 = b;
+    }
+    const room = sz * (S + t + depth / 2); // the middle of a room, across the street
+    const backZ = sz * (S + t + depth + (D - S - t - depth) / 2);
+    for (const shop of shops) {
+      const open = shop.front === 'shutter' ? FEL.shutter : FEL.door;
+      // a shutter's lock post stands clear of the wall (fixtures.js: it is a prop that bullets find): a slot either
+      // side of the shutter too narrow for a body
+      const slot = shop.front === 'shutter' ? 0.3 : 0;
+      const piece = (bay - open) / 2 - slot;
+      for (const k of [-1, 1]) solids.push([shop.x + k * (open / 2 + slot + piece / 2), sz * (S + t / 2), piece, t, h, 'brick']);
+      for (const k of [-1, 1]) {
+        const wx = shop.x + k * (bay / 2 - t / 2);
+        if (shop.back === (k > 0 ? 'e' : 'w')) {
+          const part = (depth - FEL.door) / 2;
+          for (const j of [-1, 1]) solids.push([wx, room + j * (FEL.door / 2 + part / 2), t, part, h, 'brick']);
+          fixtures.push([wx, room, 'door', 90, FEL.door, 2.3]);
+        } else solids.push([wx, room, t, depth, h, 'brick']);
+      }
+      solids.push([shop.x, backZ, bay, D - S - t - depth, h, 'brick']);
+      if (shop.front === 'shutter') fixtures.push([shop.x - open / 2, sz * (S + t / 2), 'shutter', 90, open, 2.6]);
+      else fixtures.push([shop.x, sz * (S + t / 2), 'door', 0, open, 2.3]);
+    }
+  }
+  return { solids, fixtures };
+}
+
+const FEL_WALLS = felicidadeWalls();
+
+const felicidade = {
+  id: 'felicidade',
+  budget: { tris: 110000, calls: 1000 }, // rendered per frame, all passes (test/maps.test.mjs: 87,555 and 820 at the start)
+  name: '福隆新街',
+  en: 'RUA DA FELICIDADE',
+  desc: '紅窗木門的兩層舊舖夾着一條窄街：踢門入舖、鐵閘落下，橫巷兩頭都有人殺到。',
+  color: '#ff5a4a',
+  size: [FEL.halfW, FEL.halfD],
+  start: [-2, 0.5],
+  camera: { dist: 26, pitch: 66, fov: 34 },
+  cutaway: true,
+  // the shop fronts are two storeys over a 6 m street, so the one between the camera and the player is seen through
+  // above 1.2 m (level.js updateFade), every building numbered in decorate
+  fade: { above: 1.2, follow: 3 },
+  theme: {
+    bg: 0x0c0607,
+    fog: [0x160809, 0.016],
+    hemi: [0x6c5c66, 0x120a0c, 0.75],
+    moon: [0xa8b0ff, 0.55],
+    sunDir: [-10, 34, 18],
+    points: [
+      [0xff5a3a, -21, 4.4, 0, 55, 20],
+      [0xff6e42, -7, 4.4, 0.5, 55, 20],
+      [0xff4c34, 9, 4.4, -0.5, 55, 20],
+      [0xff7a48, 23, 4.4, 0, 55, 20],
+    ],
+    rain: false,
+    bloom: { strength: 0.95, threshold: 0.78 },
+  },
+  floor: 'concrete',
+  edges: null, // the rows of shops are the edge; the street ends and the lane ends are open (where enemies come in)
+  shops: FEL_SHOPS,
+  lane: { x: (FEL.lane[0] + FEL.lane[1]) / 2 },
+  solids: [
+    ...FEL_WALLS.solids,
+    // mahjong tables put out on the street, low cover
+    [-25.5, 1.3, 1.1, 1.1, 0.8, 'mahjong'],
+    [-9, -1.2, 1.1, 1.1, 0.8, 'mahjong'],
+    [14, 1.4, 1.1, 1.1, 0.8, 'mahjong'],
+  ],
+  barrels: [[-13, -2.3, 'lpg'], [16.3, 2.3, 'lpg'], [2.2, -7.4, 'lpg'], [-27.5, -2.2], [26, 2.1]],
+  pans: [[-18, -6.8], [-6, 1.8], [12.3, 6.6], [21, -1.6], [-23.5, 5]],
+  tools: [[19.5, -7.4, 'extinguisher']],
+  spots: { barrels: [[11, -0.5], [-18, 1], [-8, 1], [4.5, -2]], pans: [[-11, -1.5], [8.5, 2], [-1.5, -2], [15.5, 0.5]], tools: [[7.5, -1], [24.5, 0.5], [20.5, 0.5]] },
+  fixtures: [
+    ...FEL_WALLS.fixtures,
+    [-19.5, -2.62, 'sign', 0],
+    [-1, 2.62, 'sign', 180],
+    [10.5, -2.62, 'sign', 0],
+    [24.5, 2.62, 'sign', 180],
+    [-11.5, 2.5, 'lamp'],
+    [1.5, -2.5, 'lamp'],
+    [21, 2.5, 'lamp'],
+  ],
+  pads: [[-21, -0.8], [18, -0.2]],
+  // balconies up the fronts of the solid blocks (level.js balconies, waves.js pickPerches): [x, z, height, facing], the
+  // man sent up stands at (x, z) that high, over the street, facing out; four on the north row, two on the south
+  perches: [
+    [-24, -2.55, 3.05, 0],
+    [-8, -2.55, 3.05, 0],
+    [13, -2.55, 3.05, 0],
+    [26, -2.55, 3.05, 0],
+    [-13, 2.55, 3.05, 180],
+    [18, 2.55, 3.05, 180],
+  ],
+  stages: [
+    { name: '茶室前', en: 'TEA ROOM FRONT', at: [-16.5, -1.2], move: 'door' },
+    { name: '巷口', en: 'LANE MOUTH', at: [7.25, 0.5], move: 'shutter' },
+    { name: '麻雀枱', en: 'MAHJONG TABLES', at: [-8, 1.4], move: 'slide' },
+    { name: '石油氣', en: 'GAS CYLINDERS', at: [17, 0.8], move: 'boom' },
+  ],
+  spawns: [
+    { x: -29.4, z: -1.2, ex: -27, ez: -1.2, kind: 'gate' },
+    { x: -29.4, z: 1.4, ex: -27.5, ez: 1.4, kind: 'gate' },
+    { x: 29.4, z: 1.2, ex: 27, ez: 1.2, kind: 'gate' },
+    { x: 29.4, z: -1.4, ex: 27.5, ez: -1.4, kind: 'gate' },
+    { x: 7.25, z: -9.5, ex: 7.25, ez: -7.4, kind: 'gate' },
+    { x: 7.25, z: 9.5, ex: 7.25, ez: 7.4, kind: 'gate' },
+  ],
+  decorate(L) {
+    const { halfW: W, halfD: D, road: S, wall: t, bay, h } = FEL;
+    const std = (o) => L.own(new THREE.MeshStandardMaterial({ roughness: 0.85, ...o }));
+    const brickTex = L.own(brickTexture());
+    brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
+    const brickMat = std({ map: brickTex, roughness: 0.92 });
+    const roofMat = std({ color: 0x45403f, roughness: 0.95 }); // flat tarred roofs
+    const walls = [brickMat, brickMat, roofMat, brickMat, brickMat, brickMat]; // a box's faces: +x, -x, top, bottom, +z, -z
+    const frontTex = L.own(shopfrontTexture(false));
+    frontTex.wrapS = THREE.RepeatWrapping;
+    const frontMat = std({ map: frontTex });
+    const openTex = L.own(shopfrontTexture(true));
+    const openMat = std({ map: openTex });
+    /** A plane `w` × `ht` with its texture repeated `rx` × `ry` times (its own UVs, so one material serves all). */
+    const face = (w, ht, mat, rx = 1, ry = 1) => {
+      const geo = L.own(new THREE.PlaneGeometry(w, ht));
+      const uv = geo.attributes.uv;
+      for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * rx, uv.getY(i) * ry);
+      return new THREE.Mesh(geo, mat);
+    };
+
+    // every building numbered for the follow fade: each wall of the map's own, its look re-drawn on a geometry of
+    // its own (the shared unit box cannot carry one building's number), brick on its sides and top
+    const own = L.solids.filter((sd) => sd.matKey === 'brick');
+    const numbers = new Map();
+    for (const sd of own) {
+      const n = L.addFadeable(
+        [
+          [sd.minX, sd.minZ],
+          [sd.maxX, sd.minZ],
+          [sd.maxX, sd.maxZ],
+          [sd.minX, sd.maxZ],
+        ],
+        sd.h,
+      );
+      numbers.set(sd, n);
+      const w = sd.maxX - sd.minX;
+      const d = sd.maxZ - sd.minZ;
+      const geo = L.own(new THREE.BoxGeometry(w, sd.h, d).translate(0, sd.h / 2, 0));
+      const uv = geo.attributes.uv;
+      // BoxGeometry faces in order +x, -x, +y, -y, +z, -z, four vertices each: repeat the brick by each face's size
+      const sizes = [[d, sd.h], [d, sd.h], [w, d], [w, d], [w, sd.h], [w, sd.h]];
+      for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) uv.setXY(f * 4 + k, uv.getX(f * 4 + k) * sizes[f][0] / 1.2, uv.getY(f * 4 + k) * sizes[f][1] / 1.2);
+      L.markFade(geo, n);
+      sd.mesh.geometry = geo;
+      sd.mesh.material = walls;
+      sd.mesh.scale.set(1, 1, 1);
+      sd.mesh.position.set((sd.minX + sd.maxX) / 2, 0, (sd.minZ + sd.maxZ) / 2);
+    }
+    /** A facade plane on a building's street face (or its back), carrying the building's number. */
+    const front = (sd, mesh, z, ry, y = h / 2) => {
+      mesh.position.set((sd.minX + sd.maxX) / 2, y, z);
+      mesh.rotation.y = ry;
+      L.markFade(mesh.geometry, numbers.get(sd));
+      L.add(mesh);
+    };
+    // the faces the camera sees (it is always on the south side): the north row's street front, bay after bay, and
+    // the south row's back
+    for (const sd of own) {
+      const w = sd.maxX - sd.minX;
+      const bays = Math.max(1, Math.round(w / bay));
+      if (Math.abs(sd.maxZ + S) < 0.05 && sd.maxZ - sd.minZ > 1) front(sd, face(w, h, frontMat, bays), sd.maxZ + 0.02, 0);
+      if (Math.abs(sd.maxZ - D) < 0.05 && w > 1) front(sd, face(w, h, frontMat, bays), sd.maxZ + 0.02, 0);
+    }
+    // an open shop: its upper floor over the opening, the floor tiles inside, a counter and shelves
+    const tileTex = L.own(tileTexture());
+    tileTex.wrapS = tileTex.wrapT = THREE.RepeatWrapping;
+    const tileMat = std({ map: tileTex, roughness: 0.6 });
+    const wood = std({ color: 0x5a2a1a, roughness: 0.7 });
+    for (const shop of FEL_SHOPS) {
+      const sz = shop.side === 'n' ? -1 : 1;
+      if (shop.side === 'n') {
+        // the upper floor over the opening (the texture's part from the ledge up), a building of its own to the fade
+        const n = L.addFadeable(
+          [
+            [shop.x - bay / 2, -S - t],
+            [shop.x + bay / 2, -S - t],
+            [shop.x + bay / 2, -S],
+            [shop.x - bay / 2, -S],
+          ],
+          h,
+        );
+        const upper = face(bay, h - 2.6, openMat);
+        const uv = upper.geometry.attributes.uv;
+        for (let i = 0; i < uv.count; i++) uv.setY(i, 2.6 / h + uv.getY(i) * (1 - 2.6 / h));
+        upper.position.set(shop.x, 2.6 + (h - 2.6) / 2, -S + 0.02);
+        L.markFade(upper.geometry, n);
+        L.add(upper);
+      }
+      const floor = face(bay - 2 * t, FEL.depth, tileMat, 3, 4);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set(shop.x, 0.01, sz * (S + t + FEL.depth / 2));
+      L.add(floor);
+      L.deco(shop.x - 1, 0, sz * (S + t + FEL.depth - 0.5), 1.6, 1.0, 0.5, wood, true); // the counter by the back wall
+      L.deco(shop.x + 1.2, 1.1, sz * (S + t + FEL.depth - 0.15), 1.4, 0.06, 0.3, wood); // a shelf above it
+      L.deco(shop.x + 1.2, 1.7, sz * (S + t + FEL.depth - 0.15), 1.4, 0.06, 0.3, wood);
+      // the shop's name over its door: Chinese with the English label
+      sign(
+        L,
+        [
+          { text: shop.name, font: HAN(96), color: '#ffe2b0', y: 112 },
+          { text: shop.en, font: 'bold 44px "Bebas Neue", Impact, sans-serif', color: '#3fe6ff', y: 206 },
+        ],
+        3.2,
+        0.8,
+        shop.x,
+        3.05,
+        sz * (S - 0.06),
+        shop.side === 'n' ? 0 : Math.PI,
+        1.6,
+      );
+    }
+    // cyan neon: a strip along every third bay's ledge, and the lane's mouth picked out
+    for (const sd of own) {
+      const north = sd.maxZ <= 0;
+      if (Math.abs(Math.abs(north ? sd.maxZ : sd.minZ) - S) > 0.05 || sd.maxZ - sd.minZ < 1) continue;
+      const w = sd.maxX - sd.minX;
+      L.deco((sd.minX + sd.maxX) / 2, 3.12, north ? sd.maxZ + 0.06 : sd.minZ - 0.06, Math.min(w - 0.6, 3.2), 0.07, 0.05, L.mat.neonCyan);
+    }
+    for (const [x, z] of [[FEL.lane[0] + 0.1, -S - 0.1], [FEL.lane[1] - 0.1, S + 0.1]]) L.deco(x, 2.4, z, 0.08, 2.2, 0.08, L.mat.neonCyan);
+
+    // the street goes on past both ends, and the lane past both edges: low blocks of shops, dark
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) L.deco(sx * (W + 12), 0, (sz * (S + D)) / 2, 24, h, D - S, brickMat, true);
+      const street = L.add(face(24, 2 * S, std({ color: 0x3a3634, roughness: 0.95 })));
+      street.rotation.x = -Math.PI / 2;
+      street.position.set(sx * (W + 12), 0.005, 0);
+    }
+    // on the roofs: water tanks and air conditioners
+    const tank = std({ color: 0x8c8f94, roughness: 0.5, metalness: 0.4 });
+    for (const [x, z, w, d, ht] of [
+      [-25, -7, 1.6, 1.6, 1.4],
+      [12, -6.5, 2.4, 1.2, 0.9],
+      [26, -8, 1.2, 1.2, 1.2],
+      [-12, 6.8, 2, 1.4, 1],
+      [2, 7.5, 1.4, 1.4, 1.5],
+      [22, 6, 2.2, 1.2, 0.8],
+    ]) {
+      L.deco(x, h, z, w, ht, d, tank, true);
+    }
+    // the balconies: a slab and its railing, one piece each (numbered with the building behind, so it fades with it),
+    // and the window he comes out of, lit while he is coming (level.js present)
+    const iron = std({ color: 0x2f7a62, roughness: 0.55, metalness: 0.3 }); // painted ironwork, green as the old ones are
+    const slab = std({ color: 0x9a948a, roughness: 0.9 });
+    for (const b of L.balconies) {
+      const across = Math.abs(b.dirZ) > 0.5; // the balcony runs along x
+      const piece = (w, ht, d, x, y, z) => new THREE.BoxGeometry(across ? w : d, ht, across ? d : w).translate(across ? x : z, y, across ? z : x);
+      const out = 0.95; // its depth out from the wall
+      const edge = (out / 2 - 0.03) * Math.sign(b.dirZ || b.dirX); // the railing along its outer edge
+      const floor = piece(1.9, 0.14, out, 0, -0.07, 0);
+      const parts = [];
+      for (const x of [-0.92, -0.46, 0, 0.46, 0.92]) parts.push(piece(0.08, 0.95, 0.08, x, 0.47, edge));
+      parts.push(piece(1.94, 0.1, 0.1, 0, 0.95, edge));
+      for (const x of [-0.92, 0.92]) parts.push(piece(0.1, 0.1, out, x, 0.95, 0));
+      const geo = L.own(mergeGeometries(parts));
+      for (const g of parts) g.dispose();
+      const wallZ = b.ez - b.dirZ * (out / 2);
+      const home = own.find((sd) => b.x > sd.minX && b.x < sd.maxX && b.z > sd.minZ && b.z < sd.maxZ);
+      for (const [g, mat] of [
+        [geo, iron],
+        [L.own(floor), slab],
+      ]) {
+        if (home) L.markFade(g, numbers.get(home));
+        const m = new THREE.Mesh(g, mat);
+        m.position.set(b.ex, b.perch, b.ez);
+        m.castShadow = true;
+        L.add(m);
+      }
+      const glow = std({ color: 0x1a0c08, emissive: 0xff7a3a, emissiveIntensity: 0.9 });
+      const window = face(1.1, 2.1, glow);
+      if (home) L.markFade(window.geometry, numbers.get(home));
+      window.position.set(b.ex, b.perch + 1.05, wallZ + b.dirZ * 0.06); // in front of the facade's own picture (decorate's `front`)
+      window.rotation.y = b.dirZ > 0 ? 0 : Math.PI;
+      L.add(window);
+      b.lamp = { mat: glow };
+    }
+    // power lines and lanterns strung across the street
+    const cable = std({ color: 0x141214, roughness: 0.6 });
+    const lantern = std({ color: 0xd8261c, emissive: 0xff3020, emissiveIntensity: 0.9, roughness: 0.5 });
+    for (const x of [-26, -14, -4, 12, 25]) {
+      L.deco(x, 5.4, 0, 0.04, 0.04, 2 * S, cable);
+      for (const z of [-1.2, 1.2]) {
+        const lamp = new THREE.Mesh(L.geo.unit, lantern);
+        lamp.scale.set(0.34, 0.4, 0.34);
+        lamp.position.set(x, 4.95, z);
+        L.add(lamp);
+      }
+    }
+  },
+};
+
+export const MAPS = [rooftop, club, docks, senado, felicidade];

@@ -14,7 +14,7 @@ export const BASE = {
   aimMul: 1, // enemies' aim time × (enemies.js aimTime)
   styleMul: 1, // Style points × (score.js kill and style)
   pansAsBarrels: false, // the map's pans are barrels instead (level.js load)
-  startWeapon: 'pistols', // what the player starts with (player.js reset)
+  startWeapon: 'pistols', // what the player starts with (player.js reset); 'none' for empty hands (player.js unarmed)
 };
 
 export const DIFFICULTIES = {
@@ -31,6 +31,7 @@ export const VARIANTS = {
   // opened by an achievement (achievements.js): hidden on the title until then
   barrelFest: { name: '油桶節', en: 'BARREL FEST', desc: '平底鑊全部換成油桶', color: '#ff6a3a', set: { pansAsBarrels: true }, unlock: 'useEverything' },
   smgStart: { name: '雙衝鋒槍起手', en: 'SMG START', desc: '開局就拿著雙衝鋒槍', color: '#ffe066', set: { startWeapon: 'smg' }, unlock: 'bankShot' },
+  noGuns: { name: '無槍', en: 'NO GUNS', desc: '空手開局：武器台不刷新，敵人不掉槍，全靠工具與環境', color: '#ff8a5c', set: { startWeapon: 'none', pads: false, drops: false }, unlock: 'bareHands' },
 };
 export const VARIANT_IDS = Object.keys(VARIANTS);
 
@@ -43,6 +44,8 @@ export const DAILY_ROTATION = [
   { map: 0, difficulty: 'normal', variants: ['dualist'] },
   { map: 1, difficulty: 'street', variants: ['noSlowmo'] },
   { map: 2, difficulty: 'ballet', variants: ['dualist'] },
+  { map: 4, difficulty: 'normal', variants: [] },
+  { map: 4, difficulty: 'street', variants: ['glassCity'] },
 ];
 
 /** The rules of a run: BASE, then the difficulty's and each variant's settings (multipliers multiply, the rest replace). */

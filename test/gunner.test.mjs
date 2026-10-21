@@ -122,7 +122,7 @@ test('wave 12 on the docks is the heavy gunner, in through the west gate; the ro
   assert.ok(r.steps > 250 && r.steps < 400 && r.state === 'walk', `in through the gate in about 2.6 s (${r.steps} steps, then ${r.state})`);
   assert.deepEqual(r.at, [-19.5, -8]);
   assert.match(r.banner, /BOSS/);
-  assert.ok(r.route.endsWith('（頭目：碼頭重炮）'), r.route);
+  assert.ok(r.route.endsWith('、重炮）'), r.route); // the route's last boss: his
   assert.ok(r.calls <= r.budget.calls && r.tris <= r.budget.tris, `${r.calls} draw calls, ${r.tris} triangles, budget ${r.budget.calls} / ${r.budget.tris}`);
   assert.deepEqual(problems(logs), []);
 });

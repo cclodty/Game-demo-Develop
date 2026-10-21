@@ -935,7 +935,7 @@ body:not(.pad) .pad-only {
 
 .maps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -985,14 +985,16 @@ body:not(.pad) .pad-only {
 
 .map-en {
   font-family: var(--display);
-  letter-spacing: 3px;
+  font-size: 14px;
+  letter-spacing: 1.5px;
+  white-space: nowrap; /* five cards a row: LARGO DO SENADO and RUA DA FELICIDADE on one line, so the title still fits 720 px */
   color: var(--map);
 }
 
 .map-desc {
   margin-top: 4px;
-  font-size: 12.5px;
-  line-height: 1.6;
+  font-size: 12px;
+  line-height: 1.45;
   color: #c9cae6;
 }
 

@@ -34,7 +34,12 @@ const titleState = () =>
 async function watchRun() {
   await page.evaluate(() => {
     const g = window.game;
-    const run = (window.run = { stages: [], sizes: [], maps: [g.level.map.id], start: g.notes.events[0].text });
+    const run = (window.run = { stages: [], sizes: [], maps: [g.level.map.id], bosses: [], start: g.notes.events[0].text });
+    const boss0 = g.bosses.start.bind(g.bosses);
+    g.bosses.start = (def, size) => {
+      run.bosses.push([g.waves.wave, def.kind, size ? size.segments : 'full']);
+      return boss0(def, size);
+    };
     const begin0 = g.beginStageTransition.bind(g);
     g.beginStageTransition = () => {
       run.stages.push(g.waves.wave);
@@ -148,6 +153,7 @@ test('a god-mode bot plays an arcade run to the RUN CLEAR screen', { timeout: 15
   assert.equal(r.wave, 12);
   assert.deepEqual(r.stages, [4, 8], 'the map changes after waves 4 and 8');
   assert.deepEqual(r.maps, ['rooftop', 'club', 'docks']);
+  assert.deepEqual(r.bosses, [[4, 'heli', 3], [8, 'blade', 3], [12, 'gunner', 'full']], 'each stage ends on its boss, the last in full');
   assert.ok(r.sizes[11] > r.sizes[10], `the final wave is the big one: ${r.sizes.join(' ')}`);
   assert.deepEqual([r.screen, r.onScreen, r.title], [true, true, 'RUN CLEAR']);
   const m = Math.floor(r.seconds / 60);

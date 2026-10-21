@@ -123,10 +123,13 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
           }
           // a boss with a weak point the banner tells the player about (boss.js): the armoured truck's back
           // door while it unloads. Shots into it count only from behind, so the bot walks round to there and fires.
+          // The others it meets in an arcade run from the rooftop (a boss each stage): below.
           const boss = g.boss;
           let door = null;
           let goal = null;
           let behind = false;
+          let heli = null; // carrying a barrel to throw under the helicopter
+          let fetch = false; // at a barrel: pick it up
           if (boss.active && boss.def && boss.def.kind === 'truck' && boss.state === 'unload') {
             const bx = -Math.sin(boss.heading);
             const bz = -Math.cos(boss.heading);
@@ -141,13 +144,44 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
             door = { x: boss.x, z: boss.z };
             goal = { x: boss.x + bx * 4, z: boss.z + bz * 4 };
             behind = (p.x - boss.x) * bx + (p.z - boss.z) * bz > 1;
+          } else if (boss.active && boss.def && boss.def.kind === 'blade') {
+            // the blade queen: a shot counts only in her window (blades up after a dash), so the bot fires at her then
+            door = { x: boss.x, z: boss.z };
+            behind = boss.state === 'tell';
+          } else if (boss.active && boss.def && boss.def.kind === 'heli' && boss.state !== 'down') {
+            // the helicopter: only a blast under it counts, so the bot carries a barrel there and throws it
+            const load = g.thrown.carry;
+            if (load && load.kind === 'barrel') {
+              heli = { x: boss.x, z: boss.z };
+              if (Math.hypot(boss.x - p.x, boss.z - p.z) > 5) goal = heli;
+            } else if (load) {
+              if (i % 20 === 0) inp.pressed.add('KeyG'); // a pan in hand: away with it, the hands are wanted
+            } else {
+              let near = null;
+              for (const q of g.level.barrels) {
+                if (!q.alive || q.carried || q.thrown || q.fuse >= 0 || q.rocketT > 0 || (q.y || 0) > 0.6) continue;
+                if (!near || Math.hypot(q.x - p.x, q.z - p.z) < Math.hypot(near.x - p.x, near.z - p.z)) near = q;
+              }
+              if (near) {
+                goal = { x: near.x, z: near.z };
+                fetch = g.thrown.nearProp() === near; // E takes whatever is nearest: only when that is the barrel
+              }
+            }
           }
           const aimAt = (x, z) => {
             const v = new g.aimPoint.constructor(x, 1.35, z).project(g.camera);
             inp.mouse.x = (v.x * 0.5 + 0.5) * innerWidth;
             inp.mouse.y = (-v.y * 0.5 + 0.5) * innerHeight;
           };
-          if (door) {
+          if (heli) {
+            aimAt(heli.x, heli.z);
+            inp.mouse.left = false;
+            if (!goal && i % 20 === 0) inp.pressed.add('KeyG');
+          } else if (goal && !door) {
+            // on the way to a barrel: no shooting (a stray shot would set it off)
+            inp.mouse.left = false;
+            if (fetch) inp.pressed.add('KeyE');
+          } else if (door) {
             aimAt(door.x, door.z);
             inp.mouse.left = behind;
           } else if (target) {
@@ -173,7 +207,7 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
           let kx = wanderX;
           let kz = wanderZ;
           if (goal) {
-            // to the spot behind the truck: W is up the screen, so the world direction turns by the camera's yaw (player.js)
+            // to the spot behind the truck (or the gunner, a barrel, the helicopter): W is up the screen, so the world direction turns by the camera's yaw (player.js)
             kx = goal.x - p.x;
             kz = goal.z - p.z;
             if (Math.hypot(kx, kz) < 1.5) kx = kz = 0;

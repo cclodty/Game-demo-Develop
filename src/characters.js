@@ -207,6 +207,92 @@ export const KEY_POSES = {
 };
 
 /**
+ * How the player holds what it picks up (人物動作 ②), as data, in the rig's own space (x to its
+ * left, y up, z ahead, metres). An arm points along its own +z with its hand BODY.armLen out.
+ * - In the right hand (`hand: 'R'`): the thing rides on that arm. `grip` is the point of the thing
+ *   (in its own space) the hand closes on; `out` is the thing's own axis that runs from the grip on
+ *   past the hand, `face` the one that turns to the arm's outer side. `rest` and `use` (a swing, the
+ *   umbrella open) give the arm's direction and `bend`: how far (radians) the wrist tips the thing
+ *   up off the arm's line.
+ * - Before the body (`hand: 'both'`): the thing's own origin sits at `at`, its `out` axis pointing
+ *   along `toward` and its `face` axis to the rig's left; `grips` (its own space, left hand then
+ *   right) are where the hands close, and the arms point at them.
+ * A worn model's hands go to the same points (skin.js). A barrel or gas cylinder is carried
+ * overhead instead (thrown.js carryHands, KEY_POSES.carry).
+ */
+export const HOLDS = {
+  // a pan by the end of its handle, low ahead on the right with its face turned out (clear of the
+  // legs and the floor: the pan is 1.3 m from grip to rim); the swing brings it up and across
+  pan: { hand: 'R', grip: [0, 0.03, 0.82], out: [0, 0, -1], face: [0, 1, 0], rest: { dir: [-0.32, -0.72, 0.62], bend: 0.62 }, use: { dir: [0.5, 0.25, 0.83], bend: 0.25 } },
+  // an umbrella by its crook: furled, angled ahead by the leg like a cane; open, held out before the chest
+  umbrella: { hand: 'R', grip: [0, 0.07, 0], out: [0, 1, 0], face: [0, 0, 1], rest: { dir: [-0.25, -0.93, 0.27], bend: 0.5 }, use: { dir: [0, 0.12, 1], bend: 0 } },
+  // a fishing net rolled up, by its top like a sack, low ahead on the right; it has no use but the throw (G)
+  net: { hand: 'R', grip: [0, 0.3, 0], out: [0, -1, 0], face: [1, 0, 0], rest: { dir: [-0.3, -0.85, 0.42], bend: -0.3 }, use: { dir: [-0.3, -0.85, 0.42], bend: -0.3 } },
+  // a fire extinguisher hugged at the chest, the nozzle ahead; F sprays it (thrown.js spray)
+  extinguisher: { hand: 'both', at: [0, 1.08, 0.2], out: [0, 1, 0], toward: [0, 0.3, 1], face: [1, 0, 0], grips: [[0.16, 0.34, 0], [-0.16, 0.34, 0]] },
+  // the throw (G, or the left button with a load): the right arm comes over the top
+  throw: { from: [-0.15, 0.75, -0.65], to: [-0.1, -0.25, 0.96], time: 0.3 },
+};
+
+const _m = new THREE.Matrix4();
+const _a = new THREE.Vector3();
+const _b = new THREE.Vector3();
+const _c = new THREE.Vector3();
+const _q = new THREE.Quaternion();
+
+/** Point a block arm along `dir` (rig space, need not be unit): the rotation that takes its +z there. */
+export function aimArm(arm, dx, dy, dz) {
+  const l = Math.hypot(dx, dy, dz) || 1;
+  arm.rotation.set(Math.atan2(-dy, dz), Math.asin(Math.max(-1, Math.min(1, dx / l))), 0);
+}
+
+/**
+ * The turn that takes a held thing's own `out` axis to `to` and its `face` axis to `side` (all unit,
+ * at right angles): a basis built from the pairs, the third axis from their cross products.
+ */
+export function holdTurn(out, face, to, side, q = new THREE.Quaternion()) {
+  _a.fromArray(out);
+  _b.fromArray(face);
+  _c.crossVectors(_a, _b);
+  const src = new THREE.Matrix4().makeBasis(_a, _b, _c);
+  const t = new THREE.Vector3().fromArray(to).normalize();
+  const f = new THREE.Vector3().fromArray(side).normalize();
+  const third = new THREE.Vector3().crossVectors(t, f);
+  _m.makeBasis(t, f, third).multiply(src.transpose());
+  return q.setFromRotationMatrix(_m);
+}
+
+/**
+ * A thing held in the right hand (HOLDS, `hand: 'R'`), `k` of the way from its rest to its use: the
+ * arm pointed, the thing turned and placed on the arm so its grip is in the hand.
+ */
+export function holdInHand(rig, mesh, hold, k) {
+  const r = hold.rest;
+  const u = hold.use;
+  const dir = [0, 1, 2].map((i) => r.dir[i] + (u.dir[i] - r.dir[i]) * k);
+  aimArm(rig.armR, ...dir);
+  // the thing in the arm's space: its out axis along the arm, its face to the outside (-x), tipped up by the wrist
+  holdTurn(hold.out, hold.face, [0, 0, 1], [-1, 0, 0], mesh.quaternion);
+  mesh.quaternion.premultiply(_q.setFromAxisAngle(_a.set(1, 0, 0), -(r.bend + (u.bend - r.bend) * k)));
+  mesh.position.set(0, 0, BODY.armLen).sub(_b.fromArray(hold.grip).applyQuaternion(mesh.quaternion));
+}
+
+/**
+ * A thing held before the body (HOLDS, `hand: 'both'`): placed and turned in the rig's space, both
+ * arms pointed at its grips. Returns the grips in the rig's space (for a worn model's hands).
+ */
+export function holdBoth(rig, mesh, hold) {
+  holdTurn(hold.out, hold.face, hold.toward, [1, 0, 0], mesh.quaternion);
+  mesh.position.fromArray(hold.at);
+  const grips = hold.grips.map((g) => new THREE.Vector3().fromArray(g).applyQuaternion(mesh.quaternion).add(mesh.position));
+  for (const [arm, g] of [
+    [rig.armL, grips[0]],
+    [rig.armR, grips[1]],
+  ]) aimArm(arm, g.x - arm.position.x, g.y - arm.position.y, g.z - arm.position.z);
+  return grips;
+}
+
+/**
  * Hold a key pose over the gait animateRig() just set: `name` from KEY_POSES at weight `w` (0–1), or
  * null to stand straight. finishRig() carries it over to a worn model.
  */
@@ -494,6 +580,7 @@ export function animateRig(rig, phase, moveAmt, moveDir) {
   an.legR = -swing; // where the right leg is before a kick moves it (skin.js copies the difference)
   an.key = null; // keyPose() sets one after this
   an.carry = null; // hands on something carried overhead ({ half, y } in the root's space), set by player.js
+  an.hands = null; // hands on something held before the body ([left, right] in the rig's inner space, HOLDS `both`), set by player.js
   rig.torso.position.y = BODY.torsoY + bob;
   rig.head.position.y = BODY.headY + bob;
 }

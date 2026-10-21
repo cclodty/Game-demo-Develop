@@ -135,7 +135,7 @@ class Game {
     if (this.startMap) this.level.load(MAPS[this.startMap]);
     this.bullets = new Bullets(this);
     this.grenades = new Grenades(this);
-    this.bosses = new Bosses(this); // the last wave's boss on a map that has one (boss.js)
+    this.bosses = new Bosses(this); // each stage's last wave: the boss of its map, if it has one (boss.js)
     this.boss = this.bosses.view; // whichever boss this run has, as one object
     this.pickups = new Pickups(this);
     this.thrown = new Thrown(this);
@@ -1135,8 +1135,9 @@ class Game {
     this.thrown.clear();
     this.style.clearGhosts();
     this.fx.clear();
-    if (this.level.map !== map || this.level.glassUpTo !== this.ruleset.glassUpTo || this.level.pansAsBarrels !== this.ruleset.pansAsBarrels) {
-      this.level.load(map);
+    const layout = this.layoutFor(0);
+    if (this.level.map !== map || this.level.glassUpTo !== this.ruleset.glassUpTo || this.level.pansAsBarrels !== this.ruleset.pansAsBarrels || this.level.layoutKey !== (layout ? layout.key : '')) {
+      this.level.load(map, layout);
       this.applyMapView();
       this.renderer.compile(this.scene, this.camera);
     } else {
@@ -1196,15 +1197,22 @@ class Game {
     $('view-name').textContent = VIEWS[this.view].name;
   }
 
-  /** Where a run of `mode` from map `start` goes: its maps in order, the last with its boss. '' in endless (no last stage). */
+  /** Where a run of `mode` from map `start` goes: its maps in order, then their bosses (each stage's last wave). '' in endless (no last stage). */
   routeText(start, mode) {
     const r = MODES[mode];
     if (!Number.isFinite(r.waves)) return '';
     const stages = Math.ceil(r.waves / r.perStage);
     const maps = Array.from({ length: stages }, (_, i) => MAPS[(start + i) % MAPS.length]);
-    const last = maps.at(-1).boss;
-    const boss = last && BOSSES[last.kind];
-    return `${maps.map((m) => m.name).join(' → ')}${boss ? `（頭目：${boss.cfg.name}）` : ''}`;
+    const bosses = maps
+      .map((m, i) => (r.midBoss || i === stages - 1) && m.boss && BOSSES[m.boss.kind])
+      .filter(Boolean)
+      .map((b) => b.cfg.route || b.cfg.short);
+    return `${maps.map((m) => m.name).join(' → ')}${bosses.length ? `（頭目：${bosses.join('、')}）` : ''}`;
+  }
+
+  /** A daily run's layout for stage `stage` (level.js dealProps): a stream of the run's seed of its own; null in any other mode. */
+  layoutFor(stage) {
+    return this.mode === 'daily' ? { key: `${this.rng.seed}/${stage}`, rng: this.rng.fork('layout', stage) } : null;
   }
 
   get stageMap() {
@@ -1222,13 +1230,14 @@ class Game {
     if (!tr.loaded && tr.t >= 0.65) {
       tr.loaded = true;
       this.stage++;
+      this.bosses.reset(); // the stage's boss, down, goes with its map
       this.enemies.clear();
       this.bullets.clear();
       this.grenades.clear();
       this.pickups.clear();
       this.thrown.clear();
       this.fx.clear();
-      this.level.load(this.stageMap);
+      this.level.load(this.stageMap, this.layoutFor(this.stage));
       this.notes.log(`轉場 → ${this.stageMap.name}`);
       this.audio.setStage(this.stage); // the next song comes in on the bar line
       this.audio.setLevel(0);
@@ -1459,6 +1468,8 @@ class Game {
     if (this.level.smokeAt(e.x, e.z)) tags.push({ label: 'SMOKE', pts: 80, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });
     if (e.blindT > 0) tags.push({ label: 'PIGEON STRIKE', pts: 80, cls: 'gold' });
+    if (e.netT > 0) tags.push({ label: 'NETTED', pts: 150, cls: 'gold' }); // under a fishing net (level.js Net)
+    if (info.cause === 'fall') tags.push({ label: 'FALL', pts: 150, cls: 'gold' }); // knocked off a balcony (enemies.js fallOff)
     if (info.cause === 'bullet') {
       if (d < 2.6) tags.push({ label: 'POINT BLANK', pts: 60 });
       else if (d > 16) tags.push({ label: 'LONG SHOT', pts: 80 });
@@ -1473,9 +1484,12 @@ class Game {
 
     const before = this.score.score;
     this.score.kill(tags);
+    // without a gun (鑊氣): anything but the player's own shot or launcher grenade; a bullet the pan sent back is the pan's
+    const gunless = info.cause === 'bullet' ? !!(info.bullet && info.bullet.homeRun) : !info.gun;
     this.achievements.kill(
       tags.map((t) => t.label),
       info.bullet ? info.bullet.kills || 0 : 0,
+      gunless,
     );
     this.clip.kill(this.score.score - before);
     this.notes.log(`擊殺 ${e.cfg.label}：${tags.map((t) => t.label).join(' + ')} ×${this.score.mult}`);
@@ -1531,8 +1545,8 @@ class Game {
     if (!this.player.alive) return;
     const bonus = 250 * n;
     this.notes.log(`第 ${n} 波清空${stageEnd ? '，準備轉場' : ''}`);
-    this.achievements.wave(!this.waves.hurt);
-    this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt });
+    this.achievements.wave(!this.waves.hurt, this.waves.shots);
+    this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt, shots: this.waves.shots });
     this.score.bonus('WAVE CLEAR', bonus);
     this.level.waveEnd(); // shutters roll back up
     this.addFocus(0.35);
@@ -1547,9 +1561,9 @@ class Game {
     if (!this.player.alive) return;
     const bonus = 250 * n;
     this.notes.log(`第 ${n} 波清空：通關（RUN CLEAR）`);
-    this.achievements.wave(!this.waves.hurt);
+    this.achievements.wave(!this.waves.hurt, this.waves.shots);
     this.achievements.clear();
-    this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt });
+    this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt, shots: this.waves.shots });
     this.score.bonus('RUN CLEAR', bonus);
     this.player.invuln = 99; // nothing still flying can take the run away now
     this.clearT = 2.6;
@@ -1573,7 +1587,7 @@ class Game {
       const d = Math.hypot(e.x - x, e.z - z);
       if (d > r + e.radius || !this.level.hasLOS(x, z, e.x, e.z)) continue;
       const k = 1 / (d || 1);
-      e.blast((e.x - x) * k, (e.z - z) * k, d < r * 0.65 ? 20 : 5, !!opts.chain, !!opts.rocket);
+      e.blast((e.x - x) * k, (e.z - z) * k, d < r * 0.65 ? 20 : 5, !!opts.chain, !!opts.rocket, !!opts.gun);
     }
     for (const e of this.enemies.corpses) {
       const d = Math.hypot(e.x - x, e.z - z);
@@ -1930,6 +1944,8 @@ class Game {
       cut.uCutA.value.copy(this.camera.position);
       cut.uCutB.value.set(p.x, this.level.groundY(p.x, p.z) + 1.2, p.z);
     }
+    // and the buildings between the camera and the player, whole (maps.js `fade.follow`)
+    if (fade && fade.follow) this.level.updateFade(this.camera.position, p.x, this.level.groundY(p.x, p.z) + 1.2, p.z, fade.follow);
   }
 
   render() {

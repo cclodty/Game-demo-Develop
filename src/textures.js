@@ -266,3 +266,94 @@ export function fenceTexture() {
   }
   return finish(c, { repeat: [8, 1] });
 }
+
+/** Grey brick courses with pale mortar (福隆新街's walls); one tile is about 1.2 m square. */
+export function brickTexture() {
+  const [c, g] = canvas(256, 256);
+  g.fillStyle = '#7a756e';
+  g.fillRect(0, 0, 256, 256);
+  const rows = 16;
+  const rh = 256 / rows;
+  for (let r = 0; r < rows; r++) {
+    const off = r % 2 ? 16 : 0;
+    for (let x = -off; x < 256; x += 32) {
+      const v = rand(-12, 12);
+      g.fillStyle = `rgb(${82 + v},${78 + v},${76 + v})`;
+      g.fillRect(x + 1.5, r * rh + 1.5, 29, rh - 3);
+    }
+  }
+  return finish(c, { repeat: [1, 1] });
+}
+
+/**
+ * One bay of an old two-storey shop front on 福隆新街 (4.6 m wide, 6.6 m tall): grey brick, a ground floor of red
+ * wooden folding doors (or left dark, `open`, where a real opening stands), an upper floor of two red-framed
+ * windows with lattice panes, a ledge between and a cornice on top.
+ */
+export function shopfrontTexture(open = false) {
+  const [c, g] = canvas(256, 368);
+  const H = 368;
+  const m = H / 6.6; // pixels a metre, up the bay
+  const y = (metres) => H - metres * m;
+  g.fillStyle = '#6e6a64';
+  g.fillRect(0, 0, 256, H);
+  // brick courses
+  for (let r = 0; r * 8 < H; r++) {
+    g.fillStyle = 'rgba(40,36,34,0.22)';
+    g.fillRect(0, r * 8, 256, 1);
+    for (let x = r % 2 ? 0 : 12; x < 256; x += 24) g.fillRect(x, r * 8, 1, 8);
+  }
+  // ground floor: folding doors of red wood, or the dark of an opening
+  const gx = 18;
+  const gw = 220;
+  if (open) {
+    g.fillStyle = '#120a0a';
+    g.fillRect(gx, y(2.6), gw, 2.6 * m);
+  } else {
+    for (let i = 0; i < 8; i++) {
+      g.fillStyle = i % 2 ? '#8e2620' : '#9c2c24';
+      g.fillRect(gx + (i * gw) / 8, y(2.6), gw / 8 - 1, 2.6 * m);
+      g.fillStyle = 'rgba(0,0,0,0.3)';
+      g.fillRect(gx + (i * gw) / 8 + 5, y(2.2), gw / 8 - 11, 0.7 * m);
+      g.fillRect(gx + (i * gw) / 8 + 5, y(1.2), gw / 8 - 11, 0.7 * m);
+    }
+  }
+  g.fillStyle = '#5a1712';
+  g.fillRect(gx - 6, y(2.75), gw + 12, 0.15 * m);
+  // the ledge and the cornice
+  g.fillStyle = '#c9c2b6';
+  g.fillRect(0, y(3.05), 256, 0.18 * m);
+  g.fillRect(0, 0, 256, 0.3 * m);
+  // two windows upstairs: red frames, lattice panes, a warm lamp behind one
+  for (const wx of [34, 142]) {
+    g.fillStyle = '#7e1e18';
+    g.fillRect(wx, y(5.9), 80, 2.2 * m);
+    g.fillStyle = rand(0, 1) < 0.5 ? '#ffb46a' : '#2a1414';
+    g.fillRect(wx + 7, y(5.75), 66, 1.9 * m);
+    g.strokeStyle = '#7e1e18';
+    g.lineWidth = 3;
+    for (let k = 1; k < 4; k++) {
+      g.beginPath();
+      g.moveTo(wx + 7 + (k * 66) / 4, y(5.75));
+      g.lineTo(wx + 7 + (k * 66) / 4, y(3.85));
+      g.stroke();
+    }
+    g.beginPath();
+    g.moveTo(wx + 7, y(4.8));
+    g.lineTo(wx + 73, y(4.8));
+    g.stroke();
+  }
+  return finish(c, { repeat: [1, 1] });
+}
+
+/** Floor tiles for a shop inside: small cream and terracotta squares. */
+export function tileTexture() {
+  const [c, g] = canvas(128, 128);
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      g.fillStyle = (i + j) % 2 ? '#6e6252' : '#5a3a30';
+      g.fillRect(i * 16, j * 16, 16, 16);
+    }
+  }
+  return finish(c, { repeat: [1, 1] });
+}

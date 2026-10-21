@@ -57,7 +57,7 @@ test('every map carries stages now, each off the boss vehicles’ roads by more 
       return { id: m.id, stages: (m.stages || []).map((s) => s.en), roads: roads.length, nearest };
     });
   });
-  assert.equal(r.length, 4);
+  assert.equal(r.length, 5);
   for (const m of r) {
     assert.ok(m.stages.length >= 3, `${m.id}: ${m.stages.length} stages`);
     if (m.roads) assert.ok(m.nearest > 1.1, `${m.id}: a stage ${m.nearest.toFixed(2)} m from a vehicle's road`);

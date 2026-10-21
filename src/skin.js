@@ -441,16 +441,24 @@ export function poseSkin(rig, time) {
   // hands on the weapons: the chest squares up to the aim (an idle clip's twist would
   // leave one hand short of its gun) and leans in when a grip is still out of reach
   // carrying something overhead (player.js: an.carry, in the root's space): both hands on it, the guns put away
-  if (an.carry) {
+  // or held before the body in both arms (an.hands, in the inner space: a hugged extinguisher), elbows out and down,
+  // the chest leaning in when the hands are still short of it (a worn arm is a little shorter than a block one)
+  if (an.carry || an.hands) {
     square(rig, side);
+    if (an.hands) leanIn(rig, side, [1, -1].map((s) => [s, rig.inner.localToWorld(new THREE.Vector3().copy(an.hands[s > 0 ? 0 : 1]))]));
     for (const s of [1, -1]) {
       const k = s > 0 ? 'L' : 'R';
       const upper = b[`upperArm${k}`];
       const lower = b[`foreArm${k}`];
       const hand = b[`hand${k}`];
       if (!upper || !lower || !hand) continue;
-      rig.root.localToWorld(_grip.set(s * an.carry.half, an.carry.y, 0.04));
-      rig.inner.localToWorld(_pole.set(s * 1.2, 1.1, -0.3));
+      if (an.carry) {
+        rig.root.localToWorld(_grip.set(s * an.carry.half, an.carry.y, an.carry.z));
+        rig.inner.localToWorld(_pole.set(s * 1.2, 1.1, -0.3));
+      } else {
+        rig.inner.localToWorld(_grip.copy(an.hands[s > 0 ? 0 : 1]));
+        rig.inner.localToWorld(_pole.set(s * 1.2, 0.3, -0.4));
+      }
       reach(upper, lower, hand, _grip, _pole);
     }
     return;

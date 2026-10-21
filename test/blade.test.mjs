@@ -22,17 +22,18 @@ before(async () => {
   await page.evaluate(() => {
     const g = window.game;
     g.frame = () => {};
-    /** An arcade run from Senado, moved on to its third stage (the club) and the start of wave 12; the player mid-floor. */
+    /** An arcade run whose third stage is the club (two maps before it), moved on to that stage and the start of wave 12; the player mid-floor. */
     window.toFinal = () => {
       g.setRules('normal', []);
       g.setMode('arcade');
-      g.startRun(3);
+      g.startRun((g.maps.findIndex((m) => m.id === 'club') - 2 + g.maps.length) % g.maps.length);
       g.waves.state = 'done';
       g.enemies.clear();
       g.stage = 2;
       g.level.load(g.stageMap);
       g.applyMapView();
       g.player.placeAtStart();
+      g.aimPoint.set(g.player.x, g.aimPoint.y, g.player.z - 5); // aimed as a run starts (main.js startRun), whatever map came before
       g.player.x = 0;
       g.player.z = 0;
       g.waves.wave = 11;
@@ -97,7 +98,7 @@ test('wave 12 in the club is the blade queen at a perch; the route names her; it
       bar: !bar.classList.contains('hidden') && bar.querySelector('.boss-name').textContent,
       segs: bar.querySelectorAll('.boss-segs i:not(.lost)').length,
       banner: document.getElementById('banner').textContent,
-      route: g.routeText(3, 'arcade'),
+      route: g.routeText(g.startMap, 'arcade'), // this run's route
       calls: info.calls,
       tris: info.triangles,
       budget: g.level.map.budget,
@@ -106,7 +107,7 @@ test('wave 12 in the club is the blade queen at a perch; the route names her; it
   await page.screenshot({ path: new URL('boss-blade.png', OUT).pathname });
   assert.deepEqual([r.map, r.kind, r.state, r.perch, r.queue, r.bar, r.segs], ['club', 'blade', 'perch', true, 0, '夜店刀后 BLADE QUEEN', 5]);
   assert.match(r.banner, /BOSS/);
-  assert.ok(r.route.endsWith('（頭目：夜店刀后）'), r.route);
+  assert.ok(r.route.endsWith('、刀后）'), r.route); // the route's last boss: hers
   assert.ok(r.calls <= r.budget.calls && r.tris <= r.budget.tris, `${r.calls} draw calls, ${r.tris} triangles, budget ${r.budget.calls} / ${r.budget.tris}`);
   assert.deepEqual(problems(logs), []);
 });

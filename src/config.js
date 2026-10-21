@@ -124,6 +124,7 @@ export const RANK = {
  * old straight approach.
  */
 export const AI = {
+  perchStep: 0.8, // s a man sent up to a balcony (maps.js perches) takes to step out onto it from inside
   coverSearch: 8, // m: how far a gunner looks for a box to hide behind
   coverHeight: 0.9, // m: lower cover hides nobody
   coverGap: 0.55, // m between the cover's face and where he stands
@@ -151,6 +152,8 @@ export const BEATS = {
   after: 12, // …or this many s after the beat came, whatever stands
   spread: 18, // m: a second door this close to the beat's door shares its enemies
   clean: 100, // CLEAN BEAT: a beat cleared without taking a hit
+  perch: 2, // men a beat sends up to a map's balconies (maps.js perches), at most: enemies.js TYPES `perch` say who goes
+  perchClear: 5, // m: no balcony this close to the player is picked
 };
 
 /** Things in the maps that play along (環境互動). */
@@ -182,6 +185,18 @@ export const ENV = {
   smokeTime: 6, // s the cloud lasts
   tumbleTime: 2.5, // s a kicked one careers about, bowling over whoever it meets
   tumbleSpeed: 10, // m/s it keeps while it does
+  sprayAhead: 2, // m ahead of the player the cloud of one sprayed from the arms (F, thrown.js spray) is centred
+  // a fishing net (level.js Net, the docks): thrown, it falls open over `radius` m for `time` s and holds everyone under it, dazed (NETTED)
+  net: { radius: 2.2, time: 2.5 },
+  // a hand trolley (level.js Trolley, the docks): kicked off at `speed` m/s, slowing by `friction` a second (a barrel's is 3.2);
+  // it keeps `knock` of its speed through each one it bowls over, and `bowling` of them in one roll is BOWLING +`pts`
+  trolley: { speed: 13, friction: 0.45, knock: 0.85, bowling: 2, pts: 200 },
+  // mahjong tiles (thrown.js throwTiles; the tables on Rua da Felicidade): G within `reach` m of a table, hands empty,
+  // throws a handful: one tile for each of `fan` (where it flies across a fan `spread` rad wide around the aim: most
+  // of a handful goes straight, two close either side of the aim so the man aimed at is hit, two a little out, two at
+  // the edges), flying `range` m at `speed` m/s; each dazes the first man it meets for `daze` s and does no harm;
+  // `pong` or more dazed by one handful is PONG +`pts`. A table holds `handfuls` (one wall of tiles each), back with a new run
+  tiles: { reach: 1.2, fan: [-0.5, -0.3, -0.06, 0.06, 0.3, 0.5], spread: 0.8, range: 9, speed: 18, daze: 0.4, pong: 3, pts: 150, handfuls: 4 },
   // water (level.js `water`): an enemy knocked over the edge of it is gone (SPLASH); props that land in it sink
   splashSpeed: 4, // m/s towards the water a knocked-over enemy needs to go in
   splashReach: 0.6, // m beyond his body the water has to be

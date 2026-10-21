@@ -97,6 +97,8 @@ export class Bullets {
     b.split = !!o.split;
     b.ricochet = false;
     b.over = o.over || 0; // fired from this high: lower cover and the props are no obstacle
+    b.y0 = o.y ?? GUN_Y; // drawn from this high (a balcony's: enemies.js fromAbove)…
+    b.drop = o.drop || 0; // …coming down this much a metre (only the look: the logic is on the floor plan)
     b.ignore = null;
     b.alive = true;
     b.near = false;
@@ -123,7 +125,7 @@ export class Bullets {
   }
 
   updateVisual(b) {
-    b.group.position.set(b.x, GUN_Y, b.z);
+    b.group.position.set(b.x, Math.max(0.05, b.y0 - b.drop * b.traveled), b.z);
     b.group.rotation.y = Math.atan2(b.dx, b.dz);
     b.trail.scale.set(1, 1, Math.max(0.05, b.trailLen));
   }
@@ -257,6 +259,11 @@ export class Bullets {
         b.alive = false;
         return;
       }
+      case 'net':
+      case 'trolley':
+        // low on the floor: shots fly over a net's bundle and a trolley
+        b.hits.push(hit.prop);
+        return;
       case 'extinguisher':
         hit.prop.hit(1, b.dx, b.dz);
         fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 6, [7, 7, 7], 6);

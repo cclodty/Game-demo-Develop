@@ -61,16 +61,16 @@ src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, V
 src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS and the AI state machine
 src/weapons.js bullets.js    player weapon stats, drops, grenades (the launcher's, and the grenadier's lobbed ones: ring, fuse, kick back, AIRBURST); projectile stepping and ricochet
 src/waves.js  pickups.js     MODES (arcade: 12 waves, then RUN CLEAR; endless), wave composition and spawn pacing; floor weapons and pads
-src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 4 maps as data
+src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 5 maps as data (福隆新街's walls built from its `shops`)
 src/nav.js                   grid A* on 0.5 m cells
 src/rng.js                   seeded RNG: game.rng for logic (?seed=), vfxRng behind utils.js rand/pick for effects
-src/characters.js  skin.js   block rigs + weapon models (and the drone's block quadcopter, shaped like a rig), KEY_POSES (slide, spin, carry); optional skinned models worn over the rig (IK hands and key-pose feet)
+src/characters.js  skin.js   block rigs + weapon models (and the drone's block quadcopter, shaped like a rig), KEY_POSES (slide, spin, kick, carry), HOLDS (how each thing picked up is held: grip, arm directions at rest and in use); optional skinned models worn over the rig (IK hands and key-pose feet)
 src/models.js                loads assets/models/*.glb, fits props to map boxes; src/models-index.js is generated
 src/asset-manifest.js        catalogue of every asset we want as a real model (sizes, budgets, prompts)
-src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-time grading
+src/cutaway.js  postfx.js    camera→player cut-away shader and the map fades (maps.js `fade`: past the play area; `follow`: whole buildings between camera and player); bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
 src/music.js                 the songs as data (tempo, chords, step patterns, layers by level, a boss section), played by audio.js; config.js MUSIC.playlist gives one a stage, ?music=<id> plays just one
-src/boss.js                  each map's boss, the last wave of a run that ends there (maps.js `boss.kind`): helicopter (rooftop), DJ (club), armoured truck (docks), taxi convoy (Senado); what they share (health bar, banners, BOSS bonus, clip) is Boss
+src/boss.js                  each map's boss, the last wave of every arcade stage there (maps.js `boss.kind`; waves 4 and 8 shorter, waves.js `midBoss`): helicopter (rooftop), blade queen (club), heavy gunner (docks), taxi convoy (Senado), with the DJ and the armoured truck as spare kinds; what they share (health bar, banners, BOSS bonus, clip) is Boss
 src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
 src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
 src/leaderboard.js           boards: local always, the back end's when config.js BACKEND.url is set (never waited on); nickname rule shared with backend/

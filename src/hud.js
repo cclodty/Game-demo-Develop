@@ -96,22 +96,23 @@ export class HUD {
     const reloading = p.reloadT > 0;
     const w = p.weapon;
     const special = p.slot === 'special' && p.special;
+    const bare = p.unarmed; // 無槍: no pistols, nothing to count
     const lowAt = special ? Math.ceil(w.ammo * 0.15) : 6;
-    this.set('ammo', special ? p.special.ammo : reloading ? -1 : p.ammo, (v) => {
+    this.set('ammo', bare ? '—' : special ? p.special.ammo : reloading ? -1 : p.ammo, (v) => {
       e.ammo.textContent = v < 0 ? 'RELOAD' : String(v);
       e.ammoBox.classList.toggle('reloading', v < 0);
       e.ammoBox.classList.toggle('low', v >= 0 && v <= lowAt);
     });
-    this.set('ammoMax', special ? '' : `/ ${w.mag}`, (v) => (e.ammoMax.textContent = v));
-    this.set('weapon', w.id, () => {
-      e.weaponName.innerHTML = `${w.name} <small>${w.en}</small>`;
-      e.weaponName.classList.toggle('special', w.id !== 'pistols');
+    this.set('ammoMax', special || bare ? '' : `/ ${w.mag}`, (v) => (e.ammoMax.textContent = v));
+    this.set('weapon', bare ? 'bare' : w.id, () => {
+      e.weaponName.innerHTML = bare ? '空手 <small>BARE HANDS</small>' : `${w.name} <small>${w.en}</small>`;
+      e.weaponName.classList.toggle('special', !bare && w.id !== 'pistols');
     });
-    this.set('slots', `${p.slot}|${p.special ? p.special.id : ''}|${p.special && p.special.empty ? 'e' : ''}`, () => {
+    this.set('slots', `${p.slot}|${p.special ? p.special.id : ''}|${p.special && p.special.empty ? 'e' : ''}|${bare}`, () => {
       const sp = p.special ? PLAYER_WEAPONS[p.special.id] : null;
       const empty = p.special && p.special.empty;
       e.slots.innerHTML =
-        `<span class="slot ${p.slot === 'pistols' ? 'on' : ''}"><b>1</b>雙槍</span>` +
+        `<span class="slot ${p.slot === 'pistols' ? 'on' : ''}"><b>1</b>${g.ruleset.startWeapon === 'none' ? '空手' : '雙槍'}</span>` +
         (sp ? `<span class="slot ${p.slot === 'special' ? 'on' : ''} ${empty ? 'empty' : ''}"><b>2</b>${sp.name}${empty ? '（空）' : ''}</span>` : '<span class="slot empty"><b>2</b>—</span>');
     });
     const q = g.pickups.prompt;
@@ -167,9 +168,11 @@ export class HUD {
     const last = g.waves.rules.waves; // arcade runs show how far there is to go
     const waveLabel = g.waves.wave > 0 ? `WAVE ${g.waves.wave}${Number.isFinite(last) ? ` / ${last}` : ''}` : '';
     this.set('wave', waveLabel, (v) => (e.wave.textContent = v));
-    // a boss: its name and health bar, one segment a hit
-    this.set('bossName', g.boss.active ? g.boss.cfg.name : '', (v) => {
-      if (v) e.bossBar.querySelector('.boss-name').innerHTML = `${v} <small>${g.boss.cfg.label}</small>`;
+    // a boss: its name and health bar, one segment a hit (a stage's boss has fewer than the run's last)
+    this.set('bossName', g.boss.active ? `${g.boss.cfg.name}/${g.boss.segments}` : '', (v) => {
+      if (!v) return;
+      e.bossBar.querySelector('.boss-name').innerHTML = `${g.boss.cfg.name} <small>${g.boss.cfg.label}</small>`;
+      e.bossBar.querySelector('.boss-segs').innerHTML = '<i></i>'.repeat(g.boss.segments);
     });
     this.set('boss', g.boss.active ? g.boss.hp : -1, (v) => {
       e.bossBar.classList.toggle('hidden', v < 0);

@@ -5,31 +5,35 @@
 // player bullet that hits it (see Bullets.scatter). Collision stays 2D like
 // everything else; height only decides when a thing lands.
 
-import { BODY, buildWeaponModel } from './characters.js';
-import { PAN, PLAYER, UMBRELLA } from './config.js';
+import * as THREE from 'three';
+import { buildWeaponModel, HOLDS, holdBoth, holdInHand } from './characters.js';
+import { ENV, PAN, PLAYER, UMBRELLA } from './config.js';
 import { withLabels } from './input.js';
 import { clamp, rand, segCircle } from './utils.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
 const GRAVITY = 22;
 const CARRY_Y = 2.15;
+const TILE_Y = 1.1; // m: mahjong tiles fly level at chest height (throwTiles)
 /**
  * How a carried thing is shown (look only: a throw still starts from CARRY_Y): its height, just over
  * the head (the comic proportions' head tops out at 1.75 m and their arms reach about 1.85 m), and
- * where the hands go, `half` to each side at `hand` above the ground, in the carrier's space (for a
- * barrel `half` is a share of its radius). A pan held up from under it; a barrel on the head, by its base.
+ * where the hands go, `half` to each side at `hand` above the ground and `ahead` of the middle, in
+ * the carrier's space (for a barrel `half` is a share of its radius). A barrel on the head, by its
+ * base: the hands a little behind its middle, as the overhead stance leans the body back and a worn
+ * arm (0.53 m) would fall short of one further ahead. (A pan or umbrella goes into the hand and an
+ * extinguisher into the arms instead: characters.js HOLDS.)
  */
 const CARRY_SHOWN = {
-  pan: { y: 1.82, hand: 1.79, half: 0.3 },
-  barrel: { y: 1.77, hand: 1.8, half: 0.8 },
+  barrel: { y: 1.77, hand: 1.8, half: 0.8, ahead: -0.08 },
 };
 
-/** Where the carrier's hands go on `prop` ({ half, y } in its space), for player.js syncRig. */
+/** Where the carrier's hands go on `prop` ({ half, y, z } in its space), for player.js syncRig. */
 export function carryHands(prop) {
   const s = CARRY_SHOWN[prop.kind];
   if (!s) return null;
   // a big gas cylinder is held nearer its middle: the arms reach no wider
-  return { half: prop.kind === 'barrel' ? Math.min(prop.r * s.half, 0.38) : s.half, y: s.hand };
+  return { half: prop.kind === 'barrel' ? Math.min(prop.r * s.half, 0.38) : s.half, y: s.hand, z: s.ahead };
 }
 
 /** Launch so that something released at height y0 lands at `dist` after about T seconds. */
@@ -45,9 +49,13 @@ function launch(obj, x, z, y0, dx, dz, dist, T) {
 export class Thrown {
   constructor(game) {
     this.game = game;
-    this.carry = null; // a level prop held: a barrel over the head, a pan in the right hand (inHand)
-    this.inHand = false; // the carried thing is a pan in the right hand: the left gun fires, F swings it (player.js smash)
+    this.carry = null; // a level prop held: a barrel over the head, a pan in the right hand (inHand), an extinguisher hugged (hugged)
+    this.inHand = false; // the carried thing is a pan or an umbrella in the right hand: the left gun fires, F swings or opens it
+    this.hugged = false; // the carried thing is held before the body in both hands (characters.js HOLDS): F sprays it
     this.list = []; // thrown weapons in flight
+    this.tiles = []; // mahjong tiles in flight (throwTiles), each with its handful: { x, z, vx, vz, left, hand, mesh }
+    this.tileGeo = new THREE.BoxGeometry(0.1, 0.13, 0.07);
+    this.tileMat = new THREE.MeshStandardMaterial({ color: 0xf2eee2, roughness: 0.5 });
     this.prompt = ''; // HUD hint (HTML, controls as {name}: input.js withLabels), '' for none
   }
 
@@ -58,6 +66,8 @@ export class Thrown {
     }
     for (const o of this.list) this.game.scene.remove(o.mesh);
     this.list.length = 0;
+    for (const t of this.tiles) this.game.scene.remove(t.mesh);
+    this.tiles.length = 0;
     this.prompt = '';
   }
 
@@ -65,6 +75,8 @@ export class Thrown {
     if (prop.kind === 'pan') return prop.variant === 'tray' ? '托盤' : '平底鑊';
     if (prop.kind === 'extinguisher') return '滅火筒';
     if (prop.kind === 'umbrella') return '雨傘';
+    if (prop.kind === 'net') return '漁網';
+    if (prop.kind === 'trolley') return '手推車';
     return prop.variant === 'gas' ? '氣罐' : prop.variant === 'lpg' ? '石油氣樽' : '油桶';
   }
 
@@ -74,7 +86,7 @@ export class Thrown {
     let best = null;
     let bd = PLAYER.throwReach;
     for (const q of this.game.level.props) {
-      if (!q.alive || q.carried || q.fixed || q.broken || (q.y || 0) > 0.6) continue;
+      if (!q.alive || q.carried || q.fixed || q.broken || q.pick === false || (q.y || 0) > 0.6) continue; // a trolley is kicked, not carried
       if (q.kind === 'barrel' && (q.fuse >= 0 || q.rocketT > 0)) continue;
       if (q.kind === 'extinguisher' && q.smokeT > 0) continue;
       const d = Math.hypot(q.x - p.x, q.z - p.z) - q.r;
@@ -94,14 +106,92 @@ export class Thrown {
     return prop ? this.pickUp(prop) : false;
   }
 
-  /** The throw key (G): throw what is carried, else an emptied special weapon. */
+  /** The throw key (G): throw what is carried, else an emptied special weapon, else a handful of tiles from a mahjong table at hand. */
   throwAction() {
     const g = this.game;
     const p = g.player;
     if (this.carry) return this.throwCarried();
     if (p.special && p.special.empty) return this.throwGun();
+    const table = g.level.tableNear(p.x, p.z, ENV.tiles.reach);
+    if (table) return this.throwTiles(table);
     g.audio.denied();
     return false;
+  }
+
+  /**
+   * G at a mahjong table: a handful of its tiles (one of its four walls) thrown in a fan around the aim. Each one
+   * dazes the first man it meets (enemies.js daze); enough of them dazed by one handful is PONG.
+   */
+  throwTiles(table) {
+    const g = this.game;
+    const p = g.player;
+    const T = ENV.tiles;
+    table.tiles--;
+    if (table.tileWalls) table.tileWalls[table.tiles].visible = false;
+    const { dx, dz } = this.aimDir();
+    const aim = Math.atan2(dz, dx);
+    const hand = { dazed: new Set(), out: T.fan.length, pong: false };
+    for (const f of T.fan) {
+      const a = aim + f * T.spread;
+      const mesh = new THREE.Mesh(this.tileGeo, this.tileMat);
+      g.style.dress(mesh);
+      g.scene.add(mesh);
+      const t = { x: p.x + Math.cos(a) * 0.4, z: p.z + Math.sin(a) * 0.4, vx: Math.cos(a) * T.speed, vz: Math.sin(a) * T.speed, left: T.range, hand, mesh };
+      mesh.position.set(t.x, TILE_Y, t.z);
+      this.tiles.push(t);
+    }
+    p.throwT = HOLDS.throw.time; // the arm over the top (player.js syncRig)
+    g.audio.toss();
+    g.notes.log('擲出一把麻雀牌');
+    return true;
+  }
+
+  /** Tiles in flight: straight and level; a wall stops one, the first man it meets is dazed; past their range they drop. */
+  updateTiles(dt) {
+    const g = this.game;
+    const T = ENV.tiles;
+    for (let i = this.tiles.length - 1; i >= 0; i--) {
+      const t = this.tiles[i];
+      const nx = t.x + t.vx * dt;
+      const nz = t.z + t.vz * dt;
+      let gone = false;
+      const wall = g.level.raycast(t.x, t.z, nx, nz);
+      if (wall && wall.solid.h >= TILE_Y) {
+        gone = true;
+        g.fx.sparks(t.x, TILE_Y, t.z, -t.vx, -t.vz, 3, [4, 4, 4], 4);
+      } else {
+        for (const e of g.enemies.list) {
+          if (!e.alive || e.spawnLock > 0 || e.aloft || t.hand.dazed.has(e)) continue;
+          if (segCircle(t.x, t.z, nx, nz, e.x, e.z, e.radius + 0.1) < 0) continue;
+          if (e.daze(T.daze)) {
+            t.hand.dazed.add(e);
+            g.fx.sparks(e.x, 1.5, e.z, t.vx, t.vz, 4, [6, 6, 5], 4);
+            g.hud.hitMarker(false);
+          }
+          gone = true;
+          break;
+        }
+      }
+      t.x = nx;
+      t.z = nz;
+      t.left -= T.speed * dt;
+      if (t.left <= 0) gone = true;
+      t.mesh.position.set(t.x, TILE_Y, t.z);
+      t.mesh.rotation.y += dt * 18;
+      t.mesh.rotation.x += dt * 11;
+      const hand = t.hand;
+      if (!hand.pong && hand.dazed.size >= T.pong) {
+        hand.pong = true;
+        g.score.style('PONG', T.pts);
+        g.audio.kick(true);
+        g.notes.log(`PONG：一把麻雀牌暈了 ${hand.dazed.size} 個`);
+      }
+      if (gone) {
+        g.scene.remove(t.mesh);
+        this.tiles.splice(i, 1);
+        if (--hand.out === 0 && hand.dazed.size) g.notes.log(`麻雀牌暈了 ${hand.dazed.size} 個`);
+      }
+    }
   }
 
   pickUp(prop) {
@@ -114,37 +204,68 @@ export class Thrown {
     g.audio.pickup();
     const name = Thrown.propName(prop);
     g.notes.log(`拿起${name}`);
-    if (prop.kind === 'pan' || prop.kind === 'umbrella') {
+    const hold = HOLDS[prop.kind];
+    const p = g.player;
+    if (hold) {
+      // its own shape as made (no tumble or lie left on it), held as the data says (characters.js HOLDS; player.js syncRig keeps it)
+      prop.tilt.rotation.set(0, 0, 0);
+      prop.tilt.position.set(0, 0, 0);
+    }
+    if (hold && hold.hand === 'R') {
       // into the right hand: the pistol there is put away, the left one keeps firing, F swings the pan or opens the umbrella
-      const p = g.player;
       if (p.slot !== 'pistols') p.equip('pistols');
       this.inHand = true;
       this.showRightGun(false);
       p.rig.armR.add(prop.mesh);
-      if (prop.kind === 'pan') {
-        prop.mesh.position.set(0, -0.08, BODY.armLen * p.rig.scale);
-        prop.mesh.rotation.set(Math.PI / 2, 0, 0);
-      } else {
-        // the stick in the fist, the furled canopy ahead
-        prop.mesh.position.set(0, -0.05, BODY.armLen * p.rig.scale - 0.5);
-        prop.mesh.rotation.set(Math.PI / 2, 0, 0);
-        prop.tilt.rotation.set(0, 0, 0);
-        prop.tilt.position.y = 0;
-      }
+      holdInHand(p.rig, prop.mesh, hold, 0);
       prop.y = PAN.handY;
-      g.hud.toast(withLabels(`${name} <small>${prop.kind === 'pan' ? '{kick} 鑊擊' : '按住 {kick} 開傘'} · {throw} 擲出</small>`, g.padOn));
+      g.hud.toast(withLabels(`${name} <small>${prop.kind === 'pan' ? '{kick} 鑊擊 · ' : prop.kind === 'umbrella' ? '按住 {kick} 開傘 · ' : ''}{throw} 擲出</small>`, g.padOn));
+    } else if (hold && hold.hand === 'both') {
+      // hugged before the body: both hands on it, the guns put away
+      this.hugged = true;
+      p.rig.inner.add(prop.mesh);
+      holdBoth(p.rig, prop.mesh, hold);
+      prop.y = hold.at[1];
+      g.hud.toast(withLabels(`${name} <small>{kick} 噴霧 · {throw} / {fire} 擲出</small>`, g.padOn));
     } else g.hud.toast(withLabels(`${name} <small>{throw} / {fire} 擲出</small>`, g.padOn));
     return true;
   }
 
-  /** The pistol in the right hand shows when the hand is free. */
-  showRightGun(on) {
-    const rig = this.game.player.rig;
-    for (const m of rig.weaponParts) if (m.parent === rig.armR) m.visible = on;
+  /**
+   * F with the extinguisher hugged: it sprays where the player aims and is spent, its cloud
+   * ENV.sprayAhead m ahead (Extinguisher.burst: nobody in it can aim) with the player at its edge.
+   */
+  spray() {
+    const g = this.game;
+    const p = g.player;
+    const prop = this.carry;
+    this.carry = null;
+    this.release(prop);
+    const { dx, dz } = this.aimDir();
+    prop.x = p.x + dx * ENV.sprayAhead;
+    prop.z = p.z + dz * ENV.sprayAhead;
+    prop.y = 0;
+    prop.vx = prop.vz = prop.vy = 0;
+    prop.mesh.position.set(prop.x, 0, prop.z);
+    g.notes.log('滅火筒噴霧');
+    prop.burst();
+    return true;
   }
 
-  /** Let go of a carried thing: a pan in hand goes back into the level at the player's spot. */
+  /** The pistol in the right hand shows when the hand is free (and there is one: not under 無槍). */
+  showRightGun(on) {
+    const p = this.game.player;
+    for (const m of p.rig.weaponParts) if (m.parent === p.rig.armR) m.visible = on && !p.unarmed;
+  }
+
+  /** Let go of a carried thing: one in the hand or hugged goes back into the level at the player's spot. */
   release(prop) {
+    if (this.hugged) {
+      this.game.level.root.attach(prop.mesh);
+      prop.mesh.rotation.set(0, 0, 0);
+      prop.mesh.position.set(prop.x, prop.y, prop.z);
+      this.hugged = false;
+    }
     if (this.inHand) {
       const g = this.game;
       g.level.root.attach(prop.mesh);
@@ -178,11 +299,12 @@ export class Thrown {
     this.carry = null;
     const { dx, dz, d } = this.aimDir();
     const dist = clamp(d, 2, PLAYER.throwRange);
-    const fromHand = this.inHand;
+    const from = this.inHand ? PAN.handY : this.hugged ? HOLDS[prop.kind].at[1] : CARRY_Y - 0.3;
     this.release(prop);
     prop.thrown = true;
-    launch(prop, p.x + dx * 0.6, p.z + dz * 0.6, fromHand ? PAN.handY : CARRY_Y - 0.3, dx, dz, dist, 0.5 + dist * 0.035);
-    if (prop.kind === 'pan') prop.spin = 14;
+    p.throwT = HOLDS.throw.time; // the arm over the top (player.js syncRig)
+    launch(prop, p.x + dx * 0.6, p.z + dz * 0.6, from, dx, dz, dist, 0.5 + dist * 0.035);
+    if (prop.kind === 'pan') prop.spin = 14; // a net flies flat and falls open where it lands (level.js Net)
     if (prop.kind === 'umbrella') {
       // a dart: point first, flat
       prop.spin = 0;
@@ -205,6 +327,7 @@ export class Thrown {
     const w = PLAYER_WEAPONS[sp.id];
     const mesh = buildWeaponModel(w.model, g.pickups.mats);
     mesh.scale.setScalar(1.1);
+    p.throwT = HOLDS.throw.time; // the arm over the top (player.js syncRig)
     g.style.dress(mesh);
     g.scene.add(mesh);
     const { dx, dz, d } = this.aimDir();
@@ -243,6 +366,7 @@ export class Thrown {
       c.z = p.z;
       c.vx = c.vz = c.vy = 0;
       if (this.inHand) c.y = PAN.handY;
+      else if (this.hugged) c.y = HOLDS[c.kind].at[1]; // on the rig (player.js syncRig places it)
       else {
         c.y = CARRY_Y + Math.sin(g.worldTime * 6) * 0.04;
         c.mesh.position.set(c.x, c.y - CARRY_Y + (CARRY_SHOWN[c.kind]?.y ?? CARRY_Y), c.z);
@@ -253,6 +377,11 @@ export class Thrown {
     // thrown props: hit enemies while in the air (their flight itself is the level's prop physics)
     for (const q of level.props) {
       if (!q.thrown || !q.alive || (q.y || 0) < 0.25) continue;
+      if (q.kind === 'net') {
+        // a net that meets anyone in the air falls open there
+        if (g.enemies.list.some((e) => e.alive && e.spawnLock <= 0 && Math.hypot(e.x - q.x, e.z - q.z) < e.radius + q.r)) q.cast();
+        continue;
+      }
       if (q.kind === 'barrel' && g.boss.under(q.x, q.z)) {
         q.thrown = false;
         q.ignite(0.02); // thrown at the helicopter: it goes off right under it
@@ -315,13 +444,19 @@ export class Thrown {
       }
     }
 
+    this.updateTiles(dt);
+
     // HUD hint
     if (!p.alive) this.prompt = '';
-    else if (this.carry) this.prompt = this.inHand ? (this.carry.kind === 'pan' ? '{kick} 鑊擊 · {throw} 擲出' : '按住 {kick} 開傘 · {throw} 擲出') : '{throw} / {fire} 擲出';
+    else if (this.carry) {
+      const k = this.carry.kind;
+      this.prompt = this.inHand ? (k === 'pan' ? '{kick} 鑊擊 · {throw} 擲出' : k === 'umbrella' ? '按住 {kick} 開傘 · {throw} 擲出' : '{throw} 擲出') : this.hugged ? '{kick} 噴霧 · {throw} / {fire} 擲出' : '{throw} / {fire} 擲出';
+    }
     else {
       const near = this.nearProp();
       if (near) this.prompt = `{pick} 拿起${Thrown.propName(near)}`;
       else if (p.special && p.special.empty) this.prompt = `{throw} 擲出空的${PLAYER_WEAPONS[p.special.id].name}`;
+      else if (g.level.tableNear(p.x, p.z, ENV.tiles.reach)) this.prompt = '{throw} 擲麻雀牌';
       else this.prompt = '';
     }
   }

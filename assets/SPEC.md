@@ -222,3 +222,47 @@ assets/source/hero/
 **仍然寫在程式裡的部分，換引擎時要重做：**
 - **遊戲邏輯**：子彈時間、敵人 AI、武器手感。資料可以搬過去，但程式要按新引擎重寫。
 - **地圖佈景**：霓虹字、舞池燈光節奏、遠景位置，目前寫在 `src/maps.js` 的 `decorate` 裡。等環境物的模型做好、放進遊戲時，會一併改成資料格式，匯出到 `maps/*.json`。
+
+---
+
+## 9. OSM 標籤 → 互動件（下一張 OSM 地圖用）
+
+按 OpenStreetMap 建的地圖（議事亭前地；下一張可能是格蘭披治賽道一帶或大三巴），街上的東西可以由 OSM 的點位自動產出，不用逐件手放。這一節是對照表和流程。
+
+**議事亭前地現在的情況**（2026-10-21 查過）：
+- 遊戲用的 `src/senado/data.js` 只有樓宇、廣場、道路、噴水池和兩棵樹，沒有街道設施的點位。
+- 子專案的 OSM 抽取 `senado/data/osm_street.json` 有 152 個節點，可玩範圍（52 × 148 米）內只有一支交通燈：
+  - 巴士站 20、路樁 18、郵筒 2 全在範圍外
+  - 這一帶的 OSM 沒有標街燈（`highway=street_lamp`），也沒有長椅
+- 子專案的 `senado/data/streets.json` 有 `furniture`。這是 `build_streets.py` 按規則擺的，不是 OSM 點。可玩範圍內有：
+  - 街燈 17 盞、雙頭街燈 2 盞
+  - 長椅 4 張、垃圾桶 3 個、花盆 15 個
+  - 交通燈 1 支、行人燈 1 支
+- 所以議事亭那四盞射得熄的街燈仍是 `src/maps.js` 手放的。
+- 要把子專案的街燈接過來，得改 `scripts/senado-extract.mjs`，再重新產生 `src/senado/data.js`。這件事已寫成待排卡（`docs/TASKS.md`）。
+
+**對照表**（規則欄的數字是第一版建議）：
+
+| OSM 標籤（括號是子專案 `furniture` 的名） | 遊戲裏 | 地圖資料 | 規則 |
+|---|---|---|---|
+| `highway=street_lamp`（`lamp`、`lampDouble`） | 街燈 `lamp`：射兩槍熄 10 秒，暗區裏的敵人瞄不到（BLACKOUT） | `fixtures: [x, z, 'lamp']` | 離頭目車輛的路 ≥ 2.5 米；兩盞之間 ≥ 8 米（暗區半徑 4 米，不重疊）；一張圖最多 6 盞 |
+| `shop=*`，或 `amenity=restaurant`／`cafe`／`bar`（有 `name`） | 吊招牌 `sign`：射落壓人（CRUSHED） | `fixtures: [x, z, 'sign', facing]` | 掛在店的臨街面中點外；`facing` 是臨街面向外的方向；店名一律換成虛構 |
+| `entrance=*`、`door=*`（樓宇輪廓上的點） | 門 `door`：一腳踢開（SLAM） | `fixtures: [x, z, 'door', facing, w, h]` | 寬取 `width`，沒有就 2 米（導航格每邊膨脹 0.5 米，窄過 2 米人走不過）；只取通到可入屋內的 |
+| （OSM 沒有鐵閘的標籤） | 鐵閘 `shutter` | `fixtures: [x, z, 'shutter', facing, w, h]` | 開發者手揀 |
+| `amenity=bench`（`bench`） | 長椅：矮掩體 | `solids: [x, z, 1.6, 0.5, 0.45, 'bench', facing]` | 按 `direction` 擺；離其他掩體 ≥ 1.5 米 |
+| `amenity=waste_basket`、`amenity=recycling`（`bin`） | 垃圾桶：矮掩體 | `solids: [x, z, 0.6, 0.6, 0.9, 'bin']` | 同上 |
+| `barrier=bollard`、`barrier=block`（`bollard`、`block`） | 路樁：小掩體 | `solids: [x, z, 0.3, 0.3, 0.9, 'bollard']` | 一排相連的合成一段 |
+| `amenity=post_box`（`postBox`） | 郵筒：矮掩體 | `solids: [x, z, 0.6, 0.5, 1.2, 'postbox']` | |
+| `highway=bus_stop` 而 `shelter=yes`（`busStop`） | 候車亭：玻璃屏風加頂 | `glass: [...]` | 沒有 shelter 的不取 |
+| `amenity=motorcycle_parking` | 一排電單車：矮掩體（澳門街景） | `solids` | 每 1 米一架；模型待做 |
+| `highway=traffic_signals`、`highway=crossing`（`signal`、`pedSignal`） | 不入遊戲，只作佈景 | — | |
+| `natural=tree` | 樹：佈景，不擋子彈 | `trees` | 已有 |
+| `amenity=fountain` | 水：踢落去 SPLASH | `water` | 已有（議事亭噴水池） |
+| `emergency=fire_hydrant` | （將來）射爆噴水 | — | 未有系統 |
+
+**流程：**
+1. **抽取**：在子專案用 Overpass 抽地圖範圍內的節點，只要上表左欄的標籤，存成 `<子專案>/data/osm_points.json`。座標轉成地圖自己的米制（x 東、y 北）。
+2. **轉換**：`scripts/<地圖>-extract.mjs` 用地圖的 `toGame` 轉到遊戲座標，只留可玩範圍內的（外圍 `keep` 米留給佈景），寫進 `src/<地圖>/data.js` 的 `points`。
+3. **套表**：地圖資料（`src/maps.js`）按上表把點位變成 `fixtures`、`solids`、`glass`，再和手放的合併。規則欄的過濾（車輛的路、間距、上限）在這一步做。
+4. **檢查**：`test/maps.test.mjs` 的驗證器照跑：不入牆、不疊、走得到、渲染預算。街燈另外數一數暗區有沒有重疊。
+5. **匯出**：`npm run assets:docs` 把結果寫進 `maps/<地圖>.json`，其他引擎照讀（§8）。

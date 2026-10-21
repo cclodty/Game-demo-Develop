@@ -18,11 +18,12 @@ after(async () => {
 
 const mapCount = () => page.evaluate(() => window.game.maps.length);
 
-function validate(i) {
-  return page.evaluate((i) => {
+/** Check map `i` as it is built; with `seed`, as a daily with that seed lays its props out (level.js dealProps). */
+function validate(i, seed = null) {
+  return page.evaluate(([i, seed]) => {
     const g = window.game;
     g.frame = () => {};
-    g.level.load(g.maps[i]);
+    g.level.load(g.maps[i], seed === null ? null : { key: `test/${seed}`, rng: g.rng.fork('test-layout', seed) });
     g.applyMapView();
     const L = g.level;
     const issues = [];
@@ -104,8 +105,9 @@ function validate(i) {
       if (!o.isMesh) return;
       tris += o.geometry.index ? o.geometry.index.count / 3 : o.geometry.attributes.position.count / 3;
     });
-    return { map: L.map.id, issues, solids: L.solids.length, reach, open, tris: Math.round(tris), rendered, budget: L.map.budget };
-  }, i);
+    const places = L.props.filter((p) => !p.fixed).map((p) => `${p.kind}@${p.x},${p.z}`).sort().join(' ');
+    return { map: L.map.id, places, issues, solids: L.solids.length, reach, open, tris: Math.round(tris), rendered, budget: L.map.budget };
+  }, [i, seed]);
 }
 
 test('every map validates', async () => {
@@ -125,6 +127,58 @@ test('every map validates', async () => {
     assert.ok(r.rendered.tris <= r.budget.tris, `${r.map}: ${r.rendered.tris} rendered triangles per frame, budget ${r.budget.tris}`);
     assert.ok(r.rendered.calls <= r.budget.calls, `${r.map}: ${r.rendered.calls} draw calls per frame, budget ${r.budget.calls}`);
   }
+  assert.deepEqual(problems(logs), []);
+});
+
+test('a map’s first frame costs the same every load, as it is and under 玻璃之城: no draw call hangs on the effects’ dice (set dressing laid out at random)', { timeout: 600000 }, async () => {
+  const n = await mapCount();
+  const r = await page.evaluate((n) => {
+    const g = window.game;
+    g.frame = () => {};
+    const out = [];
+    for (const variants of [[], ['glassCity']]) {
+      for (let i = 0; i < n; i++) {
+        g.setRules('normal', variants);
+        g.startRun(i);
+        g.waves.state = 'done';
+        g.enemies.clear();
+        const calls = [];
+        for (let k = 0; k < 4; k++) {
+          g.level.load(g.maps[i]);
+          g.applyMapView();
+          g.player.placeAtStart();
+          g.updateCamera(1, true);
+          g.render();
+          calls.push(g.renderer.info.render.calls);
+        }
+        out.push({ map: `${g.maps[i].id} ${variants.join('')}`, calls });
+      }
+    }
+    // the picks take hold at a run's start: one more, without the variant, so the maps load as they are again
+    g.setRules('normal', []);
+    g.startRun(0);
+    g.toTitle();
+    return out;
+  }, n);
+  for (const m of r) assert.equal(new Set(m.calls).size, 1, `${m.map}: ${m.calls.join(', ')} draw calls in four loads`);
+  assert.deepEqual(problems(logs), []);
+});
+
+test('every layout a daily can deal validates: each map, twelve seeds, the props moved among their spots (maps.js `spots`)', { timeout: 600000 }, async () => {
+  const n = await mapCount();
+  for (let i = 0; i < n; i++) {
+    const moved = new Set();
+    for (let seed = 1; seed <= 12; seed++) {
+      const r = await validate(i, seed);
+      assert.deepEqual(r.issues, [], `${r.map}, layout ${seed}: ${r.issues.join('; ')}`);
+      assert.ok(r.reach / r.open >= 0.95, `${r.map}, layout ${seed}: only ${r.reach}/${r.open} open cells reachable from the start`);
+      assert.ok(r.rendered.calls <= r.budget.calls, `${r.map}, layout ${seed}: ${r.rendered.calls} draw calls per frame, budget ${r.budget.calls}`);
+      assert.ok(r.rendered.tris <= r.budget.tris, `${r.map}, layout ${seed}: ${r.rendered.tris} rendered triangles per frame, budget ${r.budget.tris}`);
+      moved.add(r.places);
+    }
+    assert.ok(moved.size >= 10, `map ${i}: twelve seeds dealt only ${moved.size} layouts`);
+  }
+  await page.evaluate(() => window.game.level.load(window.game.maps[0]));
   assert.deepEqual(problems(logs), []);
 });
 

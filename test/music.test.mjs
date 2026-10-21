@@ -186,7 +186,7 @@ test('the music follows the fight: a beat’s telegraph leaves only the kick; GO
   }
 });
 
-test('in a run: a stage’s song comes in at the stage change; a stage’s first waves play the base, later ones more, the last the boss section', async () => {
+test('in a run: a stage’s song comes in at the stage change; a stage’s first waves play the base, the third more, its boss the boss section', async () => {
   const { page, logs } = await h.open('?seed=4');
   try {
     const r = await page.evaluate(async () => {
@@ -227,7 +227,7 @@ test('in a run: a stage’s song comes in at the stage change; a stage’s first
       return out;
     });
     assert.equal(r.start, 'undertow', 'a run opens on the first song');
-    assert.deepEqual(r.levels, { 1: 0, 2: 0, 3: 1, 4: 1, 12: 2 }, 'waves 1–2 the base, 3–4 more, the last wave the boss section');
+    assert.deepEqual(r.levels, { 1: 0, 2: 0, 3: 1, 4: 2, 12: 2 }, 'waves 1–2 the base, 3 more, the stage’s boss (wave 4) and the last the boss section');
     assert.deepEqual(r.stages, [
       { stage: 1, upcoming: 'countdown', playing: 'undertow', level: 0 },
       { stage: 2, upcoming: 'abyss', playing: 'undertow', level: 0 },

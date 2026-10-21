@@ -170,7 +170,8 @@ export class Laser {
     scene.add(this.mesh);
   }
 
-  set(x0, z0, x1, z1, width, intensity, y = GUN_Y) {
+  /** From (x0, y, z0) to (x1, y1, z1): level unless `y1` says it comes down (a man on a balcony, enemies.js). */
+  set(x0, z0, x1, z1, width, intensity, y = GUN_Y, y1 = y) {
     const dx = x1 - x0;
     const dz = z1 - z0;
     const len = Math.hypot(dx, dz);
@@ -180,8 +181,10 @@ export class Laser {
     }
     this.mesh.visible = true;
     this.mesh.position.set(x0, y, z0);
+    this.mesh.rotation.order = 'YXZ';
     this.mesh.rotation.y = Math.atan2(dx, dz);
-    this.mesh.scale.set(width, 1, len);
+    this.mesh.rotation.x = Math.atan2(y - y1, len);
+    this.mesh.scale.set(width, 1, Math.hypot(len, y - y1));
     this.mat.color.copy(this.base).multiplyScalar(intensity);
   }
 

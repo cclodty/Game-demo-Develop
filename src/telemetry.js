@@ -1,10 +1,10 @@
 // Local play records (本機事件記錄). Every run leaves a short record in this
-// browser: how it started (map, mode, rules, camera view), each wave cleared,
-// how it ended (the wave and the cause of death, a clear, or a quit), how
-// long it took, and whether the player went again. Nothing leaves the
-// machine; the feedback export (notes.js) carries the records along. The
-// first visit shows a switch on the title screen, on unless turned off; the
-// stats panel keeps it. It only watches: the game never reads it back.
+// browser: how it started (map, mode, rules, camera view), each wave cleared
+// (and the shots fired in it), how it ended (the wave and the cause of death,
+// a clear, or a quit), how long it took, and whether the player went again.
+// Nothing leaves the machine; the feedback export (notes.js) carries the
+// records along. The first visit shows a switch on the title screen, on
+// unless turned off; the stats panel keeps it. It only watches: the game never reads it back.
 // Alongside, the days played (UTC, as the daily challenge counts them): the
 // first one and the runs and daily challenges of each, for the export's
 // "coming back" lines (回訪統計).
@@ -200,14 +200,14 @@ export class Telemetry {
     for (const r of this.runs) {
       const d = new Date(r.at);
       const at = `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      const waves = r.events.filter((e) => e.type === 'wave').map((e) => `${e.n}@${mmss(e.t)}${e.hurt ? '' : '✓'}`);
+      const waves = r.events.filter((e) => e.type === 'wave').map((e) => `${e.n}@${mmss(e.t)}${e.hurt ? '' : '✓'}${e.shots != null ? `·${e.shots}槍` : ''}`);
       const views = [r.view, ...r.events.filter((e) => e.type === 'view').map((e) => e.view)];
       const again = r.end ? (r.again ? `是${r.gap != null ? `（${r.gap} 秒後）` : ''}` : '否') : '（進行中）';
       out.push(
         `| ${at} | ${r.map} | ${r.mode} | ${r.rules || '正常'}${r.warmup ? '，含熱身' : ''} | ${[...new Set(views)].join('→')} | ${result[r.end] || '（進行中）'} | ${r.wave ?? ''} | ${r.cause || ''} | ${r.end ? mmss(r.seconds) : ''} | ${r.score != null ? Math.round(r.score).toLocaleString('en-US') : ''}${r.grade ? `（${r.grade}）` : ''} | ${again} | ${waves.join(' ') || '—'} |`,
       );
     }
-    out.push('', '每波完成：波次@用時，✓ = 那一波沒有受傷。', '');
+    out.push('', '每波完成：波次@用時，✓ = 那一波沒有受傷，·N槍 = 那一波開了幾槍。', '');
     return out.join('\n');
   }
 }
