@@ -5,6 +5,8 @@
 // dead, he drops. Held, the player walks at 0.6 of the pace and fires the left
 // gun alone, past him. Not a riot-shield man, a brute, a bomber, a drone, or a
 // man behind the player or out of reach.
+// Let go (人盾 ②), he is shoved out ahead about 6 m, bowling over whoever is
+// in the way; shot dead by his own side while held, he is a HUMAN SHIELD.
 // Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -223,12 +225,93 @@ test('held 1.5 s or until E; a walk at 0.6 of the pace; the left gun alone, its 
   assert.ok(Math.abs(r.time.steps / 120 - r.hold) <= 1 / 60, `held ${(r.time.steps / 120).toFixed(3)} s`);
   assert.equal(r.time.freed, true);
   assert.equal(r.time.stumbles, true, 'let go, he stumbles a moment');
-  assert.deepEqual(r.letGo, { hostage: null, held: false, note: '放開人盾' }, 'E again: let go');
+  assert.deepEqual(r.letGo, { hostage: null, held: false, note: '推出人盾' }, 'E again: let go');
   assert.ok(Math.abs(r.walk.held - r.walk.want) < 0.15, `a walk with him: ${r.walk.held.toFixed(2)} m/s, ${r.walk.want.toFixed(2)} wanted`);
   assert.ok(r.walk.free > r.walk.held * 1.5, `and faster without (${r.walk.free.toFixed(2)} m/s)`);
   assert.ok(r.fire.shots > 0 && r.fire.left > 0, 'the left gun fires');
   assert.equal(r.fire.right, 0, 'the right one does not');
   assert.equal(r.fire.manHp, r.fire.full, 'its shots go past the man held');
+  assert.deepEqual(problems(logs), []);
+});
+
+test('let go, he is shoved out about 6 m and bowls over a man in the way; shot dead held up, he is a HUMAN SHIELD (+200)', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const p = g.player;
+    const kills = [];
+    const kill0 = g.score.kill.bind(g.score);
+    g.score.kill = (t) => {
+      kills.push(t.map((x) => `${x.label}:${x.pts}`));
+      return kill0(t);
+    };
+    // E again: out he goes, east
+    window.begin(-8, 4);
+    const e = window.post('grunt', p.x + 1, p.z);
+    window.play(1, [], ['KeyE']);
+    window.play(10);
+    const x0 = e.x;
+    const hp0 = e.hp;
+    window.play(1, [], ['KeyE']);
+    let far = 0;
+    let drift = 0;
+    for (let i = 0; i < 150; i++) {
+      window.play(1);
+      far = Math.max(far, e.x - x0);
+      drift = Math.max(drift, Math.abs(e.z - p.z));
+    }
+    const shove = { dist: far, drift, hp: hp0 - e.hp };
+    /** How far ahead of the player he gets in `n` steps. */
+    const furthest = (e, n) => {
+      let far = 0;
+      for (let i = 0; i < n; i++) {
+        window.play(1);
+        far = Math.max(far, e.x - p.x);
+      }
+      return far;
+    };
+    // the time runs out: out too; F: out too, no kick
+    window.begin(-8, 4);
+    const e2 = window.post('grunt', p.x + 1, p.z);
+    window.play(1, [], ['KeyE']);
+    const timedOut = furthest(e2, 330);
+    window.begin(-8, 4);
+    const e3 = window.post('grunt', p.x + 1, p.z);
+    window.play(1, [], ['KeyE']);
+    window.play(1, [], ['KeyF']);
+    const kicked = p.kickT > 0;
+    const byF = { dist: furthest(e3, 150), kicked };
+    // a man 3 m on: bowled over
+    window.begin(-8, 4);
+    const held = window.post('grunt', p.x + 1, p.z);
+    window.play(1, [], ['KeyE']);
+    const other = window.post('grunt', p.x + 4, p.z);
+    window.play(1, [], ['KeyE']);
+    let downed = false;
+    for (let i = 0; i < 120; i++) {
+      window.play(1);
+      downed = downed || other.stunT > 0;
+    }
+    const bowl = { downed, cause: other.stunCause, heldX: held.x };
+    // shot dead by his own side, held up in front
+    window.begin();
+    const e4 = window.post('grunt', p.x + 1, p.z);
+    window.play(1, [], ['KeyE']);
+    e4.hp = 1;
+    kills.length = 0;
+    window.shootAt(0);
+    window.play(24);
+    return { shove, timedOut, byF, bowl, tags: kills.flat(), note: g.notes.events.map((x) => x.text).filter((t) => t.startsWith('擊殺')).at(-1) };
+  });
+  assert.ok(r.shove.dist > 5 && r.shove.dist < 7, `shoved about 6 m (${r.shove.dist.toFixed(2)})`);
+  assert.ok(r.shove.drift < 0.3, 'straight ahead');
+  assert.equal(r.shove.hp, 0, 'unhurt by the shove');
+  assert.ok(r.timedOut > 5, `the time up: shoved too (${r.timedOut.toFixed(2)} m ahead)`);
+  assert.ok(r.byF.dist > 5 && !r.byF.kicked, `F: the shove, not a kick (${r.byF.dist.toFixed(2)} m)`);
+  assert.equal(r.bowl.downed, true, 'the man in the way is bowled over');
+  assert.equal(r.bowl.cause, 'strike');
+  assert.ok(r.tags.includes('HUMAN SHIELD:200'), r.tags.join(','));
+  assert.ok(!r.tags.some((t) => t.startsWith('FRIENDLY FIRE')), 'not FRIENDLY FIRE as well');
+  assert.match(r.note, /HUMAN SHIELD/);
   assert.deepEqual(problems(logs), []);
 });
 
@@ -249,4 +332,23 @@ test('screenshot: a man held up in front, a bullet on its way', async () => {
     g.render();
   });
   await page.screenshot({ path: new URL('human-shield.png', OUT).pathname });
+});
+
+test('screenshot: the human shield shoved into the man behind him', async () => {
+  await page.evaluate(() => {
+    const g = window.game;
+    const p = g.player;
+    window.begin(-8, 0.5);
+    g.view = 2;
+    window.post('grunt', p.x + 1, p.z);
+    window.play(1, [], ['KeyE']);
+    window.post('grunt', p.x + 4.5, p.z);
+    window.play(1, [], ['KeyE']);
+    window.play(26);
+    g.present(1 / 60);
+    g.updateCamera(1, true);
+    g.camera.position.lerp(g.camTarget, 0.55);
+    g.render();
+  });
+  await page.screenshot({ path: new URL('human-shield-shove.png', OUT).pathname });
 });

@@ -304,12 +304,10 @@ class Enemy {
     this.repath = 0;
   }
 
-  /** Let go: he stumbles a moment before he is back in the fight. */
-  letGo() {
+  /** Let go: shoved out along (dx, dz), flying like a kicked man (bowl knocks over whoever he meets) but unhurt. */
+  letGo(dx, dz) {
     this.held = false;
-    this.stunT = Math.max(this.stunT, 0.5);
-    this.stunCause = 'held';
-    this.repath = 0;
+    this.kick(dx, dz, PLAYER.humanShield.shove, 'shove', 0);
   }
 
   /** A bullet of his own side's, meant for the player behind him (bullets.js): PLAYER.humanShield.hit of his hp. */
@@ -494,7 +492,7 @@ class Enemy {
     this.repath = 0;
     this.hp -= dmg;
     this.flash = 1;
-    this.game.fx.blood(this.x, 1.2, this.z, dx, dz, 5);
+    if (dmg > 0) this.game.fx.blood(this.x, 1.2, this.z, dx, dz, 5); // a shove (the human shield let go) draws none
     if (this.hp <= 0) this.die(dx, dz, { cause });
   }
 

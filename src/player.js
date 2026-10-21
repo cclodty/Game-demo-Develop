@@ -206,14 +206,16 @@ export class Player {
     return true;
   }
 
-  /** Let the human shield go (the time is up, E again, a kick); a dead one is simply dropped. */
-  letGo() {
+  /** Let the human shield go (the time is up, E again, F): shoved out the way the player faces; a dead one is dropped. */
+  letGo(shove = true) {
     const e = this.hostage;
     this.hostage = null;
     this.hostageT = 0;
     if (e && e.alive) {
-      e.letGo();
-      this.game.notes.log('放開人盾');
+      e.letGo(shove ? Math.sin(this.facing) : 0, shove ? Math.cos(this.facing) : 0);
+      if (!shove) return;
+      this.game.audio.kick(true);
+      this.game.notes.log('推出人盾');
     }
   }
 
@@ -317,7 +319,7 @@ export class Player {
 
   update(dt, input) {
     if (!this.alive) {
-      if (this.hostage) this.letGo(); // shot down holding a man: he is free
+      if (this.hostage) this.letGo(false); // shot down holding a man: he is free, not shoved
       this.updateDeath(dt);
       return;
     }
@@ -542,8 +544,9 @@ export class Player {
     if (this.shieldOn) this.shield(umbrella);
     this.shieldK = clamp(this.shieldK + (this.shieldOn ? 8 : -8) * dt, 0, 1);
     if (umbrella) umbrella.open(this.shieldK);
-    if (input.hit('KeyF') && this.hostage) this.letGo(); // the arm is needed for the kick
-    if (input.hit('KeyF') && this.execT <= 0) {
+    const shoved = input.hit('KeyF') && !!this.hostage;
+    if (shoved) this.letGo(); // F with a man held: the shove is the kick
+    if (input.hit('KeyF') && this.execT <= 0 && !shoved) {
       const down = this.executable();
       if (down) this.execute(down);
       else if (umbrella) {

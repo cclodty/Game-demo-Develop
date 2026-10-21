@@ -36,8 +36,9 @@ export const PLAYER = {
   dive: { dist: 4, air: 0.42, roll: 0.3, rollMul: 0.5, cooldown: 0.4 },
   // a human shield (player.js grab): E within `reach` m of a man in front, with nothing to pick up, holds him `gap` m in
   // front for `hold` s (or until E again); enemy bullets from within ±`arc`° of the facing hit him instead, `hit` of his
-  // hp each; the player walks at `walkMul` of the run speed and fires the left gun alone
-  humanShield: { reach: 1.5, gap: 0.75, hold: 1.5, arc: 60, hit: 1, walkMul: 0.6 },
+  // hp each; the player walks at `walkMul` of the run speed and fires the left gun alone. Let go, he is shoved out
+  // ahead at `shove` m/s (about a quarter of that in metres, as a kick's flight slows), bowling over whoever he meets
+  humanShield: { reach: 1.5, gap: 0.75, hold: 1.5, arc: 60, hit: 1, walkMul: 0.6, shove: 24 },
   throwReach: 1.6, // metres: G picks up a pan or barrel this close
   throwRange: 8, // metres a carried thing is thrown, at most
   kickRange: 2.1,
