@@ -886,6 +886,10 @@ export class Level {
       car: std({ color: 0x1a1c20, roughness: 0.3, metalness: 0.6 }),
       carTop: std({ color: 0xe9d9a8, roughness: 0.5 }),
       carGlass: std({ color: 0x20282e, roughness: 0.15, metalness: 0.5 }),
+      // Rua da Felicidade
+      brick: std({ color: 0x7c7770, roughness: 0.92 }),
+      mahjong: std({ color: 0x1f6a46, roughness: 0.85 }),
+      mahjongTile: std({ color: 0xf2eee2, roughness: 0.5 }),
     };
   }
 
@@ -1075,6 +1079,7 @@ export class Level {
   addSolid(x, z, w, d, h, matKey, face) {
     const M = this.mat;
     const s = this.addBox(x, z, w, d, h, M[matKey], matKey === 'crate' ? 'crate' : 'wall');
+    s.matKey = matKey; // what it is drawn as (a map's decorate can find its own walls by it)
     if (matKey === 'crate') {
       // wooden crates break apart after ENV.crateHits bullets (breakCrate)
       Object.assign(s, { x, z, w, d, hp: ENV.crateHits });
@@ -1118,6 +1123,12 @@ export class Level {
         break;
       case 'table':
         this.deco(x, h, z, 0.12, 0.12, 0.12, M.neonOrange);
+        break;
+      case 'mahjong':
+        // a game left mid-hand: the four walls of tiles on the felt
+        for (const [dx, dz, along] of [[0, -0.3, true], [0, 0.3, true], [-0.3, 0, false], [0.3, 0, false]]) {
+          this.deco(x + dx * w, h, z + dz * d, along ? w * 0.5 : 0.07, 0.05, along ? 0.07 : d * 0.5, M.mahjongTile);
+        }
         break;
       case 'stall': {
         // a counter with a striped canopy on poles

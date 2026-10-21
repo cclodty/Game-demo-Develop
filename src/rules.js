@@ -44,6 +44,8 @@ export const DAILY_ROTATION = [
   { map: 0, difficulty: 'normal', variants: ['dualist'] },
   { map: 1, difficulty: 'street', variants: ['noSlowmo'] },
   { map: 2, difficulty: 'ballet', variants: ['dualist'] },
+  { map: 4, difficulty: 'normal', variants: [] },
+  { map: 4, difficulty: 'street', variants: ['glassCity'] },
 ];
 
 /** The rules of a run: BASE, then the difficulty's and each variant's settings (multipliers multiply, the rest replace). */

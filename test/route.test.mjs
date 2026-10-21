@@ -84,8 +84,9 @@ test('each stage ends on its boss: waves 4 and 8 shorter (3 segments, +1,000), w
     assert.deepEqual(r.routes, [
       '霓虹天台 → 脈衝夜店 → 七號碼頭（頭目：直升機、刀后、重炮）',
       '脈衝夜店 → 七號碼頭 → 議事亭前地（頭目：刀后、重炮、車隊）',
-      '七號碼頭 → 議事亭前地 → 霓虹天台（頭目：重炮、車隊、直升機）',
-      '議事亭前地 → 霓虹天台 → 脈衝夜店（頭目：車隊、直升機、刀后）',
+      '七號碼頭 → 議事亭前地 → 福隆新街（頭目：重炮、車隊）',
+      '議事亭前地 → 福隆新街 → 霓虹天台（頭目：車隊、直升機）',
+      '福隆新街 → 霓虹天台 → 脈衝夜店（頭目：直升機、刀后）', // 福隆新街 has no boss yet (docs/TASKS.md 待排)
     ]);
     const w = r.waves;
     assert.deepEqual([w[3].map, w[3].boss, w[3].level], ['rooftop', false, 1], 'wave 3: a wave');
@@ -118,7 +119,7 @@ test('the title names the route of the map card picked or pointed at; the daily 
     });
     const note = () => page.evaluate(() => document.getElementById('maps-note').textContent);
     const picked = await note();
-    assert.match(picked, /^每 4 波換一個場景，第 12 波完結：七號碼頭 → 議事亭前地 → 霓虹天台（頭目：重炮、車隊、直升機）$/);
+    assert.match(picked, /^每 4 波換一個場景，第 12 波完結：七號碼頭 → 議事亭前地 → 福隆新街（頭目：重炮、車隊）$/);
     await page.hover('.map-card:nth-child(1)');
     assert.match(await note(), /：霓虹天台 → 脈衝夜店 → 七號碼頭/);
     await page.screenshot({ path: new URL('route-title.png', OUT).pathname });

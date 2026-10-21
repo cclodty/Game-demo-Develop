@@ -61,7 +61,7 @@ src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, V
 src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS and the AI state machine
 src/weapons.js bullets.js    player weapon stats, drops, grenades (the launcher's, and the grenadier's lobbed ones: ring, fuse, kick back, AIRBURST); projectile stepping and ricochet
 src/waves.js  pickups.js     MODES (arcade: 12 waves, then RUN CLEAR; endless), wave composition and spawn pacing; floor weapons and pads
-src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 4 maps as data
+src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 5 maps as data (福隆新街's walls built from its `shops`)
 src/nav.js                   grid A* on 0.5 m cells
 src/rng.js                   seeded RNG: game.rng for logic (?seed=), vfxRng behind utils.js rand/pick for effects
 src/characters.js  skin.js   block rigs + weapon models (and the drone's block quadcopter, shaped like a rig), KEY_POSES (slide, spin, kick, carry), HOLDS (how each thing picked up is held: grip, arm directions at rest and in use); optional skinned models worn over the rig (IK hands and key-pose feet)
