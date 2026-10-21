@@ -216,7 +216,7 @@ export class Bullets {
       }
     } else {
       const p = game.player;
-      if (p.alive && !p.spinning && !p.sliding) {
+      if (p.alive && !p.spinning && !p.sliding && !p.diving) {
         const t = segCircle(x0, z0, x1, z1, p.x, p.z, PLAYER.hitRadius);
         if (t >= 0 && (!best || t < best.t)) best = { t, type: 'player' };
       }

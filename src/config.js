@@ -30,6 +30,10 @@ export const PLAYER = {
   slideCooldown: 0.5,
   slideSpeedMul: 1.6, // launch speed relative to run speed, decaying over the slide
   slideMinSpeed: 3, // m/s needed to start a slide
+  // the dive (player.js): Space with a direction while in bullet time throws the player `dist` m that way in `air` s
+  // (the player's own time) with the guns still firing and bullets passing under the body, then a `roll` s roll at
+  // `rollMul` of the run speed; `cooldown` s before the next. Outside bullet time Space is the spin
+  dive: { dist: 4, air: 0.42, roll: 0.3, rollMul: 0.5, cooldown: 0.4 },
   throwReach: 1.6, // metres: G picks up a pan or barrel this close
   throwRange: 8, // metres a carried thing is thrown, at most
   kickRange: 2.1,

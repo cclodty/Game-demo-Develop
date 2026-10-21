@@ -89,6 +89,11 @@ export class Player {
     this.slideCd = 0;
     this.slideDirX = 0;
     this.slideDirZ = 1;
+    this.diveT = 0; // in the air on a dive: s left
+    this.rollT = 0; // landed: the roll, s left
+    this.diveCd = 0;
+    this.diveDirX = 1;
+    this.diveDirZ = 0;
     this.spinDirX = 0;
     this.spinDirZ = -1;
     this.fireCd = 0;
@@ -145,6 +150,7 @@ export class Player {
     this.z = start.z;
     this.vx = this.vz = 0;
     this.spinT = 0;
+    this.diveT = this.rollT = 0;
     this.splitTarget = null;
     this.syncRig(0);
   }
@@ -155,6 +161,16 @@ export class Player {
 
   get spinning() {
     return this.spinT > 0;
+  }
+
+  /** In the air on a dive (bullets pass under). */
+  get diving() {
+    return this.diveT > 0;
+  }
+
+  /** Landed from a dive, rolling out of it. */
+  get rolling() {
+    return this.rollT > 0;
   }
 
   get weapon() {
@@ -245,6 +261,7 @@ export class Player {
     const g = this.game;
     this.spinCd -= dt;
     this.slideCd -= dt;
+    this.diveCd -= dt;
     this.fireCd -= dt;
     this.kickCd -= dt;
     this.invuln -= dt;
@@ -288,7 +305,16 @@ export class Player {
       g.notes.log('滑鏟');
     }
 
-    if (input.hit('Space') && this.spinCd <= 0 && this.spinT <= 0 && this.execT <= 0) {
+    // in bullet time with a direction held, Space is a dive that way; otherwise the spin
+    const canDive = g.focusActive && il > 0 && this.diveCd <= 0 && this.diveT <= 0 && this.rollT <= 0 && !(g.thrown && g.thrown.carry);
+    if (input.hit('Space') && canDive && this.execT <= 0) {
+      this.diveT = PLAYER.dive.air;
+      this.diveDirX = ix;
+      this.diveDirZ = iz;
+      this.spinT = this.slideT = 0;
+      g.audio.slide();
+      g.notes.log('飛撲');
+    } else if (input.hit('Space') && this.spinCd <= 0 && this.spinT <= 0 && this.diveT <= 0 && this.rollT <= 0 && this.execT <= 0) {
       this.spinT = PLAYER.spinDuration;
       this.slideT = 0;
       g.notes.log('旋轉閃避');
@@ -317,6 +343,24 @@ export class Player {
       this.execT -= dt;
       tx = tz = 0;
       accel = 40;
+    } else if (this.diveT > 0) {
+      // through the air at a set speed: the distance is the dive's, whatever the run was
+      this.diveT -= dt;
+      const sp = PLAYER.dive.dist / PLAYER.dive.air;
+      tx = this.diveDirX * sp;
+      tz = this.diveDirZ * sp;
+      this.vx = tx;
+      this.vz = tz;
+      if (this.diveT <= 0) {
+        this.rollT = PLAYER.dive.roll;
+        g.notes.log('落地翻滾');
+      }
+    } else if (this.rollT > 0) {
+      this.rollT -= dt;
+      tx = this.diveDirX * speed * PLAYER.dive.rollMul;
+      tz = this.diveDirZ * speed * PLAYER.dive.rollMul;
+      accel = 30;
+      if (this.rollT <= 0) this.diveCd = PLAYER.dive.cooldown;
     } else if (this.spinT > 0) {
       this.spinT -= dt;
       const sp = speed * PLAYER.spinSpeedMul;
@@ -796,7 +840,7 @@ export class Player {
 
   hurt(dmg, dx = 0, dz = 0, explosion = false, source = '') {
     if (!this.alive || this.invuln > 0) return false;
-    if (this.spinning && !explosion) return false;
+    if ((this.spinning || this.diving) && !explosion) return false; // a bullet passes round a spin, under a dive
     const g = this.game;
     this.hp -= dmg;
     this.sinceHurt = 0;
@@ -865,7 +909,9 @@ export class Player {
     const carrying = !!(thrown && thrown.carry) && !inHand && !hugged; // a load overhead: not a pan in hand, not an extinguisher in the arms
     r.inner.rotation.y = this.spinYaw();
     const held = (k) => (k < 0.12 || k > 0.88 ? 0.5 : 1);
-    if (this.slideT > 0) keyPose(r, 'slide', held(1 - this.slideT / PLAYER.slideDuration));
+    if (this.diveT > 0) keyPose(r, 'dive', held(1 - this.diveT / PLAYER.dive.air));
+    else if (this.rollT > 0) keyPose(r, 'roll', held(1 - this.rollT / PLAYER.dive.roll));
+    else if (this.slideT > 0) keyPose(r, 'slide', held(1 - this.slideT / PLAYER.slideDuration));
     else if (this.spinT > 0) keyPose(r, 'spin', held(1 - this.spinT / PLAYER.spinDuration));
     else if (this.kickT > 0) keyPose(r, 'kick', held(1 - this.kickT / KICK_TIME));
     else keyPose(r, carrying ? 'carry' : null);
