@@ -1501,7 +1501,7 @@ class Truck extends Boss {
       case 'drive': {
         this.chargeT -= dt;
         this.unloadT -= dt;
-        if (this.unloadT <= 0) {
+        if (this.unloadT <= 0 && this.onMap()) {
           this.unloadT = U.every;
           if (g.enemies.aliveCount + U.count <= U.maxAlive) {
             this.state = 'unload';
@@ -1511,7 +1511,7 @@ class Truck extends Boss {
             break;
           }
         }
-        if (this.chargeT <= 0 && p.alive) {
+        if (this.chargeT <= 0 && p.alive && this.onMap()) {
           this.chargeT = C.every;
           this.state = 'aim';
           this.timer = C.aim;
@@ -1594,6 +1594,12 @@ class Truck extends Boss {
         break;
     }
     this.door = clamp(this.door + (this.state === 'unload' ? dt : -dt) * 3, 0, 1);
+  }
+
+  /** On the playable ground (a loop may turn just past an open end of the map: no letting thugs out or charging there). */
+  onMap() {
+    const { halfW, halfD } = this.game.level.bounds;
+    return Math.abs(this.x) < halfW - TRUCK.size.l / 2 && Math.abs(this.z) < halfD - TRUCK.size.l / 2;
   }
 
   /** Move up to `step` m towards (x, z), turning to face it; true once there. */

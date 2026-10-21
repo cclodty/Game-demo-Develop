@@ -844,6 +844,22 @@ const FEL_SHOPS = [
 ];
 
 /**
+ * The truck's loop on Rua da Felicidade (its `boss`): east along the street on `FEL_ROAD`, on out of the east end and
+ * round in a teardrop, back west on the same line, the same past the west end. Each table, lamp and sign post is at least the
+ * truck's half width (1.1 m) clear of the line: the line passes south of the table at x -9, north of those at -25.5
+ * and 14.
+ */
+const FEL_ROAD = [[-28, -0.9], [-21, -0.9], [-13, 1], [-5, 1], [11, -0.8], [28, -0.8]];
+function felicidadeTruckLoop() {
+  // straight on 4 m out of each end before the teardrop, or its tail swings into the corner shops and the end tables
+  const out = ([x, z], dir) => [x + dir * 4, z];
+  const turn = ([x, z], dir) => [[x + dir * 3, z + 1.2], [x + dir * 5, z], [x + dir * 3, z - 1.2]];
+  const east = out(FEL_ROAD[FEL_ROAD.length - 1], 1);
+  const west = out(FEL_ROAD[0], -1);
+  return [...FEL_ROAD, east, ...turn(east, 1), east, ...[...FEL_ROAD].reverse(), west, ...turn(west, -1).reverse(), west];
+}
+
+/**
  * The street's walls as data: for each row, the solid blocks between the shops and the lane, and each open
  * shop's front (two pieces beside its opening), side walls (one split by a back door) and back; and the doors and
  * shutters that close the openings (fixtures.js).
@@ -943,6 +959,10 @@ const felicidade = {
     [21, 2.5, 'lamp'],
   ],
   pads: [[-21, -0.8], [18, -0.2]],
+  // the stage's boss (boss.js truck): in from the west, then up and down the street on one line that weaves clear of
+  // the mahjong tables, lamps and sign posts, turning in a teardrop just past each open end (the street is too narrow
+  // to turn in); it lets its thugs out and charges only on the map (boss.js onMap)
+  boss: { kind: 'truck', from: [-40, -0.9], loop: felicidadeTruckLoop() },
   // balconies up the fronts of the solid blocks (level.js balconies, waves.js pickPerches): [x, z, height, facing], the
   // man sent up stands at (x, z) that high, over the street, facing out; four on the north row, two on the south
   perches: [
@@ -955,8 +975,8 @@ const felicidade = {
   ],
   stages: [
     { name: '茶室前', en: 'TEA ROOM FRONT', at: [-16.5, -1.2], move: 'door' },
-    { name: '巷口', en: 'LANE MOUTH', at: [7.25, 0.5], move: 'shutter' },
-    { name: '麻雀枱', en: 'MAHJONG TABLES', at: [-8, 1.4], move: 'slide' },
+    { name: '巷口', en: 'LANE MOUTH', at: [7.25, -3.6], move: 'shutter' }, // just into the lane: off the truck's road (boss)
+    { name: '麻雀枱', en: 'MAHJONG TABLES', at: [-8, -2.3], move: 'slide' }, // behind the table, between it and the shops
     { name: '石油氣', en: 'GAS CYLINDERS', at: [17, 0.8], move: 'boom' },
   ],
   spawns: [
