@@ -85,8 +85,9 @@ test('each stage ends on its boss: waves 4 and 8 shorter (3 segments, +1,000), w
       '霓虹天台 → 脈衝夜店 → 七號碼頭（頭目：直升機、刀后、重炮）',
       '脈衝夜店 → 七號碼頭 → 議事亭前地（頭目：刀后、重炮、車隊）',
       '七號碼頭 → 議事亭前地 → 福隆新街（頭目：重炮、車隊、貨車）',
-      '議事亭前地 → 福隆新街 → 霓虹天台（頭目：車隊、貨車、直升機）',
-      '福隆新街 → 霓虹天台 → 脈衝夜店（頭目：貨車、直升機、刀后）', // 福隆新街's boss is the armoured truck
+      '議事亭前地 → 福隆新街 → 東望洋跑道（頭目：車隊、貨車）', // 東望洋跑道 has no boss yet: its waves 4, 8 and 12 are waves
+      '福隆新街 → 東望洋跑道 → 霓虹天台（頭目：貨車、直升機）',
+      '東望洋跑道 → 霓虹天台 → 脈衝夜店（頭目：直升機、刀后）',
     ]);
     const w = r.waves;
     assert.deepEqual([w[3].map, w[3].boss, w[3].level], ['rooftop', false, 1], 'wave 3: a wave');

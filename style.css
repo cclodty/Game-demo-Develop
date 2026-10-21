@@ -935,7 +935,7 @@ body:not(.pad) .pad-only {
 
 .maps {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -1633,6 +1633,7 @@ body:not(.pad) .pad-only {
 }
 
 #title .panel {
+  width: min(1060px, 100%); /* six map cards as wide as five were in 880 px */
   padding: 20px 36px 18px;
 }
 

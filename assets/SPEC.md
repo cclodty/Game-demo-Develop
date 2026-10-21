@@ -4,7 +4,7 @@
 
 - 每一件物件的提示詞：[PROMPTS.md](PROMPTS.md)
 - 機器可讀的清單：[asset-list.json](asset-list.json)（也有 [asset-list.csv](asset-list.csv)，可用 Excel 開）
-- 五張地圖的佈局：[maps/](maps/)
+- 六張地圖的佈局：[maps/](maps/)
 - 處理和放進遊戲的流程：[README.md](README.md)
 
 以上清單和地圖檔都由 `npm run assets:docs` 從程式自動生成，所以數字和遊戲永遠一致。
@@ -205,7 +205,7 @@ assets/source/hero/
 **現在已經不依賴這個網頁引擎的部分：**
 - **模型母版**：GLB、FBX 加 PNG，三大引擎都能直接匯入。
 - **[asset-list.json](asset-list.json)**：每件物件的尺寸、原點、輔助點、動作清單和檔案位置。
-- **[maps/*.json](maps/)**：五張地圖的掩體、玻璃、油桶、平底鑊、工具、互動件（街燈、招牌、門、鐵閘）、每日挑戰的備用道具位、露台、水、武器台、出生點、燈光、鏡頭；議事亭前地還有每棟樓的輪廓、噴水池和樹。`test/assets.test.mjs` 會對比：改了地圖而沒有重新產生（`npm run assets:docs`），測試會失敗。
+- **[maps/*.json](maps/)**：六張地圖的掩體、玻璃、油桶、平底鑊、工具、互動件（街燈、招牌、門、鐵閘）、每日挑戰的備用道具位、露台、水、武器台、出生點、燈光、鏡頭；議事亭前地還有每棟樓的輪廓、噴水池和樹。`test/assets.test.mjs` 會對比：改了地圖而沒有重新產生（`npm run assets:docs`），測試會失敗。
 - **`senado/export/senado_massing.glb`**：議事亭前地專案匯出的整個街區模型。
 
 **各引擎的分別**：匯入時要留意以下幾點，大部分匯入工具會自動處理。

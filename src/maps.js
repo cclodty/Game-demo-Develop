@@ -1178,4 +1178,300 @@ const felicidade = {
   },
 };
 
-export const MAPS = [rooftop, club, docks, senado, felicidade];
+// ---------------------------------------------------------------- 東望洋跑道 GUIA CIRCUIT
+// A hairpin of the street circuit at night, built by hand to the ROADMAP's size (OSM cannot be reached from the
+// build): the track comes in along the north, turns round the west end and goes back out along the south. Inside
+// the hairpin a grass infield behind blue-and-white tyre walls with the timing tower; outside it guardrails with
+// marshals' gates, the grandstand to the north (its front row a line of perches), the spectators' side to the south
+// and a gravel run-off past the bend. The track goes on past the east edge. The teams, sponsors and lap times are
+// made up.
+const GUIA = {
+  halfW: 28,
+  halfD: 20,
+  cx: -10, // the hairpin's centre: the bend is the half circle west of it
+  inner: 5.4, // the infield's tyre wall (its middle line): along the straights at z = ±inner, round the bend at that radius
+  outer: 13.1, // the outer barrier's middle line: guardrails along the straights, a tyre wall round the bend
+  tyre: 0.9, // a tyre wall's thickness and height: low cover, a man crouched behind it, the shots over it
+  rail: 0.3, // a guardrail's thickness and height
+  railH: 1.0,
+  stand: [-15, 15, -19.8, -13.25], // the grandstand's box (x from, x to, z from, z to): its front is the north straight's edge
+  standH: 3.4,
+};
+
+/** A tyre wall on an arc of radius r about (cx, cz), from angle a0 to a1 (degrees from +x towards +z): stacks 0.75 m apart, the gaps left open. */
+function tyreArc(out, cx, cz, r, a0, a1, gaps = []) {
+  const n = Math.ceil(((((a1 - a0) * Math.PI) / 180) * r) / 0.75);
+  for (let i = 0; i <= n; i++) {
+    const a = a0 + ((a1 - a0) * i) / n;
+    if (gaps.some(([g0, g1]) => a > g0 && a < g1)) continue;
+    const t = (a * Math.PI) / 180;
+    out.push([+(cx + r * Math.cos(t)).toFixed(2), +(cz + r * Math.sin(t)).toFixed(2), GUIA.tyre, GUIA.tyre, GUIA.tyre, 'tyres']);
+  }
+}
+
+/** A straight run along z from x0 to x1, broken at the gaps ([a, b] in x). */
+function straightRun(out, z, x0, x1, gaps, thick, h, mat) {
+  let a = x0;
+  for (const [g0, g1] of [...gaps, [x1, x1]]) {
+    if (g0 - a > 0.05) out.push([+((a + g0) / 2).toFixed(2), z, +(g0 - a).toFixed(2), thick, h, mat]);
+    a = g1;
+  }
+}
+
+/** The barriers as solids: the infield's tyre walls and the outer guardrails and tyre wall, with their gaps. */
+function guiaBarriers() {
+  const { halfW: W, cx, inner, outer, tyre, rail, railH } = GUIA;
+  const s = [];
+  straightRun(s, -inner, cx, W - 1, [[-1.2, 1.2], [13, 15.4]], tyre, tyre, 'tyres');
+  straightRun(s, inner, cx, W - 1, [[-5.2, -2.8], [7, 9.4], [20, 22.4]], tyre, tyre, 'tyres');
+  tyreArc(s, cx, 0, inner, 90, 270);
+  straightRun(s, -outer, GUIA.stand[1], W - 0.4, [[19, 21.4]], rail, railH, 'rail'); // east of the grandstand, whose front is the edge
+  straightRun(s, outer, cx, W - 0.4, [[0.8, 3.2], [16.8, 19.2]], rail, railH, 'rail'); // short of the map's edge: cover, not the edge
+  tyreArc(s, cx, 0, outer, 90, 270, [[124, 136], [224, 236]]);
+  return s;
+}
+
+const GUIA_WALLS = guiaBarriers();
+
+const guia = {
+  id: 'guia',
+  budget: { tris: 190000, calls: 560 }, // rendered per frame, all passes (test/maps.test.mjs: 150,785 and 424 at the start)
+  name: '東望洋跑道',
+  en: 'GUIA CIRCUIT',
+  desc: '格蘭披治的髮夾彎，晚上：藍白輪胎牆只夠蹲低，看台上的人望得到你；過賽道要快。',
+  color: '#4fb4ff',
+  size: [GUIA.halfW, GUIA.halfD],
+  start: [-2, 1.5],
+  cutaway: true,
+  theme: {
+    bg: 0x05070d,
+    fog: [0x070a14, 0.012],
+    hemi: [0x5a6a8c, 0x0a0c12, 0.7],
+    moon: [0xb8c8ff, 0.5],
+    sunDir: [12, 34, 16],
+    // four floodlights on masts round the bend (decorate draws the masts)
+    points: [
+      [0xe8f0ff, -20, 7, -12, 70, 24],
+      [0xe8f0ff, 4, 7, -14.2, 70, 24],
+      [0xffe2b8, -6, 7, 14.4, 60, 22],
+      [0xe8f0ff, 22, 7, 2, 70, 24],
+    ],
+    rain: false,
+    bloom: { strength: 0.85, threshold: 0.8 },
+  },
+  floor: 'asphalt',
+  edges: null, // the barriers, the grandstand and the dark beyond mark the edge; the track goes on past the east end
+  solids: [
+    ...GUIA_WALLS,
+    [(GUIA.stand[0] + GUIA.stand[1]) / 2, (GUIA.stand[2] + GUIA.stand[3]) / 2, GUIA.stand[1] - GUIA.stand[0], GUIA.stand[3] - GUIA.stand[2], GUIA.standH, 'stand'],
+    [8, 0, 2.6, 2.6, 8.5, 'tower'], // the timing tower in the infield
+    [-4, -1.6, 2.2, 1.4, 1.2, 'hut'], // a marshals' post
+    [18.45, 1.8, 1.8, 0.9, 0.9, 'tyres'], // spare tyres in the infield
+    [-4, 16.8, 3, 1.4, 1.1, 'stall'], // a noodle stall on the spectators' side
+    [12, 16, 2.7, 0.9, 0.9, 'tyres'],
+    [-25.5, -6, 0.9, 1.8, 0.9, 'tyres'], // stacks in the run-off
+    [-25.5, 7, 0.9, 1.8, 0.9, 'tyres'],
+  ],
+  barrels: [[2, -9], [12, 9.5], [-19, -4], [24, -16, 'lpg'], [-1.6, 15.8, 'lpg']],
+  pans: [[-6.2, 15.6], [-2.6, 15.2], [20.5, -3.5], [-12.5, 1.8]],
+  tools: [[-5.5, 0.4, 'extinguisher'], [15, 15.8, 'extinguisher']],
+  spots: { barrels: [[-14, -9], [6, 9], [22, -9], [-21, 3]], pans: [[3, 2.8], [8, 16.8], [-24, -14], [26, 15.5]], tools: [[11, -3.2], [-18, 14.5], [23, 16.5]] },
+  fixtures: [
+    [-13.6, 0, 'lamp'],
+    [1.5, -4.4, 'lamp'],
+    [15, 4.4, 'lamp'],
+    [7, 14.3, 'lamp'],
+    [24, -14.3, 'lamp'],
+    // signs hung out over the ways in from the marshals' gates (made-up names): shot down, they crush whoever is under
+    [3.6, 14.6, 'sign', 270],
+    [22.8, -15.4, 'sign', 270],
+  ],
+  pads: [[2, 1], [-25, 0], [20, 16.5]],
+  // boxes on the grandstand's front (level.js balconies, waves.js pickPerches), over the north straight's edge: a tyre
+  // wall is no cover from up there (enemies.js over), and the infield's walls stop the player's shots back, so a man
+  // up there is answered from out on the track
+  perches: [
+    [-7, -12.8, 2.2, 0],
+    [-0.5, -12.8, 2.2, 0],
+    [5.5, -12.8, 2.2, 0],
+    [11.5, -12.8, 2.2, 0],
+  ],
+  stages: [
+    { name: '計時塔', en: 'TIMING TOWER', at: [8, 2.6], move: 'slide' },
+    { name: '髮夾彎', en: 'THE HAIRPIN', at: [-17.5, 0.5], move: 'boom' },
+    { name: '看台前', en: 'GRANDSTAND', at: [8.5, -11.2], move: 'high' },
+    { name: '小食檔', en: 'NOODLE STALL', at: [-4, 14.6], move: 'pan' },
+  ],
+  spawns: [
+    { x: 27.4, z: -9, ex: 25, ez: -9, kind: 'gate' }, // along the track: the north straight from the east
+    { x: 27.4, z: 9, ex: 25, ez: 9, kind: 'gate' }, // the south straight
+    { x: 27.4, z: 0, ex: 25, ez: 0, kind: 'gate' }, // the infield's open end
+    { x: 21.5, z: -16.5, ex: 20.2, ez: -11.6, kind: 'gate' }, // past the grandstand, through the marshals' gate
+    { x: 25.5, z: -17.5, ex: 20.2, ez: -11.6, kind: 'gate' },
+    { x: -20.5, z: -12.1, ex: -17.2, ez: -8.3, kind: 'gate' }, // the run-off, through the tyre wall's gaps
+    { x: -20.5, z: 12.1, ex: -17.2, ez: 8.3, kind: 'gate' },
+    { x: 2, z: 19.4, ex: 2, ez: 11.6, kind: 'gate' }, // from the spectators' side
+    { x: 18, z: 19.4, ex: 18, ez: 11.6, kind: 'gate' },
+  ],
+  decorate(L) {
+    guiaDecorate(L);
+  },
+};
+
+/** The circuit's look: drawn in few meshes (merged boxes, instanced tyres), as draw calls are the weak GPUs' limit. */
+function guiaDecorate(L) {
+  const { halfW: W, halfD: D, cx, inner, outer } = GUIA;
+  const std = (o) => L.own(new THREE.MeshStandardMaterial({ roughness: 0.85, ...o }));
+  /** Boxes [x, y, z, w, h, d] (y the bottom) merged into one mesh: one draw call for the lot (none for none: 玻璃之城 turns the rails to glass). */
+  const boxes = (list, mat, cast = false) => {
+    if (!list.length) return null;
+    const mesh = new THREE.Mesh(L.own(mergeGeometries(list.map(([x, y, z, w, h, d]) => new THREE.BoxGeometry(w, h, d).translate(x, y + h / 2, z)))), mat);
+    mesh.castShadow = cast;
+    mesh.receiveShadow = true;
+    return L.add(mesh);
+  };
+  /** Flat pieces on the ground merged into one mesh: geometries in the XZ plane, lifted `y`. */
+  const ground = (geos, mat, y) => {
+    const mesh = new THREE.Mesh(L.own(mergeGeometries(geos)), mat);
+    mesh.position.y = y;
+    mesh.receiveShadow = true;
+    return L.add(mesh);
+  };
+  const flat = (geo) => geo.rotateX(-Math.PI / 2);
+  /** A ring segment about (x, z) lying on the ground: radii r0 to r1, the west half (the bend's side) unless told otherwise. */
+  const arc = (r0, r1, x = cx, z = 0, a0 = Math.PI / 2, len = Math.PI) => flat(new THREE.RingGeometry(r0, r1, 48, 1, a0, len)).translate(x, 0, z);
+
+  // the ground: grass on the infield, gravel past the bend, a darker strip of the spectators' side
+  ground(
+    [flat(new THREE.PlaneGeometry(W - cx, 2 * inner)).translate((W + cx) / 2, 0, 0), flat(new THREE.CircleGeometry(inner, 32, Math.PI / 2, Math.PI)).translate(cx, 0, 0)],
+    std({ color: 0x1b3320, roughness: 1 }),
+    0.006,
+  );
+  ground([arc(outer + 0.5, 21)], std({ color: 0x4a4338, roughness: 1 }), 0.005);
+  // the white lines at the track's edges, and red-and-white kerbs round the inside of the bend
+  const lineMat = std({ color: 0xe8ecf2, roughness: 0.6, emissive: 0xe8ecf2, emissiveIntensity: 0.06 });
+  const lines = [];
+  for (const sz of [-1, 1]) {
+    lines.push(flat(new THREE.PlaneGeometry(W - cx, 0.14)).translate((W + cx) / 2, 0, sz * (inner + 0.75)));
+    lines.push(flat(new THREE.PlaneGeometry(W - cx, 0.14)).translate((W + cx) / 2, 0, sz * (outer - 0.6)));
+  }
+  lines.push(arc(inner + 0.68, inner + 0.82), arc(outer - 0.67, outer - 0.53));
+  ground(lines, lineMat, 0.012);
+  const kerbs = [[], []];
+  for (let i = 0; i < 16; i++) kerbs[i % 2].push(arc(inner + 0.48, inner + 1.1, cx, 0, Math.PI / 2 + (i * Math.PI) / 16, Math.PI / 16));
+  ground(kerbs[0], std({ color: 0xc81e28, roughness: 0.7 }), 0.014);
+  ground(kerbs[1], std({ color: 0xe8ecf2, roughness: 0.7 }), 0.014);
+
+  // the tyre walls: every 'tyres' box drawn as stacks of three tyres, blue and white by turns (two instanced meshes)
+  const stacks = [];
+  for (const sd of L.solids) {
+    if (sd.matKey !== 'tyres') continue;
+    sd.mesh.visible = false;
+    const w = sd.maxX - sd.minX;
+    const d = sd.maxZ - sd.minZ;
+    const along = w >= d;
+    const n = Math.max(1, Math.round((along ? w : d) / 0.85));
+    for (let i = 0; i < n; i++) {
+      const k = (i + 0.5) / n;
+      stacks.push([along ? sd.minX + w * k : (sd.minX + sd.maxX) / 2, along ? (sd.minZ + sd.maxZ) / 2 : sd.minZ + d * k]);
+    }
+  }
+  const tyreGeo = L.own(new THREE.CylinderGeometry(0.42, 0.42, 0.29, 12).translate(0, 0.145, 0));
+  const layers = [[], []];
+  stacks.forEach(([x, z], i) => {
+    for (let t = 0; t < 3; t++) layers[(i + t) % 3 === 1 ? 1 : 0].push([x, t * 0.3, z]);
+  });
+  const m4 = new THREE.Matrix4();
+  layers.forEach((list, k) => {
+    const im = new THREE.InstancedMesh(tyreGeo, std({ color: k ? 0xe8ecf2 : 0x1d4fd0, roughness: 0.7 }), list.length);
+    list.forEach(([x, y, z], i) => im.setMatrixAt(i, m4.makeTranslation(x, y, z)));
+    im.computeBoundingSphere();
+    im.castShadow = true;
+    im.receiveShadow = true;
+    L.add(im);
+  });
+
+  // the guardrails: white steel with a blue band and a post every 2 m (each rail's box is its collision and its look)
+  const band = [];
+  const posts = [];
+  for (const sd of L.solids) {
+    if (sd.matKey !== 'rail') continue;
+    const z = (sd.minZ + sd.maxZ) / 2;
+    band.push([(sd.minX + sd.maxX) / 2, 0.45, z, sd.maxX - sd.minX, 0.22, GUIA.rail + 0.02]);
+    for (let x = sd.minX + 0.2; x < sd.maxX; x += 2) posts.push([x, 0, z, 0.12, GUIA.railH + 0.1, 0.12]);
+  }
+  boxes(band, std({ color: 0x1d4fd0, roughness: 0.5 }));
+  boxes(posts, L.mat.darkMetal);
+
+  // the grandstand: four tiers rising north, red and white seats, posts and a roof over the back
+  const [sx0, sx1, sz0, sz1] = GUIA.stand;
+  const standSd = L.solids.find((sd) => sd.matKey === 'stand');
+  standSd.mesh.visible = false;
+  const tiers = [];
+  const seats = [[], []];
+  for (let i = 0; i < 4; i++) {
+    const z = sz1 - 0.6 - i * 1.2;
+    const top = 1.4 + i * 0.67;
+    tiers.push([(sx0 + sx1) / 2, 0, z, sx1 - sx0, top, 1.2]);
+    for (let x = sx0 + 0.5; x < sx1 - 0.3; x += 0.7) seats[Math.floor((x - sx0) / 4.2) % 2].push([x, top, z, 0.5, 0.32, 0.45]);
+  }
+  tiers.push([(sx0 + sx1) / 2, 0, (sz0 + sz1 - 4.8) / 2, sx1 - sx0, GUIA.standH, sz1 - sz0 - 4.8]);
+  boxes(tiers, std({ color: 0x5b6270, roughness: 0.9 }), true);
+  boxes(seats[0], std({ color: 0xc81e28, roughness: 0.6 }));
+  boxes(seats[1], std({ color: 0xe8ecf2, roughness: 0.6 }));
+  const roofPosts = [];
+  for (let x = sx0 + 1; x <= sx1 - 1; x += 7) roofPosts.push([x, 0, sz0 + 0.4, 0.25, 6.4, 0.25]);
+  boxes(roofPosts, L.mat.darkMetal, true);
+  // the boxes on the stand's front, over the walkway, where a beat sends a man up (the map's perches)
+  const ledges = [];
+  for (const [x, z, y] of L.map.perches) {
+    ledges.push([x, y - 0.15, z - 0.05, 2.4, 0.15, 0.9], [x, y, z + 0.38, 2.4, 0.55, 0.06]);
+  }
+  boxes(ledges, std({ color: 0x3a404c, roughness: 0.7, metalness: 0.2 }), true);
+  boxes([[(sx0 + sx1) / 2, 6.4, (sz0 + sz1) / 2 - 1, sx1 - sx0 + 1, 0.25, sz1 - sz0 + 0.4]], std({ color: 0x2a2f3a, roughness: 0.7, metalness: 0.3 }), true);
+  sign(
+    L,
+    [
+      { text: 'GUIA CIRCUIT', font: 'bold 150px "Bebas Neue", Impact, sans-serif', color: '#e8f0ff', y: 110 },
+      { text: '東 望 洋 跑 道', font: HAN(56), color: '#3fb4ff', y: 214 },
+    ],
+    9,
+    2.25,
+    0,
+    5.4,
+    sz1 - 4.5,
+    0,
+    1.6,
+  );
+
+  // the timing tower: a board of made-up lap times on its south face
+  sign(
+    L,
+    [
+      { text: 'LAP 12 / 15', font: 'bold 120px "Bebas Neue", Impact, sans-serif', color: '#ffd23a', y: 104 },
+      { text: '#7  #21  #33', font: 'bold 80px "Bebas Neue", Impact, sans-serif', color: '#e8f0ff', y: 206 },
+    ],
+    2.4,
+    0.6,
+    8,
+    7,
+    1.32,
+    0,
+    1.8,
+  );
+
+  // the floodlight masts at the map's four point lights
+  const masts = [];
+  const heads = [];
+  for (const p of L.points) {
+    masts.push([p.base.x, 0, p.base.z, 0.3, p.base.y, 0.3]);
+    heads.push([p.base.x, p.base.y, p.base.z, 1.4, 0.5, 0.5]);
+  }
+  boxes(masts, L.mat.darkMetal, true);
+  boxes(heads, std({ color: 0xffffff, emissive: 0xe8f0ff, emissiveIntensity: 2.2 }));
+
+  // the city beyond: dark towers with lit windows
+  cityBackdrop(L, { facade: false, keepOut: [W + 8, D + 8] });
+}
+
+export const MAPS = [rooftop, club, docks, senado, felicidade, guia];

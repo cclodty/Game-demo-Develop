@@ -916,6 +916,11 @@ export class Level {
       brick: std({ color: 0x7c7770, roughness: 0.92 }),
       mahjong: std({ color: 0x1f6a46, roughness: 0.85 }),
       mahjongTile: std({ color: 0xf2eee2, roughness: 0.5 }),
+      // the Guia circuit (maps.js guiaDecorate gives the tyres, rails, stand and tower their looks)
+      tyres: std({ color: 0x1d4fd0, roughness: 0.7 }),
+      rail: std({ color: 0xdfe4ec, roughness: 0.4, metalness: 0.5 }),
+      stand: std({ color: 0x5b6270, roughness: 0.9 }),
+      tower: std({ color: 0x23272f, roughness: 0.5, metalness: 0.3 }),
     };
   }
 

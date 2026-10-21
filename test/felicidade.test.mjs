@@ -203,7 +203,7 @@ test('in the street: hanging signs, lamps, LPG cylinders, pans and mahjong table
   assert.ok(r.mahjong >= 2, `${r.mahjong} mahjong tables in the street`);
   assert.equal(r.warm, 4, 'all four lights warm');
   assert.ok(r.cyan >= 3, `${r.cyan} pieces of cyan neon`);
-  assert.equal(r.cards, 5, 'five map cards on the title');
+  assert.equal(r.cards, 6, 'a map card each on the title (東望洋跑道 is the sixth)');
   await page.evaluate(() => window.game.toTitle());
   await page.keyboard.press('Digit5');
   const started = await page.evaluate(() => ({ state: window.game.state, map: window.game.level.map.id, start: window.game.startMap }));
@@ -248,7 +248,7 @@ test('an arcade run from 福隆新街: a god-mode bot plays it to the end of wav
   console.log(`福隆新街: waves 1-4 in ${r.minutes.toFixed(1)} min, ${r.spawns} spawn points used`);
   assert.deepEqual(r.errors, []);
   assert.deepEqual(r.stages, [4], 'the stage moves on after wave 4');
-  assert.equal(r.map, 'rooftop', 'to the next map');
+  assert.equal(r.map, 'guia', 'to the next map (東望洋跑道)');
   assert.ok(r.spawns >= 3, `enemies came in at ${r.spawns} of the spawn points`);
   assert.deepEqual(problems(logs), []);
 });

@@ -102,6 +102,8 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
       let wanderX = 0;
       let wanderZ = 0;
       let wanderT = 0;
+      let chase = null; // a point on the way to a target the guns cannot reach from here, and when to look again
+      let chaseT = 0;
       let i = 0;
       window.simStep = (n) => {
         const dt = 1 / 60;
@@ -204,8 +206,30 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
             }
             if (random() < 0.3) wanderX = wanderZ = 0;
           }
+          // a target no shot reaches from here (a man up on a grandstand behind a tyre wall): walk his way on the nav grid
+          chaseT -= dt;
+          if (!target || goal || door || heli) chase = null;
+          else if (chaseT <= 0) {
+            chaseT = 0.25;
+            chase = null;
+            if (g.level.raycast(p.x, p.z, target.x, target.z, false, 0, false)) {
+              const path = g.level.nav.findPath(p.x, p.z, target.x, target.z);
+              // the path's next corner (its points are where it turns)
+              if (path) chase = path.find((q) => Math.hypot(q.x - p.x, q.z - p.z) > 0.75) || null;
+            }
+          }
           let kx = wanderX;
           let kz = wanderZ;
+          if (chase && !goal) {
+            kx = chase.x - p.x;
+            kz = chase.z - p.z;
+            const yaw = g.camYaw;
+            if (yaw) {
+              const c = Math.cos(yaw);
+              const s = Math.sin(yaw);
+              [kx, kz] = [kx * c - kz * s, kx * s + kz * c];
+            }
+          }
           if (goal) {
             // to the spot behind the truck (or the gunner, a barrel, the helicopter): W is up the screen, so the world direction turns by the camera's yaw (player.js)
             kx = goal.x - p.x;
