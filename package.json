@@ -6,6 +6,7 @@
     "serve": "node scripts/serve.mjs",
     "lint": "eslint .",
     "test": "node --test --test-concurrency=1 senado/tests/*.test.mjs test/*.test.mjs",
+    "test:shard": "node --test --test-concurrency=1 --test-shard=$SHARD senado/tests/*.test.mjs test/*.test.mjs",
     "test:game": "node --test --test-concurrency=1 test/game/*.test.mjs",
     "test:all": "npm test && npm run test:game",
     "build": "node scripts/build-single.mjs",
