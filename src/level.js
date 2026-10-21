@@ -791,6 +791,7 @@ export class Level {
     this.root = null;
     this.owned = [];
     this.balconies = []; // (load: the map's perches)
+    this.tables = []; // (load: its mahjong tables)
     // camera -> player cutaway, shared by every material that opts in (see maps.js)
     this.cut = {
       uCutA: { value: new THREE.Vector3() },
@@ -1002,6 +1003,8 @@ export class Level {
       else this.addSolid(...s);
     }
     for (const g of map.glass || []) this.addGlass(...g);
+    this.tables = this.solids.filter((s) => s.matKey === 'mahjong'); // tiles to throw (thrown.js throwTiles; resetProps refills them)
+    for (const t of this.tables) t.tiles = ENV.tiles.handfuls;
     const groups = { barrels: [], pans: [], tools: [] }; // what was built from each list, for a daily to deal out (dealProps)
     for (const [x, z, v] of map.barrels || []) this.barrels.push(new Barrel(this, x, z, v));
     groups.barrels.push(...this.barrels);
@@ -1169,10 +1172,10 @@ export class Level {
         this.deco(x, h, z, 0.12, 0.12, 0.12, M.neonOrange);
         break;
       case 'mahjong':
-        // a game left mid-hand: the four walls of tiles on the felt
-        for (const [dx, dz, along] of [[0, -0.3, true], [0, 0.3, true], [-0.3, 0, false], [0.3, 0, false]]) {
-          this.deco(x + dx * w, h, z + dz * d, along ? w * 0.5 : 0.07, 0.05, along ? 0.07 : d * 0.5, M.mahjongTile);
-        }
+        // a game left mid-hand: the four walls of tiles on the felt, one a handful thrown (thrown.js throwTiles)
+        s.tileWalls = [[0, -0.3, true], [0, 0.3, true], [-0.3, 0, false], [0.3, 0, false]].map(([dx, dz, along]) =>
+          this.deco(x + dx * w, h, z + dz * d, along ? w * 0.5 : 0.07, 0.05, along ? 0.07 : d * 0.5, M.mahjongTile),
+        );
         break;
       case 'stall': {
         // a counter with a striped canopy on poles
@@ -1625,7 +1628,26 @@ export class Level {
     }
     for (const sp of this.spawns) sp.heat = 0;
     for (const pad of this.pads) pad.pickup = null;
+    for (const t of this.tables) {
+      t.tiles = ENV.tiles.handfuls;
+      for (const m of t.tileWalls || []) m.visible = true;
+    }
     this.rebuildNav();
+  }
+
+  /** A mahjong table with tiles left whose edge is within `reach` of (x, z), the nearest; null if none. */
+  tableNear(x, z, reach) {
+    let best = null;
+    let bd = reach;
+    for (const t of this.tables) {
+      if (!(t.tiles > 0)) continue;
+      const d = Math.hypot(Math.max(t.minX - x, 0, x - t.maxX), Math.max(t.minZ - z, 0, z - t.maxZ));
+      if (d <= bd) {
+        bd = d;
+        best = t;
+      }
+    }
+    return best;
   }
 
   /**

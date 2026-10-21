@@ -191,6 +191,12 @@ export const ENV = {
   // a hand trolley (level.js Trolley, the docks): kicked off at `speed` m/s, slowing by `friction` a second (a barrel's is 3.2);
   // it keeps `knock` of its speed through each one it bowls over, and `bowling` of them in one roll is BOWLING +`pts`
   trolley: { speed: 13, friction: 0.45, knock: 0.85, bowling: 2, pts: 200 },
+  // mahjong tiles (thrown.js throwTiles; the tables on Rua da Felicidade): G within `reach` m of a table, hands empty,
+  // throws a handful: one tile for each of `fan` (where it flies across a fan `spread` rad wide around the aim: most
+  // of a handful goes straight, two close either side of the aim so the man aimed at is hit, two a little out, two at
+  // the edges), flying `range` m at `speed` m/s; each dazes the first man it meets for `daze` s and does no harm;
+  // `pong` or more dazed by one handful is PONG +`pts`. A table holds `handfuls` (one wall of tiles each), back with a new run
+  tiles: { reach: 1.2, fan: [-0.5, -0.3, -0.06, 0.06, 0.3, 0.5], spread: 0.8, range: 9, speed: 18, daze: 0.4, pong: 3, pts: 150, handfuls: 4 },
   // water (level.js `water`): an enemy knocked over the edge of it is gone (SPLASH); props that land in it sink
   splashSpeed: 4, // m/s towards the water a knocked-over enemy needs to go in
   splashReach: 0.6, // m beyond his body the water has to be

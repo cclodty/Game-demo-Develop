@@ -5,6 +5,7 @@
 // player bullet that hits it (see Bullets.scatter). Collision stays 2D like
 // everything else; height only decides when a thing lands.
 
+import * as THREE from 'three';
 import { buildWeaponModel, HOLDS, holdBoth, holdInHand } from './characters.js';
 import { ENV, PAN, PLAYER, UMBRELLA } from './config.js';
 import { withLabels } from './input.js';
@@ -13,6 +14,7 @@ import { PLAYER_WEAPONS } from './weapons.js';
 
 const GRAVITY = 22;
 const CARRY_Y = 2.15;
+const TILE_Y = 1.1; // m: mahjong tiles fly level at chest height (throwTiles)
 /**
  * How a carried thing is shown (look only: a throw still starts from CARRY_Y): its height, just over
  * the head (the comic proportions' head tops out at 1.75 m and their arms reach about 1.85 m), and
@@ -51,6 +53,9 @@ export class Thrown {
     this.inHand = false; // the carried thing is a pan or an umbrella in the right hand: the left gun fires, F swings or opens it
     this.hugged = false; // the carried thing is held before the body in both hands (characters.js HOLDS): F sprays it
     this.list = []; // thrown weapons in flight
+    this.tiles = []; // mahjong tiles in flight (throwTiles), each with its handful: { x, z, vx, vz, left, hand, mesh }
+    this.tileGeo = new THREE.BoxGeometry(0.1, 0.13, 0.07);
+    this.tileMat = new THREE.MeshStandardMaterial({ color: 0xf2eee2, roughness: 0.5 });
     this.prompt = ''; // HUD hint (HTML, controls as {name}: input.js withLabels), '' for none
   }
 
@@ -61,6 +66,8 @@ export class Thrown {
     }
     for (const o of this.list) this.game.scene.remove(o.mesh);
     this.list.length = 0;
+    for (const t of this.tiles) this.game.scene.remove(t.mesh);
+    this.tiles.length = 0;
     this.prompt = '';
   }
 
@@ -99,14 +106,92 @@ export class Thrown {
     return prop ? this.pickUp(prop) : false;
   }
 
-  /** The throw key (G): throw what is carried, else an emptied special weapon. */
+  /** The throw key (G): throw what is carried, else an emptied special weapon, else a handful of tiles from a mahjong table at hand. */
   throwAction() {
     const g = this.game;
     const p = g.player;
     if (this.carry) return this.throwCarried();
     if (p.special && p.special.empty) return this.throwGun();
+    const table = g.level.tableNear(p.x, p.z, ENV.tiles.reach);
+    if (table) return this.throwTiles(table);
     g.audio.denied();
     return false;
+  }
+
+  /**
+   * G at a mahjong table: a handful of its tiles (one of its four walls) thrown in a fan around the aim. Each one
+   * dazes the first man it meets (enemies.js daze); enough of them dazed by one handful is PONG.
+   */
+  throwTiles(table) {
+    const g = this.game;
+    const p = g.player;
+    const T = ENV.tiles;
+    table.tiles--;
+    if (table.tileWalls) table.tileWalls[table.tiles].visible = false;
+    const { dx, dz } = this.aimDir();
+    const aim = Math.atan2(dz, dx);
+    const hand = { dazed: new Set(), out: T.fan.length, pong: false };
+    for (const f of T.fan) {
+      const a = aim + f * T.spread;
+      const mesh = new THREE.Mesh(this.tileGeo, this.tileMat);
+      g.style.dress(mesh);
+      g.scene.add(mesh);
+      const t = { x: p.x + Math.cos(a) * 0.4, z: p.z + Math.sin(a) * 0.4, vx: Math.cos(a) * T.speed, vz: Math.sin(a) * T.speed, left: T.range, hand, mesh };
+      mesh.position.set(t.x, TILE_Y, t.z);
+      this.tiles.push(t);
+    }
+    p.throwT = HOLDS.throw.time; // the arm over the top (player.js syncRig)
+    g.audio.toss();
+    g.notes.log('擲出一把麻雀牌');
+    return true;
+  }
+
+  /** Tiles in flight: straight and level; a wall stops one, the first man it meets is dazed; past their range they drop. */
+  updateTiles(dt) {
+    const g = this.game;
+    const T = ENV.tiles;
+    for (let i = this.tiles.length - 1; i >= 0; i--) {
+      const t = this.tiles[i];
+      const nx = t.x + t.vx * dt;
+      const nz = t.z + t.vz * dt;
+      let gone = false;
+      const wall = g.level.raycast(t.x, t.z, nx, nz);
+      if (wall && wall.solid.h >= TILE_Y) {
+        gone = true;
+        g.fx.sparks(t.x, TILE_Y, t.z, -t.vx, -t.vz, 3, [4, 4, 4], 4);
+      } else {
+        for (const e of g.enemies.list) {
+          if (!e.alive || e.spawnLock > 0 || e.aloft || t.hand.dazed.has(e)) continue;
+          if (segCircle(t.x, t.z, nx, nz, e.x, e.z, e.radius + 0.1) < 0) continue;
+          if (e.daze(T.daze)) {
+            t.hand.dazed.add(e);
+            g.fx.sparks(e.x, 1.5, e.z, t.vx, t.vz, 4, [6, 6, 5], 4);
+            g.hud.hitMarker(false);
+          }
+          gone = true;
+          break;
+        }
+      }
+      t.x = nx;
+      t.z = nz;
+      t.left -= T.speed * dt;
+      if (t.left <= 0) gone = true;
+      t.mesh.position.set(t.x, TILE_Y, t.z);
+      t.mesh.rotation.y += dt * 18;
+      t.mesh.rotation.x += dt * 11;
+      const hand = t.hand;
+      if (!hand.pong && hand.dazed.size >= T.pong) {
+        hand.pong = true;
+        g.score.style('PONG', T.pts);
+        g.audio.kick(true);
+        g.notes.log(`PONG：一把麻雀牌暈了 ${hand.dazed.size} 個`);
+      }
+      if (gone) {
+        g.scene.remove(t.mesh);
+        this.tiles.splice(i, 1);
+        if (--hand.out === 0 && hand.dazed.size) g.notes.log(`麻雀牌暈了 ${hand.dazed.size} 個`);
+      }
+    }
   }
 
   pickUp(prop) {
@@ -359,6 +444,8 @@ export class Thrown {
       }
     }
 
+    this.updateTiles(dt);
+
     // HUD hint
     if (!p.alive) this.prompt = '';
     else if (this.carry) {
@@ -369,6 +456,7 @@ export class Thrown {
       const near = this.nearProp();
       if (near) this.prompt = `{pick} 拿起${Thrown.propName(near)}`;
       else if (p.special && p.special.empty) this.prompt = `{throw} 擲出空的${PLAYER_WEAPONS[p.special.id].name}`;
+      else if (g.level.tableNear(p.x, p.z, ENV.tiles.reach)) this.prompt = '{throw} 擲麻雀牌';
       else this.prompt = '';
     }
   }

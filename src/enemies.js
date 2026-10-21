@@ -462,6 +462,16 @@ class Enemy {
     if (this.hp <= 0) this.die(dx, dz, { cause });
   }
 
+  /** A mahjong tile hits him (thrown.js throwTiles): dazed for `t` s where he stands, no harm done. */
+  daze(t) {
+    if (!this.alive || this.aloft) return false;
+    this.stunT = Math.max(this.stunT, t);
+    this.stunCause = 'tile';
+    this.endAim();
+    if (this.state !== 'enter') this.state = this.rushes ? 'chase' : 'move';
+    return true;
+  }
+
   /** A fishing net falls over him (level.js Net): held where he stands, dazed for `t` s (F executes him). */
   netted(t) {
     if (!this.alive || this.aloft) return;
