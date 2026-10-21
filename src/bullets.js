@@ -197,7 +197,7 @@ export class Bullets {
 
     if (b.owner === 'player') {
       for (const e of game.enemies.list) {
-        if (!e.alive || e.spawnLock > 0 || (b.hits.length && b.hits.includes(e))) continue;
+        if (!e.alive || e.spawnLock > 0 || e.held || (b.hits.length && b.hits.includes(e))) continue; // the human shield is the player's own
         const t = segCircle(x0, z0, x1, z1, e.x, e.z, e.radius + 0.16);
         if (t >= 0 && (!best || t < best.t)) best = { t, type: 'enemy', enemy: e };
       }
@@ -219,7 +219,13 @@ export class Bullets {
       const p = game.player;
       if (p.alive && !p.spinning && !p.sliding && !p.diving) {
         const t = segCircle(x0, z0, x1, z1, p.x, p.z, PLAYER.hitRadius);
-        if (t >= 0 && (!best || t < best.t)) best = { t, type: 'player' };
+        // from the front, where the human shield is held, it meets him instead (player.js grab)
+        if (t >= 0 && (!best || t < best.t)) best = { t, type: p.shieldedFrom(b.dx, b.dz) ? 'hostage' : 'player' };
+      }
+      const hs = p.hostage;
+      if (hs && hs.alive) {
+        const t = segCircle(x0, z0, x1, z1, hs.x, hs.z, hs.radius);
+        if (t >= 0 && (!best || t < best.t)) best = { t, type: 'hostage' };
       }
       // Enemy bullets can also hit other enemies (friendly fire after a ricochet).
       if (b.reflected) {
@@ -307,6 +313,10 @@ export class Bullets {
         return;
       case 'grenade':
         game.grenades.airburst(hit.grenade);
+        b.alive = false;
+        return;
+      case 'hostage':
+        game.player.hostage.shieldHit(b);
         b.alive = false;
         return;
       case 'player':

@@ -94,6 +94,9 @@ export class Player {
     this.diveCd = 0;
     this.diveDirX = 1;
     this.diveDirZ = 0;
+    this.hostage = null; // the man held up as a human shield (grab), or null
+    this.hostageT = 0; // s he is held for still
+    this.eUsed = false; // this step's E went to letting him go (pickups.js leaves it alone)
     this.spinDirX = 0;
     this.spinDirZ = -1;
     this.fireCd = 0;
@@ -151,6 +154,8 @@ export class Player {
     this.vx = this.vz = 0;
     this.spinT = 0;
     this.diveT = this.rollT = 0;
+    this.hostage = null;
+    this.hostageT = 0;
     this.splitTarget = null;
     this.syncRig(0);
   }
@@ -171,6 +176,63 @@ export class Player {
   /** Landed from a dive, rolling out of it. */
   get rolling() {
     return this.rollT > 0;
+  }
+
+  /** E by a man in front, nothing else to pick up: hold him up as a human shield. */
+  grab() {
+    const g = this.game;
+    const H = PLAYER.humanShield;
+    const fx = Math.sin(this.facing);
+    const fz = Math.cos(this.facing);
+    let best = null;
+    let bestD = H.reach;
+    for (const e of g.enemies.list) {
+      if (!e.holdable) continue;
+      const dx = e.x - this.x;
+      const dz = e.z - this.z;
+      const d = Math.hypot(dx, dz);
+      if (d < bestD && dx * fx + dz * fz >= 0) {
+        best = e;
+        bestD = d;
+      }
+    }
+    if (!best) return false;
+    this.hostage = best;
+    this.hostageT = H.hold;
+    best.hold();
+    this.holdHostage();
+    g.audio.kick(false);
+    g.notes.log(`抓住人盾 ${best.cfg.label}`);
+    return true;
+  }
+
+  /** Let the human shield go (the time is up, E again, a kick); a dead one is simply dropped. */
+  letGo() {
+    const e = this.hostage;
+    this.hostage = null;
+    this.hostageT = 0;
+    if (e && e.alive) {
+      e.letGo();
+      this.game.notes.log('放開人盾');
+    }
+  }
+
+  /** The man held up in front, where the arms hold him: `gap` m ahead, facing the way the player faces. */
+  holdHostage() {
+    const e = this.hostage;
+    const gap = PLAYER.humanShield.gap;
+    e.x = this.x + Math.sin(this.facing) * gap;
+    e.z = this.z + Math.cos(this.facing) * gap;
+    e.vx = this.vx;
+    e.vz = this.vz;
+    e.facing = this.facing;
+    this.game.level.collideCircle(e, e.radius);
+  }
+
+  /** True when a bullet travelling along (dx, dz) comes from within the arc in front, where the human shield is. */
+  shieldedFrom(dx, dz) {
+    if (!this.hostage || !this.hostage.alive) return false;
+    return -(dx * Math.sin(this.facing) + dz * Math.cos(this.facing)) >= Math.cos((PLAYER.humanShield.arc * Math.PI) / 180);
   }
 
   get weapon() {
@@ -255,6 +317,7 @@ export class Player {
 
   update(dt, input) {
     if (!this.alive) {
+      if (this.hostage) this.letGo(); // shot down holding a man: he is free
       this.updateDeath(dt);
       return;
     }
@@ -266,6 +329,14 @@ export class Player {
     this.kickCd -= dt;
     this.invuln -= dt;
     this.sinceHurt += dt;
+    this.eUsed = false;
+    if (this.hostage) {
+      this.hostageT -= dt;
+      if (!this.hostage.alive || !g.enemies.list.includes(this.hostage)) {
+        if (!this.hostage.alive) g.notes.log('人盾被打死');
+        this.letGo();
+      } else if (this.hostageT <= 0) this.letGo();
+    }
     this.hurtFlash = Math.max(0, this.hurtFlash - dt * 4);
     this.recoilL = Math.max(0, this.recoilL - dt * 8);
     this.recoilR = Math.max(0, this.recoilR - dt * 8);
@@ -297,7 +368,7 @@ export class Player {
 
     // slide: only out of a run, locked to the direction of travel; a spin can cut it short
     const curSp = Math.hypot(this.vx, this.vz);
-    if (input.hit('KeyC') && this.slideCd <= 0 && this.slideT <= 0 && this.spinT <= 0 && this.diveT <= 0 && this.rollT <= 0 && this.execT <= 0 && !this.shieldOn && curSp >= PLAYER.slideMinSpeed) {
+    if (input.hit('KeyC') && this.slideCd <= 0 && this.slideT <= 0 && this.spinT <= 0 && this.diveT <= 0 && this.rollT <= 0 && this.execT <= 0 && !this.shieldOn && !this.hostage && curSp >= PLAYER.slideMinSpeed) {
       this.slideT = PLAYER.slideDuration;
       this.slideDirX = this.vx / curSp;
       this.slideDirZ = this.vz / curSp;
@@ -306,7 +377,7 @@ export class Player {
     }
 
     // in bullet time with a direction held, Space is a dive that way; otherwise the spin
-    const canDive = g.focusActive && il > 0 && this.diveCd <= 0 && this.diveT <= 0 && this.rollT <= 0 && !(g.thrown && g.thrown.carry);
+    const canDive = g.focusActive && il > 0 && this.diveCd <= 0 && this.diveT <= 0 && this.rollT <= 0 && !(g.thrown && g.thrown.carry) && !this.hostage;
     if (input.hit('Space') && canDive && this.execT <= 0) {
       this.diveT = PLAYER.dive.air;
       this.diveDirX = ix;
@@ -314,7 +385,7 @@ export class Player {
       this.spinT = this.slideT = 0;
       g.audio.slide();
       g.notes.log('飛撲');
-    } else if (input.hit('Space') && this.spinCd <= 0 && this.spinT <= 0 && this.diveT <= 0 && this.rollT <= 0 && this.execT <= 0) {
+    } else if (input.hit('Space') && this.spinCd <= 0 && this.spinT <= 0 && this.diveT <= 0 && this.rollT <= 0 && this.execT <= 0 && !this.hostage) {
       this.spinT = PLAYER.spinDuration;
       this.slideT = 0;
       g.notes.log('旋轉閃避');
@@ -337,7 +408,7 @@ export class Player {
     let tx;
     let tz;
     let accel = PLAYER.accel;
-    const speed = PLAYER.speed * (w.moveMul || 1) * (this.shieldOn ? UMBRELLA.walkMul : 1); // an open umbrella is a walk
+    const speed = PLAYER.speed * (w.moveMul || 1) * (this.shieldOn ? UMBRELLA.walkMul : 1) * (this.hostage ? PLAYER.humanShield.walkMul : 1); // an open umbrella, a man held: a walk
     if (this.execT > 0) {
       // an execution: standing over him until it is done
       this.execT -= dt;
@@ -397,6 +468,7 @@ export class Player {
     const aim = input.aim;
     const aimDist = Math.hypot(aim.x - this.x, aim.z - this.z);
     if (aimDist > 0.35 && this.execT <= 0) this.facing = angleTo(this.x, this.z, aim.x, aim.z);
+    if (this.hostage) this.holdHostage();
 
     // --- split aim (dual weapons only): hold right mouse to lock the left gun
     if (input.mouse.rightPressed && w.dual && !this.unarmed) {
@@ -424,8 +496,14 @@ export class Player {
       this.startReload();
     }
     // --- carry / throw (G); a carried thing is thrown with G or the left button
-    // E picks up what lies here (a pad's weapon swap has first call: pickups.js); G throws
-    if (input.hit('KeyE') && !g.pickups.prompt) g.thrown.pickAction();
+    // E picks up what lies here (a pad's weapon swap has first call: pickups.js), else holds up the man in front as a
+    // human shield, and lets him go again; G throws
+    if (input.hit('KeyE')) {
+      if (this.hostage) {
+        this.letGo();
+        this.eUsed = true;
+      } else if (!g.pickups.prompt && !g.thrown.pickAction() && !g.thrown.carry) this.grab();
+    }
     if (input.hit('KeyG')) g.thrown.throwAction();
     const carrying = !!g.thrown.carry && !g.thrown.inHand; // a pan in hand leaves the left gun free: only a load overhead is thrown by the left button
     if (carrying && input.mouse.leftPressed) g.thrown.throwCarried();
@@ -464,6 +542,7 @@ export class Player {
     if (this.shieldOn) this.shield(umbrella);
     this.shieldK = clamp(this.shieldK + (this.shieldOn ? 8 : -8) * dt, 0, 1);
     if (umbrella) umbrella.open(this.shieldK);
+    if (input.hit('KeyF') && this.hostage) this.letGo(); // the arm is needed for the kick
     if (input.hit('KeyF') && this.execT <= 0) {
       const down = this.executable();
       if (down) this.execute(down);
@@ -507,7 +586,7 @@ export class Player {
       p.vz += (dz / d) * 1.5;
     }
     for (const e of g.enemies.list) {
-      if (!e.alive || e.aloft) continue; // a drone flies over, a man on a balcony stands over
+      if (!e.alive || e.aloft || e.held) continue; // a drone flies over, a man on a balcony stands over, the human shield is held
       const dx = e.x - this.x;
       const dz = e.z - this.z;
       const rr = R + e.radius;
@@ -545,8 +624,8 @@ export class Player {
     } else {
       shots.push({ side: 0, tx: aim.x, tz: aim.z, split: false });
     }
-    if (g.thrown.inHand) {
-      // the right hand holds the pan: the left pistol (side 1, rig.armL) alone
+    if (g.thrown.inHand || this.hostage) {
+      // the right hand holds the pan, or the man in front: the left pistol (side 1, rig.armL) alone
       shots.length = 0;
       shots.push({ side: 1, tx: aim.x, tz: aim.z, split: false });
     }
@@ -936,7 +1015,7 @@ export class Player {
     const prop = carrying ? thrown.carry : null;
     r.anim.carry = prop ? carryHands(prop) : null;
     // a pan in the right hand: that pistol stays away; empty hands (無槍): both
-    for (const m of r.weaponParts) m.visible = !prop && !hugged && !(inHand && m.parent === r.armR) && !this.unarmed;
+    for (const m of r.weaponParts) m.visible = !prop && !hugged && !((inHand || this.hostage) && m.parent === r.armR) && !this.unarmed;
     // the guns stay level with the aim however the body leans (a slide lies back, an execution leans in)
     const level = -r.inner.rotation.x;
     r.armL.rotation.x = (carrying ? -1.5 : pose.lx) + level;
@@ -955,6 +1034,7 @@ export class Player {
       holdInHand(r, c.mesh, HOLDS[c.kind], k);
     }
     if (hugged) r.anim.hands = holdBoth(r, thrown.carry.mesh, HOLDS[thrown.carry.kind]);
+    if (this.hostage) aimArm(r.armR, 0.35, -0.15, 1); // the right arm across the man held in front
     if (this.throwT > 0) {
       // a throw: the right arm comes over the top
       const T = HOLDS.throw;

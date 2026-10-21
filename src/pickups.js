@@ -124,7 +124,7 @@ export class Pickups {
       }
     }
     this.prompt = near;
-    if (near && input.hit('KeyE')) {
+    if (near && input.hit('KeyE') && !player.hostage && !player.eUsed) {
       const old = player.special;
       player.giveWeapon(near.kind, near.ammo, true);
       this.remove(near);
