@@ -1135,8 +1135,9 @@ class Game {
     this.thrown.clear();
     this.style.clearGhosts();
     this.fx.clear();
-    if (this.level.map !== map || this.level.glassUpTo !== this.ruleset.glassUpTo || this.level.pansAsBarrels !== this.ruleset.pansAsBarrels) {
-      this.level.load(map);
+    const layout = this.layoutFor(0);
+    if (this.level.map !== map || this.level.glassUpTo !== this.ruleset.glassUpTo || this.level.pansAsBarrels !== this.ruleset.pansAsBarrels || this.level.layoutKey !== (layout ? layout.key : '')) {
+      this.level.load(map, layout);
       this.applyMapView();
       this.renderer.compile(this.scene, this.camera);
     } else {
@@ -1209,6 +1210,11 @@ class Game {
     return `${maps.map((m) => m.name).join(' → ')}${bosses.length ? `（頭目：${bosses.join('、')}）` : ''}`;
   }
 
+  /** A daily run's layout for stage `stage` (level.js dealProps): a stream of the run's seed of its own; null in any other mode. */
+  layoutFor(stage) {
+    return this.mode === 'daily' ? { key: `${this.rng.seed}/${stage}`, rng: this.rng.fork('layout', stage) } : null;
+  }
+
   get stageMap() {
     return MAPS[(this.startMap + this.stage) % MAPS.length];
   }
@@ -1231,7 +1237,7 @@ class Game {
       this.pickups.clear();
       this.thrown.clear();
       this.fx.clear();
-      this.level.load(this.stageMap);
+      this.level.load(this.stageMap, this.layoutFor(this.stage));
       this.notes.log(`轉場 → ${this.stageMap.name}`);
       this.audio.setStage(this.stage); // the next song comes in on the bar line
       this.audio.setLevel(0);

@@ -640,6 +640,30 @@ class Trolley {
   }
 }
 
+/**
+ * A daily's layout (每日挑戰 ②): each kind of thing (barrels, pans, tools; `groups` holds them as built) dealt out
+ * among its places, the ones the map gives them and its spare ones (`spots`, maps.js), in an order `rng` shuffles.
+ * The biggest are dealt first, and a map's own place takes only what is no bigger than what it holds (a gas cylinder
+ * never lands where an LPG tank stood against a stall); a spare spot takes anything (test/maps.test.mjs checks them).
+ * A trolley keeps its place: it is laid along the road it rolls down. The walls, doors and spawns never move.
+ */
+function dealProps(groups, spots, rng) {
+  for (const [key, built] of Object.entries(groups)) {
+    const props = built.filter((p) => p.kind !== 'trolley');
+    const places = [...props.map((p) => ({ at: p.home.slice(0, 2), room: p.r })), ...((spots && spots[key]) || []).map((at) => ({ at, room: Infinity }))];
+    for (let i = places.length - 1; i > 0; i--) {
+      const j = Math.floor(rng.next() * (i + 1));
+      [places[i], places[j]] = [places[j], places[i]];
+    }
+    const order = props.map((p, i) => [p, i]).sort((a, b) => b[0].r - a[0].r || a[1] - b[1]);
+    for (const [p] of order) {
+      const k = places.findIndex((q) => q.room >= p.r);
+      p.home.splice(0, 2, ...places.splice(k, 1)[0].at);
+      p.reset();
+    }
+  }
+}
+
 class Pan {
   constructor(level, x, z, variant = 'pan') {
     this.level = level;
@@ -938,7 +962,11 @@ export class Level {
     this.root = null;
   }
 
-  load(map) {
+  /**
+   * Build `map`. With `layout` (a daily run's stream: main.js layoutFor) its barrels, pans and tools are first moved
+   * among their places (dealProps); without, they stand where the map has them.
+   */
+  load(map, layout = null) {
     this.unload();
     if (this.game.style) this.game.style.undress(this); // build from the lit materials (clones of a twin would keep the last map's look)
     this.map = map;
@@ -974,13 +1002,16 @@ export class Level {
       else this.addSolid(...s);
     }
     for (const g of map.glass || []) this.addGlass(...g);
+    const groups = { barrels: [], pans: [], tools: [] }; // what was built from each list, for a daily to deal out (dealProps)
     for (const [x, z, v] of map.barrels || []) this.barrels.push(new Barrel(this, x, z, v));
+    groups.barrels.push(...this.barrels);
     // a variant (rules.js pansAsBarrels) puts a barrel where each pan was: the built one, as the
     // model's seven parts (21 draw calls with outlines and shadows) would take the club over its budget
     this.pansAsBarrels = this.game.ruleset.pansAsBarrels;
     for (const [x, z, v] of map.pans || []) {
-      if (this.pansAsBarrels) this.barrels.push(new Barrel(this, x, z, 'barrel', true));
-      else this.pans.push(new Pan(this, x, z, v));
+      const p = this.pansAsBarrels ? new Barrel(this, x, z, 'barrel', true) : new Pan(this, x, z, v);
+      (this.pansAsBarrels ? this.barrels : this.pans).push(p);
+      groups.pans.push(p);
     }
     this.flocks = (map.flocks || []).map(([x, z]) => new Flock(x, z));
     this.water = (map.water || []).map((w) => ({ ...w }));
@@ -991,6 +1022,9 @@ export class Level {
       else if (kind === 'net') this.tools.push(new Net(this, x, z));
       else if (kind === 'trolley') this.tools.push(new Trolley(this, x, z, angle));
     }
+    groups.tools.push(...this.tools);
+    if (layout) dealProps(groups, map.spots, layout.rng);
+    this.layoutKey = layout ? layout.key : ''; // which layout stands (main.js resetWorld builds afresh when another is wanted)
     this.fixtures = buildFixtures(this, map.fixtures); // lamps and signs: fixed props that play along (fixtures.js)
     this.props = [...this.barrels, ...this.pans, ...this.tools, ...this.fixtures];
     for (const [x, z] of map.pads || []) this.addPad(x, z);

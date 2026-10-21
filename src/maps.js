@@ -132,6 +132,7 @@ const rooftop = {
   barrels: [[-6, -3.4], [-12, -2], [3.5, -10], [-19.5, 13], [5.2, 12.4], [-9, -11, 'lpg'], [13, 8.5], [15, 7.2, 'gas'], [16.5, 9.5], [14, 11.5], [12, 10.5]],
   pans: [[2.5, -1.5], [-1.5, 1.5], [-14, -9], [12.5, -8.5], [-16, 7], [6, 10]],
   tools: [[-13, -9.5, 'extinguisher'], [-3, 9, 'umbrella'], [16, 0, 'umbrella']], // things to pick up and use: a fire extinguisher in the greenhouse, two umbrellas left in the rain
+  spots: { barrels: [[0, 9.5], [6, 6.5], [13.5, 1.5], [-0.5, -5.5]], pans: [[-14, 1.5], [-14, 12.5], [-8.5, -7], [4.5, -7]], tools: [[0.5, -13], [12.5, 13.5], [19.5, -13.5]] }, // the daily's spare places (level.js dealProps): beside cover, near each kind's own
   // fixtures (fixtures.js): street lamps that go dark when shot out, hanging signs that drop on whoever is under them, a gate in the barrier
   fixtures: [[-6, 7, 'lamp'], [8, 5, 'lamp'], [12, -3, 'sign', 180], [-12, 11, 'sign', 0], [0, -8, 'door', 0, 2, 1.25]],
   pads: [[-9, 1], [11, 2]],
@@ -241,6 +242,7 @@ const club = {
   barrels: [[-5.5, -12.2, 'gas'], [12.5, -12, 'gas'], [11.5, 12], [-17.5, 12], [17.5, -11.5]],
   pans: [[-3, -1.5, 'tray'], [2, 1, 'tray'], [0, 4, 'tray'], [-15, -7, 'tray'], [15, -8.5, 'tray'], [-2.5, 12, 'tray'], [-13.5, 4.5, 'tray']],
   tools: [[-8.5, 0, 'extinguisher']], // one: the club's draw-call budget (400) is the tightest of the maps
+  spots: { barrels: [[0, -10], [-9, -7.5], [9.5, 6.5], [10.5, -6.5]], pans: [[-15.5, -1], [-8, 2.5], [-8, 10], [5.5, 6]], tools: [[2.5, 8.5], [-15.5, -12], [3.5, -7]] },
   fixtures: [[-6, 0, 'lamp'], [-4, -7.5, 'sign', 180], [-12, -10.2, 'door', 0, 2, 1.2]], // the bar's flap
   stages: [
     { name: '長吧', en: 'THE BAR', at: [-12, -8.5], move: 'slide' },
@@ -463,6 +465,7 @@ const docks = {
   // a fire extinguisher; two fishing nets by the quay; two hand trolleys at the ends of the road through the middle,
   // facing down it, to be kicked along it ([x, z, kind, facing]: the deck's front turned this far from +x)
   tools: [[-4, 9, 'extinguisher'], [-7, 12.5, 'net'], [11.5, 12.5, 'net'], [-19.5, 1.8, 'trolley', 0], [18, 1.6, 'trolley', Math.PI]],
+  spots: { barrels: [[-21.5, 10.5], [-10, -6.5], [-2.5, 1.5], [2.5, -6.5]], pans: [[-17.5, 7], [-10, 3.5], [8.5, 10.5], [9, -4]], tools: [[8, -1], [-10, -3.5], [-20.5, 13.5]] },
   water: [{ x: 0, z: 17, w: 52, d: 4 }], // the harbour beyond the south curb: whoever is knocked over it is gone
   // where the beats play out (waves.js); the truck's roads (boss.loop) stay clear of cover
   stages: [
@@ -655,6 +658,7 @@ const senado = {
   // pigeon flocks resting on the square: they burst into the air at shots, blasts and runners (PIGEON STRIKE)
   flocks: [[-6, 46], [8, 44], [0, 22], [-10, -64]],
   tools: [[-3, 52, 'extinguisher']],
+  spots: { barrels: [[-15.5, 49.5], [6.5, 7.5], [15, 52], [-8, 46]], pans: [[-13.5, 44], [7, 4], [-16, -69], [-4.5, -10]], tools: [[-6.5, 65.5], [-16.5, 55], [10.5, 55]] },
   // where the beats play out (waves.js), off the convoy's road (boss): beside the fountain's pool, the square before
   // St Dominic's, the narrow stretch, and the corner by the post office at the avenue
   stages: [
@@ -927,6 +931,7 @@ const felicidade = {
   barrels: [[-13, -2.3, 'lpg'], [16.3, 2.3, 'lpg'], [2.2, -7.4, 'lpg'], [-27.5, -2.2], [26, 2.1]],
   pans: [[-18, -6.8], [-6, 1.8], [12.3, 6.6], [21, -1.6], [-23.5, 5]],
   tools: [[19.5, -7.4, 'extinguisher']],
+  spots: { barrels: [[11, -0.5], [-18, 1], [-8, 1], [4.5, -2]], pans: [[-11, -1.5], [8.5, 2], [-1.5, -2], [15.5, 0.5]], tools: [[7.5, -1], [24.5, 0.5], [20.5, 0.5]] },
   fixtures: [
     ...FEL_WALLS.fixtures,
     [-19.5, -2.62, 'sign', 0],
