@@ -226,6 +226,8 @@ export const HOLDS = {
   pan: { hand: 'R', grip: [0, 0.03, 0.82], out: [0, 0, -1], face: [0, 1, 0], rest: { dir: [-0.32, -0.72, 0.62], bend: 0.62 }, use: { dir: [0.5, 0.25, 0.83], bend: 0.25 } },
   // an umbrella by its crook: furled, angled ahead by the leg like a cane; open, held out before the chest
   umbrella: { hand: 'R', grip: [0, 0.07, 0], out: [0, 1, 0], face: [0, 0, 1], rest: { dir: [-0.25, -0.93, 0.27], bend: 0.5 }, use: { dir: [0, 0.12, 1], bend: 0 } },
+  // a fishing net rolled up, by its top like a sack, low ahead on the right; it has no use but the throw (G)
+  net: { hand: 'R', grip: [0, 0.3, 0], out: [0, -1, 0], face: [1, 0, 0], rest: { dir: [-0.3, -0.85, 0.42], bend: -0.3 }, use: { dir: [-0.3, -0.85, 0.42], bend: -0.3 } },
   // a fire extinguisher hugged at the chest, the nozzle ahead; F sprays it (thrown.js spray)
   extinguisher: { hand: 'both', at: [0, 1.08, 0.2], out: [0, 1, 0], toward: [0, 0.3, 1], face: [1, 0, 0], grips: [[0.16, 0.34, 0], [-0.16, 0.34, 0]] },
   // the throw (G, or the left button with a load): the right arm comes over the top

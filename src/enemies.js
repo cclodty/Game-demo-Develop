@@ -247,6 +247,7 @@ class Enemy {
     this.timer = 0;
     this.stunT = 0;
     this.blindT = 0; // a flock burst in his face: no aiming, and a kill now is a PIGEON STRIKE
+    this.netT = 0; // under a fishing net (level.js Net): held, and a kill now is NETTED
     this.stunCause = 'kick';
     this.flash = 0;
     this.phase = rand(0, TAU);
@@ -439,6 +440,17 @@ class Enemy {
     this.flash = 1;
     this.game.fx.blood(this.x, 1.2, this.z, dx, dz, 5);
     if (this.hp <= 0) this.die(dx, dz, { cause });
+  }
+
+  /** A fishing net falls over him (level.js Net): held where he stands, dazed for `t` s (F executes him). */
+  netted(t) {
+    if (!this.alive) return;
+    this.stunT = Math.max(this.stunT, t);
+    this.stunCause = 'net';
+    this.netT = t;
+    this.vx = this.vz = 0;
+    this.endAim();
+    if (this.state !== 'enter') this.state = this.rushes ? 'chase' : 'move';
   }
 
   /** Caught in an explosion; `chain` when a bomber's charges set it off (a kill then is a CHAIN), `rocket` when a kicked LPG cylinder did (ROCKET CAN). */
@@ -803,6 +815,7 @@ class Enemy {
     let face = null;
     let collide = true;
 
+    if (this.netT > 0) this.netT -= dt;
     if (this.stunT > 0) {
       this.stunT -= dt;
       const f = Math.exp(-4 * dt);
@@ -1206,6 +1219,10 @@ class Enemy {
       const push = rr - d;
       p.x += (dx / d) * push;
       p.z += (dz / d) * push;
+      if (p.knock) {
+        p.knock(this); // a rolling trolley bowls him over and rolls on (level.js Trolley)
+        continue;
+      }
       const sp = Math.hypot(p.vx, p.vz);
       if (sp > 6 && this.stunT <= 0 && !p.thrown) {
         // a kicked barrel or pan bowls the enemy over (a thrown one is thrown.js's business)

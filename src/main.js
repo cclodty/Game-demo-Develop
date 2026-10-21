@@ -1462,6 +1462,7 @@ class Game {
     if (this.level.smokeAt(e.x, e.z)) tags.push({ label: 'SMOKE', pts: 80, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });
     if (e.blindT > 0) tags.push({ label: 'PIGEON STRIKE', pts: 80, cls: 'gold' });
+    if (e.netT > 0) tags.push({ label: 'NETTED', pts: 150, cls: 'gold' }); // under a fishing net (level.js Net)
     if (info.cause === 'bullet') {
       if (d < 2.6) tags.push({ label: 'POINT BLANK', pts: 60 });
       else if (d > 16) tags.push({ label: 'LONG SHOT', pts: 80 });

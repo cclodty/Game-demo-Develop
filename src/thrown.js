@@ -68,6 +68,8 @@ export class Thrown {
     if (prop.kind === 'pan') return prop.variant === 'tray' ? '托盤' : '平底鑊';
     if (prop.kind === 'extinguisher') return '滅火筒';
     if (prop.kind === 'umbrella') return '雨傘';
+    if (prop.kind === 'net') return '漁網';
+    if (prop.kind === 'trolley') return '手推車';
     return prop.variant === 'gas' ? '氣罐' : prop.variant === 'lpg' ? '石油氣樽' : '油桶';
   }
 
@@ -77,7 +79,7 @@ export class Thrown {
     let best = null;
     let bd = PLAYER.throwReach;
     for (const q of this.game.level.props) {
-      if (!q.alive || q.carried || q.fixed || q.broken || (q.y || 0) > 0.6) continue;
+      if (!q.alive || q.carried || q.fixed || q.broken || q.pick === false || (q.y || 0) > 0.6) continue; // a trolley is kicked, not carried
       if (q.kind === 'barrel' && (q.fuse >= 0 || q.rocketT > 0)) continue;
       if (q.kind === 'extinguisher' && q.smokeT > 0) continue;
       const d = Math.hypot(q.x - p.x, q.z - p.z) - q.r;
@@ -132,7 +134,7 @@ export class Thrown {
       p.rig.armR.add(prop.mesh);
       holdInHand(p.rig, prop.mesh, hold, 0);
       prop.y = PAN.handY;
-      g.hud.toast(withLabels(`${name} <small>${prop.kind === 'pan' ? '{kick} 鑊擊' : '按住 {kick} 開傘'} · {throw} 擲出</small>`, g.padOn));
+      g.hud.toast(withLabels(`${name} <small>${prop.kind === 'pan' ? '{kick} 鑊擊 · ' : prop.kind === 'umbrella' ? '按住 {kick} 開傘 · ' : ''}{throw} 擲出</small>`, g.padOn));
     } else if (hold && hold.hand === 'both') {
       // hugged before the body: both hands on it, the guns put away
       this.hugged = true;
@@ -217,7 +219,7 @@ export class Thrown {
     prop.thrown = true;
     p.throwT = HOLDS.throw.time; // the arm over the top (player.js syncRig)
     launch(prop, p.x + dx * 0.6, p.z + dz * 0.6, from, dx, dz, dist, 0.5 + dist * 0.035);
-    if (prop.kind === 'pan') prop.spin = 14;
+    if (prop.kind === 'pan') prop.spin = 14; // a net flies flat and falls open where it lands (level.js Net)
     if (prop.kind === 'umbrella') {
       // a dart: point first, flat
       prop.spin = 0;
@@ -290,6 +292,11 @@ export class Thrown {
     // thrown props: hit enemies while in the air (their flight itself is the level's prop physics)
     for (const q of level.props) {
       if (!q.thrown || !q.alive || (q.y || 0) < 0.25) continue;
+      if (q.kind === 'net') {
+        // a net that meets anyone in the air falls open there
+        if (g.enemies.list.some((e) => e.alive && e.spawnLock <= 0 && Math.hypot(e.x - q.x, e.z - q.z) < e.radius + q.r)) q.cast();
+        continue;
+      }
       if (q.kind === 'barrel' && g.boss.under(q.x, q.z)) {
         q.thrown = false;
         q.ignite(0.02); // thrown at the helicopter: it goes off right under it
@@ -354,7 +361,10 @@ export class Thrown {
 
     // HUD hint
     if (!p.alive) this.prompt = '';
-    else if (this.carry) this.prompt = this.inHand ? (this.carry.kind === 'pan' ? '{kick} 鑊擊 · {throw} 擲出' : '按住 {kick} 開傘 · {throw} 擲出') : this.hugged ? '{kick} 噴霧 · {throw} / {fire} 擲出' : '{throw} / {fire} 擲出';
+    else if (this.carry) {
+      const k = this.carry.kind;
+      this.prompt = this.inHand ? (k === 'pan' ? '{kick} 鑊擊 · {throw} 擲出' : k === 'umbrella' ? '按住 {kick} 開傘 · {throw} 擲出' : '{throw} 擲出') : this.hugged ? '{kick} 噴霧 · {throw} / {fire} 擲出' : '{throw} / {fire} 擲出';
+    }
     else {
       const near = this.nearProp();
       if (near) this.prompt = `{pick} 拿起${Thrown.propName(near)}`;

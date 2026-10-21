@@ -3,6 +3,7 @@
 // pads, spawn points and the map's own decoration and lighting.
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { addCutaway, FADE_SLOTS } from './cutaway.js';
 import { Flock } from './ambient.js';
 import { ENV } from './config.js';
@@ -471,6 +472,174 @@ function stripNear(pts, px, pz, ux, uz, len, w) {
   return near === Infinity ? -1 : Math.max(0, near);
 }
 
+/**
+ * A fishing net (漁網, the docks): on the floor a bundle with a marker ring; E takes it into the right
+ * hand (thrown.js, characters.js HOLDS.net), G throws it. Where it lands, or on whoever it meets in
+ * the air (thrown.js), it falls open over ENV.net.radius m for ENV.net.time s: everyone under it but a
+ * drone is held there, dazed (enemies.js netted: F executes them; a kill is NETTED). Then it is gone.
+ */
+class Net {
+  constructor(level, x, z) {
+    this.level = level;
+    this.kind = 'net';
+    this.variant = 'net';
+    this.home = [x, z];
+    this.r = 0.3;
+    const g = new THREE.Group();
+    const bundle = new THREE.Mesh(level.geo.netBundle, level.mat.net);
+    bundle.scale.set(1, 0.55, 1);
+    bundle.position.y = 0.17;
+    bundle.castShadow = true;
+    g.add(bundle);
+    this.tilt = g;
+    this.mesh = new THREE.Group();
+    this.mesh.add(g);
+    level.add(this.mesh);
+    this.dome = new THREE.Mesh(level.geo.netDome, level.mat.netOpen);
+    this.dome.scale.y = 0.8;
+    this.dome.userData.noOutline = true;
+    level.add(this.dome);
+    this.marker = toolMarker(level);
+    this.reset();
+  }
+
+  reset() {
+    [this.x, this.z] = this.home;
+    this.vx = this.vz = 0;
+    this.y = 0;
+    this.vy = 0;
+    this.castT = 0; // fallen open: s left
+    this.fixed = false;
+    this.alive = true;
+    this.carried = false;
+    this.thrown = false;
+    this.mesh.visible = true;
+    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.rotation.set(0, 0, 0);
+    this.tilt.rotation.set(0, 0, 0);
+    this.tilt.position.set(0, 0, 0);
+    this.dome.visible = false;
+    this.marker.visible = true;
+  }
+
+  /** It falls open where it is: everyone under it but a drone is held there for its time. */
+  cast() {
+    const g = this.level.game;
+    this.castT = ENV.net.time;
+    this.fixed = true; // nobody shoves it about now
+    this.thrown = false;
+    this.vx = this.vz = this.vy = 0;
+    this.y = 0;
+    this.mesh.visible = false;
+    this.dome.visible = true;
+    this.dome.position.set(this.x, 0, this.z);
+    let n = 0;
+    for (const e of g.enemies.list) {
+      if (!e.alive || e.cfg.fly || Math.hypot(e.x - this.x, e.z - this.z) > ENV.net.radius) continue;
+      e.netted(ENV.net.time);
+      n++;
+    }
+    g.audio.kick(n > 0);
+    g.notes.log(`漁網罩住 ${n} 個敵人`);
+  }
+
+  update(dt) {
+    this.marker.visible = this.alive && !this.carried && !this.thrown && this.castT <= 0 && this.y <= 0.05;
+    if (this.marker.visible) pulseMarker(this.marker, this.x, this.z, this.level.time + this.home[0]);
+    if (this.castT > 0) {
+      this.castT -= dt;
+      if (this.castT <= 0) {
+        this.alive = false;
+        this.dome.visible = false;
+      }
+      return;
+    }
+    if (this.carried) return;
+    if (this.y > 0 || this.vy !== 0) {
+      this.vy -= 22 * dt;
+      this.y += this.vy * dt;
+      if (this.y <= 0) {
+        this.y = 0;
+        this.vy = 0;
+        if (this.thrown) {
+          this.cast();
+          return;
+        }
+      }
+    }
+    this.mesh.position.set(this.x, this.y, this.z);
+  }
+}
+
+/**
+ * A hand trolley (手推車, the docks): too big to pick up (`pick` false). Kicked (player.js kick) it rolls
+ * off at ENV.trolley.speed and keeps rolling (its own `friction`, level.js updateProps), bowling over
+ * whoever is in its road (enemies.js pushProps calls knock) and keeping ENV.trolley.knock of its speed
+ * through each; ENV.trolley.bowling of them in one roll is BOWLING.
+ */
+class Trolley {
+  constructor(level, x, z, angle = 0) {
+    this.level = level;
+    this.kind = 'trolley';
+    this.variant = 'trolley';
+    this.home = [x, z, angle];
+    this.r = 0.55;
+    this.pick = false;
+    this.friction = ENV.trolley.friction;
+    const body = new THREE.Mesh(level.geo.trolley, level.mat.trolley);
+    body.castShadow = true;
+    this.tilt = body;
+    this.mesh = new THREE.Group();
+    this.mesh.add(body);
+    level.add(this.mesh);
+    this.reset();
+  }
+
+  reset() {
+    [this.x, this.z, this.angle] = this.home;
+    this.vx = this.vz = 0;
+    this.y = 0;
+    this.vy = 0;
+    this.alive = true;
+    this.carried = false;
+    this.thrown = false;
+    this.knocked = 0; // bowled over in this roll
+    this.mesh.visible = true;
+    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.rotation.set(0, this.angle, 0);
+  }
+
+  /** Kicked along (dx, dz): off it rolls, a new roll. */
+  kick(dx, dz) {
+    this.vx = dx * ENV.trolley.speed;
+    this.vz = dz * ENV.trolley.speed;
+    this.knocked = 0;
+    this.level.game.notes.log('踢走手推車');
+  }
+
+  /** Rolling into enemy `e` (enemies.js pushProps): it bowls him over and rolls on. */
+  knock(e) {
+    const sp = Math.hypot(this.vx, this.vz);
+    if (sp < 3 || e.stunT > 0 || e.cfg.fly) return;
+    const g = this.level.game;
+    e.kick(this.vx / sp, this.vz / sp, sp * 0.7, 'strike');
+    this.vx *= ENV.trolley.knock;
+    this.vz *= ENV.trolley.knock;
+    g.shake(0.2);
+    if (++this.knocked === ENV.trolley.bowling) {
+      g.score.style('BOWLING', ENV.trolley.pts);
+      g.notes.log(`手推車撞倒 ${this.knocked} 人：BOWLING +${ENV.trolley.pts}`);
+    }
+  }
+
+  update() {
+    // the deck turns to where it rolls; the handle trails behind
+    if (Math.hypot(this.vx, this.vz) > 0.5) this.angle = Math.atan2(-this.vz, this.vx);
+    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.rotation.y = this.angle;
+  }
+}
+
 class Pan {
   constructor(level, x, z, variant = 'pan') {
     this.level = level;
@@ -629,6 +798,16 @@ export class Level {
       gasValve: new THREE.CylinderGeometry(0.12, 0.16, 0.22, 8),
       lpg: new THREE.CapsuleGeometry(0.3, 0.5, 6, 14),
       extinguisher: new THREE.CylinderGeometry(0.12, 0.12, 0.55, 12),
+      netBundle: new THREE.SphereGeometry(0.32, 10, 6), // a fishing net rolled up (Net)
+      netDome: new THREE.SphereGeometry(ENV.net.radius, 18, 6, 0, TAU, 0, Math.PI / 2), // and fallen open over whoever is under it
+      // a hand trolley (Trolley), one piece: the deck on four wheels, the handle at its back (-x)
+      trolley: mergeGeometries([
+        new THREE.BoxGeometry(1.1, 0.06, 0.7).translate(0, 0.28, 0),
+        new THREE.BoxGeometry(0.05, 0.78, 0.05).translate(-0.53, 0.66, 0.3),
+        new THREE.BoxGeometry(0.05, 0.78, 0.05).translate(-0.53, 0.66, -0.3),
+        new THREE.BoxGeometry(0.05, 0.05, 0.66).translate(-0.53, 1.03, 0),
+        ...[-0.4, 0.4].flatMap((x) => [-0.3, 0.3].map((z) => new THREE.CylinderGeometry(0.11, 0.11, 0.06, 10).rotateX(Math.PI / 2).translate(x, 0.11, z))),
+      ]),
       extHead: new THREE.CylinderGeometry(0.05, 0.08, 0.14, 8),
       cloud: new THREE.CircleGeometry(ENV.smokeRadius, 36).rotateX(-Math.PI / 2),
       canopy: new THREE.ConeGeometry(0.6, 0.28, 10, 1, true),
@@ -668,6 +847,9 @@ export class Level {
       gasBand: std({ color: 0x2a6cff, emissive: 0x2a6cff, emissiveIntensity: 0.5 }),
       lpg: std({ color: 0xe8652a, roughness: 0.45, metalness: 0.35, emissive: 0xff4400, emissiveIntensity: 0.15 }),
       extinguisher: std({ color: 0xc8202a, roughness: 0.4, metalness: 0.4 }),
+      net: std({ color: 0x41634c, roughness: 0.95 }),
+      netOpen: std({ map: fenceTexture(), color: 0xb9d6c0, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide, roughness: 0.9 }),
+      trolley: std({ color: 0x3f6d8f, roughness: 0.6, metalness: 0.4 }),
       cloud: new THREE.MeshBasicMaterial({ color: 0xf0f2f4, transparent: true, opacity: 0.3, depthWrite: false }),
       umbrella: std({ color: 0xff3fa4, roughness: 0.6, side: THREE.DoubleSide }),
       pan: std({ color: 0x22242a, roughness: 0.3, metalness: 0.85 }),
@@ -797,10 +979,12 @@ export class Level {
     }
     this.flocks = (map.flocks || []).map(([x, z]) => new Flock(x, z));
     this.water = (map.water || []).map((w) => ({ ...w }));
-    for (const [x, z, kind] of map.tools || []) {
+    for (const [x, z, kind, angle = 0] of map.tools || []) {
       // things to pick up and use (more kinds come with their cards)
       if (kind === 'extinguisher') this.tools.push(new Extinguisher(this, x, z));
       else if (kind === 'umbrella') this.tools.push(new Umbrella(this, x, z));
+      else if (kind === 'net') this.tools.push(new Net(this, x, z));
+      else if (kind === 'trolley') this.tools.push(new Trolley(this, x, z, angle));
     }
     this.fixtures = buildFixtures(this, map.fixtures); // lamps and signs: fixed props that play along (fixtures.js)
     this.props = [...this.barrels, ...this.pans, ...this.tools, ...this.fixtures];
@@ -1416,7 +1600,7 @@ export class Level {
       p.x += p.vx * dt;
       p.z += p.vz * dt;
       // nothing slows a thing that is in the air
-      const fr = (p.y || 0) > 0.1 ? 1 : Math.exp(-(p.kind === 'pan' ? 2.2 : 3.2) * dt);
+      const fr = (p.y || 0) > 0.1 ? 1 : Math.exp(-(p.friction ?? (p.kind === 'pan' ? 2.2 : 3.2)) * dt); // a trolley rolls on (its own)
       p.vx *= fr;
       p.vz *= fr;
       const ox = p.x;

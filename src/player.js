@@ -420,8 +420,8 @@ export class Player {
         // the umbrella's F is the hold above: not a kick
       } else if (g.thrown.hugged && g.thrown.carry.kind === 'extinguisher') g.thrown.spray();
       else if (this.kickCd <= 0) {
-        if (g.thrown.inHand) this.smash();
-        else this.kick();
+        if (g.thrown.inHand && g.thrown.carry.kind === 'pan') this.smash();
+        else this.kick(); // with a net in hand too
       }
     }
 
@@ -607,7 +607,7 @@ export class Player {
     let best = null;
     let bd = PLAYER.execRange;
     for (const e of this.game.enemies.list) {
-      if (!e.alive || e.stunT <= 0 || e.cfg.fly || !['kick', 'throw', 'strike', 'smash'].includes(e.stunCause)) continue;
+      if (!e.alive || e.stunT <= 0 || e.cfg.fly || !['kick', 'throw', 'strike', 'smash', 'net'].includes(e.stunCause)) continue;
       const d = Math.hypot(e.x - this.x, e.z - this.z);
       if (d <= bd) {
         bd = d;
@@ -730,7 +730,7 @@ export class Player {
       } else if (p.kind === 'pan') {
         p.hit(dir.x, dir.z, 9);
         p.vy = 8;
-      } else if (p.kind === 'extinguisher') p.kick(dir.x, dir.z);
+      } else if (p.kind === 'extinguisher' || p.kind === 'trolley') p.kick(dir.x, dir.z);
       else {
         p.vx += dir.x * 14;
         p.vz += dir.z * 14;
@@ -768,8 +768,8 @@ export class Player {
       if (p.kind === 'pan') {
         p.hit(dir.x, dir.z, 9);
         p.vy = 8;
-      } else if (p.kind === 'extinguisher') {
-        p.kick(dir.x, dir.z); // off it careers
+      } else if (p.kind === 'extinguisher' || p.kind === 'trolley') {
+        p.kick(dir.x, dir.z); // off it careers (an extinguisher) or rolls (a trolley)
       } else if (!(p.kind === 'barrel' && p.rocket(dir.x, dir.z))) {
         // an LPG cylinder jets off instead of sliding
         p.vx += dir.x * 14;

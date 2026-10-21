@@ -183,6 +183,11 @@ export const ENV = {
   tumbleTime: 2.5, // s a kicked one careers about, bowling over whoever it meets
   tumbleSpeed: 10, // m/s it keeps while it does
   sprayAhead: 2, // m ahead of the player the cloud of one sprayed from the arms (F, thrown.js spray) is centred
+  // a fishing net (level.js Net, the docks): thrown, it falls open over `radius` m for `time` s and holds everyone under it, dazed (NETTED)
+  net: { radius: 2.2, time: 2.5 },
+  // a hand trolley (level.js Trolley, the docks): kicked off at `speed` m/s, slowing by `friction` a second (a barrel's is 3.2);
+  // it keeps `knock` of its speed through each one it bowls over, and `bowling` of them in one roll is BOWLING +`pts`
+  trolley: { speed: 13, friction: 0.45, knock: 0.85, bowling: 2, pts: 200 },
   // water (level.js `water`): an enemy knocked over the edge of it is gone (SPLASH); props that land in it sink
   splashSpeed: 4, // m/s towards the water a knocked-over enemy needs to go in
   splashReach: 0.6, // m beyond his body the water has to be

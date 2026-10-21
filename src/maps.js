@@ -451,7 +451,9 @@ const docks = {
   // three LPG cylinders for the boss (boss.js: a kicked one jets into the heavy gunner), in the open and off his way in
   barrels: [[4.5, -12, 'gas'], [-21.5, -4, 'gas'], [21.5, 3, 'gas'], [-1, 11.5, 'gas'], [-12, -12, 'gas'], [-11, 1.5], [13.5, -8.5], [3, 3.5], [-16, 12.5], [15, 12], [-18, 0, 'lpg'], [15, -1.5, 'lpg'], [2, 8, 'lpg']],
   pans: [[-4, -12.5], [7, 1.5], [-12, 9], [17, -11], [3, 12.5]],
-  tools: [[-4, 9, 'extinguisher']],
+  // a fire extinguisher; two fishing nets by the quay; two hand trolleys at the ends of the road through the middle,
+  // facing down it, to be kicked along it ([x, z, kind, facing]: the deck's front turned this far from +x)
+  tools: [[-4, 9, 'extinguisher'], [-7, 12.5, 'net'], [11.5, 12.5, 'net'], [-19.5, 1.8, 'trolley', 0], [18, 1.6, 'trolley', Math.PI]],
   water: [{ x: 0, z: 17, w: 52, d: 4 }], // the harbour beyond the south curb: whoever is knocked over it is gone
   // where the beats play out (waves.js); the truck's roads (boss.loop) stay clear of cover
   stages: [

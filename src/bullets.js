@@ -257,6 +257,11 @@ export class Bullets {
         b.alive = false;
         return;
       }
+      case 'net':
+      case 'trolley':
+        // low on the floor: shots fly over a net's bundle and a trolley
+        b.hits.push(hit.prop);
+        return;
       case 'extinguisher':
         hit.prop.hit(1, b.dx, b.dz);
         fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 6, [7, 7, 7], 6);
