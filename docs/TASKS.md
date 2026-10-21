@@ -893,16 +893,17 @@
 
 按次序做；每張卡的「漂亮的解法」答「玩家多了一個什麼漂亮的解法」（打得精彩、地圖會說話、不開槍也能打）。新地圖、新動作的數字全是第一版，待試玩確認。
 
-### 測試加速（估計：半天）
+### ✅ 測試加速（估計：半天）— 2026-10-21 完成
 - 目標：CI 的 `npm test` 由約 25–30 分鐘降到 20 分鐘以內，之後每張卡等 CI 的時間少三分之一
 - 漂亮的解法：（給開發的）試玩版更快上線
-- 涉及：`package.json`、`.github/workflows/ci.yml`、`test/helpers.mjs`，最慢的幾個測試檔（音樂選曲 106 秒、HOW TO PLAY 55 秒、規則行 36 秒、最佳片段結束畫面 34 秒）；做法任揀：並行、CI 分片、重用載入好的頁面、少等真時間
+- 涉及：`package.json`（`test:shard`）、`.github/workflows/ci.yml`（三份同時跑）、`test/ci.test.mjs`
 - 驗收：
-  - [ ] CI 上 `npm test` 20 分鐘以內，連續兩次 push 都是
-  - [ ] 測試數目不少於之前（274 個），沒有刪、跳過或放寬任何斷言；diff 只改等待、頁面重用、並行或分片
-  - [ ] 本機 `npm test` 一樣通過；並行時測試不互相影響（各自的瀏覽器和埠）
-  - [ ] DECISIONS 記下前後時間
-- 這次不做：換測試框架、改 test:game
+  - [x] CI 上 `npm test` 20 分鐘以內，連續兩次 push 都是：ffa314e 最長一份 13.4 分鐘（PR 那次 11.6），c03a238 最長一份 14.2 分鐘（PR 那次 14.0）；之前一個 job 約 25 分鐘
+  - [x] 測試數目不少於之前，沒有刪、跳過或放寬任何斷言：測試檔一個都沒改，只是 CI 分三份同時跑（Node 的 `--test-shard`）
+  - [x] 本機 `npm test` 一樣通過（275 個全過）；三份各用自己的機器
+  - [x] DECISIONS 記下前後時間
+- 做法：`test:shard` 跑 `npm test` 的同一批檔案再加 `--test-shard=$SHARD`；`ci.yml` 三個 job（`fail-fast: false`），單檔建置只在第一份；時限 45 → 30 分鐘。`test/ci.test.mjs` 守住「分份跑的就是 `npm test` 那批檔案、份數和 job 數一樣」
+- 這次不做：換測試框架、改 test:game；最慢的幾個測試檔本身沒有加速（不需要）
 
 ### ✅ 福隆新街頭目：直街貨車（估計：一天）— 2026-10-21 完成
 - 目標：福隆新街的頭目波有頭目了：裝甲貨車（`boss.js` 已有的 `truck`）由街口駛入，沿直街來回衝
@@ -923,15 +924,17 @@
 - 卡上原本想「橫巷也可以躲」：橫巷 2.9 米闊，貨車正對巷口時衝得入，所以只寫舖頭；「落下的鐵閘擋得住它」也不成立（鐵閘在舖面，不在路上），刪了
 - 這次不做：二樓掟石油氣樽的掌櫃（另一個候選）、新的頭目種類
 
-### 地圖匯出補齊（估計：半天）
+### ✅ 地圖匯出補齊（估計：半天）— 2026-10-21 完成
 - 目標：給其他引擎用的 `assets/maps/*.json` 跟遊戲一致：有福隆新街，有工具、每日備用位、露台、互動件、水
 - 漂亮的解法：（給美術和日後換引擎的）資料不再過時
-- 涉及：`scripts/asset-docs.mjs`（`mapJson`）、`assets/maps/*.json`、`assets/SPEC.md` §8
+- 涉及：`scripts/asset-docs.mjs`（`mapJson`、`MAP_NAMES`）、`assets/maps/*.json`、`assets/SPEC.md`、`test/assets.test.mjs`
 - 驗收：
-  - [ ] `npm run assets:docs` 產生五張圖的 json（多了 `felicidade.json`）
-  - [ ] 每張圖有 `tools`、`spots`、`fixtures`、`water`，有露台的有 `perches`
-  - [ ] 新測試：匯出的 json 和 `maps.js` 一致（數目和座標）；改了地圖而沒有重新產生，測試會失敗
-  - [ ] SPEC §8 的「四張地圖」改正
+  - [x] `npm run assets:docs` 產生五張圖的 json（多了 `felicidade.json`）
+  - [x] 每張圖有 `tools`、`spareSpots`（每日的備用位）、`fixtures`、`water`、`perches`（沒有露台的是空的）
+  - [x] 新測試：`assets/maps` 裏的每個檔和產生器現在寫出的一字不差，每張地圖一個檔；改了地圖而沒有重新產生，測試會失敗（改之前跑，它真的紅了）
+  - [x] SPEC 的「四張地圖」改正（開頭的清單和 §8）
+  - [x] npm run lint && npm test 通過（本機 279 個全過）
+- 做法：互動件寫成 `{ kind, x, z, facing, w, h }`（角度 0 是南、90 是東，和地圖資料一樣）；露台 `{ x, z, height, facing }`；工具 `{ kind, x, z, angle }`。四張舊圖的 json 也一併更新（自木箱改動後沒有重新產生過）
 - 這次不做：`decorate` 佈景改成資料
 
 ### 飛撲 ①：子彈時間中橫向飛身（估計：一天）

@@ -21,7 +21,7 @@ import { toGame } from '../src/senado/transform.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.resolve(process.env.BB_DOCS_OUT || path.join(ROOT, 'assets')); // the tests point this at a temporary folder
-const MAP_NAMES = { rooftop: '天台', club: '夜店', docks: '碼頭', senado: '議事亭' };
+const MAP_NAMES = { rooftop: '天台', club: '夜店', docks: '碼頭', senado: '議事亭', felicidade: '福隆新街' };
 
 const num = (n) => n.toLocaleString('en-US');
 const m = (v) => `${+v.toFixed(2)}`;
@@ -227,6 +227,14 @@ function mapJson(map) {
     glass: (map.glass || []).map(([x, z, w, d, h]) => ({ x, z, w, d, h })),
     barrels: (map.barrels || []).map(([x, z, v = 'barrel']) => ({ asset: v, x, z })),
     pans: (map.pans || []).map(([x, z, v = 'pan']) => ({ asset: v, x, z })),
+    tools: (map.tools || []).map(([x, z, kind, angle]) => ({ kind, x, z, ...(angle ? { angle } : {}) })),
+    // the daily's spare places for each kind of thing (src/level.js dealProps)
+    spareSpots: map.spots ? Object.fromEntries(Object.entries(map.spots).map(([kind, at]) => [kind, at.map(([x, z]) => ({ x, z }))])) : null,
+    // fixtures (src/fixtures.js): lamps, hanging signs, doors, roller shutters; facing in degrees, 0 south, 90 east
+    fixtures: (map.fixtures || []).map(([x, z, kind, facing, w, h]) => ({ kind, x, z, ...(facing !== undefined ? { facing } : {}), ...(w !== undefined ? { w } : {}), ...(h !== undefined ? { h } : {}) })),
+    // balconies an enemy is sent up to (src/level.js balconies): where he stands, how high, which way he faces
+    perches: (map.perches || []).map(([x, z, height, facing]) => ({ x, z, height, facing })),
+    water: (map.water || []).map((w) => ({ ...w })),
     weaponPads: (map.pads || []).map(([x, z]) => ({ x, z })),
     pigeonFlocks: (map.flocks || []).map(([x, z]) => ({ x, z })),
     spawns: map.spawns,

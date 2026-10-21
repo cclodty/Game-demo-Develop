@@ -78,3 +78,22 @@ test('the docs generator writes the prompt list, asset list and map layouts', as
   }
   assert.ok(fs.statSync(path.join(docs, 'asset-list.csv')).size > 1000);
 });
+
+test('the map layouts in assets/maps are what the generator writes now: one for every map, with its tools, spare spots, fixtures, balconies and water', () => {
+  const docs = path.join(tmp, 'docs-maps');
+  fs.mkdirSync(docs, { recursive: true });
+  run('asset-docs.mjs', { BB_DOCS_OUT: docs });
+  const committed = fs.readdirSync(new URL('../assets/maps/', import.meta.url)).filter((f) => f.endsWith('.json')).sort();
+  assert.deepEqual(committed, MAPS.map((m) => `${m.id}.json`).sort(), 'a layout for every map, and none for a map that is gone');
+  for (const map of MAPS) {
+    const fresh = fs.readFileSync(path.join(docs, 'maps', `${map.id}.json`), 'utf8');
+    const kept = fs.readFileSync(new URL(`../assets/maps/${map.id}.json`, import.meta.url), 'utf8');
+    assert.ok(kept === fresh, `assets/maps/${map.id}.json is out of date: npm run assets:docs`);
+    const j = JSON.parse(fresh);
+    assert.equal(j.tools.length, (map.tools || []).length, `${map.id}: tools`);
+    assert.equal(j.fixtures.length, (map.fixtures || []).length, `${map.id}: fixtures`);
+    assert.equal(j.perches.length, (map.perches || []).length, `${map.id}: balconies`);
+    assert.equal(j.water.length, (map.water || []).length, `${map.id}: water`);
+    for (const kind of ['barrels', 'pans', 'tools']) assert.equal(j.spareSpots[kind].length, map.spots[kind].length, `${map.id}: spare spots for ${kind}`);
+  }
+});
