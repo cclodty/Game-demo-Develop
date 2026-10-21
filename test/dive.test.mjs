@@ -4,6 +4,9 @@
 // spin as before, so no new control and old replays play the same. In the air
 // bullets pass under the body (a blast still hurts); a wall stops the dive at
 // the wall. ?style=off plays it the same.
+// A kill on a dive (飛撲 ②) is a DIVE KILL: in the air, rolling out of it, or by
+// a shot fired in the air wherever the player is when it lands; never a SLIDE
+// KILL as well. The dive leaves afterimages (none under ?style=off).
 // Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -200,6 +203,138 @@ test('a dive is in the input record: Shift, then Space with D, replays to the sa
     assert.equal(r.dived, true, 'Space with D: a dive');
     assert.deepEqual(r.again, r.live);
     assert.deepEqual(problems(logs), []);
+  } finally {
+    await page.close();
+  }
+});
+
+test('a kill on a dive is a DIVE KILL (+150): in the air, rolling, or by a shot fired in the air; not a SLIDE KILL; the notes say 飛撲擊殺', async () => {
+  const { page, logs } = await h.open('?seed=5');
+  try {
+    await setup(page);
+    const r = await page.evaluate(() => {
+      const g = window.game;
+      const p = g.player;
+      const kills = [];
+      const kill0 = g.score.kill.bind(g.score);
+      g.score.kill = (tags) => {
+        kills.push(tags.map((t) => `${t.label}:${t.pts}`));
+        return kill0(tags);
+      };
+      /** A thug 3 m east, shot dead by `shot` (a bullet the player fired); what the kill was tagged. */
+      const killOne = (shot = {}) => {
+        const e = g.enemies.spawn('grunt', g.level.spawns[0]);
+        e.state = 'move';
+        e.spawnLock = 0;
+        e.x = p.x + 3;
+        e.z = p.z;
+        kills.length = 0;
+        e.hit({ owner: 'player', damage: 999, dx: 1, dz: 0, knock: 1, ...shot });
+        g.enemies.clear();
+        return kills.pop() || [];
+      };
+      window.begin(-6, 4, true);
+      window.play(10, ['KeyD'], ['Space', 'KeyD']);
+      const inAir = { diving: p.diving, tags: killOne() };
+      const note = g.notes.events.at(-1).text;
+      window.play(1, ['KeyD'], ['KeyC']);
+      const slideInAir = p.slideT > 0; // C in the air: no slide waiting for the landing
+      while (p.diving) window.play(1, ['KeyD']);
+      window.play(2, ['KeyD']);
+      const rolling = { rolling: p.rolling, tags: killOne() };
+      while (p.rolling) window.play(1);
+      window.play(30);
+      const after = { tags: killOne() };
+      const late = { tags: killOne({ diveShot: true }) };
+      // a slide outside bullet time: a SLIDE KILL, not a DIVE KILL
+      window.begin(-6, 4, false);
+      window.play(30, ['KeyD']);
+      window.play(2, ['KeyD'], ['KeyC']);
+      const slide = { sliding: p.sliding, tags: killOne() };
+      // the guns fired in the air mark their bullets
+      window.begin(-6, 4, true);
+      window.play(12, ['KeyD', 'Mouse0'], ['Space', 'KeyD']);
+      const marked = g.bullets.list.filter((b) => b.alive !== false && b.owner === 'player').map((b) => b.diveShot);
+      return { inAir, note, slideInAir, rolling, after, late, slide, marked };
+    });
+    const has = (tags, label) => tags.some((t) => t.startsWith(`${label}:`));
+    assert.equal(r.inAir.diving, true);
+    assert.ok(r.inAir.tags.includes('DIVE KILL:150'), `in the air: ${r.inAir.tags}`);
+    assert.match(r.note, /^擊殺 THUG（飛撲擊殺）：/, r.note);
+    assert.equal(r.slideInAir, false, 'C in the air does not start a slide');
+    assert.equal(r.rolling.rolling, true);
+    assert.ok(has(r.rolling.tags, 'DIVE KILL'), `rolling out of it: ${r.rolling.tags}`);
+    assert.ok(!has(r.after.tags, 'DIVE KILL'), `on foot again: ${r.after.tags}`);
+    assert.ok(has(r.late.tags, 'DIVE KILL'), `a shot fired in the air, landing later: ${r.late.tags}`);
+    assert.equal(r.slide.sliding, true);
+    assert.ok(has(r.slide.tags, 'SLIDE KILL') && !has(r.slide.tags, 'DIVE KILL'), `a slide: ${r.slide.tags}`);
+    for (const t of [r.inAir.tags, r.rolling.tags, r.late.tags]) assert.ok(!has(t, 'SLIDE KILL') && !has(t, 'SPIN KILL'), `one move's tag: ${t}`);
+    assert.ok(r.marked.length > 0 && r.marked.every(Boolean), `the shots fired in the air are dive shots: ${r.marked}`);
+    assert.deepEqual(problems(logs), []);
+  } finally {
+    await page.close();
+  }
+});
+
+test('the dive leaves afterimages; ?style=off leaves none', async () => {
+  const ghosts = [];
+  for (const q of ['?seed=5', '?seed=5&style=off']) {
+    const { page } = await h.open(q);
+    try {
+      await setup(page);
+      ghosts.push(
+        await page.evaluate(() => {
+          const g = window.game;
+          window.begin(-6, 4, true);
+          let most = 0;
+          for (let i = 0; i < 40; i++) {
+            window.play(1, ['KeyD'], i === 0 ? ['Space', 'KeyD'] : []);
+            g.present(1 / 30); // a display frame: the afterimages run on world time (slow in bullet time)
+            most = Math.max(most, g.style.ghosts.live.length);
+          }
+          return most;
+        }),
+      );
+    } finally {
+      await page.close();
+    }
+  }
+  assert.ok(ghosts[0] >= 2, `afterimages behind the dive: ${ghosts[0]}`);
+  assert.equal(ghosts[1], 0, 'none under ?style=off');
+});
+
+test('screenshot: a DIVE KILL, the afterimages behind the dive', async () => {
+  const { page } = await h.open('?seed=5');
+  try {
+    await setup(page);
+    const tags = await page.evaluate(() => {
+      const g = window.game;
+      const p = g.player;
+      const kills = [];
+      const kill0 = g.score.kill.bind(g.score);
+      g.score.kill = (t) => {
+        kills.push(t.map((x) => x.label));
+        return kill0(t);
+      };
+      window.begin(-4, 4, true);
+      g.view = 2;
+      const e = g.enemies.spawn('grunt', { x: p.x + 5, z: p.z, ex: p.x + 5, ez: p.z + 0.1, stay: true });
+      e.spawnLock = 0;
+      e.state = 'move';
+      e.fireCd = 999;
+      for (let i = 0; i < 120 && !kills.length; i++) {
+        window.play(1, ['KeyD', 'Mouse0'], i === 0 ? ['Space', 'KeyD'] : []);
+        g.present(1 / 30);
+      }
+      window.play(6, ['KeyD']);
+      g.present(1 / 30);
+      g.updateCamera(1, true);
+      g.camera.position.lerp(g.camTarget, 0.5);
+      g.render();
+      return kills.flat();
+    });
+    assert.ok(tags.includes('DIVE KILL'), tags.join(','));
+    await page.screenshot({ path: new URL('dive-kill.png', OUT).pathname });
   } finally {
     await page.close();
   }

@@ -1444,7 +1444,10 @@ class Game {
     if (this.focusActive) tags.push({ label: 'SLOW-MO', pts: 50, cls: 'cyan' });
     if (info.bullet && info.bullet.spinShot) tags.push({ label: 'PIROUETTE', pts: 150, cls: 'pink' });
     else if (p.alive && p.spinning) tags.push({ label: 'SPIN KILL', pts: 100, cls: 'cyan' });
-    if (p.alive && p.sliding) tags.push({ label: 'SLIDE KILL', pts: 100, cls: 'cyan' });
+    // a dive (飛撲): in the air, rolling out of it, or by a shot fired in the air; never a SLIDE KILL as well
+    const dive = (info.bullet && info.bullet.diveShot) || (p.alive && (p.diving || p.rolling));
+    if (dive) tags.push({ label: 'DIVE KILL', pts: 150, cls: 'cyan' });
+    else if (p.alive && p.sliding) tags.push({ label: 'SLIDE KILL', pts: 100, cls: 'cyan' });
     if (info.juggle) tags.push({ label: 'JUGGLE', pts: 120, cls: 'gold' });
     if (info.split) tags.push({ label: 'SPLIT AIM', pts: 100, cls: 'pink' });
     if (info.bullet && info.bullet.scatter) {
@@ -1492,7 +1495,7 @@ class Game {
       gunless,
     );
     this.clip.kill(this.score.score - before);
-    this.notes.log(`擊殺 ${e.cfg.label}：${tags.map((t) => t.label).join(' + ')} ×${this.score.mult}`);
+    this.notes.log(`擊殺 ${e.cfg.label}${dive ? '（飛撲擊殺）' : ''}：${tags.map((t) => t.label).join(' + ')} ×${this.score.mult}`);
     this.addFocus(refill);
     this.hud.hitMarker(true);
     this.audio.kill(this.panFor(e.x));

@@ -72,7 +72,7 @@ export class Bullets {
 
   /**
    * o: { x, z, dx, dz, speed, owner: 'player'|'enemy', damage, range, split, source,
-   *      look, trail, pierce, knock, weapon, spinShot }
+   *      look, trail, pierce, knock, weapon, spinShot, diveShot }
    */
   spawn(o) {
     const b = this.acquire(o.look || (o.owner === 'player' ? 'player' : 'enemy'));
@@ -89,6 +89,7 @@ export class Bullets {
     b.knock = o.knock || 1;
     b.weapon = o.weapon || null;
     b.spinShot = !!o.spinShot;
+    b.diveShot = !!o.diveShot; // fired in the air on a dive: its kill is a DIVE KILL whenever it lands
     b.scatter = false;
     b.kills = 0;
     b.hits = [];

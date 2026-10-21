@@ -297,7 +297,7 @@ export class Player {
 
     // slide: only out of a run, locked to the direction of travel; a spin can cut it short
     const curSp = Math.hypot(this.vx, this.vz);
-    if (input.hit('KeyC') && this.slideCd <= 0 && this.slideT <= 0 && this.spinT <= 0 && this.execT <= 0 && !this.shieldOn && curSp >= PLAYER.slideMinSpeed) {
+    if (input.hit('KeyC') && this.slideCd <= 0 && this.slideT <= 0 && this.spinT <= 0 && this.diveT <= 0 && this.rollT <= 0 && this.execT <= 0 && !this.shieldOn && curSp >= PLAYER.slideMinSpeed) {
       this.slideT = PLAYER.slideDuration;
       this.slideDirX = this.vx / curSp;
       this.slideDirZ = this.vz / curSp;
@@ -619,6 +619,7 @@ export class Player {
             range: w.range,
             weapon: w.id,
             spinShot: s.spin !== undefined,
+            diveShot: this.diveT > 0,
           });
         }
         dx = Math.sin(base);
