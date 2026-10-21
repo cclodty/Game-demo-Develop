@@ -51,6 +51,7 @@ export class Waves {
     this.beatPhase = 'quiet'; // 'quiet' → 'telegraph' → 'live' → 'quiet' …
     this.beatT = 0;
     this.beatSpots = []; // the spawn points the beat being telegraphed comes through
+    this.beatPerches = []; // and the balconies it sends men up to (pickPerches)
     this.beatHurt = false; // the player took damage during the beat that is live
     this.stageOrder = []; // the map's stages (maps.js) in the order this wave's beats visit them
     this.stage = null; // the stage of the beat being telegraphed or live
@@ -148,6 +149,7 @@ export class Waves {
     this.beatT = 0.3;
     g.audio.setBeat('quiet');
     this.beatSpots = [];
+    this.beatPerches = [];
     this.beatHurt = false;
     this.stage = null;
     // the stages the beats visit, in an order of the wave's own (so every run with this seed sees the same)
@@ -231,6 +233,27 @@ export class Waves {
     return [anchor, second || anchor];
   }
 
+  /**
+   * The balconies a beat sends men up to (maps.js perches, level.js balconies): none to BEATS.perch of its men who
+   * can stand on one (enemies.js TYPES `perch`), as many as the wave's stream draws, each to a balcony nobody stands
+   * on that is not over the player (BEATS.perchClear), nearest where the beat plays out first. None on a map without.
+   */
+  pickPerches(beat) {
+    const g = this.game;
+    const L = g.level;
+    if (!L.balconies.length) return [];
+    const most = Math.min(BEATS.perch, beat.filter((t) => TYPES[t].perch).length);
+    const n = Math.floor(this.wr.range(0, most + 1));
+    if (!n) return [];
+    const p = g.player;
+    const taken = new Set(g.enemies.list.filter((e) => e.alive && e.perch).map((e) => e.sp));
+    const [sx, sz] = this.stage ? this.stage.at : [this.beatSpots[0].ex, this.beatSpots[0].ez];
+    return L.balconies
+      .filter((b) => !taken.has(b) && Math.hypot(b.ex - p.x, b.ez - p.z) > BEATS.perchClear)
+      .sort((a, b) => Math.hypot(a.ex - sx, a.ez - sz) - Math.hypot(b.ex - sx, b.ez - sz))
+      .slice(0, n);
+  }
+
   /** The beats of a wave: quiet, the telegraph at the beat's doors, then everyone in at once; the next when few stand or time is up. */
   updateBeats(dt, enemies) {
     const g = this.game;
@@ -238,18 +261,21 @@ export class Waves {
       this.beatT -= dt;
       if (this.beatT > 0 || this.beatI >= this.beats.length) return;
       this.beatSpots = this.pickSpots(this.beats[this.beatI]);
+      this.beatPerches = this.pickPerches(this.beats[this.beatI]);
       this.beatPhase = 'telegraph';
       this.beatT = BEATS.telegraph;
       g.audio.beat();
       g.audio.setBeat('telegraph'); // the music drops to the kick until they come
     } else if (this.beatPhase === 'telegraph') {
-      for (const sp of this.beatSpots) sp.heat = 1;
+      for (const sp of [...this.beatSpots, ...this.beatPerches]) sp.heat = 1;
       this.beatT -= dt;
       if (this.beatT > 0) return;
       const beat = this.beats[this.beatI];
+      const up = [...this.beatPerches];
       beat.forEach((type, i) => {
         const far = TYPES[type].spawn && TYPES[type].spawn.minDist; // a sniper keeps to the door picked for his distance
-        this.pending.push({ type, sp: far ? this.beatSpots[0] : this.beatSpots[i % 2], t: 0.05 * i });
+        const sp = TYPES[type].perch && up.length ? up.shift() : far ? this.beatSpots[0] : this.beatSpots[i % 2];
+        this.pending.push({ type, sp, t: 0.05 * i });
       });
       this.queue.splice(0, beat.length);
       this.beatI++;
@@ -259,7 +285,8 @@ export class Waves {
       g.audio.setBeat('live');
       const count = {};
       for (const t of beat) count[t] = (count[t] || 0) + 1;
-      g.notes.log(`第 ${this.beatI} 拍${this.stage ? `（${this.stage.name}）` : ''}出場：${Object.entries(count).map(([t, n]) => `${TYPES[t].label}×${n}`).join(' ')}`);
+      const perched = this.beatPerches.length ? `，${this.beatPerches.length} 個上露台` : '';
+      g.notes.log(`第 ${this.beatI} 拍${this.stage ? `（${this.stage.name}）` : ''}出場：${Object.entries(count).map(([t, n]) => `${TYPES[t].label}×${n}`).join(' ')}${perched}`);
     } else {
       this.beatT += dt;
       if (this.pending.length) return;

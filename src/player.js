@@ -463,7 +463,7 @@ export class Player {
       p.vz += (dz / d) * 1.5;
     }
     for (const e of g.enemies.list) {
-      if (!e.alive || e.cfg.fly) continue; // a drone flies over
+      if (!e.alive || e.aloft) continue; // a drone flies over, a man on a balcony stands over
       const dx = e.x - this.x;
       const dz = e.z - this.z;
       const rr = R + e.radius;
@@ -615,7 +615,7 @@ export class Player {
     let best = null;
     let bd = PLAYER.execRange;
     for (const e of this.game.enemies.list) {
-      if (!e.alive || e.stunT <= 0 || e.cfg.fly || !['kick', 'throw', 'strike', 'smash', 'net'].includes(e.stunCause)) continue;
+      if (!e.alive || e.stunT <= 0 || e.aloft || !['kick', 'throw', 'strike', 'smash', 'net'].includes(e.stunCause)) continue;
       const d = Math.hypot(e.x - this.x, e.z - this.z);
       if (d <= bd) {
         bd = d;
@@ -717,7 +717,7 @@ export class Player {
     const inCone = this.cone(PAN.arc);
     let hit = this.hitFixtures(inCone, PAN.reach);
     for (const e of g.enemies.list) {
-      if (!e.alive || e.spawnLock > 0 || e.cfg.fly) continue;
+      if (!e.alive || e.spawnLock > 0 || e.aloft) continue;
       const dir = inCone(e.x, e.z, PAN.reach + e.radius);
       if (!dir) continue;
       e.kick(dir.x, dir.z, PAN.power, 'smash', PAN.damage);
@@ -762,7 +762,7 @@ export class Player {
     const inCone = this.cone(PLAYER.kickArc);
     let hit = this.hitFixtures(inCone, PLAYER.kickRange);
     for (const e of g.enemies.list) {
-      if (!e.alive || e.spawnLock > 0 || e.cfg.fly) continue;
+      if (!e.alive || e.spawnLock > 0 || e.aloft) continue;
       const dir = inCone(e.x, e.z, PLAYER.kickRange + e.radius);
       if (!dir) continue;
       e.kick(dir.x, dir.z, 14);

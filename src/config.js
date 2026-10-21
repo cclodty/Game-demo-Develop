@@ -124,6 +124,7 @@ export const RANK = {
  * old straight approach.
  */
 export const AI = {
+  perchStep: 0.8, // s a man sent up to a balcony (maps.js perches) takes to step out onto it from inside
   coverSearch: 8, // m: how far a gunner looks for a box to hide behind
   coverHeight: 0.9, // m: lower cover hides nobody
   coverGap: 0.55, // m between the cover's face and where he stands
@@ -151,6 +152,8 @@ export const BEATS = {
   after: 12, // …or this many s after the beat came, whatever stands
   spread: 18, // m: a second door this close to the beat's door shares its enemies
   clean: 100, // CLEAN BEAT: a beat cleared without taking a hit
+  perch: 2, // men a beat sends up to a map's balconies (maps.js perches), at most: enemies.js TYPES `perch` say who goes
+  perchClear: 5, // m: no balcony this close to the player is picked
 };
 
 /** Things in the maps that play along (環境互動). */

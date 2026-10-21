@@ -144,7 +144,7 @@ class Barrel {
       this.body.rotation.z = Math.PI / 2 - 0.3; // lying along its flight
       this.mesh.rotation.y = Math.atan2(ux, uz);
       for (const e of g.enemies.list) {
-        if (!e.alive || e.spawnLock > 0 || e.cfg.fly || Math.hypot(e.x - this.x, e.z - this.z) > e.radius + this.r + 0.1) continue;
+        if (!e.alive || e.spawnLock > 0 || e.aloft || Math.hypot(e.x - this.x, e.z - this.z) > e.radius + this.r + 0.1) continue;
         this.rocketHit = true;
         this.ignite(0.02);
         break;
@@ -535,7 +535,7 @@ class Net {
     this.dome.position.set(this.x, 0, this.z);
     let n = 0;
     for (const e of g.enemies.list) {
-      if (!e.alive || e.cfg.fly || Math.hypot(e.x - this.x, e.z - this.z) > ENV.net.radius) continue;
+      if (!e.alive || e.aloft || Math.hypot(e.x - this.x, e.z - this.z) > ENV.net.radius) continue;
       e.netted(ENV.net.time);
       n++;
     }
@@ -620,7 +620,7 @@ class Trolley {
   /** Rolling into enemy `e` (enemies.js pushProps): it bowls him over and rolls on. */
   knock(e) {
     const sp = Math.hypot(this.vx, this.vz);
-    if (sp < 3 || e.stunT > 0 || e.cfg.fly) return;
+    if (sp < 3 || e.stunT > 0 || e.aloft) return;
     const g = this.level.game;
     e.kick(this.vx / sp, this.vz / sp, sp * 0.7, 'strike');
     this.vx *= ENV.trolley.knock;
@@ -766,6 +766,7 @@ export class Level {
     this.beat = 0;
     this.root = null;
     this.owned = [];
+    this.balconies = []; // (load: the map's perches)
     // camera -> player cutaway, shared by every material that opts in (see maps.js)
     this.cut = {
       uCutA: { value: new THREE.Vector3() },
@@ -994,6 +995,15 @@ export class Level {
     this.props = [...this.barrels, ...this.pans, ...this.tools, ...this.fixtures];
     for (const [x, z] of map.pads || []) this.addPad(x, z);
     this.buildSpawns(map.spawns);
+    // balconies (maps.js `perches`: [x, z, height, facing]): posts up a building's front where a beat sends a man to
+    // stand and shoot from (waves.js, enemies.js perch). Each is a spawn of kind 'balcony': he steps out onto it from
+    // inside the building, 1.2 m behind; `lamp` (the map's decorate) lights its window when one is coming
+    this.balconies = (map.perches || []).map(([x, z, y, face]) => {
+      const a = (face * Math.PI) / 180;
+      const dx = Math.sin(a);
+      const dz = Math.cos(a);
+      return { kind: 'balcony', x: x - dx * 1.2, z: z - dz * 1.2, ex: x, ez: z, perch: y, stay: true, dirX: dx, dirZ: dz, heat: 0, lamp: null };
+    });
     if (map.decorate) map.decorate(this);
     // Everything lit in the map can be cut away when it hides the player
     // (tall Senado buildings in any view, low walls once the camera tilts).
@@ -1686,6 +1696,12 @@ export class Level {
       sp.mat.color.setRGB(3 * sp.heat * pulse, 0.25 * sp.heat * pulse, 0.4 * sp.heat * pulse);
       sp.ring.visible = sp.heat > 0.01;
       if (sp.lamp) sp.lamp.mat.emissiveIntensity = 0.6 + sp.heat * pulse * 5;
+    }
+    // a balcony a beat is about to send a man up to: its window glows (no ring: there is no floor up there)
+    for (const sp of this.balconies) {
+      sp.heat = Math.max(0, sp.heat - realDt * 0.8);
+      const pulse = sp.heat > 0 ? 0.6 + 0.4 * Math.sin(performance.now() * 0.02) : 0;
+      if (sp.lamp) sp.lamp.mat.emissiveIntensity = 0.9 + sp.heat * pulse * 5;
     }
   }
 }

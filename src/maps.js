@@ -935,6 +935,16 @@ const felicidade = {
     [21, 2.5, 'lamp'],
   ],
   pads: [[-21, -0.8], [18, -0.2]],
+  // balconies up the fronts of the solid blocks (level.js balconies, waves.js pickPerches): [x, z, height, facing], the
+  // man sent up stands at (x, z) that high, over the street, facing out; four on the north row, two on the south
+  perches: [
+    [-24, -2.55, 3.05, 0],
+    [-8, -2.55, 3.05, 0],
+    [13, -2.55, 3.05, 0],
+    [26, -2.55, 3.05, 0],
+    [-13, 2.55, 3.05, 180],
+    [18, 2.55, 3.05, 180],
+  ],
   stages: [
     { name: '茶室前', en: 'TEA ROOM FRONT', at: [-16.5, -1.2], move: 'door' },
     { name: '巷口', en: 'LANE MOUTH', at: [7.25, 0.5], move: 'shutter' },
@@ -1088,6 +1098,42 @@ const felicidade = {
       [22, 6, 2.2, 1.2, 0.8],
     ]) {
       L.deco(x, h, z, w, ht, d, tank, true);
+    }
+    // the balconies: a slab and its railing, one piece each (numbered with the building behind, so it fades with it),
+    // and the window he comes out of, lit while he is coming (level.js present)
+    const iron = std({ color: 0x2f7a62, roughness: 0.55, metalness: 0.3 }); // painted ironwork, green as the old ones are
+    const slab = std({ color: 0x9a948a, roughness: 0.9 });
+    for (const b of L.balconies) {
+      const across = Math.abs(b.dirZ) > 0.5; // the balcony runs along x
+      const piece = (w, ht, d, x, y, z) => new THREE.BoxGeometry(across ? w : d, ht, across ? d : w).translate(across ? x : z, y, across ? z : x);
+      const out = 0.95; // its depth out from the wall
+      const edge = (out / 2 - 0.03) * Math.sign(b.dirZ || b.dirX); // the railing along its outer edge
+      const floor = piece(1.9, 0.14, out, 0, -0.07, 0);
+      const parts = [];
+      for (const x of [-0.92, -0.46, 0, 0.46, 0.92]) parts.push(piece(0.08, 0.95, 0.08, x, 0.47, edge));
+      parts.push(piece(1.94, 0.1, 0.1, 0, 0.95, edge));
+      for (const x of [-0.92, 0.92]) parts.push(piece(0.1, 0.1, out, x, 0.95, 0));
+      const geo = L.own(mergeGeometries(parts));
+      for (const g of parts) g.dispose();
+      const wallZ = b.ez - b.dirZ * (out / 2);
+      const home = own.find((sd) => b.x > sd.minX && b.x < sd.maxX && b.z > sd.minZ && b.z < sd.maxZ);
+      for (const [g, mat] of [
+        [geo, iron],
+        [L.own(floor), slab],
+      ]) {
+        if (home) L.markFade(g, numbers.get(home));
+        const m = new THREE.Mesh(g, mat);
+        m.position.set(b.ex, b.perch, b.ez);
+        m.castShadow = true;
+        L.add(m);
+      }
+      const glow = std({ color: 0x1a0c08, emissive: 0xff7a3a, emissiveIntensity: 0.9 });
+      const window = face(1.1, 2.1, glow);
+      if (home) L.markFade(window.geometry, numbers.get(home));
+      window.position.set(b.ex, b.perch + 1.05, wallZ + b.dirZ * 0.06); // in front of the facade's own picture (decorate's `front`)
+      window.rotation.y = b.dirZ > 0 ? 0 : Math.PI;
+      L.add(window);
+      b.lamp = { mat: glow };
     }
     // power lines and lanterns strung across the street
     const cable = std({ color: 0x141214, roughness: 0.6 });

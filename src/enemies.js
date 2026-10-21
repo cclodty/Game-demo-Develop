@@ -24,6 +24,7 @@ export const TYPES = {
     tactic: 'cover', // how he closes in (config.js AI): behind cover, stepping out to shoot
     look: { body: 0x2a2a33, pants: 0x1b1b22, accent: 0xff2d4a, hair: 0x8a1020, weapon: 'pistol' },
     spawn: { from: 1, weight: 6 },
+    perch: true, // a beat may send him up to a balcony (waves.js; config.js BEATS.perch)
   },
   shotgun: {
     label: 'SHOTGUNNER',
@@ -56,6 +57,7 @@ export const TYPES = {
     tactic: 'cover',
     look: { body: 0x2a2440, pants: 0x1a1830, accent: 0xb36bff, hair: 0x3a2466, weapon: 'rifle' },
     spawn: { from: 2, weight: 2 },
+    perch: true,
   },
   rusher: {
     label: 'BLADE',
@@ -156,6 +158,7 @@ export const TYPES = {
     reload: 2, // s after the shot with the rifle down: the moment to get him
     look: { body: 0x23262e, pants: 0x16181e, accent: 0xff2a2a, hair: 0x101216, weapon: 'sniper' },
     spawn: { from: 7, weight: 1.2, max: 2, minDist: 18 }, // comes in by a door at least minDist m from the player
+    perch: true,
   },
   drone: {
     label: 'DRONE',
@@ -227,6 +230,8 @@ class Enemy {
     this.x = sp.x;
     this.z = sp.z;
     this.y = cfg.fly ? cfg.fly.height : 0;
+    this.perch = sp.perch || 0; // sent up to a balcony (level.js balconies): this high, and there he stays
+    if (this.perch) this.y = this.perch;
     this.vx = this.vz = 0;
     this.facing = angleTo(sp.x, sp.z, sp.ex, sp.ez);
     this.aimAngle = this.facing;
@@ -275,6 +280,16 @@ class Enemy {
 
   get aiming() {
     return this.alive && (this.state === 'aim' || this.state === 'windup');
+  }
+
+  /** Off the street: a drone in the air or a man up on a balcony. Nothing on the street reaches him (a kick, a net, a body). */
+  get aloft() {
+    return !!this.cfg.fly || this.perch > 0;
+  }
+
+  /** How high he sees and shoots from: lower cover is no obstacle to his sight or his bullets. */
+  get over() {
+    return this.cfg.fly ? this.cfg.fly.height : this.perch;
   }
 
   /** The riot shield, held in front on the left: a dark clear panel with a yellow rim. */
@@ -415,6 +430,11 @@ class Enemy {
 
   kick(dx, dz, power, cause = 'kick', dmg = 1) {
     if (!this.alive) return;
+    if (this.perch) {
+      // up on a balcony only a thing thrown up at him reaches him: off he goes
+      if (cause === 'throw') this.fallOff(dx, dz);
+      return;
+    }
     if (this.cfg.shield) {
       if (this.shieldDownT <= 0) this.game.notes.log('盾牌手的盾被踢開');
       this.shieldDownT = this.cfg.shield.down;
@@ -444,7 +464,7 @@ class Enemy {
 
   /** A fishing net falls over him (level.js Net): held where he stands, dazed for `t` s (F executes him). */
   netted(t) {
-    if (!this.alive) return;
+    if (!this.alive || this.aloft) return;
     this.stunT = Math.max(this.stunT, t);
     this.stunCause = 'net';
     this.netT = t;
@@ -459,6 +479,10 @@ class Enemy {
    */
   blast(dx, dz, dmg, chain = false, rocket = false, gun = false) {
     if (!this.alive) return;
+    if (this.perch) {
+      this.fallOff(dx, dz); // a blast shakes him off his balcony, however hard
+      return;
+    }
     this.hp -= dmg;
     this.flash = 1;
     this.vx += dx * 10;
@@ -743,6 +767,22 @@ class Enemy {
     this.fireCd = g.rng.range(this.cfg.cooldown[0], this.cfg.cooldown[1]);
   }
 
+  /** For a man on a balcony: his gun's height, and how far a shot drops a metre to come to the player's chest. {} on the street. */
+  fromAbove() {
+    if (!this.perch) return {};
+    const a = this.aimPoint();
+    const d = Math.max(1, Math.hypot(a.x - this.x, a.z - this.z));
+    return { y: GUN_Y + this.perch, drop: this.perch / d };
+  }
+
+  /** Knocked off his balcony (a blast, a thing thrown up at him): down to the street, dead. A kill tagged FALL. */
+  fallOff(dx, dz) {
+    if (!this.alive) return;
+    this.endAim();
+    this.hp = 0;
+    this.die(dx, dz, { cause: 'fall' });
+  }
+
   shoot() {
     const g = this.game;
     const rng = g.rng;
@@ -763,11 +803,13 @@ class Enemy {
         damage: w.dmg,
         range: w.range || 70,
         source: this,
-        over: this.cfg.fly ? this.cfg.fly.height : 0, // a drone's bullets pass over lower cover
+        over: this.over, // a drone's or a balcony's bullets pass over lower cover
+        ...this.fromAbove(),
       });
     }
-    g.fx.muzzle(m.x, GUN_Y, m.z, Math.sin(this.aimAngle), Math.cos(this.aimAngle), [8, 2.2, 0.8]);
-    g.fx.flash(m.x, GUN_Y + 0.4, m.z, 0xff6040, 14, 0.08, 8);
+    const my = GUN_Y + this.perch;
+    g.fx.muzzle(m.x, my, m.z, Math.sin(this.aimAngle), Math.cos(this.aimAngle), [8, 2.2, 0.8]);
+    g.fx.flash(m.x, my + 0.4, m.z, 0xff6040, 14, 0.08, 8);
     g.audio.shot(w.sound, g.panFor(this.x));
     g.level.noise(this.x, this.z, 9);
   }
@@ -804,7 +846,7 @@ class Enemy {
     this.losT -= dt;
     if (this.losT <= 0) {
       this.losT = 0.12;
-      this.los = p.alive && g.level.hasLOS(this.x, this.z, p.x, p.z, cfg.fly ? cfg.fly.height : 0);
+      this.los = p.alive && g.level.hasLOS(this.x, this.z, p.x, p.z, this.over);
     }
     // in the dark under a lamp shot out (fixtures.js) or in an extinguisher's cloud: no aiming from there
     if (g.level.darkAt(this.x, this.z) || g.level.smokeAt(this.x, this.z)) {
@@ -835,6 +877,17 @@ class Enemy {
       switch (this.state) {
         case 'enter': {
           this.enterT += dt;
+          if (this.perch) {
+            // out of the building onto his balcony
+            collide = false;
+            const k = smoothstep(0, 1, this.enterT / AI.perchStep);
+            this.x = lerp(this.sp.x, this.sp.ex, k);
+            this.z = lerp(this.sp.z, this.sp.ez, k);
+            this.vx = this.vz = 0;
+            want = null;
+            if (this.enterT >= AI.perchStep) this.state = 'move';
+            break;
+          }
           if (this.rappelT > 0) {
             this.rappelT -= dt;
             this.y = Math.max(0, this.sp.rappel.height * (this.rappelT / this.sp.rappel.drop));
@@ -1152,6 +1205,16 @@ class Enemy {
       }
     }
 
+    if (this.perch) {
+      // up on his balcony he never moves from it, and nothing on the street is in his way
+      want = null;
+      this.vx = this.vz = 0;
+      collide = false;
+      if (this.state !== 'enter') {
+        this.x = this.sp.ex;
+        this.z = this.sp.ez;
+      }
+    }
     if (want) {
       this.vx = damp(this.vx, want[0], 10, dt);
       this.vz = damp(this.vz, want[1], 10, dt);
@@ -1196,7 +1259,7 @@ class Enemy {
     const sp = Math.hypot(this.vx, this.vz);
     if (sp < 5) return;
     for (const o of this.mgr.list) {
-      if (o === this || !o.alive || o.stunT > 0 || o.cfg.fly) continue;
+      if (o === this || !o.alive || o.stunT > 0 || o.aloft) continue;
       const dx = o.x - this.x;
       const dz = o.z - this.z;
       const rr = this.radius + o.radius + 0.1;
@@ -1280,12 +1343,16 @@ class Enemy {
     const m = this.muzzle();
     const dx = Math.sin(this.aimAngle);
     const dz = Math.cos(this.aimAngle);
-    const hit = g.level.raycast(m.x, m.z, m.x + dx * 40, m.z + dz * 40, true, 0, false);
-    const len = hit ? hit.t * 40 : 40;
+    const hit = g.level.raycast(m.x, m.z, m.x + dx * 40, m.z + dz * 40, true, this.perch, false);
+    let len = hit ? hit.t * 40 : 40;
     const k = this.state === 'fire' ? 1 : clamp(this.aimT / this.aimTime, 0, 1);
     let intensity = 0.35 + k * k * 2.8;
     if (k > 0.78 && this.state === 'aim') intensity *= Math.sin(performance.now() * 0.06) > 0 ? 1.7 : 0.5;
-    this.laser.set(m.x, m.z, m.x + dx * len, m.z + dz * len, 0.035 + k * 0.05, intensity);
+    // from a balcony the line comes down from his gun through the player's chest, and stops at the floor
+    const { y, drop } = this.fromAbove();
+    const y0 = y ?? GUN_Y;
+    if (drop) len = Math.min(len, y0 / drop);
+    this.laser.set(m.x, m.z, m.x + dx * len, m.z + dz * len, 0.035 + k * 0.05, intensity, y0, y0 - (drop || 0) * len);
   }
 
   updateCorpse(dt) {
@@ -1442,7 +1509,7 @@ export class Enemies {
       if (!a.alive || (a.state === 'enter' && a.sp.climb)) continue;
       for (let j = i + 1; j < L.length; j++) {
         const b = L[j];
-        if (!b.alive || (b.state === 'enter' && b.sp.climb) || !a.cfg.fly !== !b.cfg.fly) continue;
+        if (!b.alive || (b.state === 'enter' && b.sp.climb) || a.over !== b.over) continue; // a drone, a man on a balcony: no one on the street to bump
         const dx = b.x - a.x;
         const dz = b.z - a.z;
         const rr = a.radius + b.radius;
