@@ -1477,9 +1477,12 @@ class Game {
 
     const before = this.score.score;
     this.score.kill(tags);
+    // without a gun (鑊氣): anything but the player's own shot or launcher grenade; a bullet the pan sent back is the pan's
+    const gunless = info.cause === 'bullet' ? !!(info.bullet && info.bullet.homeRun) : !info.gun;
     this.achievements.kill(
       tags.map((t) => t.label),
       info.bullet ? info.bullet.kills || 0 : 0,
+      gunless,
     );
     this.clip.kill(this.score.score - before);
     this.notes.log(`擊殺 ${e.cfg.label}：${tags.map((t) => t.label).join(' + ')} ×${this.score.mult}`);
@@ -1535,8 +1538,8 @@ class Game {
     if (!this.player.alive) return;
     const bonus = 250 * n;
     this.notes.log(`第 ${n} 波清空${stageEnd ? '，準備轉場' : ''}`);
-    this.achievements.wave(!this.waves.hurt);
-    this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt });
+    this.achievements.wave(!this.waves.hurt, this.waves.shots);
+    this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt, shots: this.waves.shots });
     this.score.bonus('WAVE CLEAR', bonus);
     this.level.waveEnd(); // shutters roll back up
     this.addFocus(0.35);
@@ -1551,9 +1554,9 @@ class Game {
     if (!this.player.alive) return;
     const bonus = 250 * n;
     this.notes.log(`第 ${n} 波清空：通關（RUN CLEAR）`);
-    this.achievements.wave(!this.waves.hurt);
+    this.achievements.wave(!this.waves.hurt, this.waves.shots);
     this.achievements.clear();
-    this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt });
+    this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt, shots: this.waves.shots });
     this.score.bonus('RUN CLEAR', bonus);
     this.player.invuln = 99; // nothing still flying can take the run away now
     this.clearT = 2.6;
@@ -1577,7 +1580,7 @@ class Game {
       const d = Math.hypot(e.x - x, e.z - z);
       if (d > r + e.radius || !this.level.hasLOS(x, z, e.x, e.z)) continue;
       const k = 1 / (d || 1);
-      e.blast((e.x - x) * k, (e.z - z) * k, d < r * 0.65 ? 20 : 5, !!opts.chain, !!opts.rocket);
+      e.blast((e.x - x) * k, (e.z - z) * k, d < r * 0.65 ? 20 : 5, !!opts.chain, !!opts.rocket, !!opts.gun);
     }
     for (const e of this.enemies.corpses) {
       const d = Math.hypot(e.x - x, e.z - z);

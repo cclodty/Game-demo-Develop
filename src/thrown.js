@@ -167,10 +167,10 @@ export class Thrown {
     return true;
   }
 
-  /** The pistol in the right hand shows when the hand is free. */
+  /** The pistol in the right hand shows when the hand is free (and there is one: not under 無槍). */
   showRightGun(on) {
-    const rig = this.game.player.rig;
-    for (const m of rig.weaponParts) if (m.parent === rig.armR) m.visible = on;
+    const p = this.game.player;
+    for (const m of p.rig.weaponParts) if (m.parent === p.rig.armR) m.visible = on && !p.unarmed;
   }
 
   /** Let go of a carried thing: one in the hand or hugged goes back into the level at the player's spot. */

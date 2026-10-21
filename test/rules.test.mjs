@@ -1,5 +1,6 @@
-// Run rules (變體規則與難度): three difficulties (街頭, 正常, 芭蕾) and three
-// variants (雙槍主義, 沒有慢鏡, 玻璃之城), picked on the title screen. Every
+// Run rules (變體規則與難度): three difficulties (街頭, 正常, 芭蕾) and the
+// variants (雙槍主義, 沒有慢鏡, 玻璃之城; 油桶節, 雙衝鋒槍起手 and 無槍 once
+// an achievement opens them), picked on the title screen. Every
 // rule is one number or one switch in src/rules.js, read in one place by its
 // system; no other source file names a difficulty or a variant. The picks go
 // into the input record, so a replay plays under the same rules.
@@ -179,6 +180,122 @@ test('雙槍主義: the weapon pads stay empty and enemies drop nothing', async 
   assert.equal(r.normal.drops, 1, 'and a brute drops his gun');
   assert.equal(r.dualist.pads, 0, 'not with the variant');
   assert.equal(r.dualist.drops, 0);
+});
+
+test('無槍: hidden until 赤手空拳; then empty hands: the left button and R do nothing, the HUD says 空手 BARE HANDS, no gun in either hand (nor after a pan is put down); the pads stay empty, nobody drops a gun; F still kicks and executes', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const card = () => document.querySelector('#variant-cards [data-rule="noGuns"]');
+    const out = {};
+    // locked: not on the title, and not taken if asked for
+    g.toTitle();
+    out.lockedCard = !!card() && !card().classList.contains('hidden');
+    g.setRules('normal', ['noGuns']);
+    out.lockedPick = [...g.variants];
+    // 赤手空拳 done (a wave without a shot): it shows
+    g.achievements.wave(false, 0);
+    g.toTitle();
+    out.openCard = !!card() && !card().classList.contains('hidden');
+    // the run: the pads at wave 1, then a brute who always drops his minigun
+    window.run(0, 'normal', ['noGuns'], true);
+    let n = 0;
+    while (g.waves.wave < 1 && n++ < 600) window.play(1);
+    out.pads = g.level.pads.filter((p) => p.pickup).length;
+    g.waves.state = 'done';
+    g.enemies.clear();
+    g.pickups.clear();
+    const p = g.player;
+    const brute = g.enemies.spawn('brute', { x: p.x, z: p.z - 5, ex: p.x, ez: p.z - 4.9, stay: true });
+    brute.die(0, -1, { cause: 'kick' });
+    out.drops = g.pickups.list.length;
+    out.label = g.ruleset.label;
+    // the left button held, R pressed: nothing
+    const shots = g.waves.shots;
+    g.input.mouse.left = true;
+    g.input.pressed.add('KeyR');
+    window.play(30);
+    g.input.mouse.left = false;
+    out.fired = g.bullets.list.filter((b) => b.alive && b.owner === 'player').length + (g.waves.shots - shots);
+    out.reload = p.reloadT;
+    g.hud.update(1 / 60);
+    const text = (id) => document.getElementById(id).textContent;
+    out.hud = { weapon: text('weapon-name'), ammo: text('ammo-count'), max: text('ammo-max'), slot: text('slots') };
+    const guns = () => p.rig.weaponParts.filter((m) => m.visible).length;
+    out.guns = guns();
+    // a pan taken up and thrown away: still no gun
+    const pan = g.level.pans[0];
+    g.thrown.pickUp(pan);
+    window.play(2);
+    g.thrown.throwCarried();
+    window.play(30);
+    out.gunsAfterPan = guns();
+    // F: a kick, then the execution of the dazed one (aimed at him: the cursor is not used here)
+    const e = g.enemies.spawn('grunt', { x: p.x, z: p.z - 1, ex: p.x, ez: p.z - 0.9, stay: true });
+    e.spawnLock = 0;
+    const step = (frames, keys = []) => {
+      for (let i = 0; i < frames; i++) {
+        p.hp = 100;
+        g.killcamT = 0;
+        g.hitstopT = 0;
+        if (i === 0) for (const k of keys) g.input.pressed.add(k);
+        g.aimPoint.set(e.x, g.aimPoint.y, e.z);
+        g.aimFresh = true;
+        g.updatePlay(1 / 60);
+      }
+    };
+    step(2);
+    step(1, ['KeyF']);
+    out.kicked = e.stunCause === 'kick' && e.stunT > 0;
+    step(10);
+    p.x = e.x;
+    p.z = e.z + 0.9;
+    step(1, ['KeyF']);
+    step(60);
+    out.executed = !e.alive;
+    return out;
+  });
+  // the shots: a run with empty hands (the HUD says so), then the title with the variant open
+  await page.evaluate(() => {
+    const g = window.game;
+    const p = g.player;
+    g.enemies.spawn('grunt', { x: p.x + 1.5, z: p.z - 4, ex: p.x + 1.5, ez: p.z - 3.9, stay: true });
+    g.updatePlay(1 / 60);
+    g.hud.update(1 / 60);
+    g.updateCamera(1, true);
+    g.render();
+  });
+  await snap(page, 'rules-no-guns.png');
+  await page.evaluate(() => {
+    const g = window.game;
+    g.setRules('normal', ['noGuns']);
+    g.toTitle();
+    g.showRules(true);
+    document.querySelector('#variant-cards [data-rule="noGuns"]').scrollIntoView({ block: 'center' });
+    g.render();
+  });
+  await snap(page, 'rules-no-guns-title.png');
+  await page.evaluate(() => {
+    const g = window.game;
+    g.showRules(false);
+    // leave the picks and the record as they were
+    g.setRules('normal', []);
+    delete g.achievements.done.bareHands;
+    delete g.achievements.done.untouched;
+    g.achievements.save();
+  });
+  assert.deepEqual([r.lockedCard, r.lockedPick], [false, []], 'locked: not offered, not taken');
+  assert.equal(r.openCard, true, 'opened by 赤手空拳');
+  assert.equal(r.label, '無槍');
+  assert.equal(r.pads, 0, 'the pads stay empty');
+  assert.equal(r.drops, 0, 'nobody drops a gun');
+  assert.equal(r.fired, 0, 'the left button fires nothing');
+  assert.equal(r.reload, 0, 'R reloads nothing');
+  assert.deepEqual(r.hud, { weapon: '空手 BARE HANDS', ammo: '—', max: '', slot: '1空手2—' });
+  assert.equal(r.guns, 0, 'no gun in either hand');
+  assert.equal(r.gunsAfterPan, 0, 'none back after the pan');
+  assert.equal(r.kicked, true, 'F kicks');
+  assert.equal(r.executed, true, 'and F executes him dazed');
+  assert.deepEqual(problems(logs), []);
 });
 
 test('芭蕾 aims in 0.7× the time and scores ×1.5; 街頭 aims in 1.4× and scores ×1', async () => {

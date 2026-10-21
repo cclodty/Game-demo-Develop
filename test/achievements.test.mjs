@@ -1,9 +1,9 @@
-// Achievements and unlocks (成就與解鎖 ①): eight achievements as data, each
-// reached in play through the game's own events (kills with their tags,
-// close calls, clean waves, the Style rank, a cleared run), kept in
-// localStorage across reloads, and three unlocks that appear on the title
-// once earned: the SMG start, the 油桶節 variant and the coat colours.
-// A replay being watched earns nothing.
+// Achievements and unlocks (成就與解鎖 ①, 成就與變體 ②): ten achievements as
+// data, each reached in play through the game's own events (kills with their
+// tags, kills without a gun, close calls, clean waves, waves without a shot,
+// the Style rank, a cleared run), kept in localStorage across reloads, and
+// four unlocks that appear on the title once earned: the SMG start, the 油桶節
+// and 無槍 variants and the coat colours. A replay being watched earns nothing.
 // Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -16,15 +16,16 @@ function memoryStorage() {
   return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
 }
 
-test('the data: eight achievements, each opening at most what the card says, and the coats', () => {
-  assert.equal(ACHIEVEMENTS.length, 8);
-  assert.equal(new Set(ACHIEVEMENTS.map((a) => a.id)).size, 8, 'ids are unique');
+test('the data: ten achievements, each opening at most what the card says, and the coats', () => {
+  assert.equal(ACHIEVEMENTS.length, 10);
+  assert.equal(new Set(ACHIEVEMENTS.map((a) => a.id)).size, 10, 'ids are unique');
   const opened = Object.values(VARIANTS)
     .filter((v) => v.unlock)
     .map((v) => [v.en, v.unlock]);
   assert.deepEqual(opened, [
     ['BARREL FEST', 'useEverything'],
     ['SMG START', 'bankShot'],
+    ['NO GUNS', 'bareHands'],
   ]);
   for (const [, id] of opened) assert.ok(ACHIEVEMENTS.some((a) => a.id === id), `${id} is an achievement`);
   assert.ok(ACHIEVEMENTS.some((a) => a.id === COAT_UNLOCK));
@@ -46,6 +47,11 @@ test('each achievement has its trigger; per-run counts start over; the record su
   a.wave(false);
   a.wave(true);
   assert.equal(got.at(-1), 'untouched');
+  // a wave without a shot: not when it is not known (an older caller), nor after one shot; after none
+  a.wave(false, 1);
+  assert.equal(a.has('bareHands'), false);
+  a.wave(false, 0);
+  assert.equal(got.at(-1), 'bareHands', 'hurt or not');
   // nine close calls in one run and one in the next: not ten in a run
   for (let i = 0; i < 9; i++) a.style('CLOSE CALL');
   a.startRun();
@@ -74,12 +80,22 @@ test('each achievement has its trigger; per-run counts start over; the record su
   assert.equal(a.has('carousel'), false);
   a.kill(['THUG', 'PIROUETTE', 'MULTI KILL']);
   assert.equal(got.at(-1), 'carousel');
+  // thirty kills without a gun in one run: 29 and a gun kill are not; the count starts over with a run
+  for (let i = 0; i < 29; i++) a.kill(['THUG', 'KICK'], 0, true);
+  a.kill(['THUG'], 0, false);
+  assert.deepEqual(a.progress(ACHIEVEMENTS.find((x) => x.id === 'wokHei')), { have: 29, need: 30 });
+  a.startRun();
+  a.kill(['THUG', 'KICK'], 0, true);
+  assert.deepEqual(a.progress(ACHIEVEMENTS.find((x) => x.id === 'wokHei')), { have: 1, need: 30 });
+  for (let i = 0; i < 29; i++) a.kill(['THUG', 'EXECUTION'], 0, true);
+  assert.equal(got.at(-1), 'wokHei');
   a.clear();
-  assert.deepEqual(got, ['bankShot', 'untouched', 'closeShave', 'senadoS', 'useEverything', 'scatter', 'carousel', 'runClear']);
+  assert.deepEqual(got, ['bankShot', 'untouched', 'bareHands', 'closeShave', 'senadoS', 'useEverything', 'scatter', 'carousel', 'wokHei', 'runClear']);
   // done once only
   a.clear();
   a.kill(['THUG', 'SCATTER']);
-  assert.equal(got.length, 8);
+  a.wave(true, 0);
+  assert.equal(got.length, 10);
   // a new start on the same storage remembers them, and the coat
   a.setCoat('gold');
   a.setCoat('nonsense');
@@ -94,11 +110,12 @@ test('each achievement has its trigger; per-run counts start over; the record su
   const w = new Achievements(memoryStorage(), (x) => got.push(x.id));
   w.watching = true;
   w.kill(['THUG', 'SCATTER']);
-  w.wave(true);
+  w.wave(true, 0);
   w.clear();
   w.rank('SSS', 'senado');
   for (let i = 0; i < 10; i++) w.style('CLOSE CALL');
-  assert.equal(got.length, 8);
+  for (let i = 0; i < 30; i++) w.kill(['THUG', 'KICK'], 0, true);
+  assert.equal(got.length, 10);
   assert.deepEqual(w.progress(ACHIEVEMENTS.find((x) => x.id === 'closeShave')), { have: 0, need: 10 });
   // a garbled record starts empty instead of breaking the game
   const bad = memoryStorage();
@@ -263,7 +280,16 @@ test('in play: every achievement comes from the game’s own events, shows a toa
         g.updatePlay(1 / 60);
         if (g.waves.wave !== waves.length) waves.push(g.achievements.has('untouched'));
       }
-      out.waves = { waves, wave: g.waves.wave, done: g.achievements.has('untouched') };
+      out.waves = { waves, wave: g.waves.wave, done: g.achievements.has('untouched'), bare: g.achievements.has('bareHands') }; // nobody fired: 赤手空拳 too
+      // 鑊氣: thirty kills in a run without a gun (kicks here)
+      window.run(1);
+      const kicks = [];
+      for (let i = 0; i < 30; i++) {
+        window.grunt(0, -2).die(0, -1, { cause: 'kick' });
+        window.play(1);
+        kicks.push(g.achievements.has('wokHei'));
+      }
+      out.wok = { first: kicks.indexOf(true) + 1, done: g.achievements.has('wokHei') };
       // 議事亭之舞: the Style rank to S at Senado (A or SSS elsewhere does not count)
       const rankUp = (map) => {
         window.run(map);
@@ -298,15 +324,18 @@ test('in play: every achievement comes from the game’s own events, shows a toa
     assert.equal(r.env.done, true);
     assert.deepEqual(r.waves.waves.slice(0, 3), [false, false, true], 'not after the hurt wave 1; after wave 2');
     assert.equal(r.waves.done, true);
+    assert.equal(r.waves.bare, true, 'a wave cleared without a shot');
+    assert.deepEqual(r.wok, { first: 30, done: true }, 'the thirtieth kick');
     assert.deepEqual(r.rankElsewhere, { rank: 'SS', done: false });
     assert.deepEqual(r.rankSenado, { rank: 'SS', done: true });
     assert.equal(r.clear, true);
-    assert.equal(r.toasts.length, 8, r.toasts.join('\n'));
+    assert.equal(r.toasts.length, 10, r.toasts.join('\n'));
     assert.match(r.toasts.find((t) => t.includes('一彈兩命')), /解鎖：雙衝鋒槍起手/);
     assert.match(r.toasts.find((t) => t.includes('物盡其用')), /解鎖：油桶節/);
     assert.match(r.toasts.find((t) => t.includes('擦身而過')), /解鎖：外套顏色/);
+    assert.match(r.toasts.find((t) => t.includes('赤手空拳')), /解鎖：無槍/);
     assert.doesNotMatch(r.toasts.find((t) => t.includes('十二波')), /解鎖/);
-    assert.equal(r.log.length, 8);
+    assert.equal(r.log.length, 10);
     assert.deepEqual(Object.keys(r.stored).sort(), ACHIEVEMENTS.map((a) => a.id).sort());
 
     // a reload: all still done; the page lists them; the unlocks are on the title
@@ -324,8 +353,8 @@ test('in play: every achievement comes from the game’s own events, shows a toa
         barrel: !!card('barrelFest') && !card('barrelFest').classList.contains('hidden'),
       };
     });
-    assert.equal(t.done.length, 8);
-    assert.equal(t.cards, 5, 'the two opened variants are on the title');
+    assert.equal(t.done.length, 10);
+    assert.equal(t.cards, 6, 'the three opened variants are on the title');
     assert.equal(t.coatRow, true);
     assert.equal(t.barrel, true);
     await page.click('#open-achievements');
@@ -333,7 +362,7 @@ test('in play: every achievement comes from the game’s own events, shows a toa
       rows: document.querySelectorAll('#ach-list .ach-row.done').length,
       count: document.getElementById('ach-count').textContent,
     }));
-    assert.deepEqual(list, { rows: 8, count: '已完成 8 / 8' });
+    assert.deepEqual(list, { rows: 10, count: '已完成 10 / 10' });
     assert.deepEqual(problems(logs), []);
   } finally {
     await page.close();
@@ -464,6 +493,82 @@ test('unlocked: the SMG start, 油桶節 and the coat take effect; locked, they 
       g.render();
     });
     await page.screenshot({ path: new URL('ach-title.png', OUT).pathname });
+    assert.deepEqual(problems(logs), []);
+  } finally {
+    await page.close();
+  }
+});
+
+test('赤手空拳 and 鑊氣 in play: one shot spoils a wave, the next without one earns it (the record keeps each wave’s shots); a kick, a pan, an execution, a barrel or a parried bullet is a kill without a gun, a shot or a launcher grenade is not', { timeout: 300000 }, async () => {
+  const { page, logs } = await h.open('?seed=14');
+  try {
+    await install(page);
+    const r = await page.evaluate(() => {
+      const g = window.game;
+      const out = {};
+      // a real run: in wave 1 the player fires once, then everyone is kicked down; in wave 2 nobody fires
+      g.setRules('normal', []);
+      g.startRun(1);
+      const bare = [];
+      let fired = false;
+      let n = 0;
+      while (g.waves.wave < 3 && n++ < 60 * 120) {
+        const p = g.player;
+        p.hp = 100;
+        g.killcamT = 0;
+        if (g.waves.wave === 1 && g.waves.state === 'active' && !fired && p.ammo > 0 && p.fireCd <= 0) {
+          fired = true;
+          g.input.mouse.left = true;
+          g.updatePlay(1 / 60);
+          g.input.mouse.left = false;
+          out.shotsAfter = g.waves.shots;
+          continue;
+        }
+        if (fired || g.waves.wave > 1) for (const e of g.enemies.list) if (e.alive && e.spawnLock <= 0) e.die(0, -1, { cause: 'kick' });
+        g.updatePlay(1 / 60);
+        if (g.waves.wave !== bare.length) bare.push(g.achievements.has('bareHands'));
+      }
+      out.bare = bare;
+      out.recorded = g.telemetry.run.events.filter((e) => e.type === 'wave').map((e) => [e.n, e.shots]);
+      out.text = g.telemetry.text();
+      // what counts towards 鑊氣: each kind of kill once, the count before and after
+      window.run(1);
+      const gunless = () => g.achievements.counts.gunless || 0;
+      const kinds = {
+        shot: (e) => window.shoot(e.x, e.z + 2.4),
+        launcher: (e) => g.grenades.spawn(e.x, e.z + 6, e.x, e.z, 14),
+        kick: (e) => e.kick(0, -1, 12, 'kick', 99),
+        pan: (e) => e.kick(0, -1, 12, 'smash', 99),
+        execution: (e) => e.die(0, -1, { cause: 'execution' }),
+        barrel: (e) => g.explode(e.x, e.z, 2.5, { kind: 'barrel' }),
+        parried: (e) => window.shoot(e.x, e.z + 2.4, {}, { homeRun: true }),
+      };
+      out.counted = {};
+      for (const [k, kill] of Object.entries(kinds)) {
+        g.player.x = 0;
+        g.player.z = 3;
+        const e = window.grunt(0, -4);
+        window.play(1);
+        const before = gunless();
+        kill(e);
+        let m = 0;
+        while (e.alive && m++ < 240) window.play(1);
+        out.counted[k] = { dead: !e.alive, add: gunless() - before };
+      }
+      return out;
+    });
+    assert.equal(r.shotsAfter, 1, 'the one shot counted');
+    assert.deepEqual(r.bare.slice(0, 3), [false, false, true], 'not after wave 1 (one shot); after wave 2 (none)');
+    assert.deepEqual(r.recorded.slice(0, 2), [
+      [1, 1],
+      [2, 0],
+    ]);
+    assert.match(r.text, /1@\d+:\d\d✓?·1槍 2@\d+:\d\d✓?·0槍/, 'the export shows each wave’s shots');
+    for (const [k, c] of Object.entries(r.counted)) assert.equal(c.dead, true, `${k}: he died`);
+    assert.deepEqual(
+      Object.fromEntries(Object.entries(r.counted).map(([k, c]) => [k, c.add])),
+      { shot: 0, launcher: 0, kick: 1, pan: 1, execution: 1, barrel: 1, parried: 1 },
+    );
     assert.deepEqual(problems(logs), []);
   } finally {
     await page.close();

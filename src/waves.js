@@ -44,6 +44,7 @@ export class Waves {
     this.orderI = 0;
     this.wr = null; // this wave's stream
     this.hurt = false; // the player took damage this wave
+    this.shots = 0; // the player's shots this wave (player.js fire; none is 赤手空拳)
     this.cleanWaves = 0;
     this.beats = []; // the wave's roster in beats (modes with `beats`); empty for a trickle
     this.beatI = 0; // beats launched so far
@@ -140,6 +141,7 @@ export class Waves {
     this.state = 'active';
     this.spawnCd = 0.3;
     this.hurt = false;
+    this.shots = 0;
     this.beats = this.rules.beats && !this.bossWave ? this.splitBeats(this.queue) : [];
     this.beatI = 0;
     this.beatPhase = 'quiet';

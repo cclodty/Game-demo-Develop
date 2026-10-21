@@ -1,11 +1,12 @@
-// Achievements and unlocks (成就與解鎖 ①). Eight achievements, each one row of
-// data: what to watch (a kill tag, a per-run count, a set of tags collected
-// over all runs, a clean wave, a Style rank on a map, a cleared run), and how
-// much of it. The game reports what happens (kills with their tags, close
-// calls, waves, rank changes, clears); this keeps the counts and remembers
-// what was done in localStorage. Three things unlock: two rule picks in
-// rules.js name the achievement that opens them (`unlock`), and the coat
-// colours open with COAT_UNLOCK. A replay being watched earns nothing.
+// Achievements and unlocks (成就與解鎖 ①, 成就與變體 ②). Ten achievements, each
+// one row of data: what to watch (a kill tag, a per-run count, a set of tags
+// collected over all runs, a clean wave, a wave without a shot, a Style rank
+// on a map, a cleared run), and how much of it. The game reports what happens
+// (kills with their tags and whether a gun made them, close calls, waves with
+// their shots, rank changes, clears); this keeps the counts and remembers what
+// was done in localStorage. Four things unlock: three rule picks in rules.js
+// name the achievement that opens them (`unlock`), and the coat colours open
+// with COAT_UNLOCK. A replay being watched earns nothing.
 
 /** The kill tags that use the map: barrels, pans (bounced and thrown), pigeons, bombers, bowling, friendly fire. */
 export const ENV_TAGS = ['BOOM', 'RICOCHET', 'SCATTER', 'PIGEON STRIKE', 'CHAIN', 'STRIKE!', 'FRIENDLY FIRE'];
@@ -18,6 +19,9 @@ export const ACHIEVEMENTS = [
   { id: 'useEverything', name: '物盡其用', en: 'USE EVERYTHING', desc: '用五種環境擊殺（油桶、平底鑊反彈、擲鑊散射、白鴿、炸彈客連鎖、撞人、同伴誤殺）', distinct: ENV_TAGS, need: 5 },
   { id: 'scatter', name: '天女散花', en: 'SCATTER', desc: '一次 SCATTER 擊殺', kill: 'SCATTER' },
   { id: 'carousel', name: '旋轉木馬', en: 'CAROUSEL', desc: '一局五次 PIROUETTE', count: 'PIROUETTE', need: 5 },
+  { id: 'bareHands', name: '赤手空拳', en: 'BARE HANDS', desc: '一波一槍不開而清場', bareWave: true },
+  // `gunless`: the count of kills without a gun (main.js onEnemyKilled says which)
+  { id: 'wokHei', name: '鑊氣', en: 'WOK HEI', desc: '一局三十次不用槍的擊殺（踢、鑊擊、擲物、處決、環境）', count: 'gunless', need: 30 },
   { id: 'runClear', name: '十二波', en: 'RUN CLEAR', desc: '街機（或每日挑戰）通關', clear: true },
 ];
 
@@ -83,10 +87,11 @@ export class Achievements {
     return { have: 0, need: 1 };
   }
 
-  /** A kill: its tag labels, and how many the bullet that made it has killed. */
-  kill(labels, bulletKills = 0) {
+  /** A kill: its tag labels, how many the bullet that made it has killed, and whether no gun made it. */
+  kill(labels, bulletKills = 0, gunless = false) {
     if (this.watching) return;
     for (const l of labels) this.counts[l] = (this.counts[l] || 0) + 1;
+    if (gunless) this.counts.gunless = (this.counts.gunless || 0) + 1;
     let fresh = false;
     for (const l of labels) {
       if (ENV_TAGS.includes(l) && !this.seen.has(l)) {
@@ -109,10 +114,10 @@ export class Achievements {
     for (const a of ACHIEVEMENTS) if (a.count === label && this.counts[label] >= a.need) this.achieve(a);
   }
 
-  /** A wave cleared; `clean` when the player took no damage in it. */
-  wave(clean) {
-    if (this.watching || !clean) return;
-    for (const a of ACHIEVEMENTS) if (a.cleanWave) this.achieve(a);
+  /** A wave cleared; `clean` when the player took no damage in it; `shots` the player fired in it (undefined: not known). */
+  wave(clean, shots) {
+    if (this.watching) return;
+    for (const a of ACHIEVEMENTS) if ((a.cleanWave && clean) || (a.bareWave && shots === 0)) this.achieve(a);
   }
 
   /** The Style rank reached `name` on map `mapId`. */

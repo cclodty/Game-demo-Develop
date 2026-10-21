@@ -23,8 +23,8 @@ test('a death is recorded with its wave and cause, kept across a reload, and the
   assert.equal(tel.on, true, 'on unless turned off');
   assert.equal(tel.asked, false, 'the first visit shows the switch');
   tel.start({ map: '霓虹天台', mode: '街機', rules: '', view: '45° 側俯視', warmup: false });
-  tel.event(41.5, { type: 'wave', n: 1, hurt: false });
-  tel.event(97, { type: 'wave', n: 2, hurt: true });
+  tel.event(41.5, { type: 'wave', n: 1, hurt: false, shots: 0 });
+  tel.event(97, { type: 'wave', n: 2, hurt: true, shots: 37 });
   tel.end({ result: 'death', wave: 3, cause: 'SHOTGUNNER 的子彈', score: 4200, grade: 'D' }, 130.4);
   const again = new Telemetry(store, () => clock); // a reload
   const r = again.runs.at(-1);
@@ -36,6 +36,9 @@ test('a death is recorded with its wave and cause, kept across a reload, and the
       ['wave', 2, 97],
     ],
   );
+  // each wave in the export: when, unhurt (✓) and its shots (0 for 赤手空拳)
+  assert.match(again.text(), /\| 1@0:41✓·0槍 2@1:37·37槍 \|/);
+  assert.match(again.text(), /·N槍 = 那一波開了幾槍/);
   clock += 12_000;
   again.start({ map: '霓虹天台', mode: '街機', rules: '芭蕾', view: '45° 側俯視', warmup: false });
   const first = new Telemetry(store).runs[0];

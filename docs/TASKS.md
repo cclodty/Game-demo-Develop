@@ -692,10 +692,16 @@
 - 做法：拾取鍵自 2026-10-19 起是 E（G 擲出），所以網是 E 拿、G 擲。網拿在右手（`HOLDS.net`：右手握住網的一角垂在身旁），右槍收起、左槍照開，F 照踢；擲出的網在空中碰到敵人就在那裏張開，否則落地張開。網住的人原地暈住、不能瞄準，和踢暈一樣可處決；無人機不受網。手推車太大拿不起（E 不拿它），踢或鑊擊推它；它的地面摩擦 0.45（油桶 3.2），所以會滾很遠，每撞倒一人保留 85% 速度繼續滾；速度低過 3 m/s 就撞不倒人
 - 這次不做：手推車載油桶、網住頭目
 
-### 成就與變體 ②：赤手空拳、鑊氣、無槍（估計：半天）
+### ✅ 成就與變體 ②：赤手空拳、鑊氣、無槍（估計：半天）— 2026-10-21 完成
 - 目標：兩個成就：**赤手空拳 BARE HANDS**——一波內一槍不開而清場；**鑊氣 WOK HEI**——一局三十次不用槍的擊殺（踢、鑊擊、擲物、處決、環境）。變體**無槍 NO GUNS**：開局沒有手槍、武器台不刷、敵人不掉槍，全靠工具與環境；由 BARE HANDS 解鎖
-- 涉及：`src/achievements.js`、`src/rules.js`（`startWeapon: 'none'`）、`src/player.js`（空手：左鍵無效，HUD 顯示「空手 BARE HANDS」）、`src/telemetry.js`（每波開槍數）
-- 驗收：測試：一波不開槍得 BARE HANDS；三十次非槍擊殺得 WOK HEI；無槍變體下左鍵無效、武器台空、解鎖前不顯示；`test/achievements.test.mjs`、`test/rules.test.mjs` 擴充；npm run lint && npm test 通過
+- 涉及：`src/achievements.js`、`src/rules.js`（`startWeapon: 'none'`）、`src/player.js`（空手：左鍵無效，HUD 顯示「空手 BARE HANDS」）、`src/telemetry.js`（每波開槍數）；另加 `src/waves.js`（`shots`）、`src/main.js`（哪些擊殺算不用槍）、`src/enemies.js`／`src/weapons.js`（榴彈發射器的爆炸算槍）、`src/hud.js`、`src/thrown.js`
+- 驗收：
+  - [x] 測試：一波不開槍得 BARE HANDS——真的一局：第 1 波開了一槍，清場後沒有；第 2 波一槍不開，清場後有；事件記錄的每波開槍數是 1、0，回饋匯出寫「1@…·1槍 2@…·0槍」（`test/achievements.test.mjs`、`test/telemetry.test.mjs`）
+  - [x] 測試：三十次非槍擊殺得 WOK HEI——第三十下踢才得；踢、鑊擊、處決、油桶爆炸、鑊擋回的子彈算，玩家的子彈和榴彈發射器的榴彈不算；換一局重新計
+  - [x] 測試：無槍變體下左鍵無效（一顆子彈都沒有、開槍數 0）、R 不換彈、武器台空、敵人不掉槍、兩手都沒有槍（拿過鑊放下也沒有）、HUD 寫「空手 BARE HANDS」、彈藥「—」；F 照踢、照處決；解鎖前標題不顯示、選了也不算（`test/rules.test.mjs`）
+  - [x] `test/achievements.test.mjs`、`test/rules.test.mjs` 擴充：成就由八個變十個，遊戲內那個測試照樣由遊戲自己的事件逐個得到；標題上解鎖的變體由兩張變三張
+  - [ ] npm run lint && npm test 通過
+- 做法：「不用槍」= 玩家自己的子彈和榴彈發射器以外的一切擊殺（`main.js onEnemyKilled`）；鑊擋回的子彈（HOME RUN）算鑊的；油桶爆炸不論是不是射爆的都算環境。無槍的「空手」只是沒有手槍：`player.js unarmed`。輸入記錄的規則一個位元組，第六個變體用第 8 位元，舊重播照讀
 - 這次不做：無槍的專屬排行榜、更多成就
 
 ### 新地圖：福隆新街 ①——街道、屋內、鐵閘（估計：一天）

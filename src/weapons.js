@@ -164,7 +164,7 @@ export class Grenades {
     dx /= d;
     dz /= d;
     const { mesh, spin, blink } = this.build(dx, dz);
-    this.list.push({ owner: 'player', x, z, sx: x, sz: z, tx: x + dx * dist, tz: z + dz * dist, dist, t: 0, T: dist / speed, apex: 1.2 + dist * 0.12, y: GUN_Y, mesh, spin, blink, smoke: 0, r: 3.9, opts: { selfMul: 0.4, kind: 'grenade' } });
+    this.list.push({ owner: 'player', x, z, sx: x, sz: z, tx: x + dx * dist, tz: z + dz * dist, dist, t: 0, T: dist / speed, apex: 1.2 + dist * 0.12, y: GUN_Y, mesh, spin, blink, smoke: 0, r: 3.9, opts: { selfMul: 0.4, kind: 'grenade', gun: true } });
   }
 
   /**

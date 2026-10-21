@@ -161,6 +161,11 @@ export class Player {
     return this.slot === 'special' && this.special ? PLAYER_WEAPONS[this.special.id] : PLAYER_WEAPONS.pistols;
   }
 
+  /** No pistols (rules.js startWeapon 'none', the 無槍 variant): the left button and R do nothing, the hands are empty. */
+  get unarmed() {
+    return this.game.ruleset.startWeapon === 'none' && this.slot === 'pistols';
+  }
+
   get reloadProgress() {
     return this.reloadT > 0 ? 1 - this.reloadT / PLAYER_WEAPONS.pistols.reload : 1;
   }
@@ -350,11 +355,11 @@ export class Player {
     if (aimDist > 0.35 && this.execT <= 0) this.facing = angleTo(this.x, this.z, aim.x, aim.z);
 
     // --- split aim (dual weapons only): hold right mouse to lock the left gun
-    if (input.mouse.rightPressed && w.dual) {
+    if (input.mouse.rightPressed && w.dual && !this.unarmed) {
       this.splitTarget = g.enemies.closestTo(aim.x, aim.z, 7) || g.enemies.closestTo(this.x, this.z, 30);
       if (!this.splitTarget) g.audio.denied();
     }
-    if (!input.mouse.right || !w.dual) this.splitTarget = null;
+    if (!input.mouse.right || !w.dual || this.unarmed) this.splitTarget = null;
     else if (this.splitTarget && !this.splitTarget.alive) {
       this.splitTarget = g.enemies.closestTo(this.splitTarget.x, this.splitTarget.z, 14);
     }
@@ -371,7 +376,7 @@ export class Player {
           g.notes.log('旋轉中換彈');
         }
       }
-    } else if (input.hit('KeyR') && this.slot === 'pistols' && this.ammo < PLAYER_WEAPONS.pistols.mag) {
+    } else if (input.hit('KeyR') && this.slot === 'pistols' && !this.unarmed && this.ammo < PLAYER_WEAPONS.pistols.mag) {
       this.startReload();
     }
     // --- carry / throw (G); a carried thing is thrown with G or the left button
@@ -381,7 +386,9 @@ export class Player {
     const carrying = !!g.thrown.carry && !g.thrown.inHand; // a pan in hand leaves the left gun free: only a load overhead is thrown by the left button
     if (carrying && input.mouse.leftPressed) g.thrown.throwCarried();
     if (input.mouse.left && this.fireCd <= 0 && !carrying && this.execT <= 0) {
-      if (this.slot === 'pistols' && this.reloadT > 0) {
+      if (this.unarmed) {
+        if (input.mouse.leftPressed) g.audio.empty(); // nothing in the hands: a dry click, no shot
+      } else if (this.slot === 'pistols' && this.reloadT > 0) {
         if (input.mouse.leftPressed) g.audio.empty();
       } else if (this.slot === 'pistols' && this.ammo <= 0) {
         this.startReload();
@@ -589,6 +596,7 @@ export class Player {
       }
     }
     if (!fired) return;
+    g.waves.shots++;
     g.level.noise(this.x, this.z, 11);
     g.audio.shot(w.sound, g.panFor(this.x));
     g.shake(w.shake);
@@ -880,7 +888,8 @@ export class Player {
     // something carried overhead: the guns put away, the hands up on it (a worn model's reach it, skin.js)
     const prop = carrying ? thrown.carry : null;
     r.anim.carry = prop ? carryHands(prop) : null;
-    for (const m of r.weaponParts) m.visible = !prop && !hugged && !(inHand && m.parent === r.armR); // a pan in the right hand: that pistol stays away
+    // a pan in the right hand: that pistol stays away; empty hands (無槍): both
+    for (const m of r.weaponParts) m.visible = !prop && !hugged && !(inHand && m.parent === r.armR) && !this.unarmed;
     // the guns stay level with the aim however the body leans (a slide lies back, an execution leans in)
     const level = -r.inner.rotation.x;
     r.armL.rotation.x = (carrying ? -1.5 : pose.lx) + level;

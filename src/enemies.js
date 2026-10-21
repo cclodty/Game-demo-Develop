@@ -453,14 +453,17 @@ class Enemy {
     if (this.state !== 'enter') this.state = this.rushes ? 'chase' : 'move';
   }
 
-  /** Caught in an explosion; `chain` when a bomber's charges set it off (a kill then is a CHAIN), `rocket` when a kicked LPG cylinder did (ROCKET CAN). */
-  blast(dx, dz, dmg, chain = false, rocket = false) {
+  /**
+   * Caught in an explosion; `chain` when a bomber's charges set it off (a kill then is a CHAIN), `rocket` when a kicked
+   * LPG cylinder did (ROCKET CAN), `gun` when the player's grenade launcher did (not a kill without a gun: 鑊氣).
+   */
+  blast(dx, dz, dmg, chain = false, rocket = false, gun = false) {
     if (!this.alive) return;
     this.hp -= dmg;
     this.flash = 1;
     this.vx += dx * 10;
     this.vz += dz * 10;
-    if (this.hp <= 0) this.die(dx, dz, { cause: 'explosion', chain, rocket });
+    if (this.hp <= 0) this.die(dx, dz, { cause: 'explosion', chain, rocket, gun });
     else {
       this.stunT = 0.5;
       this.stunCause = 'blast';
