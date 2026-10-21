@@ -575,8 +575,9 @@ const senado = {
   start: [2, 54],
   camera: { dist: 31, pitch: 72, fov: 30 },
   cutaway: true,
-  // the buildings across the avenue, between the camera and the square: above 1.2 m, seen through
-  fade: { above: 1.2 },
+  // the buildings across the avenue, between the camera and the square: above 1.2 m, seen through;
+  // and up the square, any building within 6 m of the line from the player to the camera, whole (level.js updateFade)
+  fade: { above: 1.2, follow: 6 },
   // the last wave of a run that ends here (boss.js): the taxi convoy, in along the avenue from the east, then round
   // the fountain on a loop that clears the buildings, the stalls and the lamps
   boss: {
@@ -675,7 +676,7 @@ const senado = {
       else img.addEventListener('load', () => (t.needsUpdate = true), { once: true });
       return t;
     };
-    const { root } = buildSenado(SENADO_DATA, {
+    const { root, pickTables } = buildSenado(SENADO_DATA, {
       mode: 'viewer',
       calcadaTexture: tex('CALCADA'),
       louvreTexture: tex('LOUVRE'),
@@ -697,6 +698,53 @@ const senado = {
           m.color.setRGB(0.8, 0.78, 0.74);
           m.emissive.setRGB(0.15, 0.14, 0.13);
         }
+      }
+    });
+
+    // Every building taller than the fade height gets a number, and its vertices carry it, so the
+    // camera can see through it whole while it stands between the camera and the player (`fade.follow`).
+    // Merged buildings know their owner per triangle; the rooftop clutter lies inside a footprint.
+    const number = new Map();
+    const feet = [];
+    for (const b of SENADO_DATA.buildings.concat(SENADO_DATA.parts)) {
+      if (b.h <= L.map.fade.above) continue;
+      const pts = b.outer.map(([x, y]) => toGame(x, y));
+      const n = L.addFadeable(pts, b.h);
+      number.set(b, n);
+      number.set(b.id, n);
+      feet.push({ n, pts, minX: Math.min(...pts.map((q) => q[0])), maxX: Math.max(...pts.map((q) => q[0])), minZ: Math.min(...pts.map((q) => q[1])), maxZ: Math.max(...pts.map((q) => q[1])) });
+    }
+    const footOf = (x, z) => {
+      for (const f of feet) {
+        if (x < f.minX || x > f.maxX || z < f.minZ || z > f.maxZ) continue;
+        let inside = false;
+        for (let i = 0, j = f.pts.length - 1; i < f.pts.length; j = i++) {
+          const [ax, az] = f.pts[j];
+          const [bx, bz] = f.pts[i];
+          if (az > z !== bz > z && x < ax + ((z - az) / (bz - az)) * (bx - ax)) inside = !inside;
+        }
+        if (inside) return f.n;
+      }
+      return 0;
+    };
+    wrap.updateMatrixWorld(true);
+    const v = new THREE.Vector3();
+    root.traverse((o) => {
+      if (!o.isMesh) return;
+      const kind = o.userData.kind;
+      if (kind === 'building') L.markFade(o.geometry, number.get(o.userData.id) || 0);
+      else if (kind === 'merged') {
+        const { triOwner, list } = pickTables.find((t) => t.mesh === o);
+        const owner = new Float32Array(o.geometry.attributes.position.count);
+        const ix = o.geometry.index.array;
+        for (let t = 0; t < triOwner.length; t++) for (let k = 0; k < 3; k++) owner[ix[t * 3 + k]] = number.get(list[triOwner[t]]) || 0;
+        L.markFade(o.geometry, (i) => owner[i]);
+      } else if (kind === 'rooftops') {
+        const pos = o.geometry.attributes.position;
+        L.markFade(o.geometry, (i) => {
+          v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+          return footOf(v.x, v.z);
+        });
       }
     });
 

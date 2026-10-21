@@ -3,7 +3,7 @@
 // pads, spawn points and the map's own decoration and lighting.
 
 import * as THREE from 'three';
-import { addCutaway } from './cutaway.js';
+import { addCutaway, FADE_SLOTS } from './cutaway.js';
 import { Flock } from './ambient.js';
 import { ENV } from './config.js';
 import { MAPS } from './maps.js';
@@ -438,6 +438,39 @@ function pulseMarker(marker, x, z, t) {
   marker.scale.setScalar(0.9 + (0.5 + 0.5 * Math.sin(t * 3)) * 0.25);
 }
 
+/**
+ * How far from the player, along the line to the camera, a footprint ([x, z] points) first enters
+ * the strip that runs from the player (0) to under the camera (len) and `w` metres either side of
+ * that line; 0 when the footprint is over the player, -1 when it misses the strip.
+ */
+function stripNear(pts, px, pz, ux, uz, len, w) {
+  let near = Infinity;
+  let over = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const ax = pts[j][0] - px;
+    const az = pts[j][1] - pz;
+    const bx = pts[i][0] - px;
+    const bz = pts[i][1] - pz;
+    if (az > 0 !== bz > 0 && ax + (-az / (bz - az)) * (bx - ax) > 0) over = !over;
+    // the edge in strip coordinates (a along the line, l across it), clipped to the strip (Liang-Barsky)
+    const a0 = ax * ux + az * uz;
+    const l0 = az * ux - ax * uz;
+    const da = bx * ux + bz * uz - a0;
+    const dl = bz * ux - bx * uz - l0;
+    let t0 = 0;
+    let t1 = 1;
+    for (const [p, q] of [[-da, a0], [da, len - a0], [-dl, l0 + w], [dl, w - l0]]) {
+      if (p === 0) {
+        if (q < 0) t1 = -1;
+      } else if (p < 0) t0 = Math.max(t0, q / p);
+      else t1 = Math.min(t1, q / p);
+    }
+    if (t0 <= t1) near = Math.min(near, a0 + da * t0, a0 + da * t1);
+  }
+  if (over) return 0;
+  return near === Infinity ? -1 : Math.max(0, near);
+}
+
 class Pan {
   constructor(level, x, z, variant = 'pan') {
     this.level = level;
@@ -575,6 +608,7 @@ export class Level {
       uFadeY: { value: 1.2 },
       uFadeBox: { value: new THREE.Vector2() },
       uFadeDir: { value: new THREE.Vector2(0, 1) },
+      uFadeSet: { value: new Float32Array(FADE_SLOTS) }, // which numbered buildings are seen through whole (updateFade)
     };
     this.makeAssets();
     this.buildLights();
@@ -739,6 +773,9 @@ export class Level {
     this.animators = [];
     this.ambient = [];
     this.groundFn = null;
+    this.fadeables = []; // buildings the follow fade can see through: { pts, h } (addFadeable)
+    this.fadedNow = [];
+    this.cut.uFadeSet.value.fill(0);
 
     this.applyTheme(map.theme);
     if (map.floor !== 'none') this.buildFloor(map.floor);
@@ -1164,6 +1201,49 @@ export class Level {
   /** Height of the ground (the Senado fountain sits in a sunken ring). */
   groundY(x, z) {
     return this.groundFn ? this.groundFn(x, z) : 0;
+  }
+
+  /**
+   * A building the camera sees through whole while it stands between the camera and the player
+   * (maps.js `fade.follow`): its footprint ([x, z] points) and height. Returns its number for
+   * markFade, or 0 when the shader's table is full.
+   */
+  addFadeable(pts, h) {
+    if (this.fadeables.length + 1 >= FADE_SLOTS) return 0;
+    this.fadeables.push({ pts, h });
+    return this.fadeables.length;
+  }
+
+  /** Give a building's vertices its number: one number for the whole geometry, or a function of the vertex index. */
+  markFade(geometry, number) {
+    const n = geometry.attributes.position.count;
+    const a = new Float32Array(n);
+    if (typeof number === 'function') for (let i = 0; i < n; i++) a[i] = number(i);
+    else a.fill(number);
+    geometry.setAttribute('aFade', new THREE.BufferAttribute(a, 1));
+  }
+
+  /**
+   * Once a displayed frame (main.js updateCamera), for a map with `fade.follow`: a numbered
+   * building is seen through whole when its footprint comes within `width` metres of the line from
+   * the player's chest (px, py, pz) to the camera, on the camera's side of the player, and stands
+   * taller than that line where it gets closest.
+   */
+  updateFade(cam, px, py, pz, width) {
+    const set = this.cut.uFadeSet.value;
+    set.fill(0);
+    this.fadedNow = [];
+    const ux = cam.x - px;
+    const uz = cam.z - pz;
+    const len = Math.hypot(ux, uz);
+    if (len < 0.5) return;
+    const rise = (cam.y - py) / len;
+    this.fadeables.forEach((b, i) => {
+      const near = stripNear(b.pts, px, pz, ux / len, uz / len, len, width);
+      if (near < 0 || b.h <= py + near * rise) return;
+      set[i + 1] = 1;
+      this.fadedNow.push(i + 1);
+    });
   }
 
   /** Nearest static hit along a segment; `edges` false lets it through an invisible map edge (shots, lasers). */

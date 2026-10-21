@@ -67,7 +67,7 @@ src/rng.js                   seeded RNG: game.rng for logic (?seed=), vfxRng beh
 src/characters.js  skin.js   block rigs + weapon models (and the drone's block quadcopter, shaped like a rig), KEY_POSES (slide, spin, carry); optional skinned models worn over the rig (IK hands and key-pose feet)
 src/models.js                loads assets/models/*.glb, fits props to map boxes; src/models-index.js is generated
 src/asset-manifest.js        catalogue of every asset we want as a real model (sizes, budgets, prompts)
-src/cutaway.js  postfx.js    camera→player cut-away shader; bloom + bullet-time grading
+src/cutaway.js  postfx.js    camera→player cut-away shader and the map fades (maps.js `fade`: past the play area; `follow`: whole buildings between camera and player); bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
 src/music.js                 the songs as data (tempo, chords, step patterns, layers by level, a boss section), played by audio.js; config.js MUSIC.playlist gives one a stage, ?music=<id> plays just one
 src/boss.js                  each map's boss, the last wave of a run that ends there (maps.js `boss.kind`): helicopter (rooftop), DJ (club), armoured truck (docks), taxi convoy (Senado); what they share (health bar, banners, BOSS bonus, clip) is Boss

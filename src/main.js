@@ -1930,6 +1930,8 @@ class Game {
       cut.uCutA.value.copy(this.camera.position);
       cut.uCutB.value.set(p.x, this.level.groundY(p.x, p.z) + 1.2, p.z);
     }
+    // and the buildings between the camera and the player, whole (maps.js `fade.follow`)
+    if (fade && fade.follow) this.level.updateFade(this.camera.position, p.x, this.level.groundY(p.x, p.z) + 1.2, p.z, fade.follow);
   }
 
   render() {
