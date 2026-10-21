@@ -282,7 +282,7 @@ class Enemy {
     return this.alive && (this.state === 'aim' || this.state === 'windup');
   }
 
-  /** Off the street: a drone in the air or a man up on a balcony. Nothing on the street reaches him (a kick, a net, a body). */
+  /** Up off the ground, a drone in the air or a man on a balcony: nothing on the street reaches him (a kick, a net, a body). */
   get aloft() {
     return !!this.cfg.fly || this.perch > 0;
   }
