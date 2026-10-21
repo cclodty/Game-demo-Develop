@@ -106,7 +106,7 @@ test('wave 12 in the club is the blade queen at a perch; the route names her; it
   await page.screenshot({ path: new URL('boss-blade.png', OUT).pathname });
   assert.deepEqual([r.map, r.kind, r.state, r.perch, r.queue, r.bar, r.segs], ['club', 'blade', 'perch', true, 0, '夜店刀后 BLADE QUEEN', 5]);
   assert.match(r.banner, /BOSS/);
-  assert.ok(r.route.endsWith('（頭目：夜店刀后）'), r.route);
+  assert.ok(r.route.endsWith('、刀后）'), r.route); // the route's last boss: hers
   assert.ok(r.calls <= r.budget.calls && r.tris <= r.budget.tris, `${r.calls} draw calls, ${r.tris} triangles, budget ${r.budget.calls} / ${r.budget.tris}`);
   assert.deepEqual(problems(logs), []);
 });

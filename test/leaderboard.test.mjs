@@ -159,7 +159,7 @@ test('in the game: the first upload asks a name and shows the place; the board p
         if (near) g.aimPoint.set(near.x, g.aimPoint.y, near.z);
         g.aimFresh = true;
         g.updatePlay(1 / 60);
-        if (n === 60 * 25) g.player.hp = 1;
+        if (n >= 60 * 25) g.player.hp = Math.min(g.player.hp, 1); // from 25 s on, the next hit ends the run (a cleared wave would fill the HP)
       }
       g.input.mouse.left = false;
     });

@@ -69,12 +69,13 @@ test('the modes: arcade and the daily play in beats, endless does not', async ()
   assert.deepEqual(m, { arcade: true, endless: false, daily: true });
 });
 
-test('arcade wave 4 (nine enemies) comes in two beats: together, after a telegraph, and the second only after 12 s while two or more stand', { timeout: 120000 }, async () => {
+// (wave 4 is a stage's boss now, boss.js: the waves in beats are the others)
+test('arcade wave 5 (eleven enemies) comes in two beats: together, after a telegraph, and the second only after 12 s while two or more stand', { timeout: 120000 }, async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    window.begin('arcade', 4);
+    window.begin('arcade', 5);
     let n = 0;
-    while (g.waves.wave < 4 && n++ < 600) window.step();
+    while (g.waves.wave < 5 && n++ < 600) window.step();
     const roster = [...g.waves.queue];
     const beats = g.waves.beats.map((b) => b.length);
     const t0 = g.waves.clock;
@@ -100,9 +101,9 @@ test('arcade wave 4 (nine enemies) comes in two beats: together, after a telegra
   });
   assert.ok(r.stage, 'the beat plays at a named stage of the map');
   assert.equal(new Set(r.stageOrder).size, r.stageCount, 'the wave visits every stage once before repeating');
-  assert.equal(r.roster, 9, 'wave 4 is nine enemies (compose: 3 + 6, one of them a brute)');
-  assert.deepEqual(r.beats, [5, 4], `two beats, as even as nine allows (${r.beats})`);
-  assert.equal(r.spawned, 9, 'the whole roster came in 20 s');
+  assert.equal(r.roster, 11, 'wave 5 is eleven enemies (compose: 3 + 8, one of them a brute)');
+  assert.deepEqual(r.beats, [6, 5], `two beats, as even as eleven allows (${r.beats})`);
+  assert.equal(r.spawned, 11, 'the whole roster came in 20 s');
   assert.ok(r.firstSpread <= 0.3, `the first beat came together (${r.firstSpread.toFixed(2)} s apart)`);
   assert.ok(r.telegraph >= 1.2 && r.telegraph < 2.2, `after its telegraph (${r.telegraph.toFixed(2)} s)`);
   assert.ok(r.gap >= 12 && r.gap < 16, `the second beat waited the 12 s (${r.gap.toFixed(1)} s)`);
@@ -113,9 +114,9 @@ test('arcade wave 4 (nine enemies) comes in two beats: together, after a telegra
 test('one left standing: the next beat follows after the quiet and the telegraph; a beat cleared unhurt is a CLEAN BEAT, a hurt one is not', { timeout: 120000 }, async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    window.begin('arcade', 4);
+    window.begin('arcade', 5);
     let n = 0;
-    while (g.waves.wave < 4 && n++ < 600) window.step();
+    while (g.waves.wave < 5 && n++ < 600) window.step();
     const [b0, b1] = g.waves.beats.map((b) => b.length);
     n = 0;
     while (window.spawns.length < b0 && n++ < 1200) window.step();
@@ -132,8 +133,8 @@ test('one left standing: the next beat follows after the quiet and the telegraph
     window.killAllBut(0);
     window.step(30);
     const clean = g.notes.events.slice(logBefore).some((e) => e.text.includes('CLEAN BEAT'));
-    // a hurt beat earns nothing: wave 5, first beat, a hit, then a clear
-    window.begin('arcade', 5);
+    // a hurt beat earns nothing: wave 6, first beat, a hit, then a clear
+    window.begin('arcade', 6);
     n = 0;
     while (window.spawns.length < 1 && n++ < 1200) window.step();
     window.step(5);
