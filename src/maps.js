@@ -5,13 +5,14 @@
 // non-colliding scenery and animations.
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Pigeons } from './ambient.js';
 import { CALCADA, FACADE, GLAZING, LOUVRE } from './senado/assets.js';
 import SENADO_DATA from './senado/data.js';
 import { buildSenado, FOUNTAIN } from './senado/model.js';
 import { SENADO, toGame } from './senado/transform.js';
 import { brickTexture, helipadTexture, neonSignTexture, shopfrontTexture, tileTexture, windowTexture } from './textures.js';
-import { pick, rand, TAU } from './utils.js';
+import { rand, TAU } from './utils.js';
 
 // ------------------------------------------------------------ scenery helpers
 
@@ -369,17 +370,22 @@ const club = {
       const bottleMats = [0x3fe68a, 0xffb347, 0x9fe8ff, 0xff5a8a].map((c) =>
         L.own(new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.6, transparent: true, opacity: 0.85 })),
       );
+      // one mesh of each colour (they only ever go together, with the shelf): four draw calls, not one a bottle
+      const byColour = bottleMats.map(() => []);
       for (const y of [0.55, 1.15, 1.7]) {
         const board = new THREE.Mesh(L.geo.unit, L.mat.bar);
         board.scale.set(shelf.w, 0.04, 0.34);
         board.position.y = y - 0.2;
         shelf.mesh.add(board);
         for (let x = -shelf.w / 2 + 0.25; x < shelf.w / 2 - 0.1; x += rand(0.22, 0.4)) {
-          const b = new THREE.Mesh(bottleGeo, pick(bottleMats));
-          b.position.set(x, y - 0.02, rand(-0.05, 0.05));
-          shelf.mesh.add(b);
+          byColour[Math.floor(rand(0, bottleMats.length))].push(bottleGeo.clone().translate(x, y - 0.02, rand(-0.05, 0.05)));
         }
       }
+      byColour.forEach((geos, i) => {
+        if (!geos.length) return;
+        shelf.mesh.add(new THREE.Mesh(L.own(mergeGeometries(geos)), bottleMats[i]));
+        for (const g of geos) g.dispose();
+      });
     }
 
     sign(

@@ -17,16 +17,18 @@ before(async () => {
   await page.evaluate(() => {
     const g = window.game;
     g.frame = () => {};
-    window.toFinal = (startMap) => {
+    /** An arcade run whose third stage is map `id` (it starts two maps before), moved on to that stage and the start of wave 12. */
+    window.toFinal = (id) => {
       g.setRules('normal', []);
       g.setMode('arcade');
-      g.startRun(startMap);
+      g.startRun((g.maps.findIndex((m) => m.id === id) - 2 + g.maps.length) % g.maps.length);
       g.waves.state = 'done';
       g.enemies.clear();
       g.stage = 2;
       g.level.load(g.stageMap);
       g.applyMapView();
       g.player.placeAtStart();
+      g.aimPoint.set(g.player.x, g.aimPoint.y, g.player.z - 5); // aimed as a run starts (main.js startRun), whatever map came before
       g.waves.wave = 11;
       g.waves.startWave();
     };
@@ -63,7 +65,7 @@ test('a thrown barrel and a launcher grenade under it each take a segment; it re
     const g = window.game;
     const b = g.boss;
     const p = g.player;
-    window.toFinal(2);
+    window.toFinal('rooftop');
     window.arrive();
     const out = { start: b.hp };
     // a barrel picked up and thrown at the spot under it
@@ -149,7 +151,7 @@ test('the fifth brings it down onto the pad: the blast catches a player who stay
     };
     const run = (stay) => {
       clipped.length = 0;
-      window.toFinal(2);
+      window.toFinal('rooftop');
       window.arrive();
       for (let i = 0; i < 4; i++) {
         g.explode(b.x, b.z, 4.4, { kind: 'barrel' });
@@ -198,7 +200,7 @@ test('the moment it hits the pad', async () => {
     const g = window.game;
     const b = g.boss;
     const p = g.player;
-    window.toFinal(2);
+    window.toFinal('rooftop');
     window.arrive();
     for (let i = 0; i < 4; i++) {
       g.explode(b.x, b.z, 4.4, { kind: 'barrel' });

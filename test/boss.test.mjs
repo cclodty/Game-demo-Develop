@@ -18,17 +18,18 @@ before(async () => {
   await page.evaluate(() => {
     const g = window.game;
     g.frame = () => {};
-    /** An arcade run from `startMap`, moved on to its third stage and the start of wave 12. */
-    window.toFinal = (startMap) => {
+    /** An arcade run whose third stage is map `id` (it starts two maps before), moved on to that stage and the start of wave 12. */
+    window.toFinal = (id) => {
       g.setRules('normal', []);
       g.setMode('arcade');
-      g.startRun(startMap);
+      g.startRun((g.maps.findIndex((m) => m.id === id) - 2 + g.maps.length) % g.maps.length);
       g.waves.state = 'done';
       g.enemies.clear();
       g.stage = 2;
       g.level.load(g.stageMap);
       g.applyMapView();
       g.player.placeAtStart();
+      g.aimPoint.set(g.player.x, g.aimPoint.y, g.player.z - 5); // aimed as a run starts (main.js startRun), whatever map came before
       g.waves.wave = 11;
       g.waves.startWave();
     };
@@ -60,9 +61,9 @@ test('wave 12 on the rooftop is the helicopter; on a last stage with no boss the
     const out = {};
     // every map has its boss now (boss.js): the docks' is taken away here, to see what a map without one gets
     const docksBoss = MAPS[2].boss;
-    for (const start of [2, 0]) {
-      if (start === 0) delete MAPS[2].boss;
-      window.toFinal(start);
+    for (const id of ['rooftop', 'docks']) {
+      if (id === 'docks') delete MAPS[2].boss;
+      window.toFinal(id);
       g.hud.update(1 / 60);
       const bar = document.getElementById('boss-bar');
       out[g.level.map.id] = {
@@ -89,7 +90,7 @@ test('caught in the light for 1 s: a red line on the spot for 0.5 s, then a burs
   const r = await page.evaluate(() => {
     const g = window.game;
     const b = g.boss;
-    window.toFinal(2);
+    window.toFinal('rooftop');
     window.arrive();
     // walk into the light and stand
     const p = g.player;
@@ -147,7 +148,7 @@ test('two thugs rope down every 20 s; bullets go under the helicopter', { timeou
   const r = await page.evaluate(() => {
     const g = window.game;
     const b = g.boss;
-    window.toFinal(2);
+    window.toFinal('rooftop');
     window.arrive();
     const t0 = b.t;
     const drops = [];
@@ -196,7 +197,7 @@ test('the helicopter over the roof stays inside the render budget; a screenshot 
   const r = await page.evaluate(() => {
     const g = window.game;
     const b = g.boss;
-    window.toFinal(2);
+    window.toFinal('rooftop');
     window.arrive();
     g.player.x = b.spot.x;
     g.player.z = b.spot.z;

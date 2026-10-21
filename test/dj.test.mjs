@@ -23,17 +23,18 @@ before(async () => {
     g.frame = () => {};
     // the DJ's definition, as the club carried it: where he stands, the booth, the speakers, the ways round them to close, the floor
     g.maps.find((m) => m.id === 'club').boss = { kind: 'dj', at: [6, -11.6], booth: [6, -10], speakers: [[2.6, -10.6], [9.4, -10.6]], gaps: [[3, -12.15, 2, 3.7], [9, -12.15, 2, 3.7]], floor: [-6, -5, 12, 8] };
-    /** An arcade run from Senado, moved on to its third stage (the club) and the start of wave 12. */
+    /** An arcade run whose third stage is the club (two maps before it), moved on to that stage and the start of wave 12. */
     window.toFinal = () => {
       g.setRules('normal', []);
       g.setMode('arcade');
-      g.startRun(3);
+      g.startRun((g.maps.findIndex((m) => m.id === 'club') - 2 + g.maps.length) % g.maps.length);
       g.waves.state = 'done';
       g.enemies.clear();
       g.stage = 2;
       g.level.load(g.stageMap);
       g.applyMapView();
       g.player.placeAtStart();
+      g.aimPoint.set(g.player.x, g.aimPoint.y, g.player.z - 5); // aimed as a run starts (main.js startRun), whatever map came before
       g.waves.wave = 11;
       g.waves.startWave();
     };
