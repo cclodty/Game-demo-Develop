@@ -166,6 +166,24 @@ export const BEATS = {
 };
 
 /** Things in the maps that play along (環境互動). */
+/**
+ * The race on the Guia circuit (src/race.js; the timetable and the racing line are the map's `race`): `warn` s before
+ * each pass the lights turn red and a line glows on the road; then `cars` cars, `gap` m apart, each on a line of its
+ * own `lanes` m off the racing line, sweep the road at `speed` m/s (world time). Each is `length` × `width` m; it
+ * kills an enemy outright and costs the player `damage` HP, whatever move he is making. The teams are made up.
+ */
+export const RACE = {
+  warn: 2,
+  cars: 3,
+  speed: 46,
+  gap: 9,
+  lanes: [0, -2.2, 2.2],
+  length: 4.6,
+  width: 1.9,
+  damage: 60,
+  teams: [0xd8262e, 0x1d6fe8, 0xf0c020],
+};
+
 export const ENV = {
   crateHits: 6, // bullets a wooden crate takes before it breaks apart
   flockReach: 2, // metres: an aiming enemy this close to a flock that takes off loses his aim

@@ -235,6 +235,8 @@ function mapJson(map) {
     // balconies an enemy is sent up to (src/level.js balconies): where he stands, how high, which way he faces
     perches: (map.perches || []).map(([x, z, height, facing]) => ({ x, z, height, facing })),
     water: (map.water || []).map((w) => ({ ...w })),
+    // racing cars (src/race.js): the racing line they follow and the timetable (first pass, then every `every` s)
+    race: map.race ? { first: map.race.first, every: map.race.every, line: map.race.line.map(([x, z]) => ({ x, z })) } : null,
     weaponPads: (map.pads || []).map(([x, z]) => ({ x, z })),
     pigeonFlocks: (map.flocks || []).map(([x, z]) => ({ x, z })),
     spawns: map.spawns,

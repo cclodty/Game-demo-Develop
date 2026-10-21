@@ -1233,6 +1233,19 @@ function guiaBarriers() {
 
 const GUIA_WALLS = guiaBarriers();
 
+/** The racing line (src/race.js): in along the north straight from past the east edge, round the bend, out along the south. */
+function guiaRacingLine() {
+  const { cx, inner, outer } = GUIA;
+  const r = (inner + 0.45 + outer - 0.15) / 2; // the middle of the road
+  const line = [[45, -r]];
+  for (let i = 0; i <= 16; i++) {
+    const a = ((270 - (180 * i) / 16) * Math.PI) / 180;
+    line.push([+(cx + r * Math.cos(a)).toFixed(3), +(r * Math.sin(a)).toFixed(3)]);
+  }
+  line.push([45, r]);
+  return line;
+}
+
 const guia = {
   id: 'guia',
   budget: { tris: 190000, calls: 560 }, // rendered per frame, all passes (test/maps.test.mjs: 150,785 and 424 at the start)
@@ -1290,6 +1303,8 @@ const guia = {
   // boxes on the grandstand's front (level.js balconies, waves.js pickPerches), over the north straight's edge: a tyre
   // wall is no cover from up there (enemies.js over), and the infield's walls stop the player's shots back, so a man
   // up there is answered from out on the track
+  // the race (src/race.js, 東望洋跑道 ②): the first pass `first` s into the stage, then one every `every` s, in world time
+  race: { first: 16, every: 24, line: guiaRacingLine() },
   perches: [
     [-7, -12.8, 2.2, 0],
     [-0.5, -12.8, 2.2, 0],

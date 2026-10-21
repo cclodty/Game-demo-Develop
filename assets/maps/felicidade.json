@@ -744,6 +744,7 @@
     }
   ],
   "water": [],
+  "race": null,
   "weaponPads": [
     {
       "x": -21,

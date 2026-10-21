@@ -11,6 +11,7 @@ import { MAPS } from './maps.js';
 import { propModel } from './models.js';
 import { buildFixtures } from './fixtures.js';
 import { NavGrid } from './nav.js';
+import { Race } from './race.js';
 import { clamp, rand, resolveCircleAABB, resolveCirclePoly, segAABB, segCircle, segPoly, TAU } from './utils.js';
 import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenceTexture, floorTexture } from './textures.js';
 
@@ -1047,6 +1048,7 @@ export class Level {
       return { kind: 'balcony', x: x - dx * 1.2, z: z - dz * 1.2, ex: x, ez: z, perch: y, stay: true, dirX: dx, dirZ: dz, heat: 0, lamp: null };
     });
     if (map.decorate) map.decorate(this);
+    this.race = map.race ? new Race(this, map.race) : null; // the Guia circuit's racing cars (race.js)
     // Everything lit in the map can be cut away when it hides the player
     // (tall Senado buildings in any view, low walls once the camera tilts).
     this.root.traverse((o) => {
@@ -1621,6 +1623,7 @@ export class Level {
 
   resetProps() {
     for (const p of this.props) p.reset();
+    if (this.race) this.race.reset();
     for (const f of this.flocks) f.reset();
     for (const s of this.crates) {
       s.alive = true;
@@ -1676,6 +1679,7 @@ export class Level {
   updateProps(dt) {
     this.time += dt;
     this.updateFlocks(dt);
+    if (this.race) this.race.update(dt);
     const props = this.props;
     for (const p of props) {
       if (!p.alive || p.carried || p.fixed) continue;
