@@ -128,6 +128,40 @@ test('every map validates', async () => {
   assert.deepEqual(problems(logs), []);
 });
 
+test('a map’s first frame costs the same every load, as it is and under 玻璃之城: no draw call hangs on the effects’ dice (set dressing laid out at random)', { timeout: 600000 }, async () => {
+  const n = await mapCount();
+  const r = await page.evaluate((n) => {
+    const g = window.game;
+    g.frame = () => {};
+    const out = [];
+    for (const variants of [[], ['glassCity']]) {
+      for (let i = 0; i < n; i++) {
+        g.setRules('normal', variants);
+        g.startRun(i);
+        g.waves.state = 'done';
+        g.enemies.clear();
+        const calls = [];
+        for (let k = 0; k < 4; k++) {
+          g.level.load(g.maps[i]);
+          g.applyMapView();
+          g.player.placeAtStart();
+          g.updateCamera(1, true);
+          g.render();
+          calls.push(g.renderer.info.render.calls);
+        }
+        out.push({ map: `${g.maps[i].id} ${variants.join('')}`, calls });
+      }
+    }
+    // the picks take hold at a run's start: one more, without the variant, so the maps load as they are again
+    g.setRules('normal', []);
+    g.startRun(0);
+    g.toTitle();
+    return out;
+  }, n);
+  for (const m of r) assert.equal(new Set(m.calls).size, 1, `${m.map}: ${m.calls.join(', ')} draw calls in four loads`);
+  assert.deepEqual(problems(logs), []);
+});
+
 /** Solids inside the arena (not the edge walls), as centres and sizes. */
 const authoredSolids = (i) =>
   page.evaluate((i) => {

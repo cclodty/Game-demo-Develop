@@ -12,7 +12,7 @@ import SENADO_DATA from './senado/data.js';
 import { buildSenado, FOUNTAIN } from './senado/model.js';
 import { SENADO, toGame } from './senado/transform.js';
 import { brickTexture, helipadTexture, neonSignTexture, shopfrontTexture, tileTexture, windowTexture } from './textures.js';
-import { rand, TAU } from './utils.js';
+import { pick, rand, TAU } from './utils.js';
 
 // ------------------------------------------------------------ scenery helpers
 
@@ -367,25 +367,28 @@ const club = {
     const shelf = L.glass.find((g) => g.z < -12);
     if (shelf) {
       const bottleGeo = L.own(new THREE.CylinderGeometry(0.07, 0.08, 0.34, 6));
-      const bottleMats = [0x3fe68a, 0xffb347, 0x9fe8ff, 0xff5a8a].map((c) =>
-        L.own(new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.6, transparent: true, opacity: 0.85 })),
-      );
-      // one mesh of each colour (they only ever go together, with the shelf): four draw calls, not one a bottle
-      const byColour = bottleMats.map(() => []);
+      const colours = [0x3fe68a, 0xffb347, 0x9fe8ff, 0xff5a8a].map((c) => new THREE.Color(c));
+      // one mesh, the colours in its vertices (they only ever go together, with the shelf): one draw call, not one a
+      // bottle; and always the whole shelf long, so whether it is in view never hangs on how the colours fell (a mesh
+      // a colour, its extent drawn at random, put the club's frame over its budget one load in two)
+      const geos = [];
+      const boards = [];
       for (const y of [0.55, 1.15, 1.7]) {
-        const board = new THREE.Mesh(L.geo.unit, L.mat.bar);
-        board.scale.set(shelf.w, 0.04, 0.34);
-        board.position.y = y - 0.2;
-        shelf.mesh.add(board);
+        boards.push(new THREE.BoxGeometry(shelf.w, 0.04, 0.34).translate(0, y - 0.2, 0));
         for (let x = -shelf.w / 2 + 0.25; x < shelf.w / 2 - 0.1; x += rand(0.22, 0.4)) {
-          byColour[Math.floor(rand(0, bottleMats.length))].push(bottleGeo.clone().translate(x, y - 0.02, rand(-0.05, 0.05)));
+          const geo = bottleGeo.clone().translate(x, y - 0.02, rand(-0.05, 0.05));
+          const rgb = pick(colours).toArray();
+          const n = geo.attributes.position.count;
+          geo.setAttribute('color', new THREE.Float32BufferAttribute(Array.from({ length: n * 3 }, (_, k) => rgb[k % 3]), 3));
+          geos.push(geo);
         }
       }
-      byColour.forEach((geos, i) => {
-        if (!geos.length) return;
-        shelf.mesh.add(new THREE.Mesh(L.own(mergeGeometries(geos)), bottleMats[i]));
-        for (const g of geos) g.dispose();
-      });
+      const bottles = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.85 }); // lit from within
+      const merged = L.own(mergeGeometries(geos));
+      // its bounds are the shelf's, not where the last bottle happened to stand: in view or not, the same every load
+      merged.boundingSphere = new THREE.Box3(new THREE.Vector3(-shelf.w / 2, 0, -0.2), new THREE.Vector3(shelf.w / 2, 1.9, 0.2)).getBoundingSphere(new THREE.Sphere());
+      shelf.mesh.add(new THREE.Mesh(merged, L.own(bottles)), new THREE.Mesh(L.own(mergeGeometries(boards)), L.mat.bar)); // the three boards one mesh too
+      for (const g of [...geos, ...boards]) g.dispose();
     }
 
     sign(
