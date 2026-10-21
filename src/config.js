@@ -182,6 +182,7 @@ export const ENV = {
   smokeTime: 6, // s the cloud lasts
   tumbleTime: 2.5, // s a kicked one careers about, bowling over whoever it meets
   tumbleSpeed: 10, // m/s it keeps while it does
+  sprayAhead: 2, // m ahead of the player the cloud of one sprayed from the arms (F, thrown.js spray) is centred
   // water (level.js `water`): an enemy knocked over the edge of it is gone (SPLASH); props that land in it sink
   splashSpeed: 4, // m/s towards the water a knocked-over enemy needs to go in
   splashReach: 0.6, // m beyond his body the water has to be

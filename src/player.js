@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GUN_Y, PAN, PLAYER, UMBRELLA } from './config.js';
-import { animateRig, attachWeapon, buildCharacter, deathPose, finishRig, keyPose, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
+import { aimArm, animateRig, attachWeapon, BODY, buildCharacter, deathPose, finishRig, HOLDS, holdBoth, holdInHand, keyPose, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { carryHands } from './thrown.js';
 import { angleTo, clamp, damp, rand, wrapAngle } from './utils.js';
@@ -99,6 +99,7 @@ export class Player {
     this.kickCd = 0;
     this.kickT = 0;
     this.swingT = 0; // the pan's swing (smash)
+    this.throwT = 0; // a throw's arm over the top (characters.js HOLDS.throw), s left
     this.shieldOn = false; // the umbrella held open (shield): F held with it in hand
     this.shieldK = 0; // how far open it shows, 0–1
     this.shieldCd = 0;
@@ -391,6 +392,7 @@ export class Player {
 
     // --- kick; by an enemy still dazed from a kick or a throw, F is an execution instead
     if (this.kickT > 0) this.kickT -= dt;
+    if (this.throwT > 0) this.throwT -= dt;
     if (this.swingT > 0) {
       this.swingT -= dt;
       if (g.thrown.inHand && this.swingT > PAN.swing - PAN.parry) this.parry();
@@ -416,7 +418,8 @@ export class Player {
       if (down) this.execute(down);
       else if (umbrella) {
         // the umbrella's F is the hold above: not a kick
-      } else if (this.kickCd <= 0) {
+      } else if (g.thrown.hugged && g.thrown.carry.kind === 'extinguisher') g.thrown.spray();
+      else if (this.kickCd <= 0) {
         if (g.thrown.inHand) this.smash();
         else this.kick();
       }
@@ -848,8 +851,10 @@ export class Player {
     animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
 
     // the moves' key poses (characters.js KEY_POSES), held, with one in-between at each end
-    const inHand = !!(this.game.thrown && this.game.thrown.inHand);
-    const carrying = !!(this.game.thrown && this.game.thrown.carry) && !inHand; // a pan in hand is not a load overhead
+    const thrown = this.game.thrown;
+    const inHand = !!(thrown && thrown.inHand);
+    const hugged = !!(thrown && thrown.hugged);
+    const carrying = !!(thrown && thrown.carry) && !inHand && !hugged; // a load overhead: not a pan in hand, not an extinguisher in the arms
     r.inner.rotation.y = this.spinYaw();
     const held = (k) => (k < 0.12 || k > 0.88 ? 0.5 : 1);
     if (this.slideT > 0) keyPose(r, 'slide', held(1 - this.slideT / PLAYER.slideDuration));
@@ -873,24 +878,32 @@ export class Player {
     }
     r.armR.rotation.y = pose.ry;
     // something carried overhead: the guns put away, the hands up on it (a worn model's reach it, skin.js)
-    const prop = carrying ? this.game.thrown.carry : null;
+    const prop = carrying ? thrown.carry : null;
     r.anim.carry = prop ? carryHands(prop) : null;
-    for (const m of r.weaponParts) m.visible = !prop && !(inHand && m.parent === r.armR); // a pan in the right hand: that pistol stays away
+    for (const m of r.weaponParts) m.visible = !prop && !hugged && !(inHand && m.parent === r.armR); // a pan in the right hand: that pistol stays away
     // the guns stay level with the aim however the body leans (a slide lies back, an execution leans in)
     const level = -r.inner.rotation.x;
     r.armL.rotation.x = (carrying ? -1.5 : pose.lx) + level;
     r.armR.rotation.x = (carrying ? -1.5 : pose.rx) + level;
     if (prop) {
-      // block arms cannot bend: straight up and a little out, beside its rim rather than through it
-      r.armL.rotation.y = 0.45;
-      r.armR.rotation.y = -0.45;
+      // block arms cannot bend: straight up and out just so far that the hands rest on its sides, not inside it
+      const out = Math.asin(clamp((prop.r - SHOULDER_X) / BODY.armLen, 0, 1));
+      r.armL.rotation.y = out;
+      r.armR.rotation.y = -out;
     }
+    // held things (characters.js HOLDS), after the guns' arm lines, which they replace: a pan or umbrella in the
+    // right hand, from its rest to its use (the swing, the umbrella open); an extinguisher in both arms, the hands on it
     if (inHand) {
-      // the pan hangs from the right hand by the hip; the swing brings it up and across; an open umbrella is held out ahead
-      // (after the guns' arm lines, which this replaces)
-      const k = this.swingT > 0 ? Math.sin((1 - this.swingT / PAN.swing) * Math.PI) : 0;
-      const out = this.shieldK;
-      r.armR.rotation.set(0.95 - 1.7 * k - 0.95 * out, -0.15 + 0.8 * k + 0.15 * out, 0);
+      const c = thrown.carry;
+      const k = c.kind === 'pan' ? (this.swingT > 0 ? Math.sin((1 - this.swingT / PAN.swing) * Math.PI) : 0) : this.shieldK;
+      holdInHand(r, c.mesh, HOLDS[c.kind], k);
+    }
+    if (hugged) r.anim.hands = holdBoth(r, thrown.carry.mesh, HOLDS[thrown.carry.kind]);
+    if (this.throwT > 0) {
+      // a throw: the right arm comes over the top
+      const T = HOLDS.throw;
+      const k = clamp(1 - this.throwT / T.time, 0, 1);
+      aimArm(r.armR, ...[0, 1, 2].map((i) => T.from[i] + (T.to[i] - T.from[i]) * k));
     }
     r.anchor.rotation.x = r.center.rotation.x = level;
     if (r.hold === 'dual') {

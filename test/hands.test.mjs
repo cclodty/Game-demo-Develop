@@ -52,14 +52,16 @@ test('carrying a barrel: hands on it, guns away, the throw from the same height 
           row.rightGuns = p.rig.weaponParts.filter((m) => m.parent === p.rig.armR).map((m) => m.visible);
           row.leftGuns = p.rig.weaponParts.filter((m) => m.parent === p.rig.armL).map((m) => m.visible);
           if (p.rig.skin) {
-            const panAt = prop.mesh.getWorldPosition(new THREE.Vector3());
-            row.wrist = p.rig.skin.bones.handR.getWorldPosition(new THREE.Vector3()).distanceTo(panAt);
+            // held by the end of its handle (characters.js HOLDS: test/holds.test.mjs measures it to the cm)
+            const { HOLDS } = await import('/src/characters.js');
+            const gripAt = prop.mesh.localToWorld(new THREE.Vector3(...HOLDS.pan.grip));
+            row.wrist = p.rig.skin.bones.handR.getWorldPosition(new THREE.Vector3()).distanceTo(gripAt);
           }
         } else if (p.rig.skin) {
           const b = p.rig.skin.bones;
           const c = p.rig.anim.carry;
           row.hands = [1, -1].map((s) => {
-            const want = p.rig.root.localToWorld(new THREE.Vector3(s * c.half, c.y, 0.04));
+            const want = p.rig.root.localToWorld(new THREE.Vector3(s * c.half, c.y, c.z));
             return b[s > 0 ? 'handL' : 'handR'].getWorldPosition(new THREE.Vector3()).distanceTo(want);
           });
           row.y = c.y;
@@ -85,7 +87,7 @@ test('carrying a barrel: hands on it, guns away, the throw from the same height 
     assert.ok(q.rightGuns.length > 0 && q.rightGuns.every((v) => v === false), 'pan: the right pistol put away');
     assert.ok(q.leftGuns.length > 0 && q.leftGuns.every((v) => v === true), 'pan: the left pistol out');
     assert.ok(Math.abs(q.thrownY - q.handY) < 0.05, `pan: thrown from the hand (${q.thrownY.toFixed(2)})`);
-    if (r.worn) assert.ok(q.wrist < 0.3, `pan: the right wrist ${(q.wrist * 100).toFixed(1)} cm from the pan`);
+    if (r.worn) assert.ok(q.wrist < 0.1, `pan: the right wrist ${(q.wrist * 100).toFixed(1)} cm from the end of its handle`);
     assert.deepEqual(problems(logs), []);
   } finally {
     await page.close();
