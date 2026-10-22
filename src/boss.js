@@ -247,6 +247,25 @@ export class Boss {
     this.team = null; // the duo this boss is one of (Duo), or null alone
   }
 
+  /** One of a duo whose partner is down: a kind fights harder its own way (more feints, more shells); the duo speeds it up. */
+  enrage() {}
+
+  /**
+   * Whether something the player can do would take a segment off it right now (a shot, a blast, a kick, a smash):
+   * the no-waiting rule (DECISIONS 2026-10-22) is that this is never false for long. A kind says when it is.
+   */
+  vulnerable() {
+    return this.active;
+  }
+
+  /** One of a duo, for the combo (Duo): is it free to start its part right now (not mid-attack, the player in sight)? */
+  comboReady() {
+    return false;
+  }
+
+  /** One of a duo: start its part of the combo now (its usual attack, at the player), whatever the gap. */
+  combo() {}
+
   /** May it start a warning now (a red line, a ring, the blades raised)? Alone always; one of a duo, not on top of the other's. */
   mayTell() {
     return this.team ? this.team.mayTell(this) : true;
@@ -1014,6 +1033,8 @@ class Blade extends Boss {
     this.glow = 0; // the blades' light, up through the tell
     this.firstTell = true;
     this.deflectLogT = 0;
+    this.rage = 0;
+    this.comboLag = 0; // a duo's combo: s on her perch before she goes (Duo)
     this.build();
   }
 
@@ -1031,13 +1052,39 @@ class Blade extends Boss {
     this.sync();
   }
 
-  /** Segments lost so far: she gets faster and trickier with each. */
+  /** Segments lost so far: she gets faster and trickier with each (and two more once her partner is down: enrage). */
   get lost() {
-    return this.segments - this.hp;
+    return this.segments - this.hp + this.rage;
+  }
+
+  /** Her partner down (a duo): as if two more segments were gone, faster, shorter waits, more feints. */
+  enrage() {
+    this.rage = 2;
   }
 
   get dashing() {
     return this.state === 'dash' || this.state === 'feint' || this.state === 'retreat';
+  }
+
+  /**
+   * Something the player can do takes a segment now: with the blades raised (until one has landed) a shot, a kick or a
+   * smash; any time she is not mid-dash, a blast (a barrel, a grenade: at her perch too). Only a dash is out of reach.
+   */
+  vulnerable() {
+    if (!this.active || this.dashing) return false;
+    return this.state === 'tell' ? !this.taken : true;
+  }
+
+  comboReady() {
+    return this.active && this.state === 'perch' && this.comboLag <= 0 && this.game.player.alive;
+  }
+
+  /** The combo: she crouches, blades lit, and goes at the player DUO.combo.lag s later, as the gunner's sweep comes across. */
+  combo() {
+    const g = this.game;
+    this.comboLag = DUO.combo.lag;
+    this.glow = 1;
+    g.fx.ring(this.x, this.z, 1.2, DUO.combo.lag, 0xff2bd0, 3);
   }
 
   /** Her dash speed now (m/s). */
@@ -1063,7 +1110,11 @@ class Blade extends Boss {
     switch (this.state) {
       case 'perch':
         this.faceTo(p.x, p.z, 4 * dt);
-        if (this.timer <= 0 && this.mayTell()) this.dashTo(p.x, p.z, 'dash');
+        if (this.comboLag > 0) {
+          // a combo: she goes when her partner's part is under way (DUO.combo.lag)
+          this.comboLag -= dt;
+          if (this.comboLag <= 0) this.dashTo(p.x, p.z, 'dash');
+        } else if (this.timer <= 0 && this.mayTell()) this.dashTo(p.x, p.z, 'dash');
         break;
       case 'dash':
       case 'feint':
@@ -1937,6 +1988,7 @@ class Gunner extends Boss {
     this.phase = 0;
     this.flash = 0;
     this.plateFlash = 0;
+    this.raging = false; // his partner down (a duo): shells more often (enrage)
     this.build();
   }
 
@@ -2041,23 +2093,11 @@ class Gunner extends Boss {
   /** The sweep: a red line onto the player, then the burst across it; he stands for it, and loses it blinded. */
   updateGun(dt) {
     const g = this.game;
-    const p = g.player;
     const G = GUNNER.gun;
     switch (this.gunState) {
       case 'idle':
         this.gunT -= dt;
-        if (this.gunT <= 0 && !this.blind && p.alive && this.state === 'walk' && Math.hypot(p.x - this.x, p.z - this.z) < G.range && g.level.hasLOS(this.x, this.z, p.x, p.z) && this.mayTell()) {
-          this.gunState = 'warn';
-          this.gunTimer = G.warn;
-          this.lock = { x: p.x, z: p.z };
-          this.lineA = angleTo(this.x, this.z, p.x, p.z);
-          this.state = 'plant';
-          g.audio.aimWarn(g.panFor(this.x));
-          if (this.firstWarn) {
-            this.firstWarn = false;
-            g.hud.banner('STEEL PLATE', '正面打不穿：繞到他背後', 'clear');
-          }
-        }
+        if (this.gunT <= 0 && this.canSweep() && this.mayTell()) this.startSweep();
         break;
       case 'warn':
         this.gunTimer -= dt;
@@ -2080,6 +2120,44 @@ class Gunner extends Boss {
         if (this.shots <= 0) this.endSweep();
         break;
     }
+  }
+
+  /** Free to plant and sweep: walking, seeing, the player alive, in range and in sight. */
+  canSweep() {
+    const g = this.game;
+    const p = g.player;
+    return this.state === 'walk' && this.gunState === 'idle' && !this.blind && p.alive && Math.hypot(p.x - this.x, p.z - this.z) < GUNNER.gun.range && g.level.hasLOS(this.x, this.z, p.x, p.z);
+  }
+
+  /** The sweep begins: he plants his feet and the red line goes onto the player. */
+  startSweep() {
+    const g = this.game;
+    const p = g.player;
+    this.gunState = 'warn';
+    this.gunTimer = GUNNER.gun.warn;
+    this.lock = { x: p.x, z: p.z };
+    this.lineA = angleTo(this.x, this.z, p.x, p.z);
+    this.state = 'plant';
+    g.audio.aimWarn(g.panFor(this.x));
+    if (this.firstWarn) {
+      this.firstWarn = false;
+      g.hud.banner('STEEL PLATE', '正面打不穿：繞到他背後', 'clear');
+    }
+  }
+
+  /** Open to the player: once in through the gate, his back takes shots (and a stagger, his front), always. */
+  vulnerable() {
+    return this.active && this.state !== 'enter';
+  }
+
+  /** Free for the combo: walking and seeing. Unlike his own sweep he needs no clear line: cover between is the player's. */
+  comboReady() {
+    return this.active && this.state === 'walk' && this.gunState === 'idle' && !this.blind && this.game.player.alive;
+  }
+
+  /** The combo: the sweep across the player's spot, now. */
+  combo() {
+    this.startSweep();
   }
 
   endSweep() {
@@ -2109,11 +2187,11 @@ class Gunner extends Boss {
     const M = GUNNER.mortar;
     this.mortarT -= dt;
     if (this.mortarT > 0 || this.blind || !p.alive || !this.mayTell()) return;
-    this.mortarT = M.every;
+    this.mortarT = M.every * (this.raging ? 0.6 : 1);
     for (let i = 0; i < M.rounds; i++) {
       const a = g.rng.range(0, Math.PI * 2);
       const r = i === 0 ? 0 : g.rng.range(0.8, M.scatter);
-      g.grenades.lob(this.x, this.z, p.x + Math.sin(a) * r, p.z + Math.cos(a) * r, M.lob, MORTAR_SOURCE);
+      g.grenades.lob(this.x, this.z, p.x + Math.sin(a) * r, p.z + Math.cos(a) * r, M.lob, this.team ? this : MORTAR_SOURCE); // in a duo, his own (CROSSFIRE)
     }
     g.audio.shot('launcher', g.panFor(this.x));
     g.notes.log('重炮發射迫擊砲：看地上的紅圈');
@@ -2221,6 +2299,11 @@ class Gunner extends Boss {
     this.hits = 0;
     this.hurt(opts.rocket ? '被火箭油桶炸中' : '被炸到');
     if (this.active) this.stagger(GUNNER.stagger.blast);
+  }
+
+  /** His partner down (a duo): his shells come half as often again. */
+  enrage() {
+    this.raging = true;
   }
 
   /** The last segment: he goes down where he stands. */
@@ -2698,6 +2781,17 @@ export const DUO = {
   segments: 3, // each of the two, in the run's last wave; a stage's (waves.js MODES midBoss `each`) fewer
   bonus: 2000,
   gap: 0.6, // s at least between the two starting a warning (a red line, a ring of shells, the blades raised)
+  rage: { pause: 1.5, speed: 1.2 }, // one down, the other stands still this many s (any hit then takes a segment), then fights this much faster
+  doubleKo: { within: 3, pts: 500 }, // DOUBLE KO: the second down within this many s of the first
+  crossfire: 300, // CROSSFIRE: one of the two takes a segment from the other's bullet or blast
+  // the combo (合招): the two start their attacks at the player at once (the one exception to `gap`), first `first` s
+  // into the fight and then every `every` s; once it is due neither starts an attack of its own, and when both are not
+  // free within `wait` s (the gunner without a line on the player) this one is let go.
+  // A map's duo can name its own (maps.js `boss.combo`); the solution: the queen between the player and the gunner, the
+  // sweep hits her (CROSSFIRE)
+  // (the queen goes `lag` s after the gunner's red line goes on: she stands with her blades up in front of the player
+  // as the middle of his sweep, aimed at the player, arrives)
+  combo: { first: 10, every: 15, wait: 3, lag: 1, name: '夾擊', en: 'PINCER', hint: '讓刀后擋在你和重炮之間：掃射打中她' },
 };
 
 /** The two at once: one boss to the game, two inside (the comment at the top). */
@@ -2725,6 +2819,14 @@ class Duo extends Boss {
     this.hp = this.segments;
     this.lastTell = -Infinity;
     this.lastTeller = null;
+    this.firstDown = -Infinity; // world time the first of the two went down
+    this.raged = null; // the one left standing
+    this.rageT = 0; // its pause before the rage
+    this.comboDef = { ...DUO.combo, ...(def.combo || {}) };
+    this.comboT = this.comboDef.first; // world s to the next combo
+    this.comboWait = 0; // s it has waited for both to be free
+    this.combos = 0;
+    this.comboAt = -Infinity; // world time of the last
     this.sync();
   }
 
@@ -2737,19 +2839,71 @@ class Duo extends Boss {
     super.reset();
   }
 
-  /** One of the two may start a warning: not within DUO.gap s (world time) of the other's. */
+  /**
+   * The combo: when it is due and both are free, both start their attacks now (the queen off her perch, the gunner's red
+   * line), named on a banner; not both free within `wait` s, this one is let go. None once one of the two is down.
+   */
+  updateCombo(dt) {
+    const g = this.game;
+    const C = this.comboDef;
+    this.comboT -= dt;
+    if (this.comboT > 0) return;
+    if (this.members.every((m) => m.active && m.comboReady())) {
+      for (const m of this.members) m.combo();
+      this.lastTell = g.worldTime;
+      this.lastTeller = this; // neither starts another warning on top of it for DUO.gap s
+      this.comboT = C.every;
+      this.comboWait = 0;
+      this.combos++;
+      this.comboAt = g.worldTime;
+      g.hud.banner('COMBO', `合招「${C.name}」${C.en} · ${C.hint}`, 'stage');
+      g.notes.log(`合招：${C.name}`);
+    } else if ((this.comboWait += dt) > C.wait) {
+      this.comboT = C.every;
+      this.comboWait = 0;
+    }
+  }
+
+  /** One of the two may start a warning: not within DUO.gap s (world time) of the other's, nor while a combo is due. */
   mayTell(m) {
     const t = this.game.worldTime;
+    if (!this.raged && this.comboT <= 0) return false;
     if (this.lastTeller && this.lastTeller !== m && this.lastTeller.active && t - this.lastTell < DUO.gap) return false;
     this.lastTell = t;
     this.lastTeller = m;
     return true;
   }
 
-  /** One of the two is down (its own finish): when both are, the duo is: the BOSS bonus, the clip, the wave's end. */
-  memberDown() {
+  /**
+   * One of the two is down (its own finish). The other stands still for DUO.rage.pause s, open to anything (a shot then
+   * takes a segment), and then fights DUO.rage.speed times as fast and its own harder way (enrage). Both down: the
+   * duo is (the BOSS bonus, the clip, the wave's end), a DOUBLE KO if the second fell within DUO.doubleKo.within s.
+   */
+  memberDown(m) {
+    const g = this.game;
     this.sync();
-    if (this.members.every((m) => m.downed)) this.finish();
+    const up = this.members.find((o) => o.active);
+    if (up) {
+      this.firstDown = g.worldTime;
+      this.raged = up;
+      this.rageT = DUO.rage.pause;
+      up.enrage();
+      g.notes.log(`${m.cfg.short}倒下，${up.cfg.short}發狂`);
+      g.hud.banner('RAGE', `${up.cfg.short}發狂：停一停就衝過來`, 'stage');
+      return;
+    }
+    if (g.worldTime - this.firstDown <= DUO.doubleKo.within) {
+      g.score.style('DOUBLE KO', DUO.doubleKo.pts);
+      g.notes.log(`DOUBLE KO：${DUO.doubleKo.within} 秒內打倒兩個`);
+    }
+    this.finish();
+  }
+
+  /** CROSSFIRE: `m` lost a segment to its partner's bullet or blast. */
+  crossfire(m) {
+    const g = this.game;
+    g.score.style('CROSSFIRE', DUO.crossfire);
+    g.notes.log(`${m.cfg.short}被拍檔誤傷（CROSSFIRE）`);
   }
 
   /** The duo as one boss: health the sum of the two, where it is the first one standing. */
@@ -2764,31 +2918,60 @@ class Duo extends Boss {
 
   update(dt) {
     if (!this.active) return;
-    for (const m of this.members) if (m.active) m.update(dt);
+    if (!this.raged) this.updateCombo(dt);
+    for (const m of this.members) {
+      if (!m.active) continue;
+      if (m !== this.raged) m.update(dt);
+      else if (this.rageT > 0) this.rageT -= dt; // its pause: it stands where it is
+      else m.update(dt * DUO.rage.speed);
+    }
     if (this.active) this.sync();
   }
 
+  vulnerable() {
+    return this.members.some((m) => m.active && (m === this.raged && this.rageT > 0 ? true : m.vulnerable()));
+  }
+
   // the rest of the game talks to the duo as to one boss: each call goes to the one of the two it meets
-  blast(x, z, opts) {
-    for (const m of this.members) if (m.active) m.blast(x, z, opts);
+  blast(x, z, opts = {}) {
+    for (const m of this.members) {
+      if (!m.active) continue;
+      const hp = m.hp;
+      if (m === this.raged && this.rageT > 0 && Math.hypot(m.x - x, m.z - z) < 4) m.hurt('發狂前被炸到');
+      else m.blast(x, z, opts);
+      if (m.hp < hp && opts.by && opts.by !== m && this.members.includes(opts.by)) this.crossfire(m);
+    }
   }
 
   under(x, z) {
     return this.members.some((m) => m.active && m.under(x, z));
   }
 
-  shotAt(x0, z0, x1, z1) {
+  /** Where a shot first meets one of the two; `except` the one who fired it (a partner's bullet: bullets.js). */
+  shotAt(x0, z0, x1, z1, except = null) {
     let best = null;
     for (const m of this.members) {
-      if (!m.active) continue;
-      const h = m.shotAt(x0, z0, x1, z1);
+      if (!m.active || m === except) continue;
+      const h = m === this.raged && this.rageT > 0 ? this.bodyAt(m, x0, z0, x1, z1) : m.shotAt(x0, z0, x1, z1);
       if (h && (!best || h.t < best.t)) best = { t: h.t, part: { member: m, part: h.part } };
     }
     return best;
   }
 
+  /** The one standing still before its rage: its body, anywhere, takes a shot. */
+  bodyAt(m, x0, z0, x1, z1) {
+    const t = segCircle(x0, z0, x1, z1, m.x, m.z, 0.8);
+    return t >= 0 ? { t, part: 'rage' } : null;
+  }
+
   shot(b, part) {
-    return part.member.shot(b, part.part);
+    const m = part.member;
+    const hp = m.hp;
+    let stop = true;
+    if (part.part === 'rage') m.hurt('發狂前中彈');
+    else stop = m.shot(b, part.part);
+    if (m.hp < hp && b.source && b.source !== m && this.members.includes(b.source)) this.crossfire(m);
+    return stop;
   }
 
   shotSolid(s, b) {

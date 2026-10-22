@@ -181,7 +181,7 @@ export class Grenades {
     shadow.position.set(x, this.game.level.groundY(x, z) + 0.035, z);
     this.game.scene.add(ring, shadow);
     const dist = Math.hypot(tx - x, tz - z);
-    this.list.push({ owner: 'enemy', x, z, sx: x, sz: z, tx, tz, dist, t: 0, T: lob.flight, apex: lob.apex, y: GUN_Y, mesh, spin, blink, smoke: 0, r: lob.radius, ring, shadow, lob, source, landed: false, fuse: -1, opts: { source: `${source.cfg.label} 的榴彈`, kind: 'grenade' } });
+    this.list.push({ owner: 'enemy', x, z, sx: x, sz: z, tx, tz, dist, t: 0, T: lob.flight, apex: lob.apex, y: GUN_Y, mesh, spin, blink, smoke: 0, r: lob.radius, ring, shadow, lob, source, landed: false, fuse: -1, opts: { source: `${source.cfg.label} 的榴彈`, kind: 'grenade', by: source } }); // `by`: whose (a duo's CROSSFIRE, boss.js)
   }
 
   /** A grenade's look: the 40 mm round if there is a model, else a ball, with a blinking light. */

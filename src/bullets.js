@@ -254,6 +254,11 @@ export class Bullets {
         const t = segCircle(x0, z0, x1, z1, hs.x, hs.z, hs.radius);
         if (t >= 0 && (!best || t < best.t)) best = { t, type: 'hostage' };
       }
+      // one of a duo's bullets can meet the other of the two (CROSSFIRE, boss.js)
+      if (b.source && b.source.team && game.boss.members) {
+        const bh = game.boss.shotAt(x0, z0, x1, z1, b.source);
+        if (bh && (!best || bh.t <= best.t)) best = { t: bh.t, type: 'boss', part: bh.part };
+      }
       // Enemy bullets can also hit other enemies (friendly fire after a ricochet).
       if (b.reflected) {
         for (const e of game.enemies.list) {

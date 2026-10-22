@@ -242,6 +242,24 @@ test('the zones of a map are joined: from each one a man can walk to every other
   assert.deepEqual(problems(logs), []);
 });
 
+test('a boss’s perches are places to stand: on the walkable grid, which leaves room for a body (one inside a wall’s margin has her circling it)', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const out = [];
+    for (const m of g.maps) {
+      const defs = m.boss ? (m.boss.pair || [m.boss]) : [];
+      if (!defs.some((d) => d.perches)) continue;
+      window.begin(m.id, ...m.start);
+      const L = g.level;
+      for (const d of defs) for (const [x, z] of d.perches || []) out.push({ map: m.id, at: [x, z], clear: L.nav.isWalkable(x, z) });
+    }
+    return out;
+  });
+  assert.ok(r.length >= 4, `perches checked (${r.length})`);
+  for (const p of r) assert.ok(p.clear, `${p.map}: the perch at (${p.at}) is clear`);
+  assert.deepEqual(problems(logs), []);
+});
+
 test('screenshot: the player’s burst from 大三巴’s forecourt stops in a puff of stone at the foot of the steps', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;

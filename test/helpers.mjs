@@ -129,7 +129,9 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
           // a boss with a weak point the banner tells the player about (boss.js): the armoured truck's back
           // door while it unloads. Shots into it count only from behind, so the bot walks round to there and fires.
           // The others it meets in an arcade run from the rooftop (a boss each stage): below.
-          const boss = g.boss;
+          // two at once (boss.js duo): the one of the two nearest the player
+          const near = (list) => list.filter((m) => m.active).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
+          const boss = (g.boss.members && near(g.boss.members)) || g.boss;
           let door = null;
           let goal = null;
           let behind = false;
