@@ -158,7 +158,8 @@ const measureProps = (page) =>
         s.model.updateMatrixWorld(true);
         box.setFromObject(s.model, true);
         const [x, z] = [(s.minX + s.maxX) / 2, (s.minZ + s.maxZ) / 2];
-        out.push({ map: map.id, kind: s.modelKey, fit: spec.fit || 'box', box: [s.maxX - s.minX, s.maxZ - s.minZ, s.h], model: size(box), off: [(box.min.x + box.max.x) / 2 - x, (box.min.z + box.max.z) / 2 - z], base: box.min.y });
+        const ground = level.groundY(x, z); // raised ground (大三巴's landings): the box's height and the model's feet count from there
+        out.push({ map: map.id, kind: s.modelKey, fit: spec.fit || 'box', box: [s.maxX - s.minX, s.maxZ - s.minZ, s.h - ground], model: size(box), off: [(box.min.x + box.max.x) / 2 - x, (box.min.z + box.max.z) / 2 - z], base: box.min.y - ground });
       }
       for (const q of level.props) {
         if (q.fixed) continue; // a fixture (lamp, sign, door…): built from blocks, no model to measure

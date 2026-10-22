@@ -176,7 +176,7 @@ export class Thrown {
       t.z = nz;
       t.left -= T.speed * dt;
       if (t.left <= 0) gone = true;
-      t.mesh.position.set(t.x, TILE_Y, t.z);
+      t.mesh.position.set(t.x, TILE_Y + g.level.groundY(t.x, t.z), t.z);
       t.mesh.rotation.y += dt * 18;
       t.mesh.rotation.x += dt * 11;
       const hand = t.hand;
@@ -246,7 +246,7 @@ export class Thrown {
     prop.z = p.z + dz * ENV.sprayAhead;
     prop.y = 0;
     prop.vx = prop.vz = prop.vy = 0;
-    prop.mesh.position.set(prop.x, 0, prop.z);
+    prop.mesh.position.set(prop.x, g.level.groundY(prop.x, prop.z), prop.z);
     g.notes.log('滅火筒噴霧');
     prop.burst();
     return true;
@@ -263,14 +263,14 @@ export class Thrown {
     if (this.hugged) {
       this.game.level.root.attach(prop.mesh);
       prop.mesh.rotation.set(0, 0, 0);
-      prop.mesh.position.set(prop.x, prop.y, prop.z);
+      prop.mesh.position.set(prop.x, prop.y + this.game.level.groundY(prop.x, prop.z), prop.z);
       this.hugged = false;
     }
     if (this.inHand) {
       const g = this.game;
       g.level.root.attach(prop.mesh);
       prop.mesh.rotation.set(0, prop.angle || 0, 0);
-      prop.mesh.position.set(prop.x, prop.y, prop.z);
+      prop.mesh.position.set(prop.x, prop.y + g.level.groundY(prop.x, prop.z), prop.z);
       if (prop.kind === 'umbrella') {
         prop.open(0);
         prop.tilt.rotation.set(Math.PI / 2, 0, 0.3);
@@ -369,7 +369,7 @@ export class Thrown {
       else if (this.hugged) c.y = HOLDS[c.kind].at[1]; // on the rig (player.js syncRig places it)
       else {
         c.y = CARRY_Y + Math.sin(g.worldTime * 6) * 0.04;
-        c.mesh.position.set(c.x, c.y - CARRY_Y + (CARRY_SHOWN[c.kind]?.y ?? CARRY_Y), c.z);
+        c.mesh.position.set(c.x, c.y - CARRY_Y + (CARRY_SHOWN[c.kind]?.y ?? CARRY_Y) + g.level.groundY(c.x, c.z), c.z);
         c.mesh.rotation.y = p.facing;
       }
     }
@@ -435,7 +435,7 @@ export class Thrown {
         g.audio.impact(g.panFor(o.x));
         g.fx.sparks(o.x, 0.1, o.z, rand(-1, 1), rand(-1, 1), 4, [4, 4, 4], 3);
       }
-      o.mesh.position.set(o.x, o.y, o.z);
+      o.mesh.position.set(o.x, o.y + g.level.groundY(o.x, o.z), o.z);
       o.mesh.rotation.y = Math.atan2(o.vx, o.vz);
       o.mesh.rotation.x += dt * 14;
       if (gone) {

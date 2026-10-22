@@ -14,8 +14,10 @@ const _v = new THREE.Vector3();
 const _Z = new THREE.Vector3(0, 0, 1);
 
 class ParticlePool {
-  constructor(scene, max, geometry, material, { additive = false, shadow = false } = {}) {
+  /** `ground`: (x, z) → the ground's height there; a particle's y (and its floor) is over that (steps: 大三巴). */
+  constructor(scene, max, geometry, material, { additive = false, shadow = false, ground = null } = {}) {
     this.max = max;
+    this.ground = ground;
     this.additive = additive;
     this.mesh = new THREE.InstancedMesh(geometry, material, max);
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -34,8 +36,9 @@ class ParticlePool {
     let p;
     if (this.n < this.max) p = this.items[this.n++];
     else p = this.items[randInt(0, this.max - 1)];
+    const gy = this.ground ? this.ground(o.x, o.z) : 0;
     p.x = o.x;
-    p.y = o.y;
+    p.y = o.y + gy;
     p.z = o.z;
     p.vx = o.vx || 0;
     p.vy = o.vy || 0;
@@ -50,7 +53,7 @@ class ParticlePool {
     p.grav = o.grav || 0;
     p.drag = o.drag || 0;
     p.bounce = o.bounce || 0;
-    p.floor = o.floor ?? 0.06;
+    p.floor = (o.floor ?? 0.06) + gy;
     p.stretch = o.stretch || 0;
     p.shrink = o.shrink ?? true;
     p.grow = o.grow || 0;
@@ -203,20 +206,22 @@ export class FX {
     this.game = game;
     const scene = (this.scene = game.scene);
     const cube = new THREE.BoxGeometry(1, 1, 1);
+    const ground = (x, z) => (game.level ? game.level.groundY(x, z) : 0);
 
     this.glow = new ParticlePool(
       scene,
       1800,
       cube,
       new THREE.MeshBasicMaterial({ blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }),
-      { additive: true },
+      { additive: true, ground },
     );
-    this.solid = new ParticlePool(scene, 1600, cube, new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.2 }), { shadow: true });
+    this.solid = new ParticlePool(scene, 1600, cube, new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.2 }), { shadow: true, ground });
     this.smoke = new ParticlePool(
       scene,
       260,
       new THREE.IcosahedronGeometry(0.5, 0),
       new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true, transparent: true, opacity: 0.85 }),
+      { ground },
     );
 
     // Floor decals (blood, scorch marks).
@@ -310,7 +315,7 @@ export class FX {
   flash(x, y, z, color, intensity, dur, distance = 14) {
     let best = this.lights[0];
     for (const L of this.lights) if (L.t < best.t) best = L;
-    best.l.position.set(x, y, z);
+    best.l.position.set(x, y + this.game.level.groundY(x, z), z);
     best.l.color.set(color);
     best.l.distance = distance;
     best.peak = intensity;
@@ -321,7 +326,7 @@ export class FX {
   ring(x, z, radius, dur, color, intensity = 3, y = 0.06) {
     let best = this.rings[0];
     for (const r of this.rings) if (r.t < best.t) best = r;
-    best.mesh.position.set(x, y, z);
+    best.mesh.position.set(x, y + this.game.level.groundY(x, z), z);
     best.mesh.visible = true;
     best.t = best.dur = dur;
     best.r = radius;

@@ -30,6 +30,15 @@ export const PLAYER = {
   slideCooldown: 0.5,
   slideSpeedMul: 1.6, // launch speed relative to run speed, decaying over the slide
   slideMinSpeed: 3, // m/s needed to start a slide
+  // the dive (player.js): Space with a direction while in bullet time throws the player `dist` m that way in `air` s
+  // (the player's own time) with the guns still firing and bullets passing under the body, then a `roll` s roll at
+  // `rollMul` of the run speed; `cooldown` s before the next. Outside bullet time Space is the spin
+  dive: { dist: 4, air: 0.42, roll: 0.3, rollMul: 0.5, cooldown: 0.4 },
+  // a human shield (player.js grab): E within `reach` m of a man in front, with nothing to pick up, holds him `gap` m in
+  // front for `hold` s (or until E again); enemy bullets from within ±`arc`° of the facing hit him instead, `hit` of his
+  // hp each; the player walks at `walkMul` of the run speed and fires the left gun alone. Let go, he is shoved out
+  // ahead at `shove` m/s (about a quarter of that in metres, as a kick's flight slows), bowling over whoever he meets
+  humanShield: { reach: 1.5, gap: 0.75, hold: 1.5, arc: 60, hit: 1, walkMul: 0.6, shove: 24 },
   throwReach: 1.6, // metres: G picks up a pan or barrel this close
   throwRange: 8, // metres a carried thing is thrown, at most
   kickRange: 2.1,
@@ -157,6 +166,24 @@ export const BEATS = {
 };
 
 /** Things in the maps that play along (環境互動). */
+/**
+ * The race on the Guia circuit (src/race.js; the timetable and the racing line are the map's `race`): `warn` s before
+ * each pass the lights turn red and a line glows on the road; then `cars` cars, `gap` m apart, each on a line of its
+ * own `lanes` m off the racing line, sweep the road at `speed` m/s (world time). Each is `length` × `width` m; it
+ * kills an enemy outright and costs the player `damage` HP, whatever move he is making. The teams are made up.
+ */
+export const RACE = {
+  warn: 2,
+  cars: 3,
+  speed: 46,
+  gap: 9,
+  lanes: [0, -2.2, 2.2],
+  length: 4.6,
+  width: 1.9,
+  damage: 60,
+  teams: [0xd8262e, 0x1d6fe8, 0xf0c020],
+};
+
 export const ENV = {
   crateHits: 6, // bullets a wooden crate takes before it breaks apart
   flockReach: 2, // metres: an aiming enemy this close to a flock that takes off loses his aim
@@ -191,6 +218,11 @@ export const ENV = {
   // a hand trolley (level.js Trolley, the docks): kicked off at `speed` m/s, slowing by `friction` a second (a barrel's is 3.2);
   // it keeps `knock` of its speed through each one it bowls over, and `bowling` of them in one roll is BOWLING +`pts`
   trolley: { speed: 13, friction: 0.45, knock: 0.85, bowling: 2, pts: 200 },
+  // a barrel knocked over on a slope (a shot, a kick; maps.js `slope`: 大三巴's steps) lies on its side and rolls down it
+  // (level.js Barrel): pulled by `gravity` × the slope's rise per metre, slowed by `friction` a second (a standing one's is
+  // 3.2), at rest once under `stop` m/s on the level; one going `tip` m/s onto a slope falls over too. At `bowl` m/s or
+  // more it bowls over whoever it meets and keeps `knock` of its speed; the first of a roll is ROLLING +`pts`
+  roll: { gravity: 40, friction: 0.9, tip: 2, stop: 0.3, bowl: 3, knock: 0.8, pts: 150 },
   // mahjong tiles (thrown.js throwTiles; the tables on Rua da Felicidade): G within `reach` m of a table, hands empty,
   // throws a handful: one tile for each of `fan` (where it flies across a fan `spread` rad wide around the aim: most
   // of a handful goes straight, two close either side of the aim so the man aimed at is hit, two a little out, two at

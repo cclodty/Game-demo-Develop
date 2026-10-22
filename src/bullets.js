@@ -72,7 +72,7 @@ export class Bullets {
 
   /**
    * o: { x, z, dx, dz, speed, owner: 'player'|'enemy', damage, range, split, source,
-   *      look, trail, pierce, knock, weapon, spinShot }
+   *      look, trail, pierce, knock, weapon, spinShot, diveShot }
    */
   spawn(o) {
     const b = this.acquire(o.look || (o.owner === 'player' ? 'player' : 'enemy'));
@@ -89,6 +89,7 @@ export class Bullets {
     b.knock = o.knock || 1;
     b.weapon = o.weapon || null;
     b.spinShot = !!o.spinShot;
+    b.diveShot = !!o.diveShot; // fired in the air on a dive: its kill is a DIVE KILL whenever it lands
     b.scatter = false;
     b.kills = 0;
     b.hits = [];
@@ -125,7 +126,7 @@ export class Bullets {
   }
 
   updateVisual(b) {
-    b.group.position.set(b.x, Math.max(0.05, b.y0 - b.drop * b.traveled), b.z);
+    b.group.position.set(b.x, Math.max(0.05, b.y0 - b.drop * b.traveled) + this.game.level.groundY(b.x, b.z), b.z); // over the ground below it (steps: 大三巴)
     b.group.rotation.y = Math.atan2(b.dx, b.dz);
     b.trail.scale.set(1, 1, Math.max(0.05, b.trailLen));
   }
@@ -191,12 +192,13 @@ export class Bullets {
     const solid = game.level.raycast(x0, z0, x1, z1, false, b.over, false, b.owner === 'player' ? game.boss.pass : null);
     if (solid) best = { t: solid.t, type: 'solid', solid: solid.solid, nx: solid.nx, nz: solid.nz };
 
-    const prop = b.over ? null : game.level.raycastProps(x0, z0, x1, z1, b.ignore, b.hits);
+    // from up high an enemy's shot flies over the props to the player; the player's own, aimed, still meets them
+    const prop = b.over && b.owner !== 'player' ? null : game.level.raycastProps(x0, z0, x1, z1, b.ignore, b.hits);
     if (prop && (!best || prop.t < best.t)) best = { t: prop.t, type: prop.prop.kind, prop: prop.prop };
 
     if (b.owner === 'player') {
       for (const e of game.enemies.list) {
-        if (!e.alive || e.spawnLock > 0 || (b.hits.length && b.hits.includes(e))) continue;
+        if (!e.alive || e.spawnLock > 0 || e.held || (b.hits.length && b.hits.includes(e))) continue; // the human shield is the player's own
         const t = segCircle(x0, z0, x1, z1, e.x, e.z, e.radius + 0.16);
         if (t >= 0 && (!best || t < best.t)) best = { t, type: 'enemy', enemy: e };
       }
@@ -216,9 +218,15 @@ export class Bullets {
       }
     } else {
       const p = game.player;
-      if (p.alive && !p.spinning && !p.sliding) {
+      if (p.alive && !p.spinning && !p.sliding && !p.diving) {
         const t = segCircle(x0, z0, x1, z1, p.x, p.z, PLAYER.hitRadius);
-        if (t >= 0 && (!best || t < best.t)) best = { t, type: 'player' };
+        // from the front, where the human shield is held, it meets him instead (player.js grab)
+        if (t >= 0 && (!best || t < best.t)) best = { t, type: p.shieldedFrom(b.dx, b.dz) ? 'hostage' : 'player' };
+      }
+      const hs = p.hostage;
+      if (hs && hs.alive) {
+        const t = segCircle(x0, z0, x1, z1, hs.x, hs.z, hs.radius);
+        if (t >= 0 && (!best || t < best.t)) best = { t, type: 'hostage' };
       }
       // Enemy bullets can also hit other enemies (friendly fire after a ricochet).
       if (b.reflected) {
@@ -306,6 +314,10 @@ export class Bullets {
         return;
       case 'grenade':
         game.grenades.airburst(hit.grenade);
+        b.alive = false;
+        return;
+      case 'hostage':
+        game.player.hostage.shieldHit(b);
         b.alive = false;
         return;
       case 'player':

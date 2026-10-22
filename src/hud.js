@@ -201,8 +201,9 @@ export class HUD {
     this.updateSnipers();
   }
 
+  /** Where (x, z), y over the ground there, is on the screen. */
   project(x, y, z) {
-    _v.set(x, y, z).project(this.game.camera);
+    _v.set(x, y + this.game.level.groundY(x, z), z).project(this.game.camera);
     return { x: (_v.x * 0.5 + 0.5) * innerWidth, y: (-_v.y * 0.5 + 0.5) * innerHeight, ndcX: _v.x, ndcY: _v.y, behind: _v.z > 1 };
   }
 

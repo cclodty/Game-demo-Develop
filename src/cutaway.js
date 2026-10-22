@@ -1,7 +1,9 @@
 // See-through cutaway: hides whatever stands between the camera and the
 // player. Fragments inside a cylinder around the camera -> player line are
-// discarded, with a dithered edge. The floor (below 0.45 m) and everything
-// behind the player stay; shadows still use the full geometry.
+// discarded, with a dithered edge. The floor (below 0.45 m, or below the
+// ground the player stands on when that is higher: 大三巴's steps, uCutB being
+// his chest) and everything behind the player stay; shadows still use the
+// full geometry.
 // A map can also fade what stands outside its play area on the camera's side
 // (maps.js `fade`): above a height, only one pixel in four of it is drawn, so
 // a street's far side shows through the buildings in front of it.
@@ -36,7 +38,7 @@ export function addCutaway(mat, U) {
         '#include <clipping_planes_fragment>',
         `#include <clipping_planes_fragment>
         // a building seen through whole is not holed as well (the hole's rim would show in it)
-        if (uCutR > 0.0 && vCutWorld.y > 0.45 && (vFadeAll < 0.5 || vCutWorld.y <= uFadeY)) {
+        if (uCutR > 0.0 && vCutWorld.y > max(0.45, uCutB.y - 0.75) && (vFadeAll < 0.5 || vCutWorld.y <= uFadeY)) {
           vec3 ab = uCutB - uCutA;
           float t = clamp(dot(vCutWorld - uCutA, ab) / dot(ab, ab), 0.0, 1.0);
           float edge = uCutR - length(vCutWorld - (uCutA + ab * t));

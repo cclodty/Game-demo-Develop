@@ -11,6 +11,7 @@ import { MAPS } from './maps.js';
 import { propModel } from './models.js';
 import { buildFixtures } from './fixtures.js';
 import { NavGrid } from './nav.js';
+import { Race } from './race.js';
 import { clamp, rand, resolveCircleAABB, resolveCirclePoly, segAABB, segCircle, segPoly, TAU } from './utils.js';
 import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenceTexture, floorTexture } from './textures.js';
 
@@ -68,6 +69,14 @@ class Barrel {
     g.traverse((m) => {
       if (m.isMesh) m.castShadow = m.receiveShadow = true;
     });
+    // its parts turn about its middle when it lies on its side and rolls (down a slope: 大三巴's steps)
+    this.half = gas ? 0.85 : 0.6; // half its height
+    const centred = new THREE.Group();
+    centred.position.y = -this.half;
+    centred.add(...g.children);
+    this.lie = new THREE.Group();
+    this.lie.add(centred);
+    g.add(this.lie);
     this.mesh = g;
     level.add(g);
     this.reset();
@@ -76,6 +85,10 @@ class Barrel {
   reset() {
     [this.x, this.z] = this.home;
     this.vx = this.vz = 0;
+    this.rolling = false; // knocked over on a slope: on its side, rolling (tip)
+    this.spin = 0;
+    this.knocked = 0; // bowled over in this roll
+    this.stand();
     this.hp = this.maxHp;
     this.fuse = -1;
     this.y = 0;
@@ -89,7 +102,15 @@ class Barrel {
     this.mesh.visible = true;
     this.body.scale.setScalar(1);
     this.body.rotation.set(0, 0, 0);
-    this.mesh.rotation.set(0, rand(0, TAU), 0);
+    // turned some way of its own, the same every load (from where it stands): a model's parts near the view's edge are
+    // in or out of a frame alike each time, as the draw-call budget wants (test/maps.test.mjs)
+    this.mesh.rotation.set(0, (((this.home[0] * 12.9898 + this.home[1] * 78.233) % TAU) + TAU) % TAU, 0);
+    this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z); // where it stands from the start, not at the origin till the first step
+  }
+
+  /** On its side it rolls on (ENV.roll.friction); standing, it slides to a stop as a barrel does (updateProps). */
+  get friction() {
+    return this.rolling ? ENV.roll.friction : undefined;
   }
 
   hit(dmg, dx, dz) {
@@ -98,6 +119,38 @@ class Barrel {
     this.vx += dx * 0.6;
     this.vz += dz * 0.6;
     if (this.hp <= 0) this.fuse = 0.04;
+    else this.tip();
+  }
+
+  /** Knocked over (a shot, a kick): on a slope (maps.js `slope`) it falls on its side and rolls down (ENV.roll). */
+  tip() {
+    if (this.rolling || this.carried || this.rocketT > 0 || this.y > 0 || !this.level.slopeAt(this.x, this.z)) return;
+    this.rolling = true;
+    this.knocked = 0;
+    this.level.game.notes.log('油桶滾落石階');
+  }
+
+  /** Upright, as it stands. */
+  stand() {
+    this.lie.position.y = this.half;
+    this.lie.rotation.set(0, 0, 0);
+  }
+
+  /** Rolling into enemy `e` (enemies.js pushProps): it bowls him over and rolls on, the first of a roll ROLLING. False while it stands. */
+  knock(e) {
+    if (!this.rolling) return false;
+    const sp = Math.hypot(this.vx, this.vz);
+    if (sp < ENV.roll.bowl || e.stunT > 0 || e.aloft) return true;
+    const g = this.level.game;
+    e.kick(this.vx / sp, this.vz / sp, sp * 0.7, 'strike');
+    this.vx *= ENV.roll.knock;
+    this.vz *= ENV.roll.knock;
+    g.shake(0.2);
+    if (++this.knocked === 1) {
+      g.score.style('ROLLING', ENV.roll.pts);
+      g.notes.log(`滾落的油桶撞倒人：ROLLING +${ENV.roll.pts}`);
+    }
+    return true;
   }
 
   ignite(delay) {
@@ -129,7 +182,14 @@ class Barrel {
         return;
       }
     }
-    if (this.carried) return;
+    if (this.carried) {
+      // picked up: upright in the hands
+      if (this.rolling) {
+        this.rolling = false;
+        this.stand();
+      }
+      return;
+    }
     if (this.rocketT > 0 && this.fuse < 0) {
       // the jet: faster along its way, sparks behind, a burst on the first enemy it meets or when the gas is spent
       const g = this.level.game;
@@ -171,7 +231,27 @@ class Barrel {
         }
       }
     }
-    this.mesh.position.set(this.x, this.y, this.z);
+    if (!this.rolling && this.y <= 0 && Math.hypot(this.vx, this.vz) > ENV.roll.tip) this.tip(); // kicked or shoved onto a slope
+    if (this.rolling && this.y <= 0) {
+      // down a slope it gathers speed; on the level it rolls on till it stops, and the next push is a new roll
+      const R = ENV.roll;
+      const s = this.level.slopeAt(this.x, this.z);
+      if (s) {
+        this.vx -= s[0] * R.gravity * dt;
+        this.vz -= s[1] * R.gravity * dt;
+      }
+      const sp = Math.hypot(this.vx, this.vz);
+      if (!s && sp < R.stop) {
+        this.vx = this.vz = 0;
+        this.knocked = 0;
+      }
+      // looks: on its side across its way, turning as it goes
+      if (sp > 0.5) this.mesh.rotation.y = Math.atan2(this.vx, this.vz);
+      this.spin += (sp * dt) / this.r;
+      this.lie.position.y = this.r;
+      this.lie.rotation.set(this.spin, 0, Math.PI / 2);
+    }
+    this.mesh.position.set(this.x, this.y + this.level.groundY(this.x, this.z), this.z); // on the ground where it is (steps: 大三巴)
   }
 }
 
@@ -223,7 +303,7 @@ class Extinguisher {
     this.carried = false;
     this.thrown = false;
     this.mesh.visible = true;
-    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z);
     this.mesh.rotation.set(0, 0, 0);
     this.tilt.rotation.set(0, 0, 0);
     this.cloud.visible = false;
@@ -245,7 +325,7 @@ class Extinguisher {
     this.vx = this.vz = 0;
     this.tumbleT = 0;
     this.cloud.visible = true;
-    this.cloud.position.set(this.x, 0.02, this.z);
+    this.cloud.position.set(this.x, this.level.groundY(this.x, this.z) + 0.02, this.z);
     g.fx.smokePuff(this.x, 0.6, this.z, 14, 1.2, 0.9, 1.6);
     g.audio.glass(g.panFor(this.x));
     g.level.noise(this.x, this.z, 5);
@@ -313,7 +393,7 @@ class Extinguisher {
       }
     }
     const sp = Math.hypot(this.vx, this.vz);
-    this.mesh.position.set(this.x, this.y, this.z);
+    this.mesh.position.set(this.x, this.y + this.level.groundY(this.x, this.z), this.z); // on the ground where it is (steps: 大三巴)
     if (sp > 1) {
       this.mesh.rotation.y = Math.atan2(this.vx, this.vz);
       this.tilt.rotation.x = Math.PI / 2;
@@ -372,7 +452,7 @@ class Umbrella {
     this.carried = false;
     this.thrown = false;
     this.mesh.visible = true;
-    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z);
     this.mesh.rotation.set(0, 0, 0);
     this.tilt.rotation.set(Math.PI / 2, 0, 0.3); // lying on the floor
     this.tilt.position.y = 0.05;
@@ -420,7 +500,7 @@ class Umbrella {
         this.tilt.rotation.set(Math.PI / 2, 0, 0.3);
       }
     }
-    this.mesh.position.set(this.x, this.y, this.z);
+    this.mesh.position.set(this.x, this.y + this.level.groundY(this.x, this.z), this.z); // on the ground where it is (steps: 大三巴)
     if (this.thrown) this.mesh.rotation.y = Math.atan2(this.vx, this.vz);
     pulseMarker(this.marker, this.x, this.z, this.level.time + this.home[0]);
   }
@@ -514,7 +594,7 @@ class Net {
     this.carried = false;
     this.thrown = false;
     this.mesh.visible = true;
-    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z);
     this.mesh.rotation.set(0, 0, 0);
     this.tilt.rotation.set(0, 0, 0);
     this.tilt.position.set(0, 0, 0);
@@ -532,7 +612,7 @@ class Net {
     this.y = 0;
     this.mesh.visible = false;
     this.dome.visible = true;
-    this.dome.position.set(this.x, 0, this.z);
+    this.dome.position.set(this.x, this.level.groundY(this.x, this.z), this.z);
     let n = 0;
     for (const e of g.enemies.list) {
       if (!e.alive || e.aloft || Math.hypot(e.x - this.x, e.z - this.z) > ENV.net.radius) continue;
@@ -567,7 +647,7 @@ class Net {
         }
       }
     }
-    this.mesh.position.set(this.x, this.y, this.z);
+    this.mesh.position.set(this.x, this.y + this.level.groundY(this.x, this.z), this.z); // on the ground where it is (steps: 大三巴)
   }
 }
 
@@ -605,7 +685,7 @@ class Trolley {
     this.thrown = false;
     this.knocked = 0; // bowled over in this roll
     this.mesh.visible = true;
-    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z);
     this.mesh.rotation.set(0, this.angle, 0);
   }
 
@@ -617,10 +697,10 @@ class Trolley {
     this.level.game.notes.log('踢走手推車');
   }
 
-  /** Rolling into enemy `e` (enemies.js pushProps): it bowls him over and rolls on. */
+  /** Rolling into enemy `e` (enemies.js pushProps): it bowls him over and rolls on. True: what it does is all that happens. */
   knock(e) {
     const sp = Math.hypot(this.vx, this.vz);
-    if (sp < 3 || e.stunT > 0 || e.aloft) return;
+    if (sp < 3 || e.stunT > 0 || e.aloft) return true;
     const g = this.level.game;
     e.kick(this.vx / sp, this.vz / sp, sp * 0.7, 'strike');
     this.vx *= ENV.trolley.knock;
@@ -630,12 +710,13 @@ class Trolley {
       g.score.style('BOWLING', ENV.trolley.pts);
       g.notes.log(`手推車撞倒 ${this.knocked} 人：BOWLING +${ENV.trolley.pts}`);
     }
+    return true;
   }
 
   update() {
     // the deck turns to where it rolls; the handle trails behind
     if (Math.hypot(this.vx, this.vz) > 0.5) this.angle = Math.atan2(-this.vz, this.vx);
-    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z);
     this.mesh.rotation.y = this.angle;
   }
 }
@@ -733,11 +814,11 @@ class Pan {
     }
     this.angle += this.spin * dt;
     this.spin *= Math.exp(-2 * dt);
-    this.mesh.position.set(this.x, this.y, this.z);
+    this.mesh.position.set(this.x, this.y + this.level.groundY(this.x, this.z), this.z); // on the ground where it is (steps: 大三巴)
     this.mesh.rotation.y = this.angle;
     const air = clamp((this.y - 0.05) * 1.5, 0, 1);
     this.tilt.rotation.x = Math.sin(this.angle * 2.3) * 0.5 * air;
-    this.marker.position.set(this.x, 0.06, this.z);
+    this.marker.position.set(this.x, this.level.groundY(this.x, this.z) + 0.06, this.z);
     const pulse = 0.5 + 0.5 * Math.sin(time * 3 + this.home[0]);
     this.marker.scale.setScalar(0.9 + pulse * 0.25);
   }
@@ -916,6 +997,14 @@ export class Level {
       brick: std({ color: 0x7c7770, roughness: 0.92 }),
       mahjong: std({ color: 0x1f6a46, roughness: 0.85 }),
       mahjongTile: std({ color: 0xf2eee2, roughness: 0.5 }),
+      // the Ruins of St. Paul's (maps.js ruinsDecorate re-draws the façade and the slopes)
+      slope: std({ color: 0x6d6457, roughness: 0.95 }),
+      facade: std({ color: 0xc9b392, roughness: 0.9 }),
+      // the Guia circuit (maps.js guiaDecorate gives the tyres, rails, stand and tower their looks)
+      tyres: std({ color: 0x1d4fd0, roughness: 0.7 }),
+      rail: std({ color: 0xdfe4ec, roughness: 0.4, metalness: 0.5 }),
+      stand: std({ color: 0x5b6270, roughness: 0.9 }),
+      tower: std({ color: 0x23272f, roughness: 0.5, metalness: 0.3 }),
     };
   }
 
@@ -988,7 +1077,8 @@ export class Level {
     this.pads = [];
     this.animators = [];
     this.ambient = [];
-    this.groundFn = null;
+    this.groundFn = map.ground || null; // the ground's height, for a map with steps (maps.js `ground`); Senado's decorate sets its own
+    this.slopeFn = map.slope || null; // where it slopes, which way (maps.js `slope`): a barrel knocked over there rolls down
     this.fadeables = []; // buildings the follow fade can see through: { pts, h } (addFadeable)
     this.fadedNow = [];
     this.cut.uFadeSet.value.fill(0);
@@ -1042,6 +1132,7 @@ export class Level {
       return { kind: 'balcony', x: x - dx * 1.2, z: z - dz * 1.2, ex: x, ez: z, perch: y, stay: true, dirX: dx, dirZ: dz, heat: 0, lamp: null };
     });
     if (map.decorate) map.decorate(this);
+    this.race = map.race ? new Race(this, map.race) : null; // the Guia circuit's racing cars (race.js)
     // Everything lit in the map can be cut away when it hides the player
     // (tall Senado buildings in any view, low walls once the camera tilts).
     this.root.traverse((o) => {
@@ -1132,11 +1223,12 @@ export class Level {
       Object.assign(s, { x, z, w, d, hp: ENV.crateHits });
       this.crates.push(s);
     }
-    const model = propModel(matKey, this.map.id, w, d, h, face);
+    const base = this.groundY(x, z); // on raised ground (大三巴's landings) its height counts from there
+    const model = propModel(matKey, this.map.id, w, d, h - base, face);
     if (model) {
       // a made model replaces the block look; the box stays for collision
       s.mesh.visible = false;
-      model.position.set(x, 0, z);
+      model.position.set(x, base, z);
       this.add(model);
       s.model = model; // for test/calibration.test.mjs
       s.modelKey = matKey;
@@ -1445,6 +1537,12 @@ export class Level {
     return this.groundFn ? this.groundFn(x, z) : 0;
   }
 
+  /** Where the ground slopes (maps.js `slope`), its rise per metre [east, south]; null where it is level. */
+  slopeAt(x, z) {
+    const s = this.slopeFn ? this.slopeFn(x, z) : null;
+    return s && (s[0] || s[1]) ? s : null;
+  }
+
   /**
    * A building the camera sees through whole while it stands between the camera and the player
    * (maps.js `fade.follow`): its footprint ([x, z] points) and height. Returns its number for
@@ -1513,8 +1611,8 @@ export class Level {
   }
 
   /** Distance a ray (a laser) travels before hitting something solid (glass included; not an invisible map edge, as shots fly on). */
-  rayLength(x0, z0, dx, dz, max) {
-    const hit = this.raycast(x0, z0, x0 + dx * max, z0 + dz * max, false, 0, false);
+  rayLength(x0, z0, dx, dz, max, over = 0) {
+    const hit = this.raycast(x0, z0, x0 + dx * max, z0 + dz * max, false, over, false);
     return hit ? hit.t * max : max;
   }
 
@@ -1616,6 +1714,7 @@ export class Level {
 
   resetProps() {
     for (const p of this.props) p.reset();
+    if (this.race) this.race.reset();
     for (const f of this.flocks) f.reset();
     for (const s of this.crates) {
       s.alive = true;
@@ -1671,6 +1770,7 @@ export class Level {
   updateProps(dt) {
     this.time += dt;
     this.updateFlocks(dt);
+    if (this.race) this.race.update(dt);
     const props = this.props;
     for (const p of props) {
       if (!p.alive || p.carried || p.fixed) continue;

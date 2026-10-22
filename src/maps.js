@@ -67,6 +67,8 @@ function cityBackdrop(L, { facade = true, keepOut = [36, 28] } = {}) {
     }
   }
   const city = L.own(new THREE.InstancedMesh(geo, mat, spots.length));
+  // laid out by the effects' dice: never culled, so a frame's draw calls do not hang on where the towers fell
+  city.frustumCulled = false;
   const m = new THREE.Matrix4();
   spots.forEach(([x, z, w, d, top], i) => {
     m.makeScale(w, top + 90, d);
@@ -844,6 +846,22 @@ const FEL_SHOPS = [
 ];
 
 /**
+ * The truck's loop on Rua da Felicidade (its `boss`): east along the street on `FEL_ROAD`, on out of the east end and
+ * round in a teardrop, back west on the same line, the same past the west end. Each table, lamp and sign post is at least the
+ * truck's half width (1.1 m) clear of the line: the line passes south of the table at x -9, north of those at -25.5
+ * and 14.
+ */
+const FEL_ROAD = [[-28, -0.9], [-21, -0.9], [-13, 1], [-5, 1], [11, -0.8], [28, -0.8]];
+function felicidadeTruckLoop() {
+  // straight on 4 m out of each end before the teardrop, or its tail swings into the corner shops and the end tables
+  const out = ([x, z], dir) => [x + dir * 4, z];
+  const turn = ([x, z], dir) => [[x + dir * 3, z + 1.2], [x + dir * 5, z], [x + dir * 3, z - 1.2]];
+  const east = out(FEL_ROAD[FEL_ROAD.length - 1], 1);
+  const west = out(FEL_ROAD[0], -1);
+  return [...FEL_ROAD, east, ...turn(east, 1), east, ...[...FEL_ROAD].reverse(), west, ...turn(west, -1).reverse(), west];
+}
+
+/**
  * The street's walls as data: for each row, the solid blocks between the shops and the lane, and each open
  * shop's front (two pieces beside its opening), side walls (one split by a back door) and back; and the doors and
  * shutters that close the openings (fixtures.js).
@@ -943,6 +961,10 @@ const felicidade = {
     [21, 2.5, 'lamp'],
   ],
   pads: [[-21, -0.8], [18, -0.2]],
+  // the stage's boss (boss.js truck): in from the west, then up and down the street on one line that weaves clear of
+  // the mahjong tables, lamps and sign posts, turning in a teardrop just past each open end (the street is too narrow
+  // to turn in); it lets its thugs out and charges only on the map (boss.js onMap)
+  boss: { kind: 'truck', from: [-40, -0.9], loop: felicidadeTruckLoop() },
   // balconies up the fronts of the solid blocks (level.js balconies, waves.js pickPerches): [x, z, height, facing], the
   // man sent up stands at (x, z) that high, over the street, facing out; four on the north row, two on the south
   perches: [
@@ -955,8 +977,8 @@ const felicidade = {
   ],
   stages: [
     { name: '茶室前', en: 'TEA ROOM FRONT', at: [-16.5, -1.2], move: 'door' },
-    { name: '巷口', en: 'LANE MOUTH', at: [7.25, 0.5], move: 'shutter' },
-    { name: '麻雀枱', en: 'MAHJONG TABLES', at: [-8, 1.4], move: 'slide' },
+    { name: '巷口', en: 'LANE MOUTH', at: [7.25, -3.6], move: 'shutter' }, // just into the lane: off the truck's road (boss)
+    { name: '麻雀枱', en: 'MAHJONG TABLES', at: [-8, -2.3], move: 'slide' }, // behind the table, between it and the shops
     { name: '石油氣', en: 'GAS CYLINDERS', at: [17, 0.8], move: 'boom' },
   ],
   spawns: [
@@ -1158,4 +1180,582 @@ const felicidade = {
   },
 };
 
-export const MAPS = [rooftop, club, docks, senado, felicidade];
+// ---------------------------------------------------------------- 東望洋跑道 GUIA CIRCUIT
+// A hairpin of the street circuit at night, built by hand to the ROADMAP's size (OSM cannot be reached from the
+// build): the track comes in along the north, turns round the west end and goes back out along the south. Inside
+// the hairpin a grass infield behind blue-and-white tyre walls with the timing tower; outside it guardrails with
+// marshals' gates, the grandstand to the north (its front row a line of perches), the spectators' side to the south
+// and a gravel run-off past the bend. The track goes on past the east edge. The teams, sponsors and lap times are
+// made up.
+const GUIA = {
+  halfW: 28,
+  halfD: 20,
+  cx: -10, // the hairpin's centre: the bend is the half circle west of it
+  inner: 5.4, // the infield's tyre wall (its middle line): along the straights at z = ±inner, round the bend at that radius
+  outer: 13.1, // the outer barrier's middle line: guardrails along the straights, a tyre wall round the bend
+  tyre: 0.9, // a tyre wall's thickness and height: low cover, a man crouched behind it, the shots over it
+  rail: 0.3, // a guardrail's thickness and height
+  railH: 1.0,
+  stand: [-15, 15, -19.8, -13.25], // the grandstand's box (x from, x to, z from, z to): its front is the north straight's edge
+  standH: 3.4,
+};
+
+/** A tyre wall on an arc of radius r about (cx, cz), from angle a0 to a1 (degrees from +x towards +z): stacks 0.75 m apart, the gaps left open. */
+function tyreArc(out, cx, cz, r, a0, a1, gaps = []) {
+  const n = Math.ceil(((((a1 - a0) * Math.PI) / 180) * r) / 0.75);
+  for (let i = 0; i <= n; i++) {
+    const a = a0 + ((a1 - a0) * i) / n;
+    if (gaps.some(([g0, g1]) => a > g0 && a < g1)) continue;
+    const t = (a * Math.PI) / 180;
+    out.push([+(cx + r * Math.cos(t)).toFixed(2), +(cz + r * Math.sin(t)).toFixed(2), GUIA.tyre, GUIA.tyre, GUIA.tyre, 'tyres']);
+  }
+}
+
+/** A straight run along z from x0 to x1, broken at the gaps ([a, b] in x). */
+function straightRun(out, z, x0, x1, gaps, thick, h, mat) {
+  let a = x0;
+  for (const [g0, g1] of [...gaps, [x1, x1]]) {
+    if (g0 - a > 0.05) out.push([+((a + g0) / 2).toFixed(2), z, +(g0 - a).toFixed(2), thick, h, mat]);
+    a = g1;
+  }
+}
+
+/** The barriers as solids: the infield's tyre walls and the outer guardrails and tyre wall, with their gaps. */
+function guiaBarriers() {
+  const { halfW: W, cx, inner, outer, tyre, rail, railH } = GUIA;
+  const s = [];
+  straightRun(s, -inner, cx, W - 1, [[-1.2, 1.2], [13, 15.4]], tyre, tyre, 'tyres');
+  straightRun(s, inner, cx, W - 1, [[-5.2, -2.8], [7, 9.4], [20, 22.4]], tyre, tyre, 'tyres');
+  tyreArc(s, cx, 0, inner, 90, 270);
+  straightRun(s, -outer, GUIA.stand[1], W - 0.4, [[19, 21.4]], rail, railH, 'rail'); // east of the grandstand, whose front is the edge
+  straightRun(s, outer, cx, W - 0.4, [[0.8, 3.2], [16.8, 19.2]], rail, railH, 'rail'); // short of the map's edge: cover, not the edge
+  tyreArc(s, cx, 0, outer, 90, 270, [[124, 136], [224, 236]]);
+  return s;
+}
+
+const GUIA_WALLS = guiaBarriers();
+
+/** The racing line (src/race.js): in along the north straight from past the east edge, round the bend, out along the south. */
+function guiaRacingLine() {
+  const { cx, inner, outer } = GUIA;
+  const r = (inner + 0.45 + outer - 0.15) / 2; // the middle of the road
+  const line = [[45, -r]];
+  for (let i = 0; i <= 16; i++) {
+    const a = ((270 - (180 * i) / 16) * Math.PI) / 180;
+    line.push([+(cx + r * Math.cos(a)).toFixed(3), +(r * Math.sin(a)).toFixed(3)]);
+  }
+  line.push([45, r]);
+  return line;
+}
+
+const guia = {
+  id: 'guia',
+  budget: { tris: 190000, calls: 560 }, // rendered per frame, all passes (test/maps.test.mjs: 150,785 and 424 at the start)
+  name: '東望洋跑道',
+  en: 'GUIA CIRCUIT',
+  desc: '格蘭披治的髮夾彎，晚上：藍白輪胎牆只夠蹲低，看台上的人望得到你；過賽道要快。',
+  color: '#4fb4ff',
+  size: [GUIA.halfW, GUIA.halfD],
+  start: [-2, 1.5],
+  cutaway: true,
+  theme: {
+    bg: 0x05070d,
+    fog: [0x070a14, 0.012],
+    hemi: [0x5a6a8c, 0x0a0c12, 0.7],
+    moon: [0xb8c8ff, 0.5],
+    sunDir: [12, 34, 16],
+    // four floodlights on masts round the bend (decorate draws the masts)
+    points: [
+      [0xe8f0ff, -20, 7, -12, 70, 24],
+      [0xe8f0ff, 4, 7, -14.2, 70, 24],
+      [0xffe2b8, -6, 7, 14.4, 60, 22],
+      [0xe8f0ff, 22, 7, 2, 70, 24],
+    ],
+    rain: false,
+    bloom: { strength: 0.85, threshold: 0.8 },
+  },
+  floor: 'asphalt',
+  edges: null, // the barriers, the grandstand and the dark beyond mark the edge; the track goes on past the east end
+  solids: [
+    ...GUIA_WALLS,
+    [(GUIA.stand[0] + GUIA.stand[1]) / 2, (GUIA.stand[2] + GUIA.stand[3]) / 2, GUIA.stand[1] - GUIA.stand[0], GUIA.stand[3] - GUIA.stand[2], GUIA.standH, 'stand'],
+    [8, 0, 2.6, 2.6, 8.5, 'tower'], // the timing tower in the infield
+    [-4, -1.6, 2.2, 1.4, 1.2, 'hut'], // a marshals' post
+    [18.45, 1.8, 1.8, 0.9, 0.9, 'tyres'], // spare tyres in the infield
+    [-4, 16.8, 3, 1.4, 1.1, 'stall'], // a noodle stall on the spectators' side
+    [12, 16, 2.7, 0.9, 0.9, 'tyres'],
+    [-25.5, -6, 0.9, 1.8, 0.9, 'tyres'], // stacks in the run-off
+    [-25.5, 7, 0.9, 1.8, 0.9, 'tyres'],
+  ],
+  barrels: [[2, -9], [12, 9.5], [-19, -4], [24, -16, 'lpg'], [-1.6, 15.8, 'lpg']],
+  pans: [[-6.2, 15.6], [-2.6, 15.2], [20.5, -3.5], [-12.5, 1.8]],
+  tools: [[-5.5, 0.4, 'extinguisher'], [15, 15.8, 'extinguisher']],
+  spots: { barrels: [[-14, -9], [6, 9], [22, -9], [-21, 3]], pans: [[3, 2.8], [8, 16.8], [-24, -14], [26, 15.5]], tools: [[11, -3.2], [-18, 14.5], [23, 16.5]] },
+  fixtures: [
+    [-13.6, 0, 'lamp'],
+    [1.5, -4.4, 'lamp'],
+    [15, 4.4, 'lamp'],
+    [7, 14.3, 'lamp'],
+    [24, -14.3, 'lamp'],
+    // signs hung out over the ways in from the marshals' gates (made-up names): shot down, they crush whoever is under
+    [3.6, 14.6, 'sign', 270],
+    [22.8, -15.4, 'sign', 270],
+  ],
+  pads: [[2, 1], [-25, 0], [20, 16.5]],
+  // boxes on the grandstand's front (level.js balconies, waves.js pickPerches), over the north straight's edge: a tyre
+  // wall is no cover from up there (enemies.js over), and the infield's walls stop the player's shots back, so a man
+  // up there is answered from out on the track
+  // the race (src/race.js, 東望洋跑道 ②): the first pass `first` s into the stage, then one every `every` s, in world time
+  race: { first: 16, every: 24, line: guiaRacingLine() },
+  perches: [
+    [-7, -12.8, 2.2, 0],
+    [-0.5, -12.8, 2.2, 0],
+    [5.5, -12.8, 2.2, 0],
+    [11.5, -12.8, 2.2, 0],
+  ],
+  stages: [
+    { name: '計時塔', en: 'TIMING TOWER', at: [8, 2.6], move: 'slide' },
+    { name: '髮夾彎', en: 'THE HAIRPIN', at: [-17.5, 0.5], move: 'boom' },
+    { name: '看台前', en: 'GRANDSTAND', at: [8.5, -11.2], move: 'high' },
+    { name: '小食檔', en: 'NOODLE STALL', at: [-4, 14.6], move: 'pan' },
+  ],
+  spawns: [
+    { x: 27.4, z: -9, ex: 25, ez: -9, kind: 'gate' }, // along the track: the north straight from the east
+    { x: 27.4, z: 9, ex: 25, ez: 9, kind: 'gate' }, // the south straight
+    { x: 27.4, z: 0, ex: 25, ez: 0, kind: 'gate' }, // the infield's open end
+    { x: 21.5, z: -16.5, ex: 20.2, ez: -11.6, kind: 'gate' }, // past the grandstand, through the marshals' gate
+    { x: 25.5, z: -17.5, ex: 20.2, ez: -11.6, kind: 'gate' },
+    { x: -20.5, z: -12.1, ex: -17.2, ez: -8.3, kind: 'gate' }, // the run-off, through the tyre wall's gaps
+    { x: -20.5, z: 12.1, ex: -17.2, ez: 8.3, kind: 'gate' },
+    { x: 2, z: 19.4, ex: 2, ez: 11.6, kind: 'gate' }, // from the spectators' side
+    { x: 18, z: 19.4, ex: 18, ez: 11.6, kind: 'gate' },
+  ],
+  decorate(L) {
+    guiaDecorate(L);
+  },
+};
+
+/** The circuit's look: drawn in few meshes (merged boxes, instanced tyres), as draw calls are the weak GPUs' limit. */
+function guiaDecorate(L) {
+  const { halfW: W, halfD: D, cx, inner, outer } = GUIA;
+  const std = (o) => L.own(new THREE.MeshStandardMaterial({ roughness: 0.85, ...o }));
+  /** Boxes [x, y, z, w, h, d] (y the bottom) merged into one mesh: one draw call for the lot (none for none: 玻璃之城 turns the rails to glass). */
+  const boxes = (list, mat, cast = false) => {
+    if (!list.length) return null;
+    const mesh = new THREE.Mesh(L.own(mergeGeometries(list.map(([x, y, z, w, h, d]) => new THREE.BoxGeometry(w, h, d).translate(x, y + h / 2, z)))), mat);
+    mesh.castShadow = cast;
+    mesh.receiveShadow = true;
+    return L.add(mesh);
+  };
+  /** Flat pieces on the ground merged into one mesh: geometries in the XZ plane, lifted `y`. */
+  const ground = (geos, mat, y) => {
+    const mesh = new THREE.Mesh(L.own(mergeGeometries(geos)), mat);
+    mesh.position.y = y;
+    mesh.receiveShadow = true;
+    return L.add(mesh);
+  };
+  const flat = (geo) => geo.rotateX(-Math.PI / 2);
+  /** A ring segment about (x, z) lying on the ground: radii r0 to r1, the west half (the bend's side) unless told otherwise. */
+  const arc = (r0, r1, x = cx, z = 0, a0 = Math.PI / 2, len = Math.PI) => flat(new THREE.RingGeometry(r0, r1, 48, 1, a0, len)).translate(x, 0, z);
+
+  // the ground: grass on the infield, gravel past the bend, a darker strip of the spectators' side
+  ground(
+    [flat(new THREE.PlaneGeometry(W - cx, 2 * inner)).translate((W + cx) / 2, 0, 0), flat(new THREE.CircleGeometry(inner, 32, Math.PI / 2, Math.PI)).translate(cx, 0, 0)],
+    std({ color: 0x1b3320, roughness: 1 }),
+    0.006,
+  );
+  ground([arc(outer + 0.5, 21)], std({ color: 0x4a4338, roughness: 1 }), 0.005);
+  // the white lines at the track's edges, and red-and-white kerbs round the inside of the bend
+  const lineMat = std({ color: 0xe8ecf2, roughness: 0.6, emissive: 0xe8ecf2, emissiveIntensity: 0.06 });
+  const lines = [];
+  for (const sz of [-1, 1]) {
+    lines.push(flat(new THREE.PlaneGeometry(W - cx, 0.14)).translate((W + cx) / 2, 0, sz * (inner + 0.75)));
+    lines.push(flat(new THREE.PlaneGeometry(W - cx, 0.14)).translate((W + cx) / 2, 0, sz * (outer - 0.6)));
+  }
+  lines.push(arc(inner + 0.68, inner + 0.82), arc(outer - 0.67, outer - 0.53));
+  ground(lines, lineMat, 0.012);
+  const kerbs = [[], []];
+  for (let i = 0; i < 16; i++) kerbs[i % 2].push(arc(inner + 0.48, inner + 1.1, cx, 0, Math.PI / 2 + (i * Math.PI) / 16, Math.PI / 16));
+  ground(kerbs[0], std({ color: 0xc81e28, roughness: 0.7 }), 0.014);
+  ground(kerbs[1], std({ color: 0xe8ecf2, roughness: 0.7 }), 0.014);
+
+  // the tyre walls: every 'tyres' box drawn as stacks of three tyres, blue and white by turns (two instanced meshes)
+  const stacks = [];
+  for (const sd of L.solids) {
+    if (sd.matKey !== 'tyres') continue;
+    sd.mesh.visible = false;
+    const w = sd.maxX - sd.minX;
+    const d = sd.maxZ - sd.minZ;
+    const along = w >= d;
+    const n = Math.max(1, Math.round((along ? w : d) / 0.85));
+    for (let i = 0; i < n; i++) {
+      const k = (i + 0.5) / n;
+      stacks.push([along ? sd.minX + w * k : (sd.minX + sd.maxX) / 2, along ? (sd.minZ + sd.maxZ) / 2 : sd.minZ + d * k]);
+    }
+  }
+  const tyreGeo = L.own(new THREE.CylinderGeometry(0.42, 0.42, 0.29, 12).translate(0, 0.145, 0));
+  const layers = [[], []];
+  stacks.forEach(([x, z], i) => {
+    for (let t = 0; t < 3; t++) layers[(i + t) % 3 === 1 ? 1 : 0].push([x, t * 0.3, z]);
+  });
+  const m4 = new THREE.Matrix4();
+  layers.forEach((list, k) => {
+    const im = new THREE.InstancedMesh(tyreGeo, std({ color: k ? 0xe8ecf2 : 0x1d4fd0, roughness: 0.7 }), list.length);
+    list.forEach(([x, y, z], i) => im.setMatrixAt(i, m4.makeTranslation(x, y, z)));
+    im.computeBoundingSphere();
+    im.castShadow = true;
+    im.receiveShadow = true;
+    L.add(im);
+  });
+
+  // the guardrails: white steel with a blue band and a post every 2 m (each rail's box is its collision and its look)
+  const band = [];
+  const posts = [];
+  for (const sd of L.solids) {
+    if (sd.matKey !== 'rail') continue;
+    const z = (sd.minZ + sd.maxZ) / 2;
+    band.push([(sd.minX + sd.maxX) / 2, 0.45, z, sd.maxX - sd.minX, 0.22, GUIA.rail + 0.02]);
+    for (let x = sd.minX + 0.2; x < sd.maxX; x += 2) posts.push([x, 0, z, 0.12, GUIA.railH + 0.1, 0.12]);
+  }
+  boxes(band, std({ color: 0x1d4fd0, roughness: 0.5 }));
+  boxes(posts, L.mat.darkMetal);
+
+  // the grandstand: four tiers rising north, red and white seats, posts and a roof over the back
+  const [sx0, sx1, sz0, sz1] = GUIA.stand;
+  const standSd = L.solids.find((sd) => sd.matKey === 'stand');
+  standSd.mesh.visible = false;
+  const tiers = [];
+  const seats = [[], []];
+  for (let i = 0; i < 4; i++) {
+    const z = sz1 - 0.6 - i * 1.2;
+    const top = 1.4 + i * 0.67;
+    tiers.push([(sx0 + sx1) / 2, 0, z, sx1 - sx0, top, 1.2]);
+    for (let x = sx0 + 0.5; x < sx1 - 0.3; x += 0.7) seats[Math.floor((x - sx0) / 4.2) % 2].push([x, top, z, 0.5, 0.32, 0.45]);
+  }
+  tiers.push([(sx0 + sx1) / 2, 0, (sz0 + sz1 - 4.8) / 2, sx1 - sx0, GUIA.standH, sz1 - sz0 - 4.8]);
+  boxes(tiers, std({ color: 0x5b6270, roughness: 0.9 }), true);
+  boxes(seats[0], std({ color: 0xc81e28, roughness: 0.6 }));
+  boxes(seats[1], std({ color: 0xe8ecf2, roughness: 0.6 }));
+  const roofPosts = [];
+  for (let x = sx0 + 1; x <= sx1 - 1; x += 7) roofPosts.push([x, 0, sz0 + 0.4, 0.25, 6.4, 0.25]);
+  boxes(roofPosts, L.mat.darkMetal, true);
+  // the boxes on the stand's front, over the walkway, where a beat sends a man up (the map's perches)
+  const ledges = [];
+  for (const [x, z, y] of L.map.perches) {
+    ledges.push([x, y - 0.15, z - 0.05, 2.4, 0.15, 0.9], [x, y, z + 0.38, 2.4, 0.55, 0.06]);
+  }
+  boxes(ledges, std({ color: 0x3a404c, roughness: 0.7, metalness: 0.2 }), true);
+  boxes([[(sx0 + sx1) / 2, 6.4, (sz0 + sz1) / 2 - 1, sx1 - sx0 + 1, 0.25, sz1 - sz0 + 0.4]], std({ color: 0x2a2f3a, roughness: 0.7, metalness: 0.3 }), true);
+  sign(
+    L,
+    [
+      { text: 'GUIA CIRCUIT', font: 'bold 150px "Bebas Neue", Impact, sans-serif', color: '#e8f0ff', y: 110 },
+      { text: '東 望 洋 跑 道', font: HAN(56), color: '#3fb4ff', y: 214 },
+    ],
+    9,
+    2.25,
+    0,
+    5.4,
+    sz1 - 4.5,
+    0,
+    1.6,
+  );
+
+  // the timing tower: a board of made-up lap times on its south face
+  sign(
+    L,
+    [
+      { text: 'LAP 12 / 15', font: 'bold 120px "Bebas Neue", Impact, sans-serif', color: '#ffd23a', y: 104 },
+      { text: '#7  #21  #33', font: 'bold 80px "Bebas Neue", Impact, sans-serif', color: '#e8f0ff', y: 206 },
+    ],
+    2.4,
+    0.6,
+    8,
+    7,
+    1.32,
+    0,
+    1.8,
+  );
+
+  // the floodlight masts at the map's four point lights
+  const masts = [];
+  const heads = [];
+  for (const p of L.points) {
+    masts.push([p.base.x, 0, p.base.z, 0.3, p.base.y, 0.3]);
+    heads.push([p.base.x, p.base.y, p.base.z, 1.4, 0.5, 0.5]);
+  }
+  boxes(masts, L.mat.darkMetal, true);
+  boxes(heads, std({ color: 0xffffff, emissive: 0xe8f0ff, emissiveIntensity: 2.2 }));
+
+  // the city beyond: dark towers with lit windows
+  cityBackdrop(L, { facade: false, keepOut: [W + 8, D + 8] });
+}
+
+// ---------------------------------------------------------------- 大三巴 RUINS OF ST. PAUL'S
+// The forecourt and the great flight of steps up to the façade, stylised (a World Heritage site: no attempt at the
+// real stone), about 40 × 60 m, built to the ROADMAP's size. From the forecourt in the south 68 steps climb north in
+// three flights with two landings to the terrace under the façade; walls and slopes close the steps in at the sides.
+// The ground's height is the map's `ground` (level.js groundY): everything stands on it, and from up the steps a man
+// sees and shoots over cover lower than where he stands (enemies.js over), so the landings are the high ground to
+// take. The façade is only a façade: its three doorways are open to the old nave behind it, a way round the wall.
+// A barrel on the steps, shot or kicked, falls over and rolls down them (`slope`, level.js Barrel tip): ROLLING.
+// Shop names are made up.
+const RUINS = {
+  halfW: 20,
+  halfD: 30,
+  stairs: 12, // the steps run x -12 to 12
+  terrace: 15, // the terrace under the façade, x -15 to 15
+  // the ground's profile up the steps, south to north: [z, height] at each corner; flat beyond the ends
+  profile: [
+    [9, 0],
+    [4, 1.6],
+    [1, 1.6],
+    [-4, 3.2],
+    [-7, 3.2],
+    [-12, 4.8],
+  ],
+  flights: [23, 23, 22], // steps in each flight: 68 in all
+  facade: -21.6, // the façade's line (its middle), 1.2 m thick
+  doors: [
+    [-6, 2.4, 3.8],
+    [0, 3.2, 4.4],
+    [6, 2.4, 3.8],
+  ], // its doorways: [x, width, height]; 2.4 m at least, or the nav grid (0.5 m cells, grown by a body's width) shuts them
+  nave: [9, -28.5], // behind it the old nave, open to the sky: half its width, and its back (the hill beyond)
+  shops: 17, // the shop rows at the forecourt's sides start this far out
+};
+
+/** The height of the ground at (x, z): the forecourt 0, up the steps, the terrace at the top. */
+function ruinsGround(x, z) {
+  const P = RUINS.profile;
+  if (z >= P[0][0]) return 0;
+  for (let i = 1; i < P.length; i++) {
+    const [z0, y0] = P[i - 1];
+    const [z1, y1] = P[i];
+    if (z >= z1) return y0 + ((y1 - y0) * (z0 - z)) / (z0 - z1);
+  }
+  return P[P.length - 1][1];
+}
+
+/** Where the ground slopes, its rise per metre [east, south]: on a flight of steps, up to the north; null where it is level. */
+function ruinsSlope(x, z) {
+  const P = RUINS.profile;
+  for (let i = 1; i < P.length; i++) {
+    const [z0, y0] = P[i - 1];
+    const [z1, y1] = P[i];
+    if (z < z0 && z > z1 && y1 !== y0) return [0, (y0 - y1) / (z0 - z1)];
+  }
+  return null;
+}
+
+/** The walls: the shop rows round the forecourt (lanes left open), the slopes beside the steps, the façade. */
+function ruinsWalls() {
+  const { halfW: W, halfD: D, stairs: S, terrace: T, facade: F, shops: X, doors, nave } = RUINS;
+  const s = [];
+  // the shop rows, two storeys, with a lane into each side of the forecourt
+  s.push([-(X + W) / 2, (9 + 15) / 2, W - X, 6, 6.5, 'brick'], [-(X + W) / 2, (18 + D) / 2, W - X, D - 18, 6.5, 'brick']);
+  s.push([(X + W) / 2, (9 + 21) / 2, W - X, 12, 6.5, 'brick'], [(X + W) / 2, (24 + D) / 2, W - X, D - 24, 6.5, 'brick']);
+  // the slopes beside the steps, a wall a little over head height above the steps beside them, flight by flight
+  for (const sx of [-1, 1]) {
+    s.push([(sx * (S + W)) / 2, 5, W - S, 8, 3.4, 'slope']);
+    s.push([(sx * (S + W)) / 2, -3, W - S, 8, 5, 'slope']);
+    s.push([(sx * (T + W)) / 2, -16.8, W - T, 9.6, 6.6, 'slope']);
+    s.push([(sx * (S + W)) / 2, -9.5, W - S, 5, 6.6, 'slope']);
+  }
+  // the terrace's sides are open to a lane each, between z -15.5 and -13 (the side streets climbing up)
+  for (const sx of [-1, 1]) {
+    s.splice(s.findIndex((w) => w[1] === -16.8 && Math.sign(w[0]) === sx), 1);
+    s.push([(sx * (T + W)) / 2, -12.5, W - T, 1, 6.6, 'slope']);
+    s.push([(sx * (T + W)) / 2, (-15.5 + F - 0.6) / 2, W - T, -15.5 - (F - 0.6), 6.6, 'slope']);
+  }
+  // the façade: a wall across the top of the terrace in four pieces, its three doorways open between them
+  let x0 = -W;
+  for (const [x, w] of [...doors, [W, 0]]) {
+    s.push([(x0 + x - w / 2) / 2, F, x - w / 2 - x0, 1.2, 4.8 + 18, 'facade']);
+    x0 = x + w / 2;
+  }
+  // behind it the old nave, the hill round it: at its sides and its back
+  const [N, back] = nave;
+  for (const sx of [-1, 1]) s.push([(sx * (N + W)) / 2, (F - 0.6 - D) / 2, W - N, D + F - 0.6, 7, 'slope']);
+  s.push([0, (back - D) / 2, 2 * N, D + back, 7, 'slope']);
+  return s;
+}
+
+const RUINS_WALLS = ruinsWalls();
+
+const ruins = {
+  id: 'ruins',
+  budget: { tris: 180000, calls: 600 }, // rendered per frame, all passes (test/maps.test.mjs: 138,592 and 342 at the start; two drones there, test/drone.test.mjs: 160,212 and 449)
+  name: '大三巴',
+  en: "RUINS OF ST. PAUL'S",
+  desc: '六十八級石階上落：站得高的望得到你，要搶高位；牌坊門洞繞得到後面，石階上的油桶一踢就滾落去。',
+  color: '#ffb35a',
+  size: [RUINS.halfW, RUINS.halfD],
+  start: [-3, 21],
+  ground: ruinsGround,
+  slope: ruinsSlope, // a barrel knocked over on the steps rolls down them (level.js Barrel)
+  steps: { profile: RUINS.profile, flights: RUINS.flights }, // the ground's profile and the steps in each flight (the map export)
+  cutaway: true,
+  theme: {
+    bg: 0x0b0a10,
+    fog: [0x120e14, 0.011],
+    hemi: [0x7a6c78, 0x14100e, 0.72],
+    moon: [0xb8c0ff, 0.5],
+    sunDir: [-14, 36, 20],
+    // warm floodlights on the façade and the steps, a cooler one over the forecourt
+    points: [
+      [0xffc27a, -8, 9, -15, 70, 22],
+      [0xffc27a, 9, 9, -15, 70, 22],
+      [0xffb060, 0, 7, -1, 55, 18],
+      [0xc8d4ff, 2, 6.5, 19, 55, 22],
+    ],
+    rain: false,
+    bloom: { strength: 0.8, threshold: 0.82 },
+  },
+  floor: 'concrete',
+  edges: null, // the shop rows, the slopes and the façade close it in; the lanes and the forecourt's south side are open
+  solids: [
+    ...RUINS_WALLS,
+    // the forecourt: stone planters, low cover (two long ones where the shop rows open: no stalls, whose model is a
+    // hundred meshes, two hundred draw calls with their shadows)
+    [-9, 19.5, 2.6, 1.2, 0.9, 'planter'],
+    [7.5, 22, 1.2, 2.6, 0.9, 'planter'],
+    [2.5, 13.5, 2.6, 1.2, 0.9, 'planter'],
+    [-12.5, 26, 2.8, 1.4, 1.1, 'planter'],
+    [12.5, 12.5, 1.4, 2.8, 1.1, 'planter'],
+    // up the steps: urns on the landings (their tops counted from the ground: a landing's height and a metre)
+    [-6, 2.5, 1.2, 1.2, 1.6 + 1, 'planter'],
+    [7, 2.5, 1.2, 1.2, 1.6 + 1, 'planter'],
+    [-1.5, -5.5, 2.6, 1.0, 3.2 + 1, 'planter'],
+    // the terrace: low walls before the façade and a planter
+    [-6.5, -18.5, 4, 0.7, 4.8 + 0.9, 'facade'],
+    [8, -16, 1.4, 1.4, 4.8 + 1, 'planter'],
+    // the nave behind the façade: the stumps of two of its columns, the low wall round the crypt's stair
+    [-5, -25.2, 1.1, 1.1, 4.8 + 1.1, 'facade'],
+    [5, -25.2, 1.1, 1.1, 4.8 + 1.1, 'facade'],
+    [0, -26.9, 4.4, 1.4, 4.8 + 0.8, 'facade'],
+  ],
+  // on the forecourt, and on the steps (shot or kicked, one there rolls down: ROLLING); one at the top of the steps to kick
+  barrels: [[-11, 23.5, 'lpg'], [14.5, 14.8, 'lpg'], [-4.5, 15, 'barrel'], [6.5, 25.5, 'barrel'], [-9, 6.5, 'barrel'], [9, -1.5, 'barrel'], [-4, -9.5, 'barrel'], [4.5, -12.8, 'barrel']],
+  pans: [[-14, 27.5], [-10.4, 25], [13.8, 11]],
+  tools: [[-14.5, 22, 'extinguisher']],
+  spots: { barrels: [[5.5, 18.5], [-1, 26.5], [-15, 11], [15, 19], [3.5, 6], [-9.5, -9]], pans: [[3.5, 27], [-6.5, 12], [9, 17], [-15.5, 17]], tools: [[2.2, 24], [14.5, 25.5], [-6, 26]] },
+  fixtures: [
+    [-5.5, 11, 'lamp'],
+    [6, 17.5, 'lamp'],
+    [-16.6, 23, 'sign', 90],
+    [16.6, 18.5, 'sign', 270],
+  ],
+  pads: [[0, 20.5], [0, -15]],
+  stages: [
+    { name: '前地', en: 'FORECOURT', at: [-2.5, 17.5], move: 'pan' },
+    { name: '花槽', en: 'PLANTERS', at: [-9, 21.4], move: 'boom' },
+    { name: '第一平台', en: 'FIRST LANDING', at: [0, 2.5], move: 'high' },
+    { name: '牌坊下', en: 'UNDER THE FAÇADE', at: [3, -19.8], move: 'slide' },
+  ],
+  spawns: [
+    { x: -8, z: 29.4, ex: -8, ez: 27, kind: 'gate' }, // the forecourt's south side
+    { x: 9, z: 29.4, ex: 9, ez: 27, kind: 'gate' },
+    { x: -19.4, z: 16.5, ex: -15.5, ez: 16.5, kind: 'gate' }, // the lanes into the forecourt
+    { x: 19.4, z: 22.5, ex: 15.5, ez: 22.5, kind: 'gate' },
+    { x: -19.4, z: -14.25, ex: -13.5, ez: -14.25, kind: 'gate' }, // the side streets up to the terrace
+    { x: 19.4, z: -14.25, ex: 13.5, ez: -14.25, kind: 'gate' },
+  ],
+  decorate(L) {
+    ruinsDecorate(L);
+  },
+};
+
+/** The steps and the façade, stylised, in few meshes (merged boxes). */
+function ruinsDecorate(L) {
+  const { halfW: W, stairs: S, terrace: T, profile: P, flights, facade: F, doors, nave } = RUINS;
+  const std = (o) => L.own(new THREE.MeshStandardMaterial({ roughness: 0.85, ...o }));
+  const boxes = (list, mat, cast = false) => {
+    if (!list.length) return null;
+    const mesh = new THREE.Mesh(L.own(mergeGeometries(list.map(([x, y, z, w, h, d]) => new THREE.BoxGeometry(w, h, d).translate(x, y + h / 2, z)))), mat);
+    mesh.castShadow = cast;
+    mesh.receiveShadow = true;
+    return L.add(mesh);
+  };
+  const stone = std({ color: 0xb8a58a, roughness: 0.92 });
+  // the steps: each flight's treads stacked from the forecourt's level, the landings and the terrace flat between
+  const steps = [];
+  let f = 0;
+  for (let i = 1; i < P.length; i++) {
+    const [z0, y0] = P[i - 1];
+    const [z1, y1] = P[i];
+    if (y1 === y0) {
+      steps.push([0, 0, (z0 + z1) / 2, 2 * S, y0, z0 - z1]); // a landing
+      continue;
+    }
+    const n = flights[f++];
+    const run = (z0 - z1) / n;
+    for (let k = 0; k < n; k++) steps.push([0, 0, z0 - run * (k + 0.5), 2 * S, y0 + ((y1 - y0) * (k + 1)) / n, run]);
+  }
+  const top = P[P.length - 1];
+  steps.push([0, 0, (top[0] + F) / 2, 2 * T, top[1], top[0] - F]); // the terrace
+  steps.push([0, 0, (F + nave[1]) / 2, 2 * nave[0], top[1], F - nave[1]]); // the nave's floor behind the façade
+  boxes(steps, stone);
+  // the slopes beside the steps: rough stone walls with greenery along their tops
+  const slopeMat = std({ color: 0x6d6457, roughness: 0.95 });
+  const green = [];
+  for (const sd of L.solids) {
+    if (sd.matKey !== 'slope') continue;
+    sd.mesh.material = slopeMat;
+    green.push([(sd.minX + sd.maxX) / 2, sd.h, (sd.minZ + sd.maxZ) / 2, sd.maxX - sd.minX - 0.3, 0.5, sd.maxZ - sd.minZ - 0.3]);
+  }
+  boxes(green, std({ color: 0x2e4a2a, roughness: 1 }));
+  // the façade: four tiers of columns and cornices over three doorways, a pediment at the top, lit warm from below
+  const face = std({ color: 0xc9b392, roughness: 0.9 });
+  const front = F + 0.6; // its south face
+  const y0 = top[1];
+  const parts = [];
+  const tiers = [5.2, 4.4, 4, 3.2];
+  let y = y0;
+  tiers.forEach((h, t) => {
+    const width = [26, 24, 18, 10][t];
+    for (let c = 0; c <= 6; c++) {
+      const x = -width / 2 + (width * c) / 6;
+      if (t === 0 && doors.some(([dx, dw]) => Math.abs(x - dx) < dw / 2 + 0.4)) continue; // none in a doorway
+      parts.push([x, y, front + 0.25, 0.7, h, 0.5]); // a column
+    }
+    parts.push([0, y + h - 0.35, front + 0.3, width + 1, 0.35, 0.6]); // the cornice over the tier
+    y += h;
+  });
+  parts.push([0, y, front + 0.2, 6, 1.6, 0.4], [0, y + 1.6, front + 0.2, 2.4, 1.2, 0.4]); // the pediment
+  // over each doorway the wall goes on up (the pieces of the wall stand between them), a frame round it
+  for (const [x, w, h] of doors) {
+    parts.push([x, y0 + h, F, w, 18 - h, 1.2]);
+    parts.push([x - w / 2 - 0.15, y0, front + 0.08, 0.3, h + 0.3, 0.16], [x + w / 2 + 0.15, y0, front + 0.08, 0.3, h + 0.3, 0.16], [x, y0 + h, front + 0.08, w + 0.6, 0.3, 0.16]);
+  }
+  boxes(parts, face, true);
+  for (const sd of L.solids) if (sd.matKey === 'facade') sd.mesh.material = face;
+  // the steel that holds the façade up from behind, against its back
+  const steel = [];
+  for (const x of [-15, -10.5, 10.5, 15]) steel.push([x, y0, F - 0.75, 0.3, 17, 0.3]); // its posts rise out of the hill
+  for (const ht of [6, 12]) steel.push([0, y0 + ht, F - 0.75, 2 * W - 2, 0.3, 0.3]);
+  boxes(steel, std({ color: 0x3a3d42, roughness: 0.6, metalness: 0.5 }), true);
+  // the shop rows: brick, the names made up
+  for (const [x, z, ry, name, en] of [
+    [-17, 12, Math.PI / 2, '雲記餅家', 'WAN KEE BAKERY'],
+    [17, 27, -Math.PI / 2, '利來肉乾', 'LEI LOI JERKY'],
+  ]) {
+    sign(
+      L,
+      [
+        { text: name, font: HAN(96), color: '#ffe2b0', y: 112 },
+        { text: en, font: 'bold 44px "Bebas Neue", Impact, sans-serif', color: '#3fe6ff', y: 206 },
+      ],
+      4,
+      1,
+      x + Math.sign(-x) * 0.06,
+      3.4,
+      z,
+      ry,
+      1.6,
+    );
+  }
+  cityBackdrop(L, { facade: false, keepOut: [W + 8, RUINS.halfD + 8] });
+}
+
+export const MAPS = [rooftop, club, docks, senado, felicidade, guia, ruins];

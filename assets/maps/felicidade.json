@@ -1,0 +1,804 @@
+{
+  "format": 1,
+  "id": "felicidade",
+  "name": "福隆新街",
+  "en": "RUA DA FELICIDADE",
+  "note": "Generated from src/maps.js by scripts/asset-docs.mjs. Metres; x east, y up, z south (towards the default camera); origin at the centre of the playable area. Boxes are axis-aligned: x, z = centre, w along x, d along z, h tall from the ground. \"asset\" is the id in assets/asset-list.json.",
+  "playable": {
+    "width": 60,
+    "depth": 20
+  },
+  "start": {
+    "x": -2,
+    "z": 0.5
+  },
+  "camera": {
+    "distance": 26,
+    "fov": 34,
+    "topDownPitch": 66,
+    "views": [
+      {
+        "id": "top",
+        "name": "俯視",
+        "en": "TOP-DOWN"
+      },
+      {
+        "id": "tilt",
+        "name": "45° 俯視",
+        "en": "45° TILT",
+        "pitch": 45,
+        "yaw": 0
+      },
+      {
+        "id": "iso",
+        "name": "45° 側俯視",
+        "en": "45° SIDE",
+        "pitch": 45,
+        "yaw": -45
+      }
+    ],
+    "defaultView": "iso"
+  },
+  "lighting": {
+    "background": "#0c0607",
+    "fog": {
+      "color": "#160809",
+      "density": 0.016
+    },
+    "hemisphere": {
+      "sky": "#6c5c66",
+      "ground": "#120a0c",
+      "intensity": 0.75
+    },
+    "sun": {
+      "color": "#a8b0ff",
+      "intensity": 0.55,
+      "direction": [
+        -10,
+        34,
+        18
+      ]
+    },
+    "points": [
+      {
+        "color": "#ff5a3a",
+        "x": -21,
+        "y": 4.4,
+        "z": 0,
+        "intensity": 55,
+        "distance": 20
+      },
+      {
+        "color": "#ff6e42",
+        "x": -7,
+        "y": 4.4,
+        "z": 0.5,
+        "intensity": 55,
+        "distance": 20
+      },
+      {
+        "color": "#ff4c34",
+        "x": 9,
+        "y": 4.4,
+        "z": -0.5,
+        "intensity": 55,
+        "distance": 20
+      },
+      {
+        "color": "#ff7a48",
+        "x": 23,
+        "y": 4.4,
+        "z": 0,
+        "intensity": 55,
+        "distance": 20
+      }
+    ],
+    "rain": false
+  },
+  "floor": "concrete",
+  "edges": null,
+  "solids": [
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -24.4,
+      "z": -6.5,
+      "w": 11.2,
+      "d": 7,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -6.5,
+      "z": -6.5,
+      "w": 15.399999999999999,
+      "d": 7,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 12.95,
+      "z": -6.5,
+      "w": 8.5,
+      "d": 7,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 25.9,
+      "z": -6.5,
+      "w": 8.2,
+      "d": 7,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -18.15,
+      "z": -3.15,
+      "w": 1.2999999999999998,
+      "d": 0.3,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -14.85,
+      "z": -3.15,
+      "w": 1.2999999999999998,
+      "d": 0.3,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -18.65,
+      "z": -5.8,
+      "w": 0.3,
+      "d": 5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -14.35,
+      "z": -5.8,
+      "w": 0.3,
+      "d": 5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -16.5,
+      "z": -9.15,
+      "w": 4.6,
+      "d": 1.7000000000000002,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 1.6,
+      "z": -3.15,
+      "w": 0.7999999999999998,
+      "d": 0.3,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 5.4,
+      "z": -3.15,
+      "w": 0.7999999999999998,
+      "d": 0.3,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 1.35,
+      "z": -5.8,
+      "w": 0.3,
+      "d": 5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 5.65,
+      "z": -7.55,
+      "w": 0.3,
+      "d": 1.5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 5.65,
+      "z": -4.05,
+      "w": 0.3,
+      "d": 1.5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 3.5,
+      "z": -9.15,
+      "w": 4.6,
+      "d": 1.7000000000000002,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 17.85,
+      "z": -3.15,
+      "w": 1.2999999999999998,
+      "d": 0.3,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 21.15,
+      "z": -3.15,
+      "w": 1.2999999999999998,
+      "d": 0.3,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 17.35,
+      "z": -5.8,
+      "w": 0.3,
+      "d": 5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 21.65,
+      "z": -5.8,
+      "w": 0.3,
+      "d": 5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 19.5,
+      "z": -9.15,
+      "w": 4.6,
+      "d": 1.7000000000000002,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -27.4,
+      "z": 6.5,
+      "w": 5.199999999999999,
+      "d": 7,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -13,
+      "z": 6.5,
+      "w": 14.399999999999999,
+      "d": 7,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 2.3,
+      "z": 6.5,
+      "w": 7,
+      "d": 7,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 21.65,
+      "z": 6.5,
+      "w": 16.7,
+      "d": 7,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -24.15,
+      "z": 3.15,
+      "w": 1.2999999999999998,
+      "d": 0.3,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -20.85,
+      "z": 3.15,
+      "w": 1.2999999999999998,
+      "d": 0.3,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -24.65,
+      "z": 5.8,
+      "w": 0.3,
+      "d": 5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -20.35,
+      "z": 5.8,
+      "w": 0.3,
+      "d": 5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -22.5,
+      "z": 9.15,
+      "w": 4.6,
+      "d": 1.7000000000000002,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -5.15,
+      "z": 3.15,
+      "w": 1.2999999999999998,
+      "d": 0.3,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -1.85,
+      "z": 3.15,
+      "w": 1.2999999999999998,
+      "d": 0.3,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -5.65,
+      "z": 5.8,
+      "w": 0.3,
+      "d": 5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -1.35,
+      "z": 5.8,
+      "w": 0.3,
+      "d": 5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -3.5,
+      "z": 9.15,
+      "w": 4.6,
+      "d": 1.7000000000000002,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 9.35,
+      "z": 3.15,
+      "w": 1.2999999999999998,
+      "d": 0.3,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 12.65,
+      "z": 3.15,
+      "w": 1.2999999999999998,
+      "d": 0.3,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 8.85,
+      "z": 4.05,
+      "w": 0.3,
+      "d": 1.5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 8.85,
+      "z": 7.55,
+      "w": 0.3,
+      "d": 1.5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 13.15,
+      "z": 5.8,
+      "w": 0.3,
+      "d": 5,
+      "h": 6.6
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 11,
+      "z": 9.15,
+      "w": 4.6,
+      "d": 1.7000000000000002,
+      "h": 6.6
+    },
+    {
+      "kind": "mahjong",
+      "asset": null,
+      "x": -25.5,
+      "z": 1.3,
+      "w": 1.1,
+      "d": 1.1,
+      "h": 0.8
+    },
+    {
+      "kind": "mahjong",
+      "asset": null,
+      "x": -9,
+      "z": -1.2,
+      "w": 1.1,
+      "d": 1.1,
+      "h": 0.8
+    },
+    {
+      "kind": "mahjong",
+      "asset": null,
+      "x": 14,
+      "z": 1.4,
+      "w": 1.1,
+      "d": 1.1,
+      "h": 0.8
+    }
+  ],
+  "glass": [],
+  "barrels": [
+    {
+      "asset": "lpg",
+      "x": -13,
+      "z": -2.3
+    },
+    {
+      "asset": "lpg",
+      "x": 16.3,
+      "z": 2.3
+    },
+    {
+      "asset": "lpg",
+      "x": 2.2,
+      "z": -7.4
+    },
+    {
+      "asset": "barrel",
+      "x": -27.5,
+      "z": -2.2
+    },
+    {
+      "asset": "barrel",
+      "x": 26,
+      "z": 2.1
+    }
+  ],
+  "pans": [
+    {
+      "asset": "pan",
+      "x": -18,
+      "z": -6.8
+    },
+    {
+      "asset": "pan",
+      "x": -6,
+      "z": 1.8
+    },
+    {
+      "asset": "pan",
+      "x": 12.3,
+      "z": 6.6
+    },
+    {
+      "asset": "pan",
+      "x": 21,
+      "z": -1.6
+    },
+    {
+      "asset": "pan",
+      "x": -23.5,
+      "z": 5
+    }
+  ],
+  "tools": [
+    {
+      "kind": "extinguisher",
+      "x": 19.5,
+      "z": -7.4
+    }
+  ],
+  "spareSpots": {
+    "barrels": [
+      {
+        "x": 11,
+        "z": -0.5
+      },
+      {
+        "x": -18,
+        "z": 1
+      },
+      {
+        "x": -8,
+        "z": 1
+      },
+      {
+        "x": 4.5,
+        "z": -2
+      }
+    ],
+    "pans": [
+      {
+        "x": -11,
+        "z": -1.5
+      },
+      {
+        "x": 8.5,
+        "z": 2
+      },
+      {
+        "x": -1.5,
+        "z": -2
+      },
+      {
+        "x": 15.5,
+        "z": 0.5
+      }
+    ],
+    "tools": [
+      {
+        "x": 7.5,
+        "z": -1
+      },
+      {
+        "x": 24.5,
+        "z": 0.5
+      },
+      {
+        "x": 20.5,
+        "z": 0.5
+      }
+    ]
+  },
+  "fixtures": [
+    {
+      "kind": "door",
+      "x": -16.5,
+      "z": -3.15,
+      "facing": 0,
+      "w": 2,
+      "h": 2.3
+    },
+    {
+      "kind": "door",
+      "x": 5.65,
+      "z": -5.8,
+      "facing": 90,
+      "w": 2,
+      "h": 2.3
+    },
+    {
+      "kind": "shutter",
+      "x": 2.3,
+      "z": -3.15,
+      "facing": 90,
+      "w": 2.4,
+      "h": 2.6
+    },
+    {
+      "kind": "door",
+      "x": 19.5,
+      "z": -3.15,
+      "facing": 0,
+      "w": 2,
+      "h": 2.3
+    },
+    {
+      "kind": "door",
+      "x": -22.5,
+      "z": 3.15,
+      "facing": 0,
+      "w": 2,
+      "h": 2.3
+    },
+    {
+      "kind": "door",
+      "x": -3.5,
+      "z": 3.15,
+      "facing": 0,
+      "w": 2,
+      "h": 2.3
+    },
+    {
+      "kind": "door",
+      "x": 8.85,
+      "z": 5.8,
+      "facing": 90,
+      "w": 2,
+      "h": 2.3
+    },
+    {
+      "kind": "door",
+      "x": 11,
+      "z": 3.15,
+      "facing": 0,
+      "w": 2,
+      "h": 2.3
+    },
+    {
+      "kind": "sign",
+      "x": -19.5,
+      "z": -2.62,
+      "facing": 0
+    },
+    {
+      "kind": "sign",
+      "x": -1,
+      "z": 2.62,
+      "facing": 180
+    },
+    {
+      "kind": "sign",
+      "x": 10.5,
+      "z": -2.62,
+      "facing": 0
+    },
+    {
+      "kind": "sign",
+      "x": 24.5,
+      "z": 2.62,
+      "facing": 180
+    },
+    {
+      "kind": "lamp",
+      "x": -11.5,
+      "z": 2.5
+    },
+    {
+      "kind": "lamp",
+      "x": 1.5,
+      "z": -2.5
+    },
+    {
+      "kind": "lamp",
+      "x": 21,
+      "z": 2.5
+    }
+  ],
+  "perches": [
+    {
+      "x": -24,
+      "z": -2.55,
+      "height": 3.05,
+      "facing": 0
+    },
+    {
+      "x": -8,
+      "z": -2.55,
+      "height": 3.05,
+      "facing": 0
+    },
+    {
+      "x": 13,
+      "z": -2.55,
+      "height": 3.05,
+      "facing": 0
+    },
+    {
+      "x": 26,
+      "z": -2.55,
+      "height": 3.05,
+      "facing": 0
+    },
+    {
+      "x": -13,
+      "z": 2.55,
+      "height": 3.05,
+      "facing": 180
+    },
+    {
+      "x": 18,
+      "z": 2.55,
+      "height": 3.05,
+      "facing": 180
+    }
+  ],
+  "water": [],
+  "race": null,
+  "steps": null,
+  "weaponPads": [
+    {
+      "x": -21,
+      "z": -0.8
+    },
+    {
+      "x": 18,
+      "z": -0.2
+    }
+  ],
+  "pigeonFlocks": [],
+  "spawns": [
+    {
+      "x": -29.4,
+      "z": -1.2,
+      "ex": -27,
+      "ez": -1.2,
+      "kind": "gate"
+    },
+    {
+      "x": -29.4,
+      "z": 1.4,
+      "ex": -27.5,
+      "ez": 1.4,
+      "kind": "gate"
+    },
+    {
+      "x": 29.4,
+      "z": 1.2,
+      "ex": 27,
+      "ez": 1.2,
+      "kind": "gate"
+    },
+    {
+      "x": 29.4,
+      "z": -1.4,
+      "ex": 27.5,
+      "ez": -1.4,
+      "kind": "gate"
+    },
+    {
+      "x": 7.25,
+      "z": -9.5,
+      "ex": 7.25,
+      "ez": -7.4,
+      "kind": "gate"
+    },
+    {
+      "x": 7.25,
+      "z": 9.5,
+      "ex": 7.25,
+      "ez": 7.4,
+      "kind": "gate"
+    }
+  ]
+}

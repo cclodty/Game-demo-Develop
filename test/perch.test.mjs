@@ -85,7 +85,7 @@ test('the balconies: up the shop fronts, about 3 m up, out over the street; a ma
       window.play(240, x, z - 5);
       seen.push([Math.round(e.x * 100) / 100, Math.round(e.z * 100) / 100, Math.round(e.y * 100) / 100]);
     }
-    return { balconies, start, out, seen, at: [L.balconies[0].ex, L.balconies[0].ez], other: g.maps.filter((m) => m.id !== 'felicidade' && m.perches && m.perches.length).length };
+    return { balconies, start, out, seen, at: [L.balconies[0].ex, L.balconies[0].ez], other: g.maps.filter((m) => m.id !== 'felicidade' && m.perches && m.perches.length).map((m) => m.id) };
   });
   assert.ok(r.balconies.length >= 4, `${r.balconies.length} balconies`);
   for (const b of r.balconies) {
@@ -94,7 +94,7 @@ test('the balconies: up the shop fronts, about 3 m up, out over the street; a ma
     assert.ok(Math.abs(b.ez) > 2 && Math.abs(b.ez) < 3, `out over the street from a shop front (${b.ez})`);
     assert.equal(b.inside, true, 'he comes out of the building');
   }
-  assert.equal(r.other, 0, 'only 福隆新街 has them (這次不做: other maps)');
+  assert.deepEqual(r.other, ['guia'], 'besides 福隆新街 only 東望洋跑道 has them, on its grandstand (its card asks for that high ground)');
   assert.ok(Math.abs(r.start.y - r.balconies[0].y) < 0.01, 'up there from the start');
   assert.deepEqual([Math.round(r.out.x * 100) / 100, Math.round(r.out.z * 100) / 100], r.at.map((v) => Math.round(v * 100) / 100), 'out on the balcony');
   assert.notEqual(r.out.state, 'enter');

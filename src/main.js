@@ -1444,7 +1444,10 @@ class Game {
     if (this.focusActive) tags.push({ label: 'SLOW-MO', pts: 50, cls: 'cyan' });
     if (info.bullet && info.bullet.spinShot) tags.push({ label: 'PIROUETTE', pts: 150, cls: 'pink' });
     else if (p.alive && p.spinning) tags.push({ label: 'SPIN KILL', pts: 100, cls: 'cyan' });
-    if (p.alive && p.sliding) tags.push({ label: 'SLIDE KILL', pts: 100, cls: 'cyan' });
+    // a dive (飛撲): in the air, rolling out of it, or by a shot fired in the air; never a SLIDE KILL as well
+    const dive = (info.bullet && info.bullet.diveShot) || (p.alive && (p.diving || p.rolling));
+    if (dive) tags.push({ label: 'DIVE KILL', pts: 150, cls: 'cyan' });
+    else if (p.alive && p.sliding) tags.push({ label: 'SLIDE KILL', pts: 100, cls: 'cyan' });
     if (info.juggle) tags.push({ label: 'JUGGLE', pts: 120, cls: 'gold' });
     if (info.split) tags.push({ label: 'SPLIT AIM', pts: 100, cls: 'pink' });
     if (info.bullet && info.bullet.scatter) {
@@ -1467,6 +1470,8 @@ class Game {
     if (this.level.darkAt(e.x, e.z)) tags.push({ label: 'BLACKOUT', pts: 100, cls: 'gold' });
     if (this.level.smokeAt(e.x, e.z)) tags.push({ label: 'SMOKE', pts: 80, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });
+    if (info.cause === 'shield') tags.push({ label: 'HUMAN SHIELD', pts: 200, cls: 'gold' }); // shot by his own side, held up in front (player.js grab)
+    if (info.cause === 'race') tags.push({ label: 'GRAND PRIX', pts: 200, cls: 'gold' }); // run down by the racing cars (race.js)
     if (e.blindT > 0) tags.push({ label: 'PIGEON STRIKE', pts: 80, cls: 'gold' });
     if (e.netT > 0) tags.push({ label: 'NETTED', pts: 150, cls: 'gold' }); // under a fishing net (level.js Net)
     if (info.cause === 'fall') tags.push({ label: 'FALL', pts: 150, cls: 'gold' }); // knocked off a balcony (enemies.js fallOff)
@@ -1492,7 +1497,7 @@ class Game {
       gunless,
     );
     this.clip.kill(this.score.score - before);
-    this.notes.log(`擊殺 ${e.cfg.label}：${tags.map((t) => t.label).join(' + ')} ×${this.score.mult}`);
+    this.notes.log(`擊殺 ${e.cfg.label}${dive ? '（飛撲擊殺）' : ''}：${tags.map((t) => t.label).join(' + ')} ×${this.score.mult}`);
     this.addFocus(refill);
     this.hud.hitMarker(true);
     this.audio.kill(this.panFor(e.x));
@@ -1678,6 +1683,8 @@ class Game {
       const m = this.input.mouse;
       this.ndc.set((m.x / innerWidth) * 2 - 1, -(m.y / innerHeight) * 2 + 1);
       this.raycaster.setFromCamera(this.ndc, this.camera);
+      // at gun height over the ground the player stands on (up a flight of steps: 大三巴)
+      this.aimPlane.constant = -(GUN_Y + this.level.groundY(this.player.x, this.player.z));
       this.raycaster.ray.intersectPlane(this.aimPlane, this.aimPoint);
     }
     this.aimFresh = true;
@@ -1900,9 +1907,12 @@ class Game {
       zoom = 0.82 + Math.sin(this.time * 0.25) * 0.03;
     }
     this.zoom = snap ? zoom : damp(this.zoom, zoom, 4, realDt);
-    if (snap) this.camTarget.set(tx, 0, tz);
+    // up a flight of steps (大三巴) the camera rises with the player
+    const ty = this.state === 'title' ? 0 : this.level.groundY(this.player.x, this.player.z);
+    if (snap) this.camTarget.set(tx, ty, tz);
     else {
       this.camTarget.x = damp(this.camTarget.x, tx, 5, realDt);
+      this.camTarget.y = damp(this.camTarget.y, ty, 5, realDt);
       this.camTarget.z = damp(this.camTarget.z, tz, 5, realDt);
     }
 
@@ -1922,8 +1932,8 @@ class Game {
     this.camYaw = snap ? yaw : damp(this.camYaw, yaw, 6, realDt);
     const dist = (lens.dist ?? CAMERA.dist) * this.zoom;
     const hor = Math.cos(this.camPitch) * dist;
-    this.camera.position.set(c.x + Math.sin(this.camYaw) * hor + sx, Math.sin(this.camPitch) * dist, c.z + Math.cos(this.camYaw) * hor + sz);
-    this.camera.lookAt(c.x + sx * 0.4, 0, c.z + sz * 0.4);
+    this.camera.position.set(c.x + Math.sin(this.camYaw) * hor + sx, c.y + Math.sin(this.camPitch) * dist, c.z + Math.cos(this.camYaw) * hor + sz);
+    this.camera.lookAt(c.x + sx * 0.4, c.y, c.z + sz * 0.4);
 
     // Cut a hole through whatever stands between the camera and the player:
     // always on the Senado map (17-25 m buildings), on every map once the camera tilts.

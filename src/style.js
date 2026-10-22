@@ -498,7 +498,7 @@ export class Style {
       else g.mat.opacity = STYLE.ghostAlpha * (g.life / STYLE.ghostLife);
     }
     const p = this.game.player;
-    const moving = p && p.alive && (p.spinT > 0 || p.slideT > 0 || p.kickT > 0 || p.execT > 0);
+    const moving = p && p.alive && (p.spinT > 0 || p.slideT > 0 || p.kickT > 0 || p.execT > 0 || p.diveT > 0 || p.rollT > 0);
     if (moving && this.ghostsOn) {
       this.ghostT -= worldDt;
       if (this.ghostT <= 0) {

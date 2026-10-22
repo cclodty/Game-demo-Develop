@@ -1,0 +1,650 @@
+{
+  "format": 1,
+  "id": "ruins",
+  "name": "大三巴",
+  "en": "RUINS OF ST. PAUL'S",
+  "note": "Generated from src/maps.js by scripts/asset-docs.mjs. Metres; x east, y up, z south (towards the default camera); origin at the centre of the playable area. Boxes are axis-aligned: x, z = centre, w along x, d along z, h tall from the ground. \"asset\" is the id in assets/asset-list.json.",
+  "playable": {
+    "width": 40,
+    "depth": 60
+  },
+  "start": {
+    "x": -3,
+    "z": 21
+  },
+  "camera": {
+    "distance": 22.7,
+    "fov": 40,
+    "topDownPitch": 59.25,
+    "views": [
+      {
+        "id": "top",
+        "name": "俯視",
+        "en": "TOP-DOWN"
+      },
+      {
+        "id": "tilt",
+        "name": "45° 俯視",
+        "en": "45° TILT",
+        "pitch": 45,
+        "yaw": 0
+      },
+      {
+        "id": "iso",
+        "name": "45° 側俯視",
+        "en": "45° SIDE",
+        "pitch": 45,
+        "yaw": -45
+      }
+    ],
+    "defaultView": "iso"
+  },
+  "lighting": {
+    "background": "#0b0a10",
+    "fog": {
+      "color": "#120e14",
+      "density": 0.011
+    },
+    "hemisphere": {
+      "sky": "#7a6c78",
+      "ground": "#14100e",
+      "intensity": 0.72
+    },
+    "sun": {
+      "color": "#b8c0ff",
+      "intensity": 0.5,
+      "direction": [
+        -14,
+        36,
+        20
+      ]
+    },
+    "points": [
+      {
+        "color": "#ffc27a",
+        "x": -8,
+        "y": 9,
+        "z": -15,
+        "intensity": 70,
+        "distance": 22
+      },
+      {
+        "color": "#ffc27a",
+        "x": 9,
+        "y": 9,
+        "z": -15,
+        "intensity": 70,
+        "distance": 22
+      },
+      {
+        "color": "#ffb060",
+        "x": 0,
+        "y": 7,
+        "z": -1,
+        "intensity": 55,
+        "distance": 18
+      },
+      {
+        "color": "#c8d4ff",
+        "x": 2,
+        "y": 6.5,
+        "z": 19,
+        "intensity": 55,
+        "distance": 22
+      }
+    ],
+    "rain": false
+  },
+  "floor": "concrete",
+  "edges": null,
+  "solids": [
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -18.5,
+      "z": 12,
+      "w": 3,
+      "d": 6,
+      "h": 6.5
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": -18.5,
+      "z": 24,
+      "w": 3,
+      "d": 12,
+      "h": 6.5
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 18.5,
+      "z": 15,
+      "w": 3,
+      "d": 12,
+      "h": 6.5
+    },
+    {
+      "kind": "brick",
+      "asset": null,
+      "x": 18.5,
+      "z": 27,
+      "w": 3,
+      "d": 6,
+      "h": 6.5
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": -16,
+      "z": 5,
+      "w": 8,
+      "d": 8,
+      "h": 3.4
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": -16,
+      "z": -3,
+      "w": 8,
+      "d": 8,
+      "h": 5
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": -16,
+      "z": -9.5,
+      "w": 8,
+      "d": 5,
+      "h": 6.6
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": 16,
+      "z": 5,
+      "w": 8,
+      "d": 8,
+      "h": 3.4
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": 16,
+      "z": -3,
+      "w": 8,
+      "d": 8,
+      "h": 5
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": 16,
+      "z": -9.5,
+      "w": 8,
+      "d": 5,
+      "h": 6.6
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": -17.5,
+      "z": -12.5,
+      "w": 5,
+      "d": 1,
+      "h": 6.6
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": -17.5,
+      "z": -18.85,
+      "w": 5,
+      "d": 6.700000000000003,
+      "h": 6.6
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": 17.5,
+      "z": -12.5,
+      "w": 5,
+      "d": 1,
+      "h": 6.6
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": 17.5,
+      "z": -18.85,
+      "w": 5,
+      "d": 6.700000000000003,
+      "h": 6.6
+    },
+    {
+      "kind": "facade",
+      "asset": null,
+      "x": -13.6,
+      "z": -21.6,
+      "w": 12.8,
+      "d": 1.2,
+      "h": 22.8
+    },
+    {
+      "kind": "facade",
+      "asset": null,
+      "x": -3.2,
+      "z": -21.6,
+      "w": 3.1999999999999997,
+      "d": 1.2,
+      "h": 22.8
+    },
+    {
+      "kind": "facade",
+      "asset": null,
+      "x": 3.1999999999999997,
+      "z": -21.6,
+      "w": 3.1999999999999997,
+      "d": 1.2,
+      "h": 22.8
+    },
+    {
+      "kind": "facade",
+      "asset": null,
+      "x": 13.6,
+      "z": -21.6,
+      "w": 12.8,
+      "d": 1.2,
+      "h": 22.8
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": -14.5,
+      "z": -26.1,
+      "w": 11,
+      "d": 7.799999999999999,
+      "h": 7
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": 14.5,
+      "z": -26.1,
+      "w": 11,
+      "d": 7.799999999999999,
+      "h": 7
+    },
+    {
+      "kind": "slope",
+      "asset": null,
+      "x": 0,
+      "z": -29.25,
+      "w": 18,
+      "d": 1.5,
+      "h": 7
+    },
+    {
+      "kind": "planter",
+      "asset": "planter",
+      "x": -9,
+      "z": 19.5,
+      "w": 2.6,
+      "d": 1.2,
+      "h": 0.9
+    },
+    {
+      "kind": "planter",
+      "asset": "planter",
+      "x": 7.5,
+      "z": 22,
+      "w": 1.2,
+      "d": 2.6,
+      "h": 0.9
+    },
+    {
+      "kind": "planter",
+      "asset": "planter",
+      "x": 2.5,
+      "z": 13.5,
+      "w": 2.6,
+      "d": 1.2,
+      "h": 0.9
+    },
+    {
+      "kind": "planter",
+      "asset": "planter",
+      "x": -12.5,
+      "z": 26,
+      "w": 2.8,
+      "d": 1.4,
+      "h": 1.1
+    },
+    {
+      "kind": "planter",
+      "asset": "planter",
+      "x": 12.5,
+      "z": 12.5,
+      "w": 1.4,
+      "d": 2.8,
+      "h": 1.1
+    },
+    {
+      "kind": "planter",
+      "asset": "planter",
+      "x": -6,
+      "z": 2.5,
+      "w": 1.2,
+      "d": 1.2,
+      "h": 2.6
+    },
+    {
+      "kind": "planter",
+      "asset": "planter",
+      "x": 7,
+      "z": 2.5,
+      "w": 1.2,
+      "d": 1.2,
+      "h": 2.6
+    },
+    {
+      "kind": "planter",
+      "asset": "planter",
+      "x": -1.5,
+      "z": -5.5,
+      "w": 2.6,
+      "d": 1,
+      "h": 4.2
+    },
+    {
+      "kind": "facade",
+      "asset": null,
+      "x": -6.5,
+      "z": -18.5,
+      "w": 4,
+      "d": 0.7,
+      "h": 5.7
+    },
+    {
+      "kind": "planter",
+      "asset": "planter",
+      "x": 8,
+      "z": -16,
+      "w": 1.4,
+      "d": 1.4,
+      "h": 5.8
+    },
+    {
+      "kind": "facade",
+      "asset": null,
+      "x": -5,
+      "z": -25.2,
+      "w": 1.1,
+      "d": 1.1,
+      "h": 5.9
+    },
+    {
+      "kind": "facade",
+      "asset": null,
+      "x": 5,
+      "z": -25.2,
+      "w": 1.1,
+      "d": 1.1,
+      "h": 5.9
+    },
+    {
+      "kind": "facade",
+      "asset": null,
+      "x": 0,
+      "z": -26.9,
+      "w": 4.4,
+      "d": 1.4,
+      "h": 5.6
+    }
+  ],
+  "glass": [],
+  "barrels": [
+    {
+      "asset": "lpg",
+      "x": -11,
+      "z": 23.5
+    },
+    {
+      "asset": "lpg",
+      "x": 14.5,
+      "z": 14.8
+    },
+    {
+      "asset": "barrel",
+      "x": -4.5,
+      "z": 15
+    },
+    {
+      "asset": "barrel",
+      "x": 6.5,
+      "z": 25.5
+    },
+    {
+      "asset": "barrel",
+      "x": -9,
+      "z": 6.5
+    },
+    {
+      "asset": "barrel",
+      "x": 9,
+      "z": -1.5
+    },
+    {
+      "asset": "barrel",
+      "x": -4,
+      "z": -9.5
+    },
+    {
+      "asset": "barrel",
+      "x": 4.5,
+      "z": -12.8
+    }
+  ],
+  "pans": [
+    {
+      "asset": "pan",
+      "x": -14,
+      "z": 27.5
+    },
+    {
+      "asset": "pan",
+      "x": -10.4,
+      "z": 25
+    },
+    {
+      "asset": "pan",
+      "x": 13.8,
+      "z": 11
+    }
+  ],
+  "tools": [
+    {
+      "kind": "extinguisher",
+      "x": -14.5,
+      "z": 22
+    }
+  ],
+  "spareSpots": {
+    "barrels": [
+      {
+        "x": 5.5,
+        "z": 18.5
+      },
+      {
+        "x": -1,
+        "z": 26.5
+      },
+      {
+        "x": -15,
+        "z": 11
+      },
+      {
+        "x": 15,
+        "z": 19
+      },
+      {
+        "x": 3.5,
+        "z": 6
+      },
+      {
+        "x": -9.5,
+        "z": -9
+      }
+    ],
+    "pans": [
+      {
+        "x": 3.5,
+        "z": 27
+      },
+      {
+        "x": -6.5,
+        "z": 12
+      },
+      {
+        "x": 9,
+        "z": 17
+      },
+      {
+        "x": -15.5,
+        "z": 17
+      }
+    ],
+    "tools": [
+      {
+        "x": 2.2,
+        "z": 24
+      },
+      {
+        "x": 14.5,
+        "z": 25.5
+      },
+      {
+        "x": -6,
+        "z": 26
+      }
+    ]
+  },
+  "fixtures": [
+    {
+      "kind": "lamp",
+      "x": -5.5,
+      "z": 11
+    },
+    {
+      "kind": "lamp",
+      "x": 6,
+      "z": 17.5
+    },
+    {
+      "kind": "sign",
+      "x": -16.6,
+      "z": 23,
+      "facing": 90
+    },
+    {
+      "kind": "sign",
+      "x": 16.6,
+      "z": 18.5,
+      "facing": 270
+    }
+  ],
+  "perches": [],
+  "water": [],
+  "race": null,
+  "steps": {
+    "profile": [
+      {
+        "z": 9,
+        "height": 0
+      },
+      {
+        "z": 4,
+        "height": 1.6
+      },
+      {
+        "z": 1,
+        "height": 1.6
+      },
+      {
+        "z": -4,
+        "height": 3.2
+      },
+      {
+        "z": -7,
+        "height": 3.2
+      },
+      {
+        "z": -12,
+        "height": 4.8
+      }
+    ],
+    "flights": [
+      23,
+      23,
+      22
+    ]
+  },
+  "weaponPads": [
+    {
+      "x": 0,
+      "z": 20.5
+    },
+    {
+      "x": 0,
+      "z": -15
+    }
+  ],
+  "pigeonFlocks": [],
+  "spawns": [
+    {
+      "x": -8,
+      "z": 29.4,
+      "ex": -8,
+      "ez": 27,
+      "kind": "gate"
+    },
+    {
+      "x": 9,
+      "z": 29.4,
+      "ex": 9,
+      "ez": 27,
+      "kind": "gate"
+    },
+    {
+      "x": -19.4,
+      "z": 16.5,
+      "ex": -15.5,
+      "ez": 16.5,
+      "kind": "gate"
+    },
+    {
+      "x": 19.4,
+      "z": 22.5,
+      "ex": 15.5,
+      "ez": 22.5,
+      "kind": "gate"
+    },
+    {
+      "x": -19.4,
+      "z": -14.25,
+      "ex": -13.5,
+      "ez": -14.25,
+      "kind": "gate"
+    },
+    {
+      "x": 19.4,
+      "z": -14.25,
+      "ex": 13.5,
+      "ez": -14.25,
+      "kind": "gate"
+    }
+  ]
+}
