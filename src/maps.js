@@ -606,6 +606,7 @@ const senado = {
   desc: '按實景比例重建的澳門議事亭前地：新馬路、噴水池、窄段一直到板樟堂前地。',
   color: '#f2c94c',
   credit: '地圖資料 © OpenStreetMap contributors（ODbL）',
+  massing: 'senado', // rebuilt from its massing study (senado/; massing/senado/ lists the checks test/massing.test.mjs runs)
   size: [SENADO.halfW, SENADO.halfD],
   // 同一水平 (level.js zones, DECISIONS 2026-10-22): one level; the sunk ring round the fountain, 0.48 m down, is within it
   zones: [{ id: 'square', name: '廣場', en: 'SQUARE', y: 0, box: [-SENADO.halfW, -SENADO.halfD, SENADO.halfW, SENADO.halfD] }],

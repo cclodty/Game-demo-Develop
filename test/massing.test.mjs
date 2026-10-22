@@ -211,3 +211,16 @@ test('a map rebuilt from its study passes the study’s checks', () => {
     assert.deepEqual(failed, [], `${m.id}: ${failed.map((c) => `${c.what} ${c.value} (real ${c.real} ± ${c.tol})`).join('; ')}`);
   }
 });
+
+test('Senado: the study’s real values are measured on senado/ itself, the city model the game was cut from (not copied from the game)', async () => {
+  const { toGame } = await import('../src/senado/transform.js');
+  const checks = JSON.parse(fs.readFileSync(path.join(STUDIES, 'senado', 'checks.json'), 'utf8'));
+  const model = JSON.parse(fs.readFileSync(path.join(ROOT, 'senado', 'data', 'senado_massing.json'), 'utf8'));
+  const readme = fs.readFileSync(path.join(ROOT, 'senado', 'README.md'), 'utf8');
+  // the study's outlines in the game's frame, measured the way the checks measure the export
+  const real = { solids: [], buildings: model.buildings.map((b) => ({ footprint: b.outer.map(([x, y]) => toGame(x, y)), height: b.h })) };
+  for (const c of checks) {
+    if (c.game.type === 'value') assert.ok(readme.includes(`| ${c.real} → `), `${c.id}: ${c.real} m is a radius in senado/README.md's fountain table`);
+    else assert.ok(Math.abs(measure(real, c.game) - c.real) < 0.01, `${c.id}: ${measure(real, c.game).toFixed(2)} on senado/'s outlines, the study says ${c.real}`);
+  }
+});
