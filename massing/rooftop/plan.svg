@@ -8,9 +8,12 @@
 <polygon points="-246.54,-34.43 -247.28,-33.91 -247.48,-33.06 -246.94,-32.3 -246.17,-31.84 -245.29,-31.86 -50.7,-28.13 -49.88,-28.43 -49.4,-29.19 -49.45,-29.96 -50.15,-30.42 -51.25,-30.64 -245.57,-34.49" fill="#cfe0bf"/>
 </g><g id="roads" fill="none" stroke-linecap="round" stroke-linejoin="round">
 <polyline points="-43.97,15 -46.42,-13.4 -46.46,-13.73 -46.89,-18.52 -47.56,-25.74" stroke="#cbc2b1" stroke-width="10.5"/>
+<polyline points="53.16,-124.54 79,-50.75 81.18,-44.34 82.94,-35.83 84.7,-20.6 76.95,-19.33" stroke="#cbc2b1" stroke-width="3.5"/>
 <polyline points="-49.06,-32.72 -54.08,-89.51 -55.12,-96.84" stroke="#cbc2b1" stroke-width="10.5"/>
 <polyline points="-49.06,-32.72 -43.9,-31.63 -39.31,-28.98 -36.16,-25.54" stroke="#cbc2b1" stroke-width="10.5"/>
 <polyline points="-258.43,-36.49 -249.78,-36.33 -149.32,-34.53 -132.9,-34.24 -126.4,-34.12 -107.21,-33.77 -97.9,-33.6 -57.11,-32.87 -49.06,-32.72" stroke="#cbc2b1" stroke-width="10.5"/>
+<polyline points="75.84,-45.04 73.58,-51.69 58.88,-94.98 55.44,-105.23" stroke="#cbc2b1" stroke-width="8.5"/>
+<polyline points="63.53,-108.05 65.58,-102.06 67.07,-97.66 81.78,-54.37 83.95,-47.95" stroke="#cbc2b1" stroke-width="8.5"/>
 <polyline points="-47.56,-25.74 -49.06,-32.72" stroke="#cbc2b1" stroke-width="10.5"/>
 <polyline points="-36.16,-25.54 -47.56,-25.74" stroke="#cbc2b1" stroke-width="10.5"/>
 <polyline points="-36.16,-25.54 -35.48,-18.35 -32.08,17.63 -28.65,53.84 -26.51,76.33 -23.93,103.56 -21.38,130.42 -20.87,135.88" stroke="#cbc2b1" stroke-width="10.5"/>
@@ -34,11 +37,15 @@
 <polyline points="34.09,44 46.95,41.97" stroke="#cbc2b1" stroke-width="6.5"/>
 <polyline points="-67.29,29.82 -69.05,13.48" stroke="#cbc2b1" stroke-width="5.5"/>
 <polyline points="-66.13,29.71 -67.29,29.82" stroke="#cbc2b1" stroke-width="2"/>
+<polyline points="88.54,43.07 47.28,76.96 44.98,78.84 12.09,105.74 9.95,106.06 -4.57,105.89 -23.93,103.56" stroke="#cbc2b1" stroke-width="5.5"/>
 <polyline points="27.25,-95.9 37.08,-31.17" stroke="#cbc2b1" stroke-width="5.5"/>
 <polyline points="-43.97,15 -46.42,-13.4 -46.46,-13.73 -46.89,-18.52 -47.56,-25.74" stroke="#fdfcf8" stroke-width="10"/>
+<polyline points="53.16,-124.54 79,-50.75 81.18,-44.34 82.94,-35.83 84.7,-20.6 76.95,-19.33" stroke="#fdfcf8" stroke-width="3"/>
 <polyline points="-49.06,-32.72 -54.08,-89.51 -55.12,-96.84" stroke="#fdfcf8" stroke-width="10"/>
 <polyline points="-49.06,-32.72 -43.9,-31.63 -39.31,-28.98 -36.16,-25.54" stroke="#fdfcf8" stroke-width="10"/>
 <polyline points="-258.43,-36.49 -249.78,-36.33 -149.32,-34.53 -132.9,-34.24 -126.4,-34.12 -107.21,-33.77 -97.9,-33.6 -57.11,-32.87 -49.06,-32.72" stroke="#fdfcf8" stroke-width="10"/>
+<polyline points="75.84,-45.04 73.58,-51.69 58.88,-94.98 55.44,-105.23" stroke="#fdfcf8" stroke-width="8"/>
+<polyline points="63.53,-108.05 65.58,-102.06 67.07,-97.66 81.78,-54.37 83.95,-47.95" stroke="#fdfcf8" stroke-width="8"/>
 <polyline points="-47.56,-25.74 -49.06,-32.72" stroke="#fdfcf8" stroke-width="10"/>
 <polyline points="-36.16,-25.54 -47.56,-25.74" stroke="#fdfcf8" stroke-width="10"/>
 <polyline points="-36.16,-25.54 -35.48,-18.35 -32.08,17.63 -28.65,53.84 -26.51,76.33 -23.93,103.56 -21.38,130.42 -20.87,135.88" stroke="#fdfcf8" stroke-width="10"/>
@@ -62,6 +69,7 @@
 <polyline points="34.09,44 46.95,41.97" stroke="#fdfcf8" stroke-width="6"/>
 <polyline points="-67.29,29.82 -69.05,13.48" stroke="#fdfcf8" stroke-width="5"/>
 <polyline points="-66.13,29.71 -67.29,29.82" stroke="#fdfcf8" stroke-width="1.5"/>
+<polyline points="88.54,43.07 47.28,76.96 44.98,78.84 12.09,105.74 9.95,106.06 -4.57,105.89 -23.93,103.56" stroke="#fdfcf8" stroke-width="5"/>
 <polyline points="27.25,-95.9 37.08,-31.17" stroke="#fdfcf8" stroke-width="5"/>
 </g><g id="steps" fill="none">
 </g><g id="barriers" fill="none" stroke="#6b5f50" stroke-width="0.35">

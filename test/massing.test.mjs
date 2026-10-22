@@ -144,6 +144,19 @@ test('plan: the game map is drawn over the real one, north arrow and scale', () 
   for (const id of ['areas', 'roads', 'steps', 'buildings', 'game', 'north', 'scale']) assert.match(svg, new RegExp(`id="${id}"`));
 });
 
+test('checks: with `water` the harbour is an edge too (a quay from a wall to the water); without, it is not', () => {
+  const map = { solids: [{ x: 0, z: 0, w: 10, d: 4, h: 5 }], water: [{ x: 0, z: -20, w: 50, d: 10 }], playable: { width: 50, depth: 40 } };
+  assert.equal(measure(map, { type: 'gap', at: [0, -8], axis: 'z', water: true }), 13, 'the wall at z -2 to the water at z -15');
+  assert.ok(measure(map, { type: 'gap', at: [0, -8], axis: 'z' }) > 400, 'the water is no wall to a plain gap');
+});
+
+test('plan: an area larger than the view, every corner outside it (a harbour), is still drawn, in its colour', () => {
+  const m = buildMassing({ id: 't', origin: O, rotDeg: 0, half: 200 }, rawSample());
+  m.areas.push({ kind: 'natural=bay', name: 'bay', ring: [[-900, -900], [900, -900], [900, 900], [-900, 900], [-900, -900]] });
+  const svg = drawPlan({ id: 't', name: '測試', en: 'Test', rotDeg: 0, plan: { view: [-50, -50, 50, 50] } }, m, null);
+  assert.match(svg, /<polygon points="-900,900 900,900 900,-900 -900,-900 -900,900" fill="#b9d3e6"\/>/);
+});
+
 test('every study folder is complete: README, site, data with its attribution, photo credits, no photo over 640 px', async () => {
   assert.ok(fs.existsSync(path.join(STUDIES, 'README.md')), 'massing/README.md: the method');
   assert.ok(studies.length >= 1);

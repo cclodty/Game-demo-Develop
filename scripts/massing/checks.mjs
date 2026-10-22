@@ -5,7 +5,8 @@
 // Each `game` measurement reads the map's export (assets/maps/<id>.json, plain
 // data, kept in step with src/maps.js by test/assets.test.mjs):
 //
-//   gap     { at: [x, z], axis: 'x' | 'z' }  wall to wall through a point: a street's width
+//   gap     { at: [x, z], axis: 'x' | 'z', water? }  wall to wall through a point: a street's width; with
+//           `water` the map's water (export `water`, boxes) is an edge too: a quay from a wall to the harbour
 //   height  { at: [x, z] }                   the tallest solid or building over a point
 //   ground  { at: [x, z] }                   the ground's height there (the steps' profile; 0 elsewhere)
 //   span    { kind, axis }                   how far the solids of one kind reach along an axis (a façade's width)
@@ -18,6 +19,11 @@ function boxes(map) {
   return map.solids.map((s) => ({ minX: s.x - s.w / 2, maxX: s.x + s.w / 2, minZ: s.z - s.d / 2, maxZ: s.z + s.d / 2, h: s.h, kind: s.kind }));
 }
 
+/** The map's water as boxes (export `water`: { x, z, w, d }). */
+function waterBoxes(map) {
+  return (map.water || []).map((s) => ({ minX: s.x - s.w / 2, maxX: s.x + s.w / 2, minZ: s.z - s.d / 2, maxZ: s.z + s.d / 2 }));
+}
+
 function inPoly(x, z, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -28,10 +34,10 @@ function inPoly(x, z, poly) {
   return inside;
 }
 
-/** How far along (dx, dz) from (x, z) the first wall is: a box side or a building's outline. */
-function rayDistance(map, x, z, dx, dz, max = 400) {
+/** How far along (dx, dz) from (x, z) the first wall is: a box side or a building's outline (and the water, `water`). */
+function rayDistance(map, x, z, dx, dz, max = 400, water = false) {
   let best = max;
-  for (const b of boxes(map)) {
+  for (const b of water ? [...boxes(map), ...waterBoxes(map)] : boxes(map)) {
     // slab test, from a point outside the box
     let t0 = -Infinity;
     let t1 = Infinity;
@@ -77,7 +83,7 @@ export function measure(map, g) {
     case 'gap': {
       const [x, z] = g.at;
       const [dx, dz] = g.axis === 'x' ? [1, 0] : [0, 1];
-      return rayDistance(map, x, z, dx, dz) + rayDistance(map, x, z, -dx, -dz);
+      return rayDistance(map, x, z, dx, dz, 400, g.water) + rayDistance(map, x, z, -dx, -dz, 400, g.water);
     }
     case 'height': {
       const [x, z] = g.at;

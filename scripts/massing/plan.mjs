@@ -46,10 +46,21 @@ export function drawPlan(site, massing, map = null) {
   const vw = x1 - x0;
   const vh = z1 - z0;
   const S = Math.min(8, 1600 / Math.max(vw, vh)); // px a metre
-  const inView = (ring) => ring.some((p) => {
-    const [X, Z] = G(p);
-    return X >= x0 && X <= x1 && Z >= z0 && Z <= z1;
-  });
+  // whether a ring's box overlaps the view (a vertex inside is not enough: the harbour is one polygon kilometres long)
+  const inView = (ring) => {
+    let a0 = Infinity;
+    let b0 = Infinity;
+    let a1 = -Infinity;
+    let b1 = -Infinity;
+    for (const p of ring) {
+      const [X, Z] = G(p);
+      a0 = Math.min(a0, X);
+      a1 = Math.max(a1, X);
+      b0 = Math.min(b0, Z);
+      b1 = Math.max(b1, Z);
+    }
+    return a1 >= x0 && a0 <= x1 && b1 >= z0 && b0 <= z1;
+  };
   const near = (ring) => ring.some((p) => {
     const [X, Z] = G(p);
     return Math.abs(X) <= W + 12 && Math.abs(Z) <= D + 12;
