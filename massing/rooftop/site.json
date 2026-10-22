@@ -1,0 +1,22 @@
+{
+  "id": "rooftop",
+  "name": "紅街市天台",
+  "en": "Rooftop of the Red Market",
+  "origin": {
+    "lat": 22.20537,
+    "lon": 113.544787,
+    "note": "the middle of the Red Market's outline (OSM way 306158878, 紅街市 Mercado Municipal Almirante Lacerda)"
+  },
+  "rotDeg": -41,
+  "rotNote": "the market's long sides run at a bearing of about 49° (OSM way 306158878): turned 41° clockwise they lie along the game's x axis",
+  "half": 200,
+  "plan": {
+    "view": [
+      -70,
+      -55,
+      70,
+      55
+    ],
+    "note": "the market and the blocks round it: Av. Horta e Costa, Av. Almirante Lacerda, the towers"
+  }
+}

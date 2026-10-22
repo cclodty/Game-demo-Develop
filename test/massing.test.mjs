@@ -173,6 +173,21 @@ test('every study folder is complete: README, site, data with its attribution, p
   }
 });
 
+test('a study’s checks are well formed: at least 8, each with what it measures, the real value, its tolerance and source, and measurable on its map’s export now', () => {
+  for (const id of studies) {
+    const file = path.join(STUDIES, id, 'checks.json');
+    if (!fs.existsSync(file)) continue;
+    const checks = JSON.parse(fs.readFileSync(file, 'utf8'));
+    assert.ok(checks.length >= 8, `${id}: at least 8 checks (${checks.length})`);
+    assert.equal(new Set(checks.map((c) => c.id)).size, checks.length, `${id}: the ids are distinct`);
+    const map = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets', 'maps', `${id}.json`), 'utf8'));
+    for (const c of checks) {
+      assert.ok(c.id && c.what && c.source && Number.isFinite(c.real) && c.tol > 0, `${id}/${c.id}: what, real, tol, source`);
+      assert.ok(Number.isFinite(measure(map, c.game)), `${id}/${c.id}: measurable on assets/maps/${id}.json`);
+    }
+  }
+});
+
 test('a map rebuilt from its study passes the study’s checks', () => {
   for (const m of MAPS.filter((x) => x.massing)) {
     const dir = path.join(STUDIES, m.massing);
