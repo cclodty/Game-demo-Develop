@@ -50,6 +50,7 @@ const seededOnly = {
 
 const node = {
   process: 'readonly',
+  AbortSignal: 'readonly',
   Request: 'readonly',
   Response: 'readonly',
   console: 'readonly',

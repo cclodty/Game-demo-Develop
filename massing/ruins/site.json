@@ -1,0 +1,22 @@
+{
+  "id": "ruins",
+  "name": "大三巴牌坊",
+  "en": "Ruins of St. Paul's",
+  "origin": {
+    "lat": 22.1972618,
+    "lon": 113.5408602,
+    "note": "21.6 m south of the middle of the façade (OSM way 192183185): where the hand-built map's origin falls when its façade line (z = -21.6) sits on the real one"
+  },
+  "rotDeg": -0.9,
+  "rotNote": "the façade runs at a bearing of 89.1° (OSM way 192183185): turned 0.9° clockwise it lies along the game's x axis, the steps straight up the screen",
+  "half": 220,
+  "plan": {
+    "view": [
+      -70,
+      -80,
+      70,
+      95
+    ],
+    "note": "the whole real site: the old nave behind the façade to the north, the forecourt down to Rua de São Paulo to the south"
+  }
+}

@@ -1077,17 +1077,19 @@
 
 開發者 2026-10-22 定了三件事（DECISIONS 2026-10-22）：七張地圖全部放在真實的澳門地點，每張生成或重建之前先做實地量體研究，盡量還原地貌；玩家與敵人只在同一水平交火（分層戰區），看到敵人在哪裏就射得中哪裏；頭目全部是人，沒有「等」，大場地雙頭目、窄場地單人。按次序做。每張圖的重建卡和頭目卡在那張圖的研究做完之後才寫（驗收用研究量到的數字），這裏先寫研究卡。數字全是第一版，待試玩確認。
 
-### 量體研究工具（估計：一天）
+### ✅ 量體研究工具（估計：一天）— 2026-10-22 完成
 - 目標：每張圖都可以用同一套工具做量體研究：由 OSM 抽出真實的樓宇、街道、石階，變成本地米制的量體與一張平面圖，遊戲現在的碰撞體疊在上面，一眼看到差多遠
 - 漂亮的解法：地圖會說話——之後每張圖都按真實的澳門重建
 - 涉及：新 `scripts/massing/`（`fetch.mjs`、`build.mjs`、`plan.mjs`）、新 `massing/README.md`、`massing/ruins/`（第一張：site.json、data、plan.svg）、`package.json`、新 `test/massing.test.mjs`
 - 驗收：
-  - [ ] `npm run massing:fetch -- ruins` 由 OSM API 抽到大三巴一帶（失敗就試 Overpass 鏡像），存 `massing/ruins/data/osm_raw.json`（抽取日期、bbox、ODbL 署名，只留用得着的標籤）
-  - [ ] `npm run massing:build -- ruins` 寫 `data/massing.json`：樓宇輪廓與高度（每棟有 heightSource）、街道與行人路、石階（線、長度、級數）、街道傢俬；投影誤差 500 米內不到 1 厘米（測試）
-  - [ ] `npm run massing:plan -- ruins` 畫 `plan.svg`：10 米比例尺、北向、樓宇按高度深淺、石階、遊戲現在的碰撞體（由 `assets/maps/ruins.json` 讀）疊在上面；截圖放 PR
-  - [ ] `test/massing.test.mjs`：每個研究資料夾齊全（README、data、照片 credits，照片不大過 640 px）；不連網；地圖標了 `massing` 的才核對 `checks`
-  - [ ] `massing/README.md`：方法、資料來源與授權、網絡測試結果（2026-10-22 試過的每個端點）、偏離實景的規矩
-  - [ ] npm run lint && npm test 通過
+  - [x] `npm run massing:fetch -- ruins` 由 OSM API 抽到大三巴一帶（失敗就試 Overpass 鏡像），存 `massing/ruins/data/osm_raw.json`（抽取日期、bbox、ODbL 署名，只留用得着的標籤）
+  - [x] `npm run massing:build -- ruins` 寫 `data/massing.json`：樓宇輪廓與高度（每棟有 heightSource）、街道與行人路、石階（線、長度、級數）、街道傢俬；投影誤差 500 米內不到 1 厘米（測試）
+  - [x] `npm run massing:plan -- ruins` 畫 `plan.svg`：10 米比例尺、北向、樓宇按高度深淺、石階、遊戲現在的碰撞體（由 `assets/maps/ruins.json` 讀）疊在上面；截圖放 PR
+  - [x] `test/massing.test.mjs`：每個研究資料夾齊全（README、data、照片 credits，照片不大過 640 px）；不連網；地圖標了 `massing` 的才核對 `checks`
+  - [x] `massing/README.md`：方法、資料來源與授權、網絡測試結果（2026-10-22 試過的每個端點）、偏離實景的規矩
+  - [x] npm run lint && npm test 通過（331 個測試）
+- 做法：投影用 WGS84 橢球的東北天座標（`scripts/massing/geo.mjs`），不是簡單的經緯度乘常數；資料一個元素一行（`stringifyLines`），改動看得到；`fetch.mjs` 不留編輯者的名字和商舖名字；`checks.mjs` 量地圖的匯出檔（`assets/maps/<id>.json`），六種量法：gap、height、ground、span、size、value
+- 抽取時看到：大三巴的牌坊立面 OSM 闊 21.2 米、正東西；石階線 42.7 米；前地向南伸到約 93 米；牌坊後的舊教堂遺址 19.6 × 37.5 米（`massing/ruins/README.md`）；Commons 的 API 在這個環境被限流，500 px 的縮圖拿得到（`massing/README.md`）
 - 這次不做：大三巴研究的量度表與結論（「大三巴：量體研究」那張）、重建任何地圖、Python 腳本
 
 ### 同一水平 ①：戰區（估計：一天）
