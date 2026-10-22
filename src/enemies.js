@@ -1337,10 +1337,7 @@ class Enemy {
       const push = rr - d;
       p.x += (dx / d) * push;
       p.z += (dz / d) * push;
-      if (p.knock) {
-        p.knock(this); // a rolling trolley bowls him over and rolls on (level.js Trolley)
-        continue;
-      }
+      if (p.knock && p.knock(this)) continue; // a rolling trolley or barrel bowls him over and rolls on (level.js)
       const sp = Math.hypot(p.vx, p.vz);
       if (sp > 6 && this.stunT <= 0 && !p.thrown) {
         // a kicked barrel or pan bowls the enemy over (a thrown one is thrown.js's business)

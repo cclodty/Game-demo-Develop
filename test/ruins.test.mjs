@@ -99,7 +99,7 @@ test('the forecourt, 68 steps in three flights with two landings, the terrace un
       heights: { forecourt: at(20), landing1: at(2.5), landing2: at(-5.5), terrace: at(-16) },
       rises,
       levels: flats.map((f) => f.y),
-      steps: g.maps[i].flights.reduce((a, b) => a + b, 0),
+      steps: g.maps[i].steps.flights.reduce((a, b) => a + b, 0),
       path: !!path,
       facade: facade ? { h: facade.h, z: (facade.minZ + facade.maxZ) / 2 } : null,
       low: L.spawns.filter((s) => s.ez > 9).length,

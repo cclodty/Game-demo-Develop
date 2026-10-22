@@ -218,6 +218,11 @@ export const ENV = {
   // a hand trolley (level.js Trolley, the docks): kicked off at `speed` m/s, slowing by `friction` a second (a barrel's is 3.2);
   // it keeps `knock` of its speed through each one it bowls over, and `bowling` of them in one roll is BOWLING +`pts`
   trolley: { speed: 13, friction: 0.45, knock: 0.85, bowling: 2, pts: 200 },
+  // a barrel knocked over on a slope (a shot, a kick; maps.js `slope`: 大三巴's steps) lies on its side and rolls down it
+  // (level.js Barrel): pulled by `gravity` × the slope's rise per metre, slowed by `friction` a second (a standing one's is
+  // 3.2), at rest once under `stop` m/s on the level; one going `tip` m/s onto a slope falls over too. At `bowl` m/s or
+  // more it bowls over whoever it meets and keeps `knock` of its speed; the first of a roll is ROLLING +`pts`
+  roll: { gravity: 40, friction: 0.9, tip: 2, stop: 0.3, bowl: 3, knock: 0.8, pts: 150 },
   // mahjong tiles (thrown.js throwTiles; the tables on Rua da Felicidade): G within `reach` m of a table, hands empty,
   // throws a handful: one tile for each of `fan` (where it flies across a fan `spread` rad wide around the aim: most
   // of a handful goes straight, two close either side of the aim so the man aimed at is hit, two a little out, two at

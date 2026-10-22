@@ -95,6 +95,7 @@ test('the map layouts in assets/maps are what the generator writes now: one for 
     assert.equal(j.perches.length, (map.perches || []).length, `${map.id}: balconies`);
     assert.equal(j.water.length, (map.water || []).length, `${map.id}: water`);
     assert.equal(j.race ? j.race.line.length : 0, map.race ? map.race.line.length : 0, `${map.id}: the racing line`);
+    assert.equal(j.steps ? j.steps.profile.length : 0, map.steps ? map.steps.profile.length : 0, `${map.id}: the ground's profile up the steps`);
     for (const kind of ['barrels', 'pans', 'tools']) assert.equal(j.spareSpots[kind].length, map.spots[kind].length, `${map.id}: spare spots for ${kind}`);
   }
 });

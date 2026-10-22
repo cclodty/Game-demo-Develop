@@ -1497,7 +1497,9 @@ function guiaDecorate(L) {
 // three flights with two landings to the terrace under the façade; walls and slopes close the steps in at the sides.
 // The ground's height is the map's `ground` (level.js groundY): everything stands on it, and from up the steps a man
 // sees and shoots over cover lower than where he stands (enemies.js over), so the landings are the high ground to
-// take. The façade is only a wall for now (its doorways and the way behind it: 大三巴 ②). Shop names are made up.
+// take. The façade is only a façade: its three doorways are open to the old nave behind it, a way round the wall.
+// A barrel on the steps, shot or kicked, falls over and rolls down them (`slope`, level.js Barrel tip): ROLLING.
+// Shop names are made up.
 const RUINS = {
   halfW: 20,
   halfD: 30,
@@ -1514,6 +1516,12 @@ const RUINS = {
   ],
   flights: [23, 23, 22], // steps in each flight: 68 in all
   facade: -21.6, // the façade's line (its middle), 1.2 m thick
+  doors: [
+    [-6, 2.4, 3.8],
+    [0, 3.2, 4.4],
+    [6, 2.4, 3.8],
+  ], // its doorways: [x, width, height]; 2.4 m at least, or the nav grid (0.5 m cells, grown by a body's width) shuts them
+  nave: [9, -28.5], // behind it the old nave, open to the sky: half its width, and its back (the hill beyond)
   shops: 17, // the shop rows at the forecourt's sides start this far out
 };
 
@@ -1529,9 +1537,20 @@ function ruinsGround(x, z) {
   return P[P.length - 1][1];
 }
 
+/** Where the ground slopes, its rise per metre [east, south]: on a flight of steps, up to the north; null where it is level. */
+function ruinsSlope(x, z) {
+  const P = RUINS.profile;
+  for (let i = 1; i < P.length; i++) {
+    const [z0, y0] = P[i - 1];
+    const [z1, y1] = P[i];
+    if (z < z0 && z > z1 && y1 !== y0) return [0, (y0 - y1) / (z0 - z1)];
+  }
+  return null;
+}
+
 /** The walls: the shop rows round the forecourt (lanes left open), the slopes beside the steps, the façade. */
 function ruinsWalls() {
-  const { halfW: W, halfD: D, stairs: S, terrace: T, facade: F, shops: X } = RUINS;
+  const { halfW: W, halfD: D, stairs: S, terrace: T, facade: F, shops: X, doors, nave } = RUINS;
   const s = [];
   // the shop rows, two storeys, with a lane into each side of the forecourt
   s.push([-(X + W) / 2, (9 + 15) / 2, W - X, 6, 6.5, 'brick'], [-(X + W) / 2, (18 + D) / 2, W - X, D - 18, 6.5, 'brick']);
@@ -1549,9 +1568,16 @@ function ruinsWalls() {
     s.push([(sx * (T + W)) / 2, -12.5, W - T, 1, 6.6, 'slope']);
     s.push([(sx * (T + W)) / 2, (-15.5 + F - 0.6) / 2, W - T, -15.5 - (F - 0.6), 6.6, 'slope']);
   }
-  // the façade: a wall across the top of the terrace, and the hill behind it
-  s.push([0, F, 2 * W, 1.2, 4.8 + 18, 'facade']);
-  s.push([0, (F - 0.6 - D) / 2, 2 * W, D + F - 0.6, 7, 'slope']);
+  // the façade: a wall across the top of the terrace in four pieces, its three doorways open between them
+  let x0 = -W;
+  for (const [x, w] of [...doors, [W, 0]]) {
+    s.push([(x0 + x - w / 2) / 2, F, x - w / 2 - x0, 1.2, 4.8 + 18, 'facade']);
+    x0 = x + w / 2;
+  }
+  // behind it the old nave, the hill round it: at its sides and its back
+  const [N, back] = nave;
+  for (const sx of [-1, 1]) s.push([(sx * (N + W)) / 2, (F - 0.6 - D) / 2, W - N, D + F - 0.6, 7, 'slope']);
+  s.push([0, (back - D) / 2, 2 * N, D + back, 7, 'slope']);
   return s;
 }
 
@@ -1559,15 +1585,16 @@ const RUINS_WALLS = ruinsWalls();
 
 const ruins = {
   id: 'ruins',
-  budget: { tris: 160000, calls: 700 }, // rendered per frame, all passes (test/maps.test.mjs: 132,768 and 507 at the start; test/drone.test.mjs, two drones there: 145,512 and 633)
+  budget: { tris: 180000, calls: 600 }, // rendered per frame, all passes (test/maps.test.mjs: 138,592 and 342 at the start; two drones there, test/drone.test.mjs: 160,212 and 449)
   name: '大三巴',
   en: "RUINS OF ST. PAUL'S",
-  desc: '前地之上六十八級石階，兩個平台，頂上是牌坊：站得高的人越過矮掩體望得到你，要搶高位。',
+  desc: '六十八級石階上落：站得高的望得到你，要搶高位；牌坊門洞繞得到後面，石階上的油桶一踢就滾落去。',
   color: '#ffb35a',
   size: [RUINS.halfW, RUINS.halfD],
   start: [-3, 21],
   ground: ruinsGround,
-  flights: RUINS.flights, // steps in each flight (drawn by ruinsDecorate)
+  slope: ruinsSlope, // a barrel knocked over on the steps rolls down them (level.js Barrel)
+  steps: { profile: RUINS.profile, flights: RUINS.flights }, // the ground's profile and the steps in each flight (the map export)
   cutaway: true,
   theme: {
     bg: 0x0b0a10,
@@ -1589,24 +1616,30 @@ const ruins = {
   edges: null, // the shop rows, the slopes and the façade close it in; the lanes and the forecourt's south side are open
   solids: [
     ...RUINS_WALLS,
-    // the forecourt: stone planters and the almond-cookie stalls (made up), low cover
+    // the forecourt: stone planters, low cover (two long ones where the shop rows open: no stalls, whose model is a
+    // hundred meshes, two hundred draw calls with their shadows)
     [-9, 19.5, 2.6, 1.2, 0.9, 'planter'],
     [7.5, 22, 1.2, 2.6, 0.9, 'planter'],
     [2.5, 13.5, 2.6, 1.2, 0.9, 'planter'],
-    [-12.5, 26, 2.8, 1.4, 1.1, 'stall'],
-    [12.5, 12.5, 1.4, 2.8, 1.1, 'stall'],
+    [-12.5, 26, 2.8, 1.4, 1.1, 'planter'],
+    [12.5, 12.5, 1.4, 2.8, 1.1, 'planter'],
     // up the steps: urns on the landings (their tops counted from the ground: a landing's height and a metre)
     [-6, 2.5, 1.2, 1.2, 1.6 + 1, 'planter'],
     [7, 2.5, 1.2, 1.2, 1.6 + 1, 'planter'],
     [-1.5, -5.5, 2.6, 1.0, 3.2 + 1, 'planter'],
     // the terrace: low walls before the façade and a planter
-    [-6.5, -18.5, 4, 0.7, 4.8 + 0.9, 'concrete'],
+    [-6.5, -18.5, 4, 0.7, 4.8 + 0.9, 'facade'],
     [8, -16, 1.4, 1.4, 4.8 + 1, 'planter'],
+    // the nave behind the façade: the stumps of two of its columns, the low wall round the crypt's stair
+    [-5, -25.2, 1.1, 1.1, 4.8 + 1.1, 'facade'],
+    [5, -25.2, 1.1, 1.1, 4.8 + 1.1, 'facade'],
+    [0, -26.9, 4.4, 1.4, 4.8 + 0.8, 'facade'],
   ],
-  barrels: [[-11, 23.5, 'lpg'], [14.5, 14.8, 'lpg'], [-4.5, 15, 'barrel'], [6.5, 25.5, 'barrel']],
+  // on the forecourt, and on the steps (shot or kicked, one there rolls down: ROLLING); one at the top of the steps to kick
+  barrels: [[-11, 23.5, 'lpg'], [14.5, 14.8, 'lpg'], [-4.5, 15, 'barrel'], [6.5, 25.5, 'barrel'], [-9, 6.5, 'barrel'], [9, -1.5, 'barrel'], [-4, -9.5, 'barrel'], [4.5, -12.8, 'barrel']],
   pans: [[-14, 27.5], [-10.4, 25], [13.8, 11]],
   tools: [[-14.5, 22, 'extinguisher']],
-  spots: { barrels: [[5.5, 18.5], [-1, 26.5], [-15, 11], [15, 19]], pans: [[3.5, 27], [-6.5, 12], [9, 17], [-15.5, 17]], tools: [[2.2, 24], [14.5, 25.5], [-6, 26]] },
+  spots: { barrels: [[5.5, 18.5], [-1, 26.5], [-15, 11], [15, 19], [3.5, 6], [-9.5, -9]], pans: [[3.5, 27], [-6.5, 12], [9, 17], [-15.5, 17]], tools: [[2.2, 24], [14.5, 25.5], [-6, 26]] },
   fixtures: [
     [-5.5, 11, 'lamp'],
     [6, 17.5, 'lamp'],
@@ -1635,7 +1668,7 @@ const ruins = {
 
 /** The steps and the façade, stylised, in few meshes (merged boxes). */
 function ruinsDecorate(L) {
-  const { halfW: W, stairs: S, terrace: T, profile: P, flights, facade: F } = RUINS;
+  const { halfW: W, stairs: S, terrace: T, profile: P, flights, facade: F, doors, nave } = RUINS;
   const std = (o) => L.own(new THREE.MeshStandardMaterial({ roughness: 0.85, ...o }));
   const boxes = (list, mat, cast = false) => {
     if (!list.length) return null;
@@ -1661,6 +1694,7 @@ function ruinsDecorate(L) {
   }
   const top = P[P.length - 1];
   steps.push([0, 0, (top[0] + F) / 2, 2 * T, top[1], top[0] - F]); // the terrace
+  steps.push([0, 0, (F + nave[1]) / 2, 2 * nave[0], top[1], F - nave[1]]); // the nave's floor behind the façade
   boxes(steps, stone);
   // the slopes beside the steps: rough stone walls with greenery along their tops
   const slopeMat = std({ color: 0x6d6457, roughness: 0.95 });
@@ -1682,17 +1716,25 @@ function ruinsDecorate(L) {
     const width = [26, 24, 18, 10][t];
     for (let c = 0; c <= 6; c++) {
       const x = -width / 2 + (width * c) / 6;
+      if (t === 0 && doors.some(([dx, dw]) => Math.abs(x - dx) < dw / 2 + 0.4)) continue; // none in a doorway
       parts.push([x, y, front + 0.25, 0.7, h, 0.5]); // a column
     }
     parts.push([0, y + h - 0.35, front + 0.3, width + 1, 0.35, 0.6]); // the cornice over the tier
     y += h;
   });
   parts.push([0, y, front + 0.2, 6, 1.6, 0.4], [0, y + 1.6, front + 0.2, 2.4, 1.2, 0.4]); // the pediment
+  // over each doorway the wall goes on up (the pieces of the wall stand between them), a frame round it
+  for (const [x, w, h] of doors) {
+    parts.push([x, y0 + h, F, w, 18 - h, 1.2]);
+    parts.push([x - w / 2 - 0.15, y0, front + 0.08, 0.3, h + 0.3, 0.16], [x + w / 2 + 0.15, y0, front + 0.08, 0.3, h + 0.3, 0.16], [x, y0 + h, front + 0.08, w + 0.6, 0.3, 0.16]);
+  }
   boxes(parts, face, true);
-  // the doorways: dark recesses (only a wall for now: 大三巴 ② opens them)
-  const dark = std({ color: 0x120e0c, roughness: 1 });
-  boxes([[-6, y0, front + 0.02, 2.2, 3.6, 0.06], [0, y0, front + 0.02, 3, 4.4, 0.06], [6, y0, front + 0.02, 2.2, 3.6, 0.06]], dark);
-  L.solids.find((sd) => sd.matKey === 'facade').mesh.material = face;
+  for (const sd of L.solids) if (sd.matKey === 'facade') sd.mesh.material = face;
+  // the steel that holds the façade up from behind, against its back
+  const steel = [];
+  for (const x of [-15, -10.5, 10.5, 15]) steel.push([x, y0, F - 0.75, 0.3, 17, 0.3]); // its posts rise out of the hill
+  for (const ht of [6, 12]) steel.push([0, y0 + ht, F - 0.75, 2 * W - 2, 0.3, 0.3]);
+  boxes(steel, std({ color: 0x3a3d42, roughness: 0.6, metalness: 0.5 }), true);
   // the shop rows: brick, the names made up
   for (const [x, z, ry, name, en] of [
     [-17, 12, Math.PI / 2, '雲記餅家', 'WAN KEE BAKERY'],

@@ -490,6 +490,7 @@
   "perches": [],
   "water": [],
   "race": null,
+  "steps": null,
   "weaponPads": [
     {
       "x": -4,

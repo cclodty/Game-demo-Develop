@@ -483,6 +483,7 @@
     }
   ],
   "race": null,
+  "steps": null,
   "weaponPads": [
     {
       "x": -10,

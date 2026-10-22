@@ -69,6 +69,14 @@ class Barrel {
     g.traverse((m) => {
       if (m.isMesh) m.castShadow = m.receiveShadow = true;
     });
+    // its parts turn about its middle when it lies on its side and rolls (down a slope: 大三巴's steps)
+    this.half = gas ? 0.85 : 0.6; // half its height
+    const centred = new THREE.Group();
+    centred.position.y = -this.half;
+    centred.add(...g.children);
+    this.lie = new THREE.Group();
+    this.lie.add(centred);
+    g.add(this.lie);
     this.mesh = g;
     level.add(g);
     this.reset();
@@ -77,6 +85,10 @@ class Barrel {
   reset() {
     [this.x, this.z] = this.home;
     this.vx = this.vz = 0;
+    this.rolling = false; // knocked over on a slope: on its side, rolling (tip)
+    this.spin = 0;
+    this.knocked = 0; // bowled over in this roll
+    this.stand();
     this.hp = this.maxHp;
     this.fuse = -1;
     this.y = 0;
@@ -96,12 +108,49 @@ class Barrel {
     this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z); // where it stands from the start, not at the origin till the first step
   }
 
+  /** On its side it rolls on (ENV.roll.friction); standing, it slides to a stop as a barrel does (updateProps). */
+  get friction() {
+    return this.rolling ? ENV.roll.friction : undefined;
+  }
+
   hit(dmg, dx, dz) {
     if (!this.alive || this.fuse >= 0) return;
     this.hp -= dmg;
     this.vx += dx * 0.6;
     this.vz += dz * 0.6;
     if (this.hp <= 0) this.fuse = 0.04;
+    else this.tip();
+  }
+
+  /** Knocked over (a shot, a kick): on a slope (maps.js `slope`) it falls on its side and rolls down (ENV.roll). */
+  tip() {
+    if (this.rolling || this.carried || this.rocketT > 0 || this.y > 0 || !this.level.slopeAt(this.x, this.z)) return;
+    this.rolling = true;
+    this.knocked = 0;
+    this.level.game.notes.log('油桶滾落石階');
+  }
+
+  /** Upright, as it stands. */
+  stand() {
+    this.lie.position.y = this.half;
+    this.lie.rotation.set(0, 0, 0);
+  }
+
+  /** Rolling into enemy `e` (enemies.js pushProps): it bowls him over and rolls on, the first of a roll ROLLING. False while it stands. */
+  knock(e) {
+    if (!this.rolling) return false;
+    const sp = Math.hypot(this.vx, this.vz);
+    if (sp < ENV.roll.bowl || e.stunT > 0 || e.aloft) return true;
+    const g = this.level.game;
+    e.kick(this.vx / sp, this.vz / sp, sp * 0.7, 'strike');
+    this.vx *= ENV.roll.knock;
+    this.vz *= ENV.roll.knock;
+    g.shake(0.2);
+    if (++this.knocked === 1) {
+      g.score.style('ROLLING', ENV.roll.pts);
+      g.notes.log(`滾落的油桶撞倒人：ROLLING +${ENV.roll.pts}`);
+    }
+    return true;
   }
 
   ignite(delay) {
@@ -133,7 +182,14 @@ class Barrel {
         return;
       }
     }
-    if (this.carried) return;
+    if (this.carried) {
+      // picked up: upright in the hands
+      if (this.rolling) {
+        this.rolling = false;
+        this.stand();
+      }
+      return;
+    }
     if (this.rocketT > 0 && this.fuse < 0) {
       // the jet: faster along its way, sparks behind, a burst on the first enemy it meets or when the gas is spent
       const g = this.level.game;
@@ -174,6 +230,26 @@ class Barrel {
           this.ignite(0.02); // a thrown barrel is a bomb
         }
       }
+    }
+    if (!this.rolling && this.y <= 0 && Math.hypot(this.vx, this.vz) > ENV.roll.tip) this.tip(); // kicked or shoved onto a slope
+    if (this.rolling && this.y <= 0) {
+      // down a slope it gathers speed; on the level it rolls on till it stops, and the next push is a new roll
+      const R = ENV.roll;
+      const s = this.level.slopeAt(this.x, this.z);
+      if (s) {
+        this.vx -= s[0] * R.gravity * dt;
+        this.vz -= s[1] * R.gravity * dt;
+      }
+      const sp = Math.hypot(this.vx, this.vz);
+      if (!s && sp < R.stop) {
+        this.vx = this.vz = 0;
+        this.knocked = 0;
+      }
+      // looks: on its side across its way, turning as it goes
+      if (sp > 0.5) this.mesh.rotation.y = Math.atan2(this.vx, this.vz);
+      this.spin += (sp * dt) / this.r;
+      this.lie.position.y = this.r;
+      this.lie.rotation.set(this.spin, 0, Math.PI / 2);
     }
     this.mesh.position.set(this.x, this.y + this.level.groundY(this.x, this.z), this.z); // on the ground where it is (steps: 大三巴)
   }
@@ -621,10 +697,10 @@ class Trolley {
     this.level.game.notes.log('踢走手推車');
   }
 
-  /** Rolling into enemy `e` (enemies.js pushProps): it bowls him over and rolls on. */
+  /** Rolling into enemy `e` (enemies.js pushProps): it bowls him over and rolls on. True: what it does is all that happens. */
   knock(e) {
     const sp = Math.hypot(this.vx, this.vz);
-    if (sp < 3 || e.stunT > 0 || e.aloft) return;
+    if (sp < 3 || e.stunT > 0 || e.aloft) return true;
     const g = this.level.game;
     e.kick(this.vx / sp, this.vz / sp, sp * 0.7, 'strike');
     this.vx *= ENV.trolley.knock;
@@ -634,6 +710,7 @@ class Trolley {
       g.score.style('BOWLING', ENV.trolley.pts);
       g.notes.log(`手推車撞倒 ${this.knocked} 人：BOWLING +${ENV.trolley.pts}`);
     }
+    return true;
   }
 
   update() {
@@ -1001,6 +1078,7 @@ export class Level {
     this.animators = [];
     this.ambient = [];
     this.groundFn = map.ground || null; // the ground's height, for a map with steps (maps.js `ground`); Senado's decorate sets its own
+    this.slopeFn = map.slope || null; // where it slopes, which way (maps.js `slope`): a barrel knocked over there rolls down
     this.fadeables = []; // buildings the follow fade can see through: { pts, h } (addFadeable)
     this.fadedNow = [];
     this.cut.uFadeSet.value.fill(0);
@@ -1457,6 +1535,12 @@ export class Level {
   /** Height of the ground (the Senado fountain sits in a sunken ring). */
   groundY(x, z) {
     return this.groundFn ? this.groundFn(x, z) : 0;
+  }
+
+  /** Where the ground slopes (maps.js `slope`), its rise per metre [east, south]; null where it is level. */
+  slopeAt(x, z) {
+    const s = this.slopeFn ? this.slopeFn(x, z) : null;
+    return s && (s[0] || s[1]) ? s : null;
   }
 
   /**

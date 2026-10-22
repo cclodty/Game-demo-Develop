@@ -237,6 +237,9 @@ function mapJson(map) {
     water: (map.water || []).map((w) => ({ ...w })),
     // racing cars (src/race.js): the racing line they follow and the timetable (first pass, then every `every` s)
     race: map.race ? { first: map.race.first, every: map.race.every, line: map.race.line.map(([x, z]) => ({ x, z })) } : null,
+    // the ground's height up a flight of steps (src/maps.js `steps`, 大三巴): south to north, the height at each corner of
+    // the profile (straight between, level beyond the ends), and how many steps each flight has
+    steps: map.steps ? { profile: map.steps.profile.map(([z, height]) => ({ z, height })), flights: map.steps.flights } : null,
     weaponPads: (map.pads || []).map(([x, z]) => ({ x, z })),
     pigeonFlocks: (map.flocks || []).map(([x, z]) => ({ x, z })),
     spawns: map.spawns,
