@@ -9,6 +9,7 @@
 //   ?use=hero-tripo,crate-b   pick these variants (id = the part before "-")
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ALIASES, ASSETS, MAP_ALIASES } from './asset-manifest.js';
 import { MODELS } from './models-index.js';
 import { prepareCharacter } from './skin.js';
@@ -64,7 +65,7 @@ function prepare(id, name, gltf) {
   if (spec.kind === 'character') return { id, name, kind: 'character', ...prepareCharacter(scene, gltf.animations, spec) };
   scene.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(scene);
-  if (spec.kind !== 'weapon') return { id, name, kind: 'prop', scene, box };
+  if (spec.kind !== 'weapon') return { id, name, kind: 'prop', scene: mergeByMaterial(scene), box };
 
   // origin = the main grip, barrel along +z; empty socket_* nodes mark the muzzle,
   // the support hand and so on (the manifest's numbers stand in for missing ones)
@@ -74,6 +75,55 @@ function prepare(id, name, gltf) {
   });
   for (const [k, v] of Object.entries(spec.sockets || {})) sockets[k] ??= new THREE.Vector3(...v);
   return { id, name, kind: 'weapon', scene, box, sockets };
+}
+
+/**
+ * A prop's meshes merged into one a material, in the model's own space. A made crate or container comes as
+ * dozens of meshes as exported, every one a draw call with its shadow and its outline (合併繪製次數 ①); merged it
+ * is as many as it has materials, and looks the same. The attributes are copied out as plain floats first (the
+ * optimised files keep them quantised and interleaved). A model with anything that cannot be merged (a skinned or
+ * morphing mesh, several materials on one mesh) stays as it is.
+ */
+function mergeByMaterial(scene) {
+  const meshes = [];
+  let plain = true;
+  scene.traverse((o) => {
+    if (!o.isMesh) return;
+    meshes.push(o);
+    if (o.isSkinnedMesh || o.isInstancedMesh || Array.isArray(o.material) || Object.keys(o.geometry.morphAttributes).length) plain = false;
+  });
+  if (!plain || meshes.length <= 1) return scene;
+  const toRoot = new THREE.Matrix4().copy(scene.matrixWorld).invert();
+  const groups = new Map(); // material and attribute names -> geometries in the model's space
+  for (const o of meshes) {
+    const src = o.geometry;
+    const names = Object.keys(src.attributes).sort();
+    const geo = new THREE.BufferGeometry();
+    for (const n of names) {
+      const a = src.attributes[n];
+      const out = new Float32Array(a.count * a.itemSize);
+      for (let i = 0; i < a.count; i++) for (let k = 0; k < a.itemSize; k++) out[i * a.itemSize + k] = a.getComponent(i, k);
+      geo.setAttribute(n, new THREE.BufferAttribute(out, a.itemSize));
+    }
+    // every geometry indexed, so any two can be merged
+    const count = src.attributes.position.count;
+    geo.setIndex(src.index ? Array.from(src.index.array) : Array.from({ length: count }, (_, i) => i));
+    geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(toRoot, o.matrixWorld));
+    const key = `${o.material.uuid}|${names.join(',')}`;
+    if (!groups.has(key)) groups.set(key, { material: o.material, geos: [] });
+    groups.get(key).geos.push(geo);
+  }
+  const out = new THREE.Group();
+  for (const { material, geos } of groups.values()) {
+    const geo = geos.length > 1 ? mergeGeometries(geos) : geos[0];
+    if (!geo) return scene; // could not be merged after all: as it came
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    out.add(mesh);
+  }
+  out.updateMatrixWorld(true);
+  return out;
 }
 
 /** The loaded character template for an id, or null. */

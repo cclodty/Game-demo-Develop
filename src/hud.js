@@ -41,6 +41,7 @@ export class HUD {
       waveSub: $('wave-sub'),
       feed: $('feed'),
       banner: $('banner'),
+      nightLine: $('night-line'),
       cross: $('crosshair'),
       crossRing: $('cross-ring'),
       hitmark: $('hitmark'),
@@ -71,6 +72,7 @@ export class HUD {
     this.displayScore = 0;
     this.rankShown = 0;
     this.el.feed.innerHTML = '';
+    this.el.nightLine.className = '';
     this.cache.clear();
   }
 
@@ -179,7 +181,8 @@ export class HUD {
       [...e.bossBar.querySelectorAll('.boss-segs i')].forEach((s, i) => s.classList.toggle('lost', i >= v));
     });
     const wv = g.waves;
-    const where = g.ruleset.label ? `${g.level.map.name} · ${g.ruleset.label}` : g.level.map.name;
+    const place = wv.rules.night ? `${g.level.map.hour} ${g.level.map.name}` : g.level.map.name; // 澳門一夜: the hour too
+    const where = g.ruleset.label ? `${place} · ${g.ruleset.label}` : place;
     const sub =
       wv.state === 'warmup'
         ? `熱身 · ${where}`
@@ -331,6 +334,17 @@ export class HUD {
     b.className = `show ${cls}`;
     clearTimeout(this.bannerTimer);
     this.bannerTimer = setTimeout(() => (b.className = ''), 2600);
+  }
+
+  /** 澳門一夜: the hour and the line that open a stage, for a few seconds low on the screen (Chinese, then English). */
+  nightLine(hour, zh, en) {
+    const n = this.el.nightLine;
+    n.innerHTML = `<div class="nl-hour">${hour}</div><div class="nl-zh">${zh}</div><div class="nl-en">${en}</div>`;
+    n.className = '';
+    void n.offsetWidth;
+    n.className = 'show';
+    clearTimeout(this.lineTimer);
+    this.lineTimer = setTimeout(() => (n.className = ''), 5600);
   }
 
   toast(html) {

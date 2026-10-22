@@ -569,6 +569,74 @@ body.playing * {
   text-shadow: 0 0 24px rgba(255, 51, 85, 0.7);
 }
 
+/* 澳門一夜: the line that opens a stage (hud.js nightLine) */
+#night-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 17%;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#night-line.show {
+  animation: night-line 5.6s ease-out forwards;
+}
+
+#night-line .nl-hour {
+  font-family: var(--display);
+  font-size: 30px;
+  letter-spacing: 6px;
+  color: #b48cff;
+  text-shadow: 0 0 16px rgba(180, 140, 255, 0.7);
+}
+
+#night-line .nl-zh {
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--ink);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+#night-line .nl-en {
+  margin-top: 2px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--ink);
+  opacity: 0.75;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
+}
+
+@keyframes night-line {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  8%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+#night-over {
+  margin-left: 8px;
+  padding: 2px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  background: rgba(180, 140, 255, 0.18);
+  border: 1px solid rgba(180, 140, 255, 0.6);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
 #toast {
   position: absolute;
   left: 0;
