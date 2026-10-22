@@ -569,6 +569,97 @@ body.playing * {
   text-shadow: 0 0 24px rgba(255, 51, 85, 0.7);
 }
 
+/* 手機版 ①: the touch layer (main.js touchOn, input.js enableTouch), only on a phone and only in a run:
+   a stick appears where each thumb comes down, the left one cyan (moving), the right one pink (aiming, firing) */
+#touch {
+  display: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.touch.playing #touch {
+  display: block;
+}
+
+/* the keyboard's and the pad's key strips mean nothing under a thumb */
+body.touch #hint,
+body.touch #hint-pad {
+  display: none;
+}
+
+#touch .stick {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border: 2px solid rgba(46, 232, 255, 0.5);
+  border-radius: 50%;
+  background: rgba(46, 232, 255, 0.08);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#touch .stick.aim {
+  border-color: rgba(255, 63, 164, 0.55);
+  background: rgba(255, 63, 164, 0.08);
+}
+
+#touch .stick.on {
+  opacity: 1;
+}
+
+#touch .stick i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border-radius: 50%;
+  background: rgba(240, 240, 255, 0.4);
+}
+
+#touch-focus {
+  position: absolute;
+  right: 18px;
+  top: 30%;
+  width: 92px;
+  height: 92px;
+  border: 2px solid rgba(155, 107, 255, 0.8);
+  border-radius: 50%;
+  background: rgba(155, 107, 255, 0.2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+#touch-focus span {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 1px;
+  opacity: 0.75;
+}
+
+#touch-pause {
+  position: absolute;
+  left: 50%;
+  top: 54px;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border: 1px solid rgba(240, 240, 255, 0.4);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
 /* 澳門一夜: the line that opens a stage (hud.js nightLine) */
 #night-line {
   position: absolute;

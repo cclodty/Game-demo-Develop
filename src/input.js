@@ -2,7 +2,7 @@
 // a frame) collect here; once per fixed logic step, latch() turns them into a
 // StepInput, the only input the game logic reads (and what replay.js records).
 
-import { PAD } from './config.js';
+import { PAD, TOUCH } from './config.js';
 
 const BLOCKED = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'Tab', 'Digit1', 'Digit2', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
@@ -184,6 +184,10 @@ export class Input {
     this.padStart = false; // Start pressed since the last poll
     this.padStartWas = false;
     this.padShoulder = { lb: false, rb: false, both: false }; // the shoulder buttons at the last poll, and whether both went down together
+    // touch on a phone (enableTouch): each thumb's stick (null while it is up), the bullet-time button, the controls they hold
+    this.touch = { move: null, aim: null, focus: false, moveStick: { x: 0, y: 0 }, aimStick: { x: 0, y: 0 } };
+    this.touchKeys = new Set();
+    this.usingTouch = false; // the right thumb aims: it was pushed more recently than the mouse moved
     this.keys = new Set();
     this.pressed = new Set();
     this.mouse = {
@@ -213,6 +217,7 @@ export class Input {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
       this.usingPad = false;
+      this.usingTouch = false;
     });
     addEventListener('mousedown', (e) => {
       this.mouse.x = e.clientX;
@@ -371,6 +376,83 @@ export class Input {
     return pad;
   }
 
+  /**
+   * Touch on a phone (手機版 ①): the touch layer `layer` (index.html #touch) takes the fingers. A thumb coming
+   * down on the left half of the screen is the moving stick, on the right half the aiming one, each centred where it
+   * came down; `focus` (the 子彈時間 button) is held while a finger is on it. Read once a frame by pollTouch.
+   */
+  enableTouch(layer, focus) {
+    const T = this.touch;
+    const stick = (s, e) => {
+      const dx = (e.clientX - s.x0) / TOUCH.radius;
+      const dy = (e.clientY - s.y0) / TOUCH.radius;
+      const l = Math.hypot(dx, dy);
+      s.v.x = l > 1 ? dx / l : dx;
+      s.v.y = l > 1 ? dy / l : dy;
+      if (s.knob) s.knob.style.transform = `translate(${s.v.x * TOUCH.radius}px, ${s.v.y * TOUCH.radius}px)`;
+    };
+    const which = (id) => (T.move && T.move.id === id ? 'move' : T.aim && T.aim.id === id ? 'aim' : null);
+    layer.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse') return;
+      e.preventDefault();
+      if (e.target === focus || focus.contains(e.target)) {
+        T.focus = true;
+        T.focusId = e.pointerId;
+        return;
+      }
+      const side = e.clientX < innerWidth / 2 ? 'move' : 'aim';
+      if (T[side]) return; // a second finger on the same side does nothing
+      const el = layer.querySelector(`.stick.${side}`);
+      if (el) {
+        el.style.left = `${e.clientX}px`;
+        el.style.top = `${e.clientY}px`;
+        el.classList.add('on');
+      }
+      T[side] = { id: e.pointerId, x0: e.clientX, y0: e.clientY, v: side === 'move' ? T.moveStick : T.aimStick, el, knob: el && el.firstElementChild };
+      stick(T[side], e);
+      try {
+        layer.setPointerCapture(e.pointerId);
+      } catch {
+        /* a synthetic pointer: nothing to capture */
+      }
+    });
+    layer.addEventListener('pointermove', (e) => {
+      const side = which(e.pointerId);
+      if (side) stick(T[side], e);
+    });
+    const up = (e) => {
+      if (T.focus && e.pointerId === T.focusId) T.focus = false;
+      const side = which(e.pointerId);
+      if (!side) return;
+      const s = T[side];
+      s.v.x = s.v.y = 0;
+      if (s.el) s.el.classList.remove('on');
+      T[side] = null;
+    };
+    layer.addEventListener('pointerup', up);
+    layer.addEventListener('pointercancel', up);
+  }
+
+  /**
+   * Once a frame on a phone: the left stick holds W / A / S / D (as the pad's left stick does), the right one held
+   * past its dead zone holds the fire button and aims (main.js stickAim). New holds count as presses.
+   */
+  pollTouch() {
+    const T = this.touch;
+    const held = new Set();
+    const m = T.moveStick;
+    if (m.x < -TOUCH.moveAt) held.add('KeyA');
+    else if (m.x > TOUCH.moveAt) held.add('KeyD');
+    if (m.y < -TOUCH.moveAt) held.add('KeyW');
+    else if (m.y > TOUCH.moveAt) held.add('KeyS');
+    if (Math.hypot(T.aimStick.x, T.aimStick.y) > TOUCH.deadzone) {
+      held.add('Mouse0');
+      this.usingTouch = true;
+    }
+    for (const c of held) if (!this.touchKeys.has(c)) this.pressed.add(c);
+    this.touchKeys = held;
+  }
+
   /** LB and RB (PAD_SHOULDERS): together a press of bullet time; alone, their own press when let go. */
   shoulders(lb, rb) {
     const S = this.padShoulder;
@@ -396,6 +478,7 @@ export class Input {
     let pressed = 0;
     for (const c of this.keys) keys |= BIT.get(c) || 0;
     for (const c of this.padKeys) keys |= BIT.get(c) || 0;
+    for (const c of this.touchKeys) keys |= BIT.get(c) || 0;
     for (const c of this.pressed) pressed |= BIT.get(c) || 0;
     const m = this.mouse;
     if (m.left) keys |= BIT.get('Mouse0');

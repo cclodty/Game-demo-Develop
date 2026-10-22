@@ -4,7 +4,7 @@ import { Bullets } from './bullets.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
-import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, VIEWS } from './config.js';
+import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
@@ -166,6 +166,15 @@ class Game {
     this.padDir = new THREE.Vector2(0, -1); // the right stick's last direction on the floor
     this.padScreen = new THREE.Vector3();
     this.padOn = false; // a pad is connected (the hints name its buttons)
+    // a phone (手機版 ①): played by touch, a stick under each thumb (input.js enableTouch); ?touch=1 / 0 to force it
+    const touch = new URLSearchParams(location.search).get('touch');
+    this.touchOn = touch === '1' || (touch !== '0' && !!globalThis.matchMedia && globalThis.matchMedia('(pointer: coarse)').matches);
+    this.touchFocus = false; // the 子彈時間 button was held at the last frame
+    if (this.touchOn) {
+      document.body.classList.add('touch');
+      this.input.enableTouch($('touch'), $('touch-focus'));
+      $('touch-pause').addEventListener('click', () => this.setPaused(true));
+    }
     const start = this.level.start;
     this.aimPoint = new THREE.Vector3(start.x, GUN_Y, start.z - 5);
     this.camTarget = new THREE.Vector3(start.x, 0, start.z);
@@ -1681,6 +1690,7 @@ class Game {
     this.last = now;
     this.time += realDt;
     this.pollPad();
+    this.pollTouch();
     if (this.state !== 'paused') {
       this.updateAim();
       if (this.state === 'playing' || this.state === 'dying') this.updatePlay(this.playDt(realDt));
@@ -1721,8 +1731,23 @@ class Game {
     if (this.state === 'playing' || this.state === 'dying') this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'input', device: this.padOn ? 'pad' : 'keyboard' });
   }
 
+  /**
+   * Once a display frame on a phone: the touch sticks (input.js pollTouch), and the 子彈時間 button, which is bullet
+   * time for as long as it is held: a press of the focus control when it goes down with bullet time off, and another
+   * when it comes up with it on (the record keeps presses, as from the keyboard).
+   */
+  pollTouch() {
+    if (!this.touchOn) return;
+    this.input.pollTouch();
+    const held = this.input.touch.focus;
+    if (held === this.touchFocus) return;
+    this.touchFocus = held;
+    if (this.state === 'playing' && held !== this.focusActive) this.input.pressed.add('KeyQ');
+  }
+
   updateAim() {
-    if (this.input.pad && this.input.usingPad) this.padAim();
+    if (this.touchOn && this.input.usingTouch) this.stickAim(this.input.touch.aimStick, TOUCH.deadzone);
+    else if (this.input.pad && this.input.usingPad) this.padAim();
     else {
       const m = this.input.mouse;
       this.ndc.set((m.x / innerWidth) * 2 - 1, -(m.y / innerHeight) * 2 + 1);
@@ -1741,9 +1766,13 @@ class Game {
    * the step's aim, so a replay needs none of it.
    */
   padAim() {
+    this.stickAim(this.input.padStick, PAD.deadzone);
+  }
+
+  /** Aim along a stick `s` (x right, y down the screen; a pad's right stick or the right thumb on a phone): see padAim. */
+  stickAim(s, deadzone) {
     const p = this.player;
-    const s = this.input.padStick;
-    if (Math.hypot(s.x, s.y) > PAD.deadzone) {
+    if (Math.hypot(s.x, s.y) > deadzone) {
       const c = Math.cos(this.camYaw);
       const n = Math.sin(this.camYaw);
       this.padDir.set(s.x * c + s.y * n, -s.x * n + s.y * c).normalize();

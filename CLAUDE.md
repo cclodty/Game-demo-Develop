@@ -56,7 +56,7 @@ performance and "does it feel good" are the developer's calls; ask for them.
 ```
 index.html, style.css        HUD / menu DOM and styles; importmap → vendor/three
 src/main.js                  Game: fixed 120 Hz logic steps + per-frame present, time scale (bullet time, hit-stop, kill-cam), camera views, screens
-src/input.js  replay.js      live keyboard/mouse/gamepad (standard layout mapped onto BUTTONS) → one StepInput per logic step; the run's input record (changes only), the last ten kept as replays (.bbr)
+src/input.js  replay.js      live keyboard/mouse/gamepad (standard layout mapped onto BUTTONS)/touch on a phone (a stick under each thumb, bullet time held: the same bits and aim) → one StepInput per logic step; the run's input record (changes only), the last ten kept as replays (.bbr)
 src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, VIEWS
 src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS and the AI state machine
 src/weapons.js bullets.js    player weapon stats, drops, grenades (the launcher's, and the grenadier's lobbed ones: ring, fuse, kick back, AIRBURST); projectile stepping and ricochet
