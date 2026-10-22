@@ -321,9 +321,9 @@ class Enemy {
     if (this.hp <= 0) this.die(b.dx, b.dz, { cause: 'shield' });
   }
 
-  /** How high he sees and shoots from: lower cover is no obstacle to his sight or his bullets. */
+  /** How high he sees and shoots from: lower cover is no obstacle to his sight or his bullets (up a flight of steps too). */
   get over() {
-    return this.cfg.fly ? this.cfg.fly.height : this.perch;
+    return this.cfg.fly ? this.cfg.fly.height : this.perch || Math.max(0, this.game.level.groundY(this.x, this.z));
   }
 
   /** The riot shield, held in front on the left: a dark clear panel with a yellow rim. */
@@ -1037,8 +1037,9 @@ class Enemy {
               break;
             }
           }
-          // a grenadier throws over cover: he needs the distance, not a line of sight
-          const inReach = cfg.lob ? distP < cfg.range[1] + 3 && distP > cfg.lob.radius + 1 : this.los && distP < cfg.range[1] + 3;
+          // a grenadier throws over cover: he needs the distance, not a line of sight; a man up on a balcony cannot
+          // come closer, so he fires at whatever distance he sees the player (東望洋跑道's grandstand over the infield)
+          const inReach = cfg.lob ? distP < cfg.range[1] + 3 && distP > cfg.lob.radius + 1 : this.los && (distP < cfg.range[1] + 3 || this.perch > 0);
           if (inReach && this.fireCd <= 0 && this.mgr.requestToken(this)) {
             this.startAim();
             break;
@@ -1394,14 +1395,15 @@ class Enemy {
     const m = this.muzzle();
     const dx = Math.sin(this.aimAngle);
     const dz = Math.cos(this.aimAngle);
-    const hit = g.level.raycast(m.x, m.z, m.x + dx * 40, m.z + dz * 40, true, this.perch, false);
+    const hit = g.level.raycast(m.x, m.z, m.x + dx * 40, m.z + dz * 40, true, this.cfg.fly ? 0 : this.over, false);
     let len = hit ? hit.t * 40 : 40;
     const k = this.state === 'fire' ? 1 : clamp(this.aimT / this.aimTime, 0, 1);
     let intensity = 0.35 + k * k * 2.8;
     if (k > 0.78 && this.state === 'aim') intensity *= Math.sin(performance.now() * 0.06) > 0 ? 1.7 : 0.5;
-    // from a balcony the line comes down from his gun through the player's chest, and stops at the floor
+    // from a balcony the line comes down from his gun through the player's chest, and stops at the floor; up a flight
+    // of steps it runs level at his gun's height there
     const { y, drop } = this.fromAbove();
-    const y0 = y ?? GUN_Y;
+    const y0 = (y ?? GUN_Y) + g.level.groundY(this.x, this.z);
     if (drop) len = Math.min(len, y0 / drop);
     this.laser.set(m.x, m.z, m.x + dx * len, m.z + dz * len, 0.035 + k * 0.05, intensity, y0, y0 - (drop || 0) * len);
   }
@@ -1560,7 +1562,7 @@ export class Enemies {
       if (!a.alive || a.held || (a.state === 'enter' && a.sp.climb)) continue;
       for (let j = i + 1; j < L.length; j++) {
         const b = L[j];
-        if (!b.alive || b.held || (b.state === 'enter' && b.sp.climb) || a.over !== b.over) continue; // a drone, a man on a balcony: no one on the street to bump; the human shield is held
+        if (!b.alive || b.held || (b.state === 'enter' && b.sp.climb) || ((a.aloft || b.aloft) && a.over !== b.over)) continue; // a drone, a man on a balcony: no one on the street to bump (men up and down the steps do); the human shield is held
         const dx = b.x - a.x;
         const dz = b.z - a.z;
         const rr = a.radius + b.radius;

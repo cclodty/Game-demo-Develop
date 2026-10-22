@@ -126,7 +126,7 @@ export class Bullets {
   }
 
   updateVisual(b) {
-    b.group.position.set(b.x, Math.max(0.05, b.y0 - b.drop * b.traveled), b.z);
+    b.group.position.set(b.x, Math.max(0.05, b.y0 - b.drop * b.traveled) + this.game.level.groundY(b.x, b.z), b.z); // over the ground below it (steps: 大三巴)
     b.group.rotation.y = Math.atan2(b.dx, b.dz);
     b.trail.scale.set(1, 1, Math.max(0.05, b.trailLen));
   }
@@ -192,7 +192,8 @@ export class Bullets {
     const solid = game.level.raycast(x0, z0, x1, z1, false, b.over, false, b.owner === 'player' ? game.boss.pass : null);
     if (solid) best = { t: solid.t, type: 'solid', solid: solid.solid, nx: solid.nx, nz: solid.nz };
 
-    const prop = b.over ? null : game.level.raycastProps(x0, z0, x1, z1, b.ignore, b.hits);
+    // from up high an enemy's shot flies over the props to the player; the player's own, aimed, still meets them
+    const prop = b.over && b.owner !== 'player' ? null : game.level.raycastProps(x0, z0, x1, z1, b.ignore, b.hits);
     if (prop && (!best || prop.t < best.t)) best = { t: prop.t, type: prop.prop.kind, prop: prop.prop };
 
     if (b.owner === 'player') {

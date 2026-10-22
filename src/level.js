@@ -90,7 +90,10 @@ class Barrel {
     this.mesh.visible = true;
     this.body.scale.setScalar(1);
     this.body.rotation.set(0, 0, 0);
-    this.mesh.rotation.set(0, rand(0, TAU), 0);
+    // turned some way of its own, the same every load (from where it stands): a model's parts near the view's edge are
+    // in or out of a frame alike each time, as the draw-call budget wants (test/maps.test.mjs)
+    this.mesh.rotation.set(0, (((this.home[0] * 12.9898 + this.home[1] * 78.233) % TAU) + TAU) % TAU, 0);
+    this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z); // where it stands from the start, not at the origin till the first step
   }
 
   hit(dmg, dx, dz) {
@@ -172,7 +175,7 @@ class Barrel {
         }
       }
     }
-    this.mesh.position.set(this.x, this.y, this.z);
+    this.mesh.position.set(this.x, this.y + this.level.groundY(this.x, this.z), this.z); // on the ground where it is (steps: 大三巴)
   }
 }
 
@@ -224,7 +227,7 @@ class Extinguisher {
     this.carried = false;
     this.thrown = false;
     this.mesh.visible = true;
-    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z);
     this.mesh.rotation.set(0, 0, 0);
     this.tilt.rotation.set(0, 0, 0);
     this.cloud.visible = false;
@@ -246,7 +249,7 @@ class Extinguisher {
     this.vx = this.vz = 0;
     this.tumbleT = 0;
     this.cloud.visible = true;
-    this.cloud.position.set(this.x, 0.02, this.z);
+    this.cloud.position.set(this.x, this.level.groundY(this.x, this.z) + 0.02, this.z);
     g.fx.smokePuff(this.x, 0.6, this.z, 14, 1.2, 0.9, 1.6);
     g.audio.glass(g.panFor(this.x));
     g.level.noise(this.x, this.z, 5);
@@ -314,7 +317,7 @@ class Extinguisher {
       }
     }
     const sp = Math.hypot(this.vx, this.vz);
-    this.mesh.position.set(this.x, this.y, this.z);
+    this.mesh.position.set(this.x, this.y + this.level.groundY(this.x, this.z), this.z); // on the ground where it is (steps: 大三巴)
     if (sp > 1) {
       this.mesh.rotation.y = Math.atan2(this.vx, this.vz);
       this.tilt.rotation.x = Math.PI / 2;
@@ -373,7 +376,7 @@ class Umbrella {
     this.carried = false;
     this.thrown = false;
     this.mesh.visible = true;
-    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z);
     this.mesh.rotation.set(0, 0, 0);
     this.tilt.rotation.set(Math.PI / 2, 0, 0.3); // lying on the floor
     this.tilt.position.y = 0.05;
@@ -421,7 +424,7 @@ class Umbrella {
         this.tilt.rotation.set(Math.PI / 2, 0, 0.3);
       }
     }
-    this.mesh.position.set(this.x, this.y, this.z);
+    this.mesh.position.set(this.x, this.y + this.level.groundY(this.x, this.z), this.z); // on the ground where it is (steps: 大三巴)
     if (this.thrown) this.mesh.rotation.y = Math.atan2(this.vx, this.vz);
     pulseMarker(this.marker, this.x, this.z, this.level.time + this.home[0]);
   }
@@ -515,7 +518,7 @@ class Net {
     this.carried = false;
     this.thrown = false;
     this.mesh.visible = true;
-    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z);
     this.mesh.rotation.set(0, 0, 0);
     this.tilt.rotation.set(0, 0, 0);
     this.tilt.position.set(0, 0, 0);
@@ -533,7 +536,7 @@ class Net {
     this.y = 0;
     this.mesh.visible = false;
     this.dome.visible = true;
-    this.dome.position.set(this.x, 0, this.z);
+    this.dome.position.set(this.x, this.level.groundY(this.x, this.z), this.z);
     let n = 0;
     for (const e of g.enemies.list) {
       if (!e.alive || e.aloft || Math.hypot(e.x - this.x, e.z - this.z) > ENV.net.radius) continue;
@@ -568,7 +571,7 @@ class Net {
         }
       }
     }
-    this.mesh.position.set(this.x, this.y, this.z);
+    this.mesh.position.set(this.x, this.y + this.level.groundY(this.x, this.z), this.z); // on the ground where it is (steps: 大三巴)
   }
 }
 
@@ -606,7 +609,7 @@ class Trolley {
     this.thrown = false;
     this.knocked = 0; // bowled over in this roll
     this.mesh.visible = true;
-    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z);
     this.mesh.rotation.set(0, this.angle, 0);
   }
 
@@ -636,7 +639,7 @@ class Trolley {
   update() {
     // the deck turns to where it rolls; the handle trails behind
     if (Math.hypot(this.vx, this.vz) > 0.5) this.angle = Math.atan2(-this.vz, this.vx);
-    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.position.set(this.x, this.level.groundY(this.x, this.z), this.z);
     this.mesh.rotation.y = this.angle;
   }
 }
@@ -734,11 +737,11 @@ class Pan {
     }
     this.angle += this.spin * dt;
     this.spin *= Math.exp(-2 * dt);
-    this.mesh.position.set(this.x, this.y, this.z);
+    this.mesh.position.set(this.x, this.y + this.level.groundY(this.x, this.z), this.z); // on the ground where it is (steps: 大三巴)
     this.mesh.rotation.y = this.angle;
     const air = clamp((this.y - 0.05) * 1.5, 0, 1);
     this.tilt.rotation.x = Math.sin(this.angle * 2.3) * 0.5 * air;
-    this.marker.position.set(this.x, 0.06, this.z);
+    this.marker.position.set(this.x, this.level.groundY(this.x, this.z) + 0.06, this.z);
     const pulse = 0.5 + 0.5 * Math.sin(time * 3 + this.home[0]);
     this.marker.scale.setScalar(0.9 + pulse * 0.25);
   }
@@ -917,6 +920,9 @@ export class Level {
       brick: std({ color: 0x7c7770, roughness: 0.92 }),
       mahjong: std({ color: 0x1f6a46, roughness: 0.85 }),
       mahjongTile: std({ color: 0xf2eee2, roughness: 0.5 }),
+      // the Ruins of St. Paul's (maps.js ruinsDecorate re-draws the façade and the slopes)
+      slope: std({ color: 0x6d6457, roughness: 0.95 }),
+      facade: std({ color: 0xc9b392, roughness: 0.9 }),
       // the Guia circuit (maps.js guiaDecorate gives the tyres, rails, stand and tower their looks)
       tyres: std({ color: 0x1d4fd0, roughness: 0.7 }),
       rail: std({ color: 0xdfe4ec, roughness: 0.4, metalness: 0.5 }),
@@ -994,7 +1000,7 @@ export class Level {
     this.pads = [];
     this.animators = [];
     this.ambient = [];
-    this.groundFn = null;
+    this.groundFn = map.ground || null; // the ground's height, for a map with steps (maps.js `ground`); Senado's decorate sets its own
     this.fadeables = []; // buildings the follow fade can see through: { pts, h } (addFadeable)
     this.fadedNow = [];
     this.cut.uFadeSet.value.fill(0);
@@ -1139,11 +1145,12 @@ export class Level {
       Object.assign(s, { x, z, w, d, hp: ENV.crateHits });
       this.crates.push(s);
     }
-    const model = propModel(matKey, this.map.id, w, d, h, face);
+    const base = this.groundY(x, z); // on raised ground (大三巴's landings) its height counts from there
+    const model = propModel(matKey, this.map.id, w, d, h - base, face);
     if (model) {
       // a made model replaces the block look; the box stays for collision
       s.mesh.visible = false;
-      model.position.set(x, 0, z);
+      model.position.set(x, base, z);
       this.add(model);
       s.model = model; // for test/calibration.test.mjs
       s.modelKey = matKey;
@@ -1520,8 +1527,8 @@ export class Level {
   }
 
   /** Distance a ray (a laser) travels before hitting something solid (glass included; not an invisible map edge, as shots fly on). */
-  rayLength(x0, z0, dx, dz, max) {
-    const hit = this.raycast(x0, z0, x0 + dx * max, z0 + dz * max, false, 0, false);
+  rayLength(x0, z0, dx, dz, max, over = 0) {
+    const hit = this.raycast(x0, z0, x0 + dx * max, z0 + dz * max, false, over, false);
     return hit ? hit.t * max : max;
   }
 

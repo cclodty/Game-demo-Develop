@@ -107,7 +107,48 @@ test('a tyre wall stops a shot along the ground and hides a man crouched behind 
   assert.deepEqual(problems(logs), []);
 });
 
-test('six map cards on the title, no scrolling at 1280 × 720; key 6 starts here', async () => {
+test('a man sent up to the grandstand shoots at the player in the infield however far off he is: up there he cannot come closer', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    g.setRules('normal', []);
+    g.setMode('arcade');
+    g.startRun(window.guia());
+    g.waves.state = 'done';
+    g.enemies.clear();
+    g.setFocus(false);
+    const L = g.level;
+    const p = g.player;
+    [p.x, p.z] = L.map.start; // in the infield, behind the tyre walls
+    const far = (b) => Math.hypot(b.ex - p.x, b.ez - p.z);
+    const sp = L.balconies.reduce((a, b) => (far(b) > far(a) ? b : a));
+    const e = g.enemies.spawn('grunt', sp);
+    e.spawnLock = 0;
+    const hits = [];
+    const hurt0 = p.hurt.bind(p);
+    p.hurt = (...a) => {
+      const hit = hurt0(...a);
+      if (hit) hits.push(a[4] || 'hit');
+      p.hp = 100;
+      return hit;
+    };
+    g.input.keys.clear();
+    g.input.mouse.left = false;
+    for (let i = 0; i < 120 * 15 && !hits.length; i++) {
+      g.killcamT = 0;
+      g.hitstopT = 0;
+      p.x = L.map.start[0];
+      p.z = L.map.start[1];
+      g.updatePlay(1 / 120);
+    }
+    return { d: far(sp), reach: e.cfg.range[1] + 3, perch: e.perch, los: e.los, hits: hits.length };
+  });
+  assert.ok(r.perch > 0 && r.d > r.reach, `up ${r.perch} m, ${r.d.toFixed(1)} m off: past where a grunt on the street would fire (${r.reach} m)`);
+  assert.equal(r.los, true, 'he sees the player over the tyre wall');
+  assert.ok(r.hits >= 1, 'and fires at him');
+  assert.deepEqual(problems(logs), []);
+});
+
+test('a card on the title, no scrolling at 1280 × 720; key 6 starts here', async () => {
   await page.evaluate(() => window.game.toTitle());
   if (await page.isVisible('#telemetry-ok')) await page.click('#telemetry-ok'); // the first visit's records switch, as test/title.test.mjs
   const r = await page.evaluate(() => ({
@@ -116,10 +157,10 @@ test('six map cards on the title, no scrolling at 1280 × 720; key 6 starts here
     title: document.getElementById('title').scrollHeight <= document.getElementById('title').clientHeight + 1,
     note: document.querySelector('.start span').textContent,
   }));
-  assert.equal(r.cards, 6);
+  assert.equal(r.cards, 7, 'a card for every map (大三巴 the seventh)');
   assert.equal(r.scroll, false, 'the page does not scroll');
   assert.equal(r.title, true, 'nor does the title');
-  assert.match(r.note, /1–6/);
+  assert.match(r.note, /1–7/);
   await page.screenshot({ path: new URL('guia-title.png', OUT).pathname });
   await page.keyboard.press('Digit6');
   const started = await page.evaluate(() => ({ state: window.game.state, map: window.game.level.map.id, start: window.game.startMap }));
@@ -155,7 +196,7 @@ test('an arcade run from 東望洋跑道: a god-mode bot plays it to the end of 
   console.log(`東望洋跑道: waves 1-4 in ${r.minutes.toFixed(1)} min, ${r.spawns} spawn points used`);
   assert.deepEqual(r.errors, []);
   assert.deepEqual(r.stages, [4], 'the stage moves on after wave 4');
-  assert.equal(r.map, 'rooftop', 'to the next map');
+  assert.equal(r.map, 'ruins', 'to the next map (大三巴)');
   assert.ok(r.spawns >= 4, `enemies came in at ${r.spawns} of the spawn points`);
   assert.deepEqual(problems(logs), []);
 });

@@ -21,7 +21,7 @@ import { toGame } from '../src/senado/transform.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.resolve(process.env.BB_DOCS_OUT || path.join(ROOT, 'assets')); // the tests point this at a temporary folder
-const MAP_NAMES = { rooftop: '天台', club: '夜店', docks: '碼頭', senado: '議事亭', felicidade: '福隆新街', guia: '東望洋跑道' };
+const MAP_NAMES = { rooftop: '天台', club: '夜店', docks: '碼頭', senado: '議事亭', felicidade: '福隆新街', guia: '東望洋跑道', ruins: '大三巴' };
 
 const num = (n) => n.toLocaleString('en-US');
 const m = (v) => `${+v.toFixed(2)}`;

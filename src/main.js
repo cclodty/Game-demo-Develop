@@ -1683,6 +1683,8 @@ class Game {
       const m = this.input.mouse;
       this.ndc.set((m.x / innerWidth) * 2 - 1, -(m.y / innerHeight) * 2 + 1);
       this.raycaster.setFromCamera(this.ndc, this.camera);
+      // at gun height over the ground the player stands on (up a flight of steps: 大三巴)
+      this.aimPlane.constant = -(GUN_Y + this.level.groundY(this.player.x, this.player.z));
       this.raycaster.ray.intersectPlane(this.aimPlane, this.aimPoint);
     }
     this.aimFresh = true;
@@ -1905,9 +1907,12 @@ class Game {
       zoom = 0.82 + Math.sin(this.time * 0.25) * 0.03;
     }
     this.zoom = snap ? zoom : damp(this.zoom, zoom, 4, realDt);
-    if (snap) this.camTarget.set(tx, 0, tz);
+    // up a flight of steps (大三巴) the camera rises with the player
+    const ty = this.state === 'title' ? 0 : this.level.groundY(this.player.x, this.player.z);
+    if (snap) this.camTarget.set(tx, ty, tz);
     else {
       this.camTarget.x = damp(this.camTarget.x, tx, 5, realDt);
+      this.camTarget.y = damp(this.camTarget.y, ty, 5, realDt);
       this.camTarget.z = damp(this.camTarget.z, tz, 5, realDt);
     }
 
@@ -1927,8 +1932,8 @@ class Game {
     this.camYaw = snap ? yaw : damp(this.camYaw, yaw, 6, realDt);
     const dist = (lens.dist ?? CAMERA.dist) * this.zoom;
     const hor = Math.cos(this.camPitch) * dist;
-    this.camera.position.set(c.x + Math.sin(this.camYaw) * hor + sx, Math.sin(this.camPitch) * dist, c.z + Math.cos(this.camYaw) * hor + sz);
-    this.camera.lookAt(c.x + sx * 0.4, 0, c.z + sz * 0.4);
+    this.camera.position.set(c.x + Math.sin(this.camYaw) * hor + sx, c.y + Math.sin(this.camPitch) * dist, c.z + Math.cos(this.camYaw) * hor + sz);
+    this.camera.lookAt(c.x + sx * 0.4, c.y, c.z + sz * 0.4);
 
     // Cut a hole through whatever stands between the camera and the player:
     // always on the Senado map (17-25 m buildings), on every map once the camera tilts.

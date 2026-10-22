@@ -176,9 +176,9 @@ export class Grenades {
     const { mesh, spin, blink } = this.build(tx - x, tz - z);
     if (!this.ringGeo.has(lob.radius)) this.ringGeo.set(lob.radius, new THREE.RingGeometry(lob.radius - 0.09, lob.radius, 48).rotateX(-Math.PI / 2));
     const ring = new THREE.Mesh(this.ringGeo.get(lob.radius), this.ringMat);
-    ring.position.set(tx, 0.04, tz);
+    ring.position.set(tx, this.game.level.groundY(tx, tz) + 0.04, tz);
     const shadow = new THREE.Mesh(this.shadowGeo, this.shadowMat);
-    shadow.position.set(x, 0.035, z);
+    shadow.position.set(x, this.game.level.groundY(x, z) + 0.035, z);
     this.game.scene.add(ring, shadow);
     const dist = Math.hypot(tx - x, tz - z);
     this.list.push({ owner: 'enemy', x, z, sx: x, sz: z, tx, tz, dist, t: 0, T: lob.flight, apex: lob.apex, y: GUN_Y, mesh, spin, blink, smoke: 0, r: lob.radius, ring, shadow, lob, source, landed: false, fuse: -1, opts: { source: `${source.cfg.label} 的榴彈`, kind: 'grenade' } });
@@ -277,13 +277,14 @@ export class Grenades {
         g.x = nx;
         g.z = nz;
         g.y = ny;
-        g.mesh.position.set(nx, ny, nz);
-        g.shadow.position.set(nx, 0.035, nz);
+        const gy = game.level.groundY(nx, nz); // its height is over the ground below it (steps: 大三巴)
+        g.mesh.position.set(nx, ny + gy, nz);
+        g.shadow.position.set(nx, gy + 0.035, nz);
         g.spin.rotation.x += dt * 9;
         if (k >= 1) {
           g.landed = true;
           g.fuse = g.lob.fuse;
-          g.mesh.position.y = 0.15;
+          g.mesh.position.y = gy + 0.15;
           this.game.scene.remove(g.shadow);
           g.shadow = null;
           game.audio.fuse(game.panFor(nx));
@@ -318,7 +319,7 @@ export class Grenades {
       g.x = nx;
       g.z = nz;
       g.y = ny;
-      g.mesh.position.set(nx, ny, nz);
+      g.mesh.position.set(nx, ny + game.level.groundY(nx, nz), nz);
       g.spin.rotation.x += dt * 12;
       g.blink.visible = Math.floor(g.t * 14) % 2 === 0;
       if (boom) {

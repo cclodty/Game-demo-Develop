@@ -203,7 +203,7 @@ test('in the street: hanging signs, lamps, LPG cylinders, pans and mahjong table
   assert.ok(r.mahjong >= 2, `${r.mahjong} mahjong tables in the street`);
   assert.equal(r.warm, 4, 'all four lights warm');
   assert.ok(r.cyan >= 3, `${r.cyan} pieces of cyan neon`);
-  assert.equal(r.cards, 6, 'a map card each on the title (東望洋跑道 is the sixth)');
+  assert.equal(r.cards, 7, 'a map card each on the title (大三巴 is the seventh)');
   await page.evaluate(() => window.game.toTitle());
   await page.keyboard.press('Digit5');
   const started = await page.evaluate(() => ({ state: window.game.state, map: window.game.level.map.id, start: window.game.startMap }));

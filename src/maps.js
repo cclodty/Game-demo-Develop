@@ -67,6 +67,8 @@ function cityBackdrop(L, { facade = true, keepOut = [36, 28] } = {}) {
     }
   }
   const city = L.own(new THREE.InstancedMesh(geo, mat, spots.length));
+  // laid out by the effects' dice: never culled, so a frame's draw calls do not hang on where the towers fell
+  city.frustumCulled = false;
   const m = new THREE.Matrix4();
   spots.forEach(([x, z, w, d, top], i) => {
     m.makeScale(w, top + 90, d);
@@ -1489,4 +1491,229 @@ function guiaDecorate(L) {
   cityBackdrop(L, { facade: false, keepOut: [W + 8, D + 8] });
 }
 
-export const MAPS = [rooftop, club, docks, senado, felicidade, guia];
+// ---------------------------------------------------------------- 大三巴 RUINS OF ST. PAUL'S
+// The forecourt and the great flight of steps up to the façade, stylised (a World Heritage site: no attempt at the
+// real stone), about 40 × 60 m, built to the ROADMAP's size. From the forecourt in the south 68 steps climb north in
+// three flights with two landings to the terrace under the façade; walls and slopes close the steps in at the sides.
+// The ground's height is the map's `ground` (level.js groundY): everything stands on it, and from up the steps a man
+// sees and shoots over cover lower than where he stands (enemies.js over), so the landings are the high ground to
+// take. The façade is only a wall for now (its doorways and the way behind it: 大三巴 ②). Shop names are made up.
+const RUINS = {
+  halfW: 20,
+  halfD: 30,
+  stairs: 12, // the steps run x -12 to 12
+  terrace: 15, // the terrace under the façade, x -15 to 15
+  // the ground's profile up the steps, south to north: [z, height] at each corner; flat beyond the ends
+  profile: [
+    [9, 0],
+    [4, 1.6],
+    [1, 1.6],
+    [-4, 3.2],
+    [-7, 3.2],
+    [-12, 4.8],
+  ],
+  flights: [23, 23, 22], // steps in each flight: 68 in all
+  facade: -21.6, // the façade's line (its middle), 1.2 m thick
+  shops: 17, // the shop rows at the forecourt's sides start this far out
+};
+
+/** The height of the ground at (x, z): the forecourt 0, up the steps, the terrace at the top. */
+function ruinsGround(x, z) {
+  const P = RUINS.profile;
+  if (z >= P[0][0]) return 0;
+  for (let i = 1; i < P.length; i++) {
+    const [z0, y0] = P[i - 1];
+    const [z1, y1] = P[i];
+    if (z >= z1) return y0 + ((y1 - y0) * (z0 - z)) / (z0 - z1);
+  }
+  return P[P.length - 1][1];
+}
+
+/** The walls: the shop rows round the forecourt (lanes left open), the slopes beside the steps, the façade. */
+function ruinsWalls() {
+  const { halfW: W, halfD: D, stairs: S, terrace: T, facade: F, shops: X } = RUINS;
+  const s = [];
+  // the shop rows, two storeys, with a lane into each side of the forecourt
+  s.push([-(X + W) / 2, (9 + 15) / 2, W - X, 6, 6.5, 'brick'], [-(X + W) / 2, (18 + D) / 2, W - X, D - 18, 6.5, 'brick']);
+  s.push([(X + W) / 2, (9 + 21) / 2, W - X, 12, 6.5, 'brick'], [(X + W) / 2, (24 + D) / 2, W - X, D - 24, 6.5, 'brick']);
+  // the slopes beside the steps, a wall a little over head height above the steps beside them, flight by flight
+  for (const sx of [-1, 1]) {
+    s.push([(sx * (S + W)) / 2, 5, W - S, 8, 3.4, 'slope']);
+    s.push([(sx * (S + W)) / 2, -3, W - S, 8, 5, 'slope']);
+    s.push([(sx * (T + W)) / 2, -16.8, W - T, 9.6, 6.6, 'slope']);
+    s.push([(sx * (S + W)) / 2, -9.5, W - S, 5, 6.6, 'slope']);
+  }
+  // the terrace's sides are open to a lane each, between z -15.5 and -13 (the side streets climbing up)
+  for (const sx of [-1, 1]) {
+    s.splice(s.findIndex((w) => w[1] === -16.8 && Math.sign(w[0]) === sx), 1);
+    s.push([(sx * (T + W)) / 2, -12.5, W - T, 1, 6.6, 'slope']);
+    s.push([(sx * (T + W)) / 2, (-15.5 + F - 0.6) / 2, W - T, -15.5 - (F - 0.6), 6.6, 'slope']);
+  }
+  // the façade: a wall across the top of the terrace, and the hill behind it
+  s.push([0, F, 2 * W, 1.2, 4.8 + 18, 'facade']);
+  s.push([0, (F - 0.6 - D) / 2, 2 * W, D + F - 0.6, 7, 'slope']);
+  return s;
+}
+
+const RUINS_WALLS = ruinsWalls();
+
+const ruins = {
+  id: 'ruins',
+  budget: { tris: 160000, calls: 700 }, // rendered per frame, all passes (test/maps.test.mjs: 132,768 and 507 at the start; test/drone.test.mjs, two drones there: 145,512 and 633)
+  name: '大三巴',
+  en: "RUINS OF ST. PAUL'S",
+  desc: '前地之上六十八級石階，兩個平台，頂上是牌坊：站得高的人越過矮掩體望得到你，要搶高位。',
+  color: '#ffb35a',
+  size: [RUINS.halfW, RUINS.halfD],
+  start: [-3, 21],
+  ground: ruinsGround,
+  flights: RUINS.flights, // steps in each flight (drawn by ruinsDecorate)
+  cutaway: true,
+  theme: {
+    bg: 0x0b0a10,
+    fog: [0x120e14, 0.011],
+    hemi: [0x7a6c78, 0x14100e, 0.72],
+    moon: [0xb8c0ff, 0.5],
+    sunDir: [-14, 36, 20],
+    // warm floodlights on the façade and the steps, a cooler one over the forecourt
+    points: [
+      [0xffc27a, -8, 9, -15, 70, 22],
+      [0xffc27a, 9, 9, -15, 70, 22],
+      [0xffb060, 0, 7, -1, 55, 18],
+      [0xc8d4ff, 2, 6.5, 19, 55, 22],
+    ],
+    rain: false,
+    bloom: { strength: 0.8, threshold: 0.82 },
+  },
+  floor: 'concrete',
+  edges: null, // the shop rows, the slopes and the façade close it in; the lanes and the forecourt's south side are open
+  solids: [
+    ...RUINS_WALLS,
+    // the forecourt: stone planters and the almond-cookie stalls (made up), low cover
+    [-9, 19.5, 2.6, 1.2, 0.9, 'planter'],
+    [7.5, 22, 1.2, 2.6, 0.9, 'planter'],
+    [2.5, 13.5, 2.6, 1.2, 0.9, 'planter'],
+    [-12.5, 26, 2.8, 1.4, 1.1, 'stall'],
+    [12.5, 12.5, 1.4, 2.8, 1.1, 'stall'],
+    // up the steps: urns on the landings (their tops counted from the ground: a landing's height and a metre)
+    [-6, 2.5, 1.2, 1.2, 1.6 + 1, 'planter'],
+    [7, 2.5, 1.2, 1.2, 1.6 + 1, 'planter'],
+    [-1.5, -5.5, 2.6, 1.0, 3.2 + 1, 'planter'],
+    // the terrace: low walls before the façade and a planter
+    [-6.5, -18.5, 4, 0.7, 4.8 + 0.9, 'concrete'],
+    [8, -16, 1.4, 1.4, 4.8 + 1, 'planter'],
+  ],
+  barrels: [[-11, 23.5, 'lpg'], [14.5, 14.8, 'lpg'], [-4.5, 15, 'barrel'], [6.5, 25.5, 'barrel']],
+  pans: [[-14, 27.5], [-10.4, 25], [13.8, 11]],
+  tools: [[-14.5, 22, 'extinguisher']],
+  spots: { barrels: [[5.5, 18.5], [-1, 26.5], [-15, 11], [15, 19]], pans: [[3.5, 27], [-6.5, 12], [9, 17], [-15.5, 17]], tools: [[2.2, 24], [14.5, 25.5], [-6, 26]] },
+  fixtures: [
+    [-5.5, 11, 'lamp'],
+    [6, 17.5, 'lamp'],
+    [-16.6, 23, 'sign', 90],
+    [16.6, 18.5, 'sign', 270],
+  ],
+  pads: [[0, 20.5], [0, -15]],
+  stages: [
+    { name: '前地', en: 'FORECOURT', at: [-2.5, 17.5], move: 'pan' },
+    { name: '花槽', en: 'PLANTERS', at: [-9, 21.4], move: 'boom' },
+    { name: '第一平台', en: 'FIRST LANDING', at: [0, 2.5], move: 'high' },
+    { name: '牌坊下', en: 'UNDER THE FAÇADE', at: [3, -19.8], move: 'slide' },
+  ],
+  spawns: [
+    { x: -8, z: 29.4, ex: -8, ez: 27, kind: 'gate' }, // the forecourt's south side
+    { x: 9, z: 29.4, ex: 9, ez: 27, kind: 'gate' },
+    { x: -19.4, z: 16.5, ex: -15.5, ez: 16.5, kind: 'gate' }, // the lanes into the forecourt
+    { x: 19.4, z: 22.5, ex: 15.5, ez: 22.5, kind: 'gate' },
+    { x: -19.4, z: -14.25, ex: -13.5, ez: -14.25, kind: 'gate' }, // the side streets up to the terrace
+    { x: 19.4, z: -14.25, ex: 13.5, ez: -14.25, kind: 'gate' },
+  ],
+  decorate(L) {
+    ruinsDecorate(L);
+  },
+};
+
+/** The steps and the façade, stylised, in few meshes (merged boxes). */
+function ruinsDecorate(L) {
+  const { halfW: W, stairs: S, terrace: T, profile: P, flights, facade: F } = RUINS;
+  const std = (o) => L.own(new THREE.MeshStandardMaterial({ roughness: 0.85, ...o }));
+  const boxes = (list, mat, cast = false) => {
+    if (!list.length) return null;
+    const mesh = new THREE.Mesh(L.own(mergeGeometries(list.map(([x, y, z, w, h, d]) => new THREE.BoxGeometry(w, h, d).translate(x, y + h / 2, z)))), mat);
+    mesh.castShadow = cast;
+    mesh.receiveShadow = true;
+    return L.add(mesh);
+  };
+  const stone = std({ color: 0xb8a58a, roughness: 0.92 });
+  // the steps: each flight's treads stacked from the forecourt's level, the landings and the terrace flat between
+  const steps = [];
+  let f = 0;
+  for (let i = 1; i < P.length; i++) {
+    const [z0, y0] = P[i - 1];
+    const [z1, y1] = P[i];
+    if (y1 === y0) {
+      steps.push([0, 0, (z0 + z1) / 2, 2 * S, y0, z0 - z1]); // a landing
+      continue;
+    }
+    const n = flights[f++];
+    const run = (z0 - z1) / n;
+    for (let k = 0; k < n; k++) steps.push([0, 0, z0 - run * (k + 0.5), 2 * S, y0 + ((y1 - y0) * (k + 1)) / n, run]);
+  }
+  const top = P[P.length - 1];
+  steps.push([0, 0, (top[0] + F) / 2, 2 * T, top[1], top[0] - F]); // the terrace
+  boxes(steps, stone);
+  // the slopes beside the steps: rough stone walls with greenery along their tops
+  const slopeMat = std({ color: 0x6d6457, roughness: 0.95 });
+  const green = [];
+  for (const sd of L.solids) {
+    if (sd.matKey !== 'slope') continue;
+    sd.mesh.material = slopeMat;
+    green.push([(sd.minX + sd.maxX) / 2, sd.h, (sd.minZ + sd.maxZ) / 2, sd.maxX - sd.minX - 0.3, 0.5, sd.maxZ - sd.minZ - 0.3]);
+  }
+  boxes(green, std({ color: 0x2e4a2a, roughness: 1 }));
+  // the façade: four tiers of columns and cornices over three doorways, a pediment at the top, lit warm from below
+  const face = std({ color: 0xc9b392, roughness: 0.9 });
+  const front = F + 0.6; // its south face
+  const y0 = top[1];
+  const parts = [];
+  const tiers = [5.2, 4.4, 4, 3.2];
+  let y = y0;
+  tiers.forEach((h, t) => {
+    const width = [26, 24, 18, 10][t];
+    for (let c = 0; c <= 6; c++) {
+      const x = -width / 2 + (width * c) / 6;
+      parts.push([x, y, front + 0.25, 0.7, h, 0.5]); // a column
+    }
+    parts.push([0, y + h - 0.35, front + 0.3, width + 1, 0.35, 0.6]); // the cornice over the tier
+    y += h;
+  });
+  parts.push([0, y, front + 0.2, 6, 1.6, 0.4], [0, y + 1.6, front + 0.2, 2.4, 1.2, 0.4]); // the pediment
+  boxes(parts, face, true);
+  // the doorways: dark recesses (only a wall for now: 大三巴 ② opens them)
+  const dark = std({ color: 0x120e0c, roughness: 1 });
+  boxes([[-6, y0, front + 0.02, 2.2, 3.6, 0.06], [0, y0, front + 0.02, 3, 4.4, 0.06], [6, y0, front + 0.02, 2.2, 3.6, 0.06]], dark);
+  L.solids.find((sd) => sd.matKey === 'facade').mesh.material = face;
+  // the shop rows: brick, the names made up
+  for (const [x, z, ry, name, en] of [
+    [-17, 12, Math.PI / 2, '雲記餅家', 'WAN KEE BAKERY'],
+    [17, 27, -Math.PI / 2, '利來肉乾', 'LEI LOI JERKY'],
+  ]) {
+    sign(
+      L,
+      [
+        { text: name, font: HAN(96), color: '#ffe2b0', y: 112 },
+        { text: en, font: 'bold 44px "Bebas Neue", Impact, sans-serif', color: '#3fe6ff', y: 206 },
+      ],
+      4,
+      1,
+      x + Math.sign(-x) * 0.06,
+      3.4,
+      z,
+      ry,
+      1.6,
+    );
+  }
+  cityBackdrop(L, { facade: false, keepOut: [W + 8, RUINS.halfD + 8] });
+}
+
+export const MAPS = [rooftop, club, docks, senado, felicidade, guia, ruins];
