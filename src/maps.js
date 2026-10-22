@@ -85,6 +85,8 @@ const rooftop = {
   budget: { tris: 360000, calls: 1600 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '霓虹天台',
   en: 'NEON ROOFTOP',
+  hour: '20:00', // 澳門一夜 (night.js): the hour of the night it is set at, and the line that opens it
+  line: ['今晚八點，他們在天台交收。你一個人上去。', 'Eight o\'clock. They trade on the roof tonight. You go up alone.'],
   desc: '雨夜的天台：直升機坪、玻璃溫室和一排排油桶。',
   color: '#ff3fa4',
   size: [22, 15],
@@ -193,6 +195,8 @@ const club = {
   budget: { tris: 490000, calls: 400 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '脈衝夜店',
   en: 'CLUB PULSE',
+  hour: '21:00',
+  line: ['貨帶進了夜店。音樂越大聲，越沒有人聽見槍聲。', 'The goods went into the club. The louder the music, the fewer hear the shots.'],
   desc: '跟著節拍閃爍的舞池、吧枱後的一整排酒瓶，和一顆鏡面球。',
   color: '#9b6bff',
   size: [20, 14],
@@ -418,6 +422,8 @@ const docks = {
   budget: { tris: 410000, calls: 2250 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '七號碼頭',
   en: 'HARBOR 7',
+  hour: '01:00',
+  line: ['一點，七號碼頭。貨櫃門已經打開。', 'One o\'clock, Harbor 7. The container doors are open.'],
   desc: '貨櫃迷宮、會大爆炸的氣罐，敵人還會從海裡爬上來。',
   color: '#ffa040',
   size: [24, 15],
@@ -584,6 +590,8 @@ const senado = {
   budget: { tris: 290000, calls: 1900 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '議事亭前地',
   en: 'LARGO DO SENADO',
+  hour: '22:00',
+  line: ['他們在議事亭前地散開，混進看燈飾的人羣裏。', 'They scatter across the Senado, into the crowd out to see the lights.'],
   desc: '按實景比例重建的澳門議事亭前地：新馬路、噴水池、窄段一直到板樟堂前地。',
   color: '#f2c94c',
   credit: '地圖資料 © OpenStreetMap contributors（ODbL）',
@@ -911,6 +919,8 @@ const felicidade = {
   budget: { tris: 110000, calls: 1000 }, // rendered per frame, all passes (test/maps.test.mjs: 87,555 and 820 at the start)
   name: '福隆新街',
   en: 'RUA DA FELICIDADE',
+  hour: '23:00',
+  line: ['福隆新街的紅窗後面，每一扇都可能有槍。', 'Behind every red window on Felicidade, maybe a gun.'],
   desc: '紅窗木門的兩層舊舖夾着一條窄街：踢門入舖、鐵閘落下，橫巷兩頭都有人殺到。',
   color: '#ff5a4a',
   size: [FEL.halfW, FEL.halfD],
@@ -1253,6 +1263,8 @@ const guia = {
   budget: { tris: 190000, calls: 560 }, // rendered per frame, all passes (test/maps.test.mjs: 150,785 and 424 at the start)
   name: '東望洋跑道',
   en: 'GUIA CIRCUIT',
+  hour: '02:00',
+  line: ['他們沿着跑道逃。夜裏試車的賽車不會停下來。', 'They run down the circuit. The night\'s test laps won\'t stop for anyone.'],
   desc: '格蘭披治的髮夾彎，晚上：藍白輪胎牆只夠蹲低，看台上的人望得到你；過賽道要快。',
   color: '#4fb4ff',
   size: [GUIA.halfW, GUIA.halfD],
@@ -1588,6 +1600,8 @@ const ruins = {
   budget: { tris: 180000, calls: 600 }, // rendered per frame, all passes (test/maps.test.mjs: 138,592 and 342 at the start; two drones there, test/drone.test.mjs: 160,212 and 449)
   name: '大三巴',
   en: "RUINS OF ST. PAUL'S",
+  hour: '03:00',
+  line: ['最後一段：六十八級石階。走到牌坊，這一夜就完。', 'The last of it: sixty-eight steps. Reach the facade and the night is over.'],
   desc: '六十八級石階上落：站得高的望得到你，要搶高位；牌坊門洞繞得到後面，石階上的油桶一踢就滾落去。',
   color: '#ffb35a',
   size: [RUINS.halfW, RUINS.halfD],
