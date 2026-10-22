@@ -66,7 +66,7 @@ src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, sp
 src/nav.js                   grid A* on 0.5 m cells
 src/rng.js                   seeded RNG: game.rng for logic (?seed=), vfxRng behind utils.js rand/pick for effects
 src/characters.js  skin.js   block rigs + weapon models (and the drone's block quadcopter, shaped like a rig), KEY_POSES (slide, spin, kick, carry), HOLDS (how each thing picked up is held: grip, arm directions at rest and in use); optional skinned models worn over the rig (IK hands and key-pose feet)
-src/models.js                loads assets/models/*.glb, fits props to map boxes; src/models-index.js is generated
+src/models.js                loads assets/models/*.glb, merges a made prop's meshes into one a material (a crate comes as 76), fits props to map boxes; src/models-index.js is generated
 src/asset-manifest.js        catalogue of every asset we want as a real model (sizes, budgets, prompts)
 src/cutaway.js  postfx.js    camera→player cut-away shader and the map fades (maps.js `fade`: past the play area; `follow`: whole buildings between camera and player); bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
@@ -200,8 +200,11 @@ merges `<id>@clip.glb` animations, writes `assets/models/` and
   about 3.5 MB more of GLB away.
 - Each map carries a render `budget` (triangles and draw calls per frame, all
   passes) in `maps.js`; `test/maps.test.mjs` fails when a frame exceeds it.
-  Draw calls, not triangles, are the weak-GPU problem (rooftop, docks and
-  Senado are all over 1,300). Real-GPU numbers reach you only through the
+  Draw calls, not triangles, are the weak-GPU problem. Every map starts under
+  300 since made props are merged by material when they load (models.js
+  `mergeByMaterial`; Rua da Felicidade, about 600, is its own walls). A new
+  model with many materials, or set dressing in many meshes, puts them back
+  up: merge it (maps.js `boxes`, InstancedMesh). Real-GPU numbers reach you only through the
   developer's notes export (`perfLine`); `?quality=low` turns bloom and
   shadows off for comparison.
 - GitHub Pages deploys `main` (`.github/workflows/pages.yml`); CI

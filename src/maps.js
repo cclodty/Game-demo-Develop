@@ -82,7 +82,7 @@ function cityBackdrop(L, { facade = true, keepOut = [36, 28] } = {}) {
 
 const rooftop = {
   id: 'rooftop',
-  budget: { tris: 360000, calls: 1600 }, // rendered per frame, all passes (test/maps.test.mjs)
+  budget: { tris: 360000, calls: 500 }, // rendered per frame, all passes (test/maps.test.mjs: 242,174 and 205 at the start; 1,240 before made props were merged by material, models.js)
   name: '霓虹天台',
   en: 'NEON ROOFTOP',
   hour: '20:00', // 澳門一夜 (night.js): the hour of the night it is set at, and the line that opens it
@@ -419,7 +419,7 @@ const club = {
 
 const docks = {
   id: 'docks',
-  budget: { tris: 410000, calls: 2250 }, // rendered per frame, all passes (test/maps.test.mjs)
+  budget: { tris: 410000, calls: 500 }, // rendered per frame, all passes (test/maps.test.mjs: 349,025 and 213 at the start; 1,693 before made props were merged by material, models.js)
   name: '七號碼頭',
   en: 'HARBOR 7',
   hour: '01:00',
