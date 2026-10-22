@@ -82,6 +82,7 @@ function cityBackdrop(L, { facade = true, keepOut = [36, 28] } = {}) {
 
 const rooftop = {
   id: 'rooftop',
+  rev: 1, // the map's revision: up one whenever its data changes how a run plays (replay.js records them all)
   budget: { tris: 360000, calls: 500 }, // rendered per frame, all passes (test/maps.test.mjs: 242,174 and 205 at the start; 1,240 before made props were merged by material, models.js)
   name: '霓虹天台',
   en: 'NEON ROOFTOP',
@@ -194,6 +195,7 @@ const rooftop = {
 
 const club = {
   id: 'club',
+  rev: 1,
   budget: { tris: 490000, calls: 400 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '脈衝夜店',
   en: 'CLUB PULSE',
@@ -424,6 +426,7 @@ const club = {
 
 const docks = {
   id: 'docks',
+  rev: 1,
   budget: { tris: 410000, calls: 500 }, // rendered per frame, all passes (test/maps.test.mjs: 349,025 and 213 at the start; 1,693 before made props were merged by material, models.js)
   name: '七號碼頭',
   en: 'HARBOR 7',
@@ -594,6 +597,7 @@ const SENADO_IMAGES =
 
 const senado = {
   id: 'senado',
+  rev: 1,
   budget: { tris: 290000, calls: 500 }, // rendered per frame, all passes (test/maps.test.mjs: 208,358 and 255 at the start; 1,218 before made props were merged by material, models.js; up the square, test/drawcalls.test.mjs, about 250)
   name: '議事亭前地',
   en: 'LARGO DO SENADO',
@@ -925,6 +929,7 @@ const FEL_WALLS = felicidadeWalls();
 
 const felicidade = {
   id: 'felicidade',
+  rev: 1,
   budget: { tris: 110000, calls: 1000 }, // rendered per frame, all passes (test/maps.test.mjs: 87,555 and 820 at the start)
   name: '福隆新街',
   en: 'RUA DA FELICIDADE',
@@ -1274,6 +1279,7 @@ function guiaRacingLine() {
 
 const guia = {
   id: 'guia',
+  rev: 1,
   budget: { tris: 190000, calls: 560 }, // rendered per frame, all passes (test/maps.test.mjs: 150,785 and 424 at the start)
   name: '東望洋跑道',
   en: 'GUIA CIRCUIT',
@@ -1613,6 +1619,7 @@ const RUINS_WALLS = ruinsWalls();
 
 const ruins = {
   id: 'ruins',
+  rev: 1,
   budget: { tris: 180000, calls: 600 }, // rendered per frame, all passes (test/maps.test.mjs: 138,592 and 342 at the start; two drones there, test/drone.test.mjs: 160,212 and 449)
   name: '大三巴',
   en: "RUINS OF ST. PAUL'S",
@@ -1796,3 +1803,9 @@ function ruinsDecorate(L) {
 }
 
 export const MAPS = [rooftop, club, docks, senado, felicidade, guia, ruins];
+
+/**
+ * The maps' revision as one byte, for the input record (replay.js): the sum of every map's `rev`. A replay of a run on
+ * maps since rebuilt (another MAPS_REV) still plays, but no longer as it was played; the game says so.
+ */
+export const MAPS_REV = MAPS.reduce((s, m) => s + m.rev, 0) % 256;

@@ -10,7 +10,7 @@ import { FX } from './fx.js';
 import { HUD } from './hud.js';
 import { ACTIONS, Input, keyName, padButtonName, padLabel, StepInput } from './input.js';
 import { Level } from './level.js';
-import { MAPS } from './maps.js';
+import { MAPS, MAPS_REV } from './maps.js';
 import { nightRoute, NightStore } from './night.js';
 import { loadedCharacters, loadModels } from './models.js';
 import { Notes } from './notes.js';
@@ -88,7 +88,7 @@ class Game {
     this.feed = null;
     this.record = new InputRecord();
     this.replays = new ReplayStore(); // the last ten runs' records, for the replay list
-    this.replay = null; // while a record plays back: { rd, speed, meta, mode }
+    this.replay = null; // while a record plays back: { rd, speed, meta, mode, stale } (stale: recorded on other maps, maps.js rev)
     this.now = () => Date.now(); // the wall clock, read only to pick the daily challenge's day (tests set their own)
     this.daily = new DailyStore(); // this browser's daily results
     this.night = new NightStore(); // how far 澳門一夜 has got in this browser
@@ -734,7 +734,7 @@ class Game {
     const pick = this.fixedRules ?? { difficulty: this.difficulty, variants: this.variants };
     this.ruleset = rulesFor(pick.difficulty, pick.variants);
     const rules = packRules(this.ruleset.difficulty, this.ruleset.variants);
-    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, rules, hz: LOGIC_HZ });
+    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, rules, hz: LOGIC_HZ, mapsRev: MAPS_REV });
     this.resetWorld(MAPS[mapIndex]);
     this.score.useBest(this.mode, this.ruleset);
     this.score.reset();
@@ -1021,6 +1021,7 @@ class Game {
         score: Math.round(this.score.score),
         grade,
         seconds: Math.round(this.record.steps / LOGIC_HZ),
+        mapsRev: MAPS_REV,
       },
       this.record.encode(),
     );
@@ -1055,6 +1056,16 @@ class Game {
     this.feed = (game) => rd.next(game.player.x, game.player.z);
     this.setReplaySpeed(1);
     this.notes.log(`重播 ${meta.name || ''}`.trim());
+    // recorded on maps since rebuilt (maps.js rev): it plays, but not as it was played, and the player is told; one
+    // from before the maps had revisions (a version 4 record) may or may not be the same: 'unknown'
+    this.replay.stale = rd.mapsRev === MAPS_REV ? false : rd.mapsRev == null ? 'unknown' : true;
+    if (this.replay.stale === true) {
+      this.notes.log('地圖已改版：重播會同錄的時候不一樣');
+      this.hud.banner('REPLAY', '地圖已改版：這局會同錄的時候不一樣', 'stage');
+    } else if (this.replay.stale) {
+      this.notes.log('地圖版本未知：重播可能同錄的時候不一樣');
+      this.hud.banner('REPLAY', '地圖版本未知：這局可能同錄的時候不一樣', 'stage');
+    }
     return null;
   }
 
@@ -1110,7 +1121,7 @@ class Game {
       const d = new Date(r.at);
       row.append(
         cell('replay-when', `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`),
-        cell('replay-what', [r.map, r.mode, r.rules].filter(Boolean).join(' · ')),
+        cell('replay-what', [r.map, r.mode, r.rules, r.mapsRev == null ? '地圖版本未知' : r.mapsRev === MAPS_REV ? '' : '地圖已改版'].filter(Boolean).join(' · ')),
         cell('replay-how', `${result[r.result] || ''} · 第 ${r.wave} 波 · ${clock(r.seconds)}`),
         cell('replay-score', `${Number(r.score).toLocaleString('en-US')}${r.grade ? ` ${r.grade}` : ''}`),
       );
