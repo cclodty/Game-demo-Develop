@@ -4,13 +4,14 @@ import { Bullets } from './bullets.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
-import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, VIEWS } from './config.js';
+import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
 import { ACTIONS, Input, keyName, padButtonName, padLabel, StepInput } from './input.js';
 import { Level } from './level.js';
 import { MAPS } from './maps.js';
+import { nightRoute, NightStore } from './night.js';
 import { loadedCharacters, loadModels } from './models.js';
 import { Notes } from './notes.js';
 import { Pickups } from './pickups.js';
@@ -34,6 +35,7 @@ import { Grenades } from './weapons.js';
 import { BOSSES, Bosses } from './boss.js';
 import { SONGS } from './music.js';
 
+const NIGHT = nightRoute(MAPS); // 澳門一夜: the maps by the hour of the night (night.js)
 const MAP_KEY = 'bullet-ballet.map';
 const MODE_KEY = 'bullet-ballet.mode';
 const RULES_KEY = 'bullet-ballet.rules';
@@ -89,6 +91,8 @@ class Game {
     this.replay = null; // while a record plays back: { rd, speed, meta, mode }
     this.now = () => Date.now(); // the wall clock, read only to pick the daily challenge's day (tests set their own)
     this.daily = new DailyStore(); // this browser's daily results
+    this.night = new NightStore(); // how far 澳門一夜 has got in this browser
+    this.routeAt = 0; // in 澳門一夜, where in the night the run started (its place in NIGHT)
     this.dailyRun = null; // during a daily run and its end screen: { day, mode }
     this.boards = new Leaderboard(); // the back end's boards when BACKEND.url is set, this browser's otherwise
     this.acc = 0;
@@ -162,6 +166,15 @@ class Game {
     this.padDir = new THREE.Vector2(0, -1); // the right stick's last direction on the floor
     this.padScreen = new THREE.Vector3();
     this.padOn = false; // a pad is connected (the hints name its buttons)
+    // a phone (手機版 ①): played by touch, a stick under each thumb (input.js enableTouch); ?touch=1 / 0 to force it
+    const touch = new URLSearchParams(location.search).get('touch');
+    this.touchOn = touch === '1' || (touch !== '0' && !!globalThis.matchMedia && globalThis.matchMedia('(pointer: coarse)').matches);
+    this.touchFocus = false; // the 子彈時間 button was held at the last frame
+    if (this.touchOn) {
+      document.body.classList.add('touch');
+      this.input.enableTouch($('touch'), $('touch-focus'));
+      $('touch-pause').addEventListener('click', () => this.setPaused(true));
+    }
     const start = this.level.start;
     this.aimPoint = new THREE.Vector3(start.x, GUN_Y, start.z - 5);
     this.camTarget = new THREE.Vector3(start.x, 0, start.z);
@@ -219,7 +232,7 @@ class Game {
   bindUI() {
     const start = (map = this.startMap) => {
       this.audio.init();
-      this.startRun(map);
+      this.startRun(MODES[this.mode].night ? this.nightStart : map); // 澳門一夜 goes on where it got to, whatever card is picked
     };
     for (const id of MODE_IDS) {
       const m = MODES[id];
@@ -364,6 +377,11 @@ class Game {
     });
     this.markMapCard();
     $('title').addEventListener('click', () => start());
+    $('night-over').addEventListener('click', (e) => {
+      e.stopPropagation(); // starting over is not starting a run
+      this.night.reset();
+      this.markRoute();
+    });
     // the daily challenge card
     $('daily-card').addEventListener('click', (e) => e.stopPropagation()); // not a start of the picked mode
     $('daily-start').addEventListener('click', () => {
@@ -545,7 +563,21 @@ class Game {
   /** The maps note: how the mode goes, and in arcade the route from the map card picked (or pointed at). */
   markRoute(start = this.startMap) {
     const r = MODES[this.mode];
+    const resume = r.night && this.night.at > 0;
+    $('night-over').classList.toggle('hidden', !resume);
+    if (r.night) {
+      // the night starts where it got to, whatever card is pointed at
+      const m = MAPS[this.nightStart];
+      const end = MAPS[NIGHT[NIGHT.length - 1]];
+      $('maps-note').textContent = `${resume ? `上次到 ${m.hour} ${m.name}，由這裏繼續` : `由 ${m.hour} ${m.name} 開始`} · 每 ${r.perStage} 波一個鐘頭，到 ${end.hour} ${end.name}`;
+      return;
+    }
     $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結：${this.routeText(start, this.mode)}` : `每 ${r.perStage} 波換一個場景`;
+  }
+
+  /** The map 澳門一夜 starts on next: the first stage not yet cleared. */
+  get nightStart() {
+    return NIGHT[Math.min(this.night.at, NIGHT.length - 1)];
   }
 
   /** Whether a variant is on offer: open from the start, or its achievement is done. */
@@ -707,8 +739,12 @@ class Game {
     this.score.useBest(this.mode, this.ruleset);
     this.score.reset();
     this.waves.reset();
+    // 澳門一夜 goes on where the night got to: its place in the night, and the night's waves before it as done
+    this.routeAt = MODES[this.mode].night ? Math.max(0, NIGHT.indexOf(mapIndex)) : 0;
+    this.waves.wave = this.routeAt * MODES[this.mode].perStage;
     this.hud.reset();
     this.notes.reset(MAPS[mapIndex]);
+    if (MODES[this.mode].night) this.nightLine(MAPS[mapIndex]);
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
     // the music: the first stage's song from its start, on its base (audio.js)
     this.audio.setStage(0, true);
@@ -1114,6 +1150,7 @@ class Game {
     $('gameover').classList.add('hidden');
     $('title').classList.remove('hidden');
     $('title').scrollTop = 0;
+    this.markRoute(); // 澳門一夜 may have got further
     document.body.classList.remove('playing');
     this.hud.show(false);
     this.audio.resume();
@@ -1201,13 +1238,14 @@ class Game {
   routeText(start, mode) {
     const r = MODES[mode];
     if (!Number.isFinite(r.waves)) return '';
-    const stages = Math.ceil(r.waves / r.perStage);
-    const maps = Array.from({ length: stages }, (_, i) => MAPS[(start + i) % MAPS.length]);
+    // 澳門一夜 from where it starts to its end, each map at its hour; any other the maps after the one picked
+    const maps = r.night ? NIGHT.slice(Math.max(0, NIGHT.indexOf(start))).map((i) => MAPS[i]) : Array.from({ length: Math.ceil(r.waves / r.perStage) }, (_, i) => MAPS[(start + i) % MAPS.length]);
+    const stages = maps.length;
     const bosses = maps
       .map((m, i) => (r.midBoss || i === stages - 1) && m.boss && BOSSES[m.boss.kind])
       .filter(Boolean)
       .map((b) => b.cfg.route || b.cfg.short);
-    return `${maps.map((m) => m.name).join(' → ')}${bosses.length ? `（頭目：${bosses.join('、')}）` : ''}`;
+    return `${maps.map((m) => (r.night ? `${m.hour} ${m.name}` : m.name)).join(' → ')}${bosses.length ? `（頭目：${bosses.join('、')}）` : ''}`;
   }
 
   /** A daily run's layout for stage `stage` (level.js dealProps): a stream of the run's seed of its own; null in any other mode. */
@@ -1216,7 +1254,19 @@ class Game {
   }
 
   get stageMap() {
-    return MAPS[(this.startMap + this.stage) % MAPS.length];
+    return this.mapAt(this.stage);
+  }
+
+  /** The run's map at `stage`: in 澳門一夜 the night's, from where it started; in any other mode the next in MAPS. */
+  mapAt(stage) {
+    if (MODES[this.mode].night) return MAPS[NIGHT[Math.min(this.routeAt + stage, NIGHT.length - 1)]];
+    return MAPS[(this.startMap + stage) % MAPS.length];
+  }
+
+  /** 澳門一夜: the hour and the line that open map `m`'s stage (maps.js `hour`, `line`), on the HUD and in the notes. */
+  nightLine(m) {
+    this.hud.nightLine(m.hour, m.line[0], m.line[1]);
+    this.notes.log(`${m.hour} ${m.name}：${m.line[0]}`);
   }
 
   beginStageTransition() {
@@ -1251,7 +1301,8 @@ class Game {
     if (tr.t >= 1.3) {
       this.transition = null;
       const m = this.stageMap;
-      this.hud.banner(`STAGE ${this.stage + 1}`, `${m.name} · ${m.en}`, 'stage');
+      this.hud.banner(MODES[this.mode].night ? m.hour : `STAGE ${this.stage + 1}`, `${m.name} · ${m.en}`, 'stage');
+      if (MODES[this.mode].night) this.nightLine(m);
       this.waves.state = 'intermission';
       this.waves.timer = 2.6;
     }
@@ -1556,7 +1607,8 @@ class Game {
     this.level.waveEnd(); // shutters roll back up
     this.addFocus(0.35);
     this.player.hp = PLAYER.hp;
-    const next = stageEnd ? ` · 下一站：${MAPS[(this.startMap + this.stage + 1) % MAPS.length].name}` : '';
+    const next = stageEnd ? ` · 下一站：${this.mapAt(this.stage + 1).name}` : '';
+    if (stageEnd && MODES[this.mode].night && !this.replay) this.night.cleared(this.routeAt + this.stage, NIGHT.length); // kept: the next night starts after it
     this.hud.banner(stageEnd ? 'STAGE CLEAR' : 'WAVE CLEAR', `+${bonus.toLocaleString('en-US')} · 生命值回滿${next}`, 'clear');
     this.audio.waveClear();
   }
@@ -1570,6 +1622,7 @@ class Game {
     this.achievements.clear();
     this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt, shots: this.waves.shots });
     this.score.bonus('RUN CLEAR', bonus);
+    if (MODES[this.mode].night && !this.replay) this.night.cleared(NIGHT.length - 1, NIGHT.length); // the whole night: the next starts at its start
     this.player.invuln = 99; // nothing still flying can take the run away now
     this.clearT = 2.6;
     this.hud.banner('RUN CLEAR', `全部 ${n} 波清空 · +${bonus.toLocaleString('en-US')}`, 'clear');
@@ -1637,6 +1690,7 @@ class Game {
     this.last = now;
     this.time += realDt;
     this.pollPad();
+    this.pollTouch();
     if (this.state !== 'paused') {
       this.updateAim();
       if (this.state === 'playing' || this.state === 'dying') this.updatePlay(this.playDt(realDt));
@@ -1677,8 +1731,23 @@ class Game {
     if (this.state === 'playing' || this.state === 'dying') this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'input', device: this.padOn ? 'pad' : 'keyboard' });
   }
 
+  /**
+   * Once a display frame on a phone: the touch sticks (input.js pollTouch), and the 子彈時間 button, which is bullet
+   * time for as long as it is held: a press of the focus control when it goes down with bullet time off, and another
+   * when it comes up with it on (the record keeps presses, as from the keyboard).
+   */
+  pollTouch() {
+    if (!this.touchOn) return;
+    this.input.pollTouch();
+    const held = this.input.touch.focus;
+    if (held === this.touchFocus) return;
+    this.touchFocus = held;
+    if (this.state === 'playing' && held !== this.focusActive) this.input.pressed.add('KeyQ');
+  }
+
   updateAim() {
-    if (this.input.pad && this.input.usingPad) this.padAim();
+    if (this.touchOn && this.input.usingTouch) this.stickAim(this.input.touch.aimStick, TOUCH.deadzone);
+    else if (this.input.pad && this.input.usingPad) this.padAim();
     else {
       const m = this.input.mouse;
       this.ndc.set((m.x / innerWidth) * 2 - 1, -(m.y / innerHeight) * 2 + 1);
@@ -1697,9 +1766,13 @@ class Game {
    * the step's aim, so a replay needs none of it.
    */
   padAim() {
+    this.stickAim(this.input.padStick, PAD.deadzone);
+  }
+
+  /** Aim along a stick `s` (x right, y down the screen; a pad's right stick or the right thumb on a phone): see padAim. */
+  stickAim(s, deadzone) {
     const p = this.player;
-    const s = this.input.padStick;
-    if (Math.hypot(s.x, s.y) > PAD.deadzone) {
+    if (Math.hypot(s.x, s.y) > deadzone) {
       const c = Math.cos(this.camYaw);
       const n = Math.sin(this.camYaw);
       this.padDir.set(s.x * c + s.y * n, -s.x * n + s.y * c).normalize();

@@ -61,12 +61,12 @@ after(async () => {
   await h.close();
 });
 
-test('the modes: arcade and the daily play in beats, endless does not', async () => {
+test('the modes: arcade, the daily and 澳門一夜 play in beats, endless does not', async () => {
   const m = await page.evaluate(async () => {
     const { MODES } = await import('/src/waves.js');
     return Object.fromEntries(Object.entries(MODES).map(([k, v]) => [k, !!v.beats]));
   });
-  assert.deepEqual(m, { arcade: true, endless: false, daily: true });
+  assert.deepEqual(m, { arcade: true, endless: false, daily: true, night: true });
 });
 
 // (wave 4 is a stage's boss now, boss.js: the waves in beats are the others)

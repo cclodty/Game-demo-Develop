@@ -56,16 +56,17 @@ performance and "does it feel good" are the developer's calls; ask for them.
 ```
 index.html, style.css        HUD / menu DOM and styles; importmap → vendor/three
 src/main.js                  Game: fixed 120 Hz logic steps + per-frame present, time scale (bullet time, hit-stop, kill-cam), camera views, screens
-src/input.js  replay.js      live keyboard/mouse/gamepad (standard layout mapped onto BUTTONS) → one StepInput per logic step; the run's input record (changes only), the last ten kept as replays (.bbr)
+src/input.js  replay.js      live keyboard/mouse/gamepad (standard layout mapped onto BUTTONS)/touch on a phone (a stick under each thumb, bullet time held: the same bits and aim) → one StepInput per logic step; the run's input record (changes only), the last ten kept as replays (.bbr)
 src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, VIEWS
 src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS and the AI state machine
 src/weapons.js bullets.js    player weapon stats, drops, grenades (the launcher's, and the grenadier's lobbed ones: ring, fuse, kick back, AIRBURST); projectile stepping and ricochet
-src/waves.js  pickups.js     MODES (arcade: 12 waves, then RUN CLEAR; endless), wave composition and spawn pacing; floor weapons and pads
+src/waves.js  pickups.js     MODES (arcade: 12 waves, then RUN CLEAR; endless; daily; night), wave composition and spawn pacing; floor weapons and pads
+src/night.js                 澳門一夜: the maps in order of the hour each is set at (maps.js `hour`, `line`), how far the night has got (kept in this browser)
 src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 7 maps as data (福隆新街's walls built from its `shops`, 東望洋跑道's barriers from `guiaBarriers`, 大三巴's steps from its `ground`: everything is drawn at its height over the ground there, `groundY`)
 src/nav.js                   grid A* on 0.5 m cells
 src/rng.js                   seeded RNG: game.rng for logic (?seed=), vfxRng behind utils.js rand/pick for effects
 src/characters.js  skin.js   block rigs + weapon models (and the drone's block quadcopter, shaped like a rig), KEY_POSES (slide, spin, kick, carry), HOLDS (how each thing picked up is held: grip, arm directions at rest and in use); optional skinned models worn over the rig (IK hands and key-pose feet)
-src/models.js                loads assets/models/*.glb, fits props to map boxes; src/models-index.js is generated
+src/models.js                loads assets/models/*.glb, merges a made prop's meshes into one a material (a crate comes as 76), fits props to map boxes; src/models-index.js is generated
 src/asset-manifest.js        catalogue of every asset we want as a real model (sizes, budgets, prompts)
 src/cutaway.js  postfx.js    camera→player cut-away shader and the map fades (maps.js `fade`: past the play area; `follow`: whole buildings between camera and player); bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
@@ -199,8 +200,11 @@ merges `<id>@clip.glb` animations, writes `assets/models/` and
   about 3.5 MB more of GLB away.
 - Each map carries a render `budget` (triangles and draw calls per frame, all
   passes) in `maps.js`; `test/maps.test.mjs` fails when a frame exceeds it.
-  Draw calls, not triangles, are the weak-GPU problem (rooftop, docks and
-  Senado are all over 1,300). Real-GPU numbers reach you only through the
+  Draw calls, not triangles, are the weak-GPU problem. Every map starts under
+  300 since made props are merged by material when they load (models.js
+  `mergeByMaterial`; Rua da Felicidade, about 600, is its own walls). A new
+  model with many materials, or set dressing in many meshes, puts them back
+  up: merge it (maps.js `boxes`, InstancedMesh). Real-GPU numbers reach you only through the
   developer's notes export (`perfLine`); `?quality=low` turns bloom and
   shadows off for comparison.
 - GitHub Pages deploys `main` (`.github/workflows/pages.yml`); CI

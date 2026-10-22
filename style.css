@@ -569,6 +569,165 @@ body.playing * {
   text-shadow: 0 0 24px rgba(255, 51, 85, 0.7);
 }
 
+/* 手機版 ①: the touch layer (main.js touchOn, input.js enableTouch), only on a phone and only in a run:
+   a stick appears where each thumb comes down, the left one cyan (moving), the right one pink (aiming, firing) */
+#touch {
+  display: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.touch.playing #touch {
+  display: block;
+}
+
+/* the keyboard's and the pad's key strips mean nothing under a thumb */
+body.touch #hint,
+body.touch #hint-pad {
+  display: none;
+}
+
+#touch .stick {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border: 2px solid rgba(46, 232, 255, 0.5);
+  border-radius: 50%;
+  background: rgba(46, 232, 255, 0.08);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#touch .stick.aim {
+  border-color: rgba(255, 63, 164, 0.55);
+  background: rgba(255, 63, 164, 0.08);
+}
+
+#touch .stick.on {
+  opacity: 1;
+}
+
+#touch .stick i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border-radius: 50%;
+  background: rgba(240, 240, 255, 0.4);
+}
+
+#touch-focus {
+  position: absolute;
+  right: 18px;
+  top: 30%;
+  width: 92px;
+  height: 92px;
+  border: 2px solid rgba(155, 107, 255, 0.8);
+  border-radius: 50%;
+  background: rgba(155, 107, 255, 0.2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+#touch-focus span {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 1px;
+  opacity: 0.75;
+}
+
+#touch-pause {
+  position: absolute;
+  left: 50%;
+  top: 54px;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border: 1px solid rgba(240, 240, 255, 0.4);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+/* 澳門一夜: the line that opens a stage (hud.js nightLine) */
+#night-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 17%;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#night-line.show {
+  animation: night-line 5.6s ease-out forwards;
+}
+
+#night-line .nl-hour {
+  font-family: var(--display);
+  font-size: 30px;
+  letter-spacing: 6px;
+  color: #b48cff;
+  text-shadow: 0 0 16px rgba(180, 140, 255, 0.7);
+}
+
+#night-line .nl-zh {
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--ink);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+#night-line .nl-en {
+  margin-top: 2px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--ink);
+  opacity: 0.75;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
+}
+
+@keyframes night-line {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  8%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+#night-over {
+  margin-left: 8px;
+  padding: 2px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  background: rgba(180, 140, 255, 0.18);
+  border: 1px solid rgba(180, 140, 255, 0.6);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
 #toast {
   position: absolute;
   left: 0;

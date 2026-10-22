@@ -61,6 +61,14 @@
 
       <div id="feed"></div>
       <div id="banner"></div>
+      <!-- a phone (手機版 ①, main.js touchOn): a stick under each thumb, bullet time held, a pause -->
+      <div id="touch">
+        <div class="stick move"><i></i></div>
+        <div class="stick aim"><i></i></div>
+        <button type="button" id="touch-focus">子彈時間<span>BULLET TIME</span></button>
+        <button type="button" id="touch-pause" aria-label="暫停 PAUSE">❚❚</button>
+      </div>
+      <div id="night-line"></div>
       <div id="toast"></div>
       <div id="prompt"></div>
       <div id="tutorial"></div>
@@ -105,7 +113,7 @@
         </div>
         <div class="mode-row">
           <h3 class="maps-title">選擇模式</h3>
-          <div id="mode-cards" class="modes"></div>
+          <div id="mode-cards" class="modes three"></div>
         </div>
         <button type="button" id="open-rules" class="rules-line" aria-expanded="false" aria-controls="rules-fold">
           <span class="rules-zh">規則與外觀</span><span class="rules-en">RULES</span><span id="rules-summary"></span><span class="rules-more">更改</span>
@@ -124,7 +132,7 @@
             <div id="coat-cards" class="modes four"></div>
           </div>
         </div>
-        <h3 class="maps-title">選擇起點場景 <span id="maps-note">每 3 波換一個場景</span></h3>
+        <h3 class="maps-title">選擇起點場景 <span id="maps-note">每 3 波換一個場景</span> <button type="button" id="night-over" class="hidden">由頭再來 START OVER</button></h3>
         <div id="map-cards" class="maps"></div>
         <div class="telemetry-switch" id="telemetry-switch">
           <label><input type="checkbox" id="telemetry-on" checked /> 在這部電腦記錄每局的事件（開局、每波、死因、時長、有沒有再開一局），匯出回饋時一併帶上。不會上傳。</label>

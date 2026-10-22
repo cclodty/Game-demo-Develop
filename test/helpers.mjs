@@ -19,10 +19,13 @@ export async function gameHarness() {
   return {
     server,
     browser,
-    /** Open the game; resolves once window.game exists. `logs` collects errors and warnings. */
-    async open(query = '') {
+    /**
+     * Open the game; resolves once window.game exists. `logs` collects errors and warnings. `device` is more for
+     * the page (a phone: `{ viewport, hasTouch: true, isMobile: true }`, test/touch.test.mjs).
+     */
+    async open(query = '', device = {}) {
       // reduced motion: the title's looping pulse would redraw the page at 60 Hz in SwiftShader (style.css)
-      const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, reducedMotion: 'reduce' });
+      const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, reducedMotion: 'reduce', ...device });
       const logs = [];
       page.on('console', (m) => {
         if (m.type() === 'error' || m.type() === 'warning') logs.push(`[${m.type()}] ${m.text()}`);
