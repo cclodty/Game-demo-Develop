@@ -150,6 +150,18 @@ test('checks: with `water` the harbour is an edge too (a quay from a wall to the
   assert.ok(measure(map, { type: 'gap', at: [0, -8], axis: 'z' }) > 400, 'the water is no wall to a plain gap');
 });
 
+test('checks: with `over` only walls taller than that count: a street wall to wall across the guardrails in it', () => {
+  // two buildings 40 m apart, a 1 m guardrail each side of a track between them, and a 1.1 m tyre wall
+  const map = {
+    solids: [{ x: -4, z: 0, w: 0.3, d: 30, h: 1, kind: 'rail' }, { x: 4, z: 0, w: 0.3, d: 30, h: 1, kind: 'rail' }, { x: 10, z: 0, w: 0.9, d: 0.9, h: 1.1, kind: 'tyres' }],
+    buildings: [{ footprint: [[-30, -15], [-20, -15], [-20, 15], [-30, 15]], height: 30 }, { footprint: [[20, -15], [30, -15], [30, 15], [20, 15]], height: 20 }],
+    playable: { width: 60, depth: 30 },
+  };
+  assert.ok(Math.abs(measure(map, { type: 'gap', at: [0, 0], axis: 'x' }) - 7.7) < 1e-9, 'rail to rail: the track');
+  assert.equal(measure(map, { type: 'gap', at: [0, 0], axis: 'x', over: 3 }), 40, 'building to building: the street');
+  assert.ok(Math.abs(measure(map, { type: 'gap', at: [0, 0], axis: 'x', over: 1 }) - 29.55) < 1e-9, 'a 1.1 m tyre wall is over 1 m');
+});
+
 test('plan: an area larger than the view, every corner outside it (a harbour), is still drawn, in its colour', () => {
   const m = buildMassing({ id: 't', origin: O, rotDeg: 0, half: 200 }, rawSample());
   m.areas.push({ kind: 'natural=bay', name: 'bay', ring: [[-900, -900], [900, -900], [900, 900], [-900, 900], [-900, -900]] });
@@ -223,4 +235,32 @@ test('Senado: the study’s real values are measured on senado/ itself, the city
     if (c.game.type === 'value') assert.ok(readme.includes(`| ${c.real} → `), `${c.id}: ${c.real} m is a radius in senado/README.md's fountain table`);
     else assert.ok(Math.abs(measure(real, c.game) - c.real) < 0.01, `${c.id}: ${measure(real, c.game).toFixed(2)} on senado/'s outlines, the study says ${c.real}`);
   }
+});
+
+test('a race circuit (an OSM type=circuit relation): its track and pit lane come out as lines, and the plan draws the racing line', () => {
+  const raw = rawSample();
+  const { toLatLon } = projection(O);
+  const node = (id, x, y) => {
+    const [lat, lon] = toLatLon(x, y);
+    raw.elements.push({ type: 'node', id, lat, lon });
+    return id;
+  };
+  raw.elements.push(
+    { type: 'way', id: 7, nodes: [node(800, -60, 30), node(801, 0, 30), node(802, 40, 60)], tags: { highway: 'primary', name: '大馬路' } },
+    { type: 'way', id: 8, nodes: [node(900, -60, 24), node(901, 0, 24)], tags: { highway: 'service' } },
+    { type: 'way', id: 9, nodes: [node(950, 900, 900), node(951, 950, 900)], tags: { highway: 'primary' } }, // a member far outside the box
+    { type: 'relation', id: 77, tags: { type: 'circuit', name: '跑道' }, members: [{ type: 'way', ref: 7, role: '' }, { type: 'way', ref: 8, role: 'pit_lane' }, { type: 'way', ref: 9, role: '' }] },
+  );
+  const m = buildMassing({ id: 't', origin: O, rotDeg: 0, half: 200 }, raw);
+  assert.deepEqual(m.circuit.map((c) => [c.id, c.relation, c.role]), [['w7', 'r77', 'track'], ['w8', 'r77', 'pit_lane']]);
+  assert.ok(Math.abs(m.circuit[0].length - (60 + Math.hypot(40, 30))) < 0.05, 'its length along the way');
+  assert.ok(Math.abs(m.circuit[0].line[1][1] - 30) < 0.01 && Math.abs(m.circuit[0].line[1][0]) < 0.01, 'on the study plane');
+  // a study with no circuit keeps its massing as it was: no empty list written
+  assert.ok(!('circuit' in buildMassing({ id: 't', origin: O, rotDeg: 0, half: 200 }, rawSample())));
+  const svg = drawPlan({ id: 't', name: '測試', en: 'Test', rotDeg: 0, plan: { view: [-80, -80, 80, 80] } }, m, null);
+  assert.match(svg, /<g id="circuit"[^>]*>\s*<polyline points="-60,-30 0,-30 40,-60"[^>]*\/>/, 'the track, in game coordinates (north up the page)');
+  assert.match(svg, /<polyline points="-60,-24 0,-24"[^>]*stroke-dasharray/, 'the pit lane, dashed');
+  assert.match(svg, /賽道/, 'and in the key');
+  assert.equal((svg.match(/<g[ >]/g) || []).length, (svg.match(/<\/g>/g) || []).length, 'every group closed');
+  assert.doesNotMatch(drawPlan({ id: 't', name: '測試', en: 'Test', rotDeg: 0 }, buildMassing({ id: 't', origin: O, rotDeg: 0, half: 200 }, rawSample()), null), /id="circuit"/);
 });

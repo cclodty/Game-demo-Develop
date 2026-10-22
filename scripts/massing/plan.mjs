@@ -87,6 +87,11 @@ export function drawPlan(site, massing, map = null) {
     if (!inView(r.line) || r.tunnel) continue;
     add(`<polyline points="${pts(r.line)}" stroke="#fdfcf8" stroke-width="${f(r.width)}"/>`);
   }
+  if (massing.circuit) {
+    // a race circuit: the track's middle line, the pit lane dashed (the racing line of a map rebuilt there)
+    add('</g><g id="circuit" fill="none" stroke="#d81b60" stroke-linecap="round" stroke-linejoin="round">');
+    for (const c of massing.circuit) if (inView(c.line)) add(`<polyline points="${pts(c.line)}" stroke-width="0.8"${c.role === 'track' ? '' : ' stroke-dasharray="2 1.2"'}/>`);
+  }
   add('</g><g id="steps" fill="none">');
   for (const s of massing.steps) {
     if (!inView(s.line) || s.tunnel) continue;
@@ -156,10 +161,12 @@ export function drawPlan(site, massing, map = null) {
     ['#e7d6b0', '石階（每條紋一級，示意）'],
     ['#e6283c', '遊戲現在的碰撞體'],
     ['#0090c0', '遊戲的可玩範圍與戰區'],
+    ...(massing.circuit ? [['#d81b60', '賽道的中線（OSM 的賽道 relation；虛線是維修站通道）']] : []),
   ];
   legend.forEach(([c, t], i) => add(`<rect x="${f(lx + (i % 2) * 48)}" y="${f(by + Math.floor(i / 2) * 3.2 - 0.2)}" width="2" height="1.6" fill="${c}"/><text x="${f(lx + (i % 2) * 48 + 3)}" y="${f(by + Math.floor(i / 2) * 3.2 + 1.2)}" font-size="${k}" fill="#2a241e">${esc(t)}</text>`));
-  add(`<text x="${f(x0 + 3)}" y="${f(by + 7)}" font-size="2.2" fill="#2a241e" font-weight="bold">${esc(site.name)} ${esc(site.en)}：量體研究平面圖</text>`);
-  add(`<text x="${f(x0 + 3)}" y="${f(by + 9.6)}" font-size="1.6" fill="#5a5048">${esc(massing.attribution)}；OSM 抽取 ${esc(massing.fetched)}；旋轉 ${site.rotDeg}°；scripts/massing/plan.mjs</text>`);
+  const ty = by + Math.ceil(legend.length / 2) * 3.2 + 0.6; // the title under the key's last row
+  add(`<text x="${f(x0 + 3)}" y="${f(ty)}" font-size="2.2" fill="#2a241e" font-weight="bold">${esc(site.name)} ${esc(site.en)}：量體研究平面圖</text>`);
+  add(`<text x="${f(x0 + 3)}" y="${f(ty + 2.6)}" font-size="1.6" fill="#5a5048">${esc(massing.attribution)}；OSM 抽取 ${esc(massing.fetched)}；旋轉 ${site.rotDeg}°；scripts/massing/plan.mjs</text>`);
   add('</svg>');
   return `${out.join('\n')}\n`;
 }

@@ -6,8 +6,8 @@
 // Reads massing/<id>/site.json and data/osm_raw.json, writes data/massing.json:
 // every building with its outline and a height and where the height came from,
 // the streets and footpaths with a width, the steps with their length and step
-// count, walls and fences, areas (squares, parks, water, piers) and street
-// furniture, in metres on the study's plane (x east, y north; scripts/massing/
+// count, walls and fences, areas (squares, parks, water, piers), street
+// furniture and a race circuit's track and pit lane, in metres on the study's plane (x east, y north; scripts/massing/
 // geo.mjs). Heights without an OSM tag are estimated the way senado/ does it:
 // the median of the known heights in the same footprint class. The same input
 // always writes the same file.
@@ -196,6 +196,19 @@ export function buildMassing(site, raw) {
     }
   }
 
+  // a race circuit (OSM type=circuit relations): its member ways in the box, the track and the pit lane, as lines;
+  // the racing line of a map rebuilt there runs down the middle of these roads
+  const circuit = [];
+  for (const r of raw.elements) {
+    if (r.type !== 'relation' || !r.tags || r.tags.type !== 'circuit') continue;
+    for (const m of r.members) {
+      if (m.type !== 'way' || !ways.has(m.ref)) continue;
+      const pts = line(ways.get(m.ref).nodes);
+      if (!pts || !inBox(pts)) continue;
+      circuit.push({ id: `w${m.ref}`, relation: `r${r.id}`, role: m.role || 'track', line: pts, length: round(lengthOf(pts), 1) });
+    }
+  }
+
   // street furniture and the named points
   const points = [];
   for (const n of nodes.values()) {
@@ -234,6 +247,7 @@ export function buildMassing(site, raw) {
     barriers: barriers.sort(byId),
     points: points.sort(byId),
     landmarks,
+    ...(circuit.length ? { circuit: circuit.sort(byId) } : {}),
   };
 }
 

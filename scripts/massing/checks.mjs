@@ -5,8 +5,9 @@
 // Each `game` measurement reads the map's export (assets/maps/<id>.json, plain
 // data, kept in step with src/maps.js by test/assets.test.mjs):
 //
-//   gap     { at: [x, z], axis: 'x' | 'z', water? }  wall to wall through a point: a street's width; with
-//           `water` the map's water (export `water`, boxes) is an edge too: a quay from a wall to the harbour
+//   gap     { at: [x, z], axis: 'x' | 'z', water?, over? }  wall to wall through a point: a street's width; with
+//           `water` the map's water (export `water`, boxes) is an edge too: a quay from a wall to the harbour;
+//           with `over` only walls taller than that many metres count: a street across the guardrails in it
 //   height  { at: [x, z] }                   the tallest solid or building over a point
 //   ground  { at: [x, z] }                   the ground's height there (the steps' profile; 0 elsewhere)
 //   span    { kind, axis }                   how far the solids of one kind reach along an axis (a façade's width)
@@ -34,10 +35,11 @@ function inPoly(x, z, poly) {
   return inside;
 }
 
-/** How far along (dx, dz) from (x, z) the first wall is: a box side or a building's outline (and the water, `water`). */
-function rayDistance(map, x, z, dx, dz, max = 400, water = false) {
+/** How far along (dx, dz) from (x, z) the first wall is: a box side or a building's outline (and the water, `water`), taller than `over`. */
+function rayDistance(map, x, z, dx, dz, max = 400, water = false, over = -Infinity) {
   let best = max;
-  for (const b of water ? [...boxes(map), ...waterBoxes(map)] : boxes(map)) {
+  const walls = boxes(map).filter((b) => b.h > over);
+  for (const b of water ? [...walls, ...waterBoxes(map)] : walls) {
     // slab test, from a point outside the box
     let t0 = -Infinity;
     let t1 = Infinity;
@@ -54,6 +56,7 @@ function rayDistance(map, x, z, dx, dz, max = 400, water = false) {
     if (t0 <= t1 && t0 > 0) best = Math.min(best, t0);
   }
   for (const bld of map.buildings || []) {
+    if (over > -Infinity && !(bld.height > over)) continue;
     const p = bld.footprint;
     for (let i = 0; i < p.length; i++) {
       const [ax, az] = p[i];
@@ -83,7 +86,8 @@ export function measure(map, g) {
     case 'gap': {
       const [x, z] = g.at;
       const [dx, dz] = g.axis === 'x' ? [1, 0] : [0, 1];
-      return rayDistance(map, x, z, dx, dz, 400, g.water) + rayDistance(map, x, z, -dx, -dz, 400, g.water);
+      const over = g.over ?? -Infinity;
+      return rayDistance(map, x, z, dx, dz, 400, g.water, over) + rayDistance(map, x, z, -dx, -dz, 400, g.water, over);
     }
     case 'height': {
       const [x, z] = g.at;
