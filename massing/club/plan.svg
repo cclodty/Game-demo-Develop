@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="830" viewBox="-55 -45 110 103.75" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif">
+<rect x="-55" y="-45" width="110" height="103.75" fill="#f5f2eb"/>
+<clipPath id="view"><rect x="-55" y="-45" width="110" height="90"/></clipPath><g clip-path="url(#view)">
+<g id="areas">
+<polygon points="-16.98,39.34 -18.12,70.42 19.84,71.74 20.18,40.5" fill="#e2e2e2"/>
+<polygon points="-19.68,-42.96 -9.17,-42.52 17.01,-42.03 22.22,-41.93 22.29,-46.65 23.22,-106.75 23.29,-111.09 20.39,-111.15 -8.11,-111.7 -18.45,-112.13 -48.57,-112.77 -49.69,-48.96 -49.78,-43.61" fill="#ece7de"/>
+<polygon points="127.1,-43.75 89.29,-36.09 81.7,-34.59 42.36,-27.89 37.71,-27.09 37.76,-23.92 38.22,0.33 38.66,23 38.73,25.97 43.04,25.2 92.16,16.28 100.07,14.84 141.66,7.3 146.34,6.45 142.76,-15.35 142.29,-18.3 141.22,-24.85 137.83,-45.91" fill="#ece7de"/>
+<polygon points="-60.49,36.93 -60.75,55.17 -60.94,67.67 -19.06,68.46 -18.6,37.72" fill="#ece7de"/>
+</g><g id="roads" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="28.94,-40.18 29.04,-54.11 29.52,-82.41 29.82,-105.26 29.97,-110.81" stroke="#cbc2b1" stroke-width="9.5"/>
+<polyline points="159.11,10.95 143.63,13.92 96.1,23.03 36.33,34.48 27.91,36.11" stroke="#cbc2b1" stroke-width="6.5"/>
+<polyline points="28.94,-40.18 17.94,-40.41 -14.9,-41.1 -51.91,-41.86 -64.33,-42.12" stroke="#cbc2b1" stroke-width="8.5"/>
+<polyline points="26.66,128.52 26.82,116.94 27.12,93.79 27.35,77.7 27.91,36.11 28.81,-30.54 28.94,-40.18" stroke="#cbc2b1" stroke-width="9.5"/>
+<polyline points="-51.91,-41.86 -50.62,-108.31 -50.5,-113.91 -50.4,-119.52 -50.22,-129.14 -48.96,-193.4 -48.56,-214.07" stroke="#cbc2b1" stroke-width="6.5"/>
+<polyline points="-12.09,-213.34 -12.41,-193.1 -13.46,-129.02 -13.64,-118.63 -13.77,-110.08 -14.9,-41.1" stroke="#cbc2b1" stroke-width="6.5"/>
+<polyline points="146.02,-56.96 88.47,-46.08 84.15,-45.26 82.98,-45.04 54.39,-39.65 42.57,-39.89 28.94,-40.18" stroke="#cbc2b1" stroke-width="6.5"/>
+<polyline points="28.94,-40.18 29.04,-54.11 29.52,-82.41 29.82,-105.26 29.97,-110.81" stroke="#fdfcf8" stroke-width="9"/>
+<polyline points="159.11,10.95 143.63,13.92 96.1,23.03 36.33,34.48 27.91,36.11" stroke="#fdfcf8" stroke-width="6"/>
+<polyline points="28.94,-40.18 17.94,-40.41 -14.9,-41.1 -51.91,-41.86 -64.33,-42.12" stroke="#fdfcf8" stroke-width="8"/>
+<polyline points="26.66,128.52 26.82,116.94 27.12,93.79 27.35,77.7 27.91,36.11 28.81,-30.54 28.94,-40.18" stroke="#fdfcf8" stroke-width="9"/>
+<polyline points="-51.91,-41.86 -50.62,-108.31 -50.5,-113.91 -50.4,-119.52 -50.22,-129.14 -48.96,-193.4 -48.56,-214.07" stroke="#fdfcf8" stroke-width="6"/>
+<polyline points="-12.09,-213.34 -12.41,-193.1 -13.46,-129.02 -13.64,-118.63 -13.77,-110.08 -14.9,-41.1" stroke="#fdfcf8" stroke-width="6"/>
+<polyline points="146.02,-56.96 88.47,-46.08 84.15,-45.26 82.98,-45.04 54.39,-39.65 42.57,-39.89 28.94,-40.18" stroke="#fdfcf8" stroke-width="6"/>
+</g><g id="steps" fill="none">
+</g><g id="barriers" fill="none" stroke="#6b5f50" stroke-width="0.35">
+</g><g id="buildings" stroke="#4f473e" stroke-width="0.14">
+<polygon points="-22.32,14.81 21.79,14.81 21.95,-14.52 -21.42,-15.08" fill="hsl(30 8% 45%)"/>
+<polygon points="-24.16,14.87 -24.84,36.62 -6.25,36.4 8.12,36.89 20.76,37.45 21.01,31.28 21.52,20.42 21.79,14.81 -22.32,14.81" fill="hsl(30 8% 55%)" fill-opacity="0.75" stroke-dasharray="0.6 0.4"/>
+<polygon points="7.82,20.23 7.92,15.87 -6.74,16.04 -6.76,20.98 -14.81,20.69 -15.11,30.74 -6.03,31.12 -6.25,36.4 8.12,36.89 8.35,30.75 21.01,31.28 21.52,20.42" fill="hsl(30 8% 40%)"/>
+<polygon points="-5.82,-31.93 -25.27,-31.98 -25.26,-22.26 -22.84,-22.25 -22.83,-18.66 22.13,-18.55 22.25,-24.23 22.34,-28.05 21.7,-29.9 20.26,-31.18 18,-31.87" fill="hsl(30 8% 55%)"/>
+<polygon points="-27.95,8.2 -59.13,8.02 -59.98,36.2 -51.15,36.27 -29.69,36.44 -29.31,25.3 -26.31,25.2 -26.21,20.51 -28.96,20.59" fill="hsl(30 8% 72%)"/>
+<polygon points="61.43,49.45 62.39,53.05 65.76,52.17 66.4,75.57 75.31,75.35 74.8,58.38 78.27,58.28 78.03,50.25 87.55,47.1 86.36,73.84 95.79,74.29 97.06,45.56 106.76,43.23 106.05,34.48 58.4,44.9 54.83,42.72 50.67,42.15 48.43,42.75 46.65,43.23 43.37,45.82 41.38,49.51 40.99,53.68 42.25,57.68 44.68,60.87 45.14,75.45 54.52,75.18 54.08,61.49 51.18,61.57 50.9,52.21" fill="hsl(30 8% 42%)"/>
+<polygon points="-55,-30.37 -57.65,-27.5 -58.61,-10.07 -59.13,8.02 -27.95,8.2 -26.94,-30.58 -52.47,-31.23" fill="hsl(30 8% 52%)"/>
+<polygon points="23.29,-111.09 20.39,-111.15 -8.11,-111.7 -9.1,-47.08 -9.17,-42.52 17.01,-42.03 22.22,-41.93 22.29,-46.65 23.22,-106.75" fill="hsl(30 8% 67%)"/>
+<polygon points="-18.45,-112.13 -48.57,-112.77 -49.69,-48.96 -49.78,-43.61 -19.68,-42.96 -19.59,-47.34" fill="hsl(30 8% 64%)"/>
+<polygon points="43.04,25.2 92.16,16.28 87.17,-8.26 38.22,0.33 38.66,23 38.73,25.97" fill="hsl(30 8% 48%)"/>
+<polygon points="87.17,-8.26 81.7,-34.59 42.36,-27.89 37.71,-27.09 37.76,-23.92 38.22,0.33" fill="hsl(30 8% 48%)"/>
+<polygon points="107.27,30.8 47.82,41.37 43.92,43.57 41.2,46.26 39.93,49.33 40.01,52.83 40.52,79.09 106.88,79.76" fill="hsl(30 8% 55%)" fill-opacity="0.75" stroke-dasharray="0.6 0.4"/>
+<polygon points="-51.15,36.27 -51.24,40.48 -41.08,40.55 -41.5,55.76 -26.88,55.62 -26.09,36.41 -29.69,36.44" fill="hsl(30 8% 74%)" fill-opacity="0.75" stroke-dasharray="0.6 0.4"/>
+</g><g id="points">
+<circle cx="48.59" cy="-33.27" r="0.4" fill="#7a6a5a" fill-opacity="1"/>
+<circle cx="36.33" cy="34.48" r="0.4" fill="#7a6a5a" fill-opacity="1"/>
+<circle cx="17.94" cy="-40.41" r="0.4" fill="#7a6a5a" fill-opacity="1"/>
+<circle cx="28.81" cy="-30.54" r="0.4" fill="#c03030" fill-opacity="1"/>
+<circle cx="42.57" cy="-39.89" r="0.4" fill="#c03030" fill-opacity="1"/>
+</g><g id="heights" font-size="1.6" fill="#2a241e" text-anchor="middle">
+<text x="0" y="0.55">54.4</text>
+<text x="1.74" y="27.61">42.7?</text>
+<text x="1.59" y="26.5">77.7</text>
+<text x="2.24" y="-25.89">42.5</text>
+<text x="-37.63" y="24.63">22.6</text>
+<text x="-48.25" y="-15.67">46.4</text>
+</g><g id="names" font-size="2.4" fill="#8a3c0c" text-anchor="middle" font-weight="bold">
+</g>
+<g id="game" fill="#e6283c" fill-opacity="0.16" stroke="#e6283c" stroke-width="0.3">
+<rect x="-17" y="-10.8" width="4" height="1.2"/>
+<rect x="-11" y="-10.8" width="4" height="1.2"/>
+<rect x="4" y="-10.8" width="4" height="1.6"/>
+<rect x="2" y="-11.2" width="1.2" height="1.2"/>
+<rect x="8.8" y="-11.2" width="1.2" height="1.2"/>
+<rect x="8" y="-6" width="1" height="1"/>
+<rect x="8" y="4.5" width="1" height="1"/>
+<rect x="-9" y="4.5" width="1" height="1"/>
+<rect x="16.9" y="-6.2" width="1.4" height="4.4"/>
+<rect x="16.9" y="1.8" width="1.4" height="4.4"/>
+<rect x="14.9" y="-4.6" width="1" height="1.2"/>
+<rect x="14.9" y="3.4" width="1" height="1.2"/>
+<rect x="3.85" y="9.35" width="1.3" height="1.3"/>
+<rect x="-7.65" y="10.85" width="1.3" height="1.3"/>
+<rect x="13.25" y="8" width="0.5" height="3"/>
+<rect x="-14.1" y="0.9" width="1.2" height="1.2"/>
+</g>
+<rect x="-20" y="-14" width="40" height="28" fill="none" stroke="#0090c0" stroke-width="0.45" stroke-dasharray="1.6 0.8"/>
+<circle cx="0" cy="6.5" r="0.7" fill="#0090c0"/>
+</g>
+<g id="north" stroke="#2a241e" stroke-width="0.35" fill="#2a241e"><circle cx="47" cy="-36" r="5" fill="#fff" fill-opacity="0.8"/><line x1="43.22" y1="-34.7" x2="50.78" y2="-37.3"/><text x="52.68" y="-37.04" font-size="2.6" text-anchor="middle" stroke="none">N</text></g>
+<g id="scale" font-size="1.8" fill="#2a241e"><rect x="-52" y="47" width="10" height="0.8" fill="#2a241e"/><rect x="-42" y="47" width="40" height="0.8" fill="#fff" stroke="#2a241e" stroke-width="0.15"/><text x="-52" y="50">0</text><text x="-43" y="50">10</text><text x="-4" y="50">50 m</text></g>
+<rect x="5" y="46.8" width="2" height="1.6" fill="#7a7068"/><text x="8" y="48.2" font-size="1.8" fill="#2a241e">真實樓宇（深色較高；數字是高度，? 是估算）</text>
+<rect x="53" y="46.8" width="2" height="1.6" fill="#e7d6b0"/><text x="56" y="48.2" font-size="1.8" fill="#2a241e">石階（每條紋一級，示意）</text>
+<rect x="5" y="50" width="2" height="1.6" fill="#e6283c"/><text x="8" y="51.4" font-size="1.8" fill="#2a241e">遊戲現在的碰撞體</text>
+<rect x="53" y="50" width="2" height="1.6" fill="#0090c0"/><text x="56" y="51.4" font-size="1.8" fill="#2a241e">遊戲的可玩範圍與戰區</text>
+<text x="-52" y="54" font-size="2.2" fill="#2a241e" font-weight="bold">黑沙環的工業大廈（夜店） An industrial block in Areia Preta (the club)：量體研究平面圖</text>
+<text x="-52" y="56.6" font-size="1.6" fill="#5a5048">© OpenStreetMap contributors, ODbL 1.0 (https://www.openstreetmap.org/copyright)；OSM 抽取 2026-10-22；旋轉 -71.1°；scripts/massing/plan.mjs</text>
+</svg>
