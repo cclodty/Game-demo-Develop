@@ -75,3 +75,35 @@ test('the rooftop and the docks draw their first frame in 600 calls or fewer fro
   }
   assert.deepEqual(problems(logs), []);
 });
+
+// 合併繪製次數 ②: Largo do Senado (about 1,490 draw calls at the start) under 600, at the start and up the square
+// to its north end (the follow fade still works there: test/senado-north.test.mjs)
+test('the Senado draws its frames in 600 calls or fewer, at the start and up the square to Largo de S. Domingos', { timeout: 120000 }, async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    g.view = 2;
+    g.setMode('arcade');
+    g.setRules('normal', []);
+    g.startRun(g.maps.findIndex((m) => m.id === 'senado'));
+    g.waves.state = 'done';
+    g.enemies.clear();
+    const frames = [];
+    for (const [name, at] of [
+      ['start', null],
+      ['fountain', [0, 24]],
+      ['narrow', [1, -30]],
+      ['domingos', [-6, -62]],
+    ]) {
+      if (at) [g.player.x, g.player.z] = at;
+      g.updatePlay(1 / 60);
+      g.updateCamera(1, true);
+      g.render();
+      frames.push({ name, calls: g.renderer.info.render.calls });
+    }
+    return { frames, budget: g.level.map.budget.calls };
+  });
+  await page.screenshot({ path: new URL('drawcalls-senado-north.png', OUT).pathname });
+  for (const f of r.frames) assert.ok(f.calls <= 600, `${f.name}: ${f.calls} draw calls`);
+  assert.ok(r.budget <= 600, `its budget (${r.budget}) is 600 or fewer (${r.frames.map((f) => `${f.name} ${f.calls}`).join(", ")})`);
+  assert.deepEqual(problems(logs), []);
+});

@@ -587,7 +587,7 @@ const SENADO_IMAGES =
 
 const senado = {
   id: 'senado',
-  budget: { tris: 290000, calls: 1900 }, // rendered per frame, all passes (test/maps.test.mjs)
+  budget: { tris: 290000, calls: 500 }, // rendered per frame, all passes (test/maps.test.mjs: 208,358 and 255 at the start; 1,218 before made props were merged by material, models.js; up the square, test/drawcalls.test.mjs, about 250)
   name: '議事亭前地',
   en: 'LARGO DO SENADO',
   hour: '22:00',
