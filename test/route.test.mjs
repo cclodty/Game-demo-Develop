@@ -103,7 +103,7 @@ test('each stage ends on its boss: waves 4 and 8 shorter (3 segments, +1,000), w
     assert.ok(d4.seconds < 6 && d8.seconds < 6, `the next stage is in ${d4.seconds} s and ${d8.seconds} s after the boss is down, a thug still standing`);
     assert.equal(d12.state, 'done', 'the last boss down: the run is clear');
     assert.deepEqual([r.endless, r.endlessRoute], [[false, false], ''], 'endless has no bosses and no route');
-    assert.deepEqual(r.modes, { arcade: { segments: 3, bonus: 1000 }, daily: { segments: 3, bonus: 1000 }, endless: null });
+    assert.deepEqual(r.modes, { arcade: { segments: 3, each: 2, bonus: 1000 }, daily: { segments: 3, each: 2, bonus: 1000 }, endless: null });
     assert.deepEqual(problems(logs), []);
   } finally {
     await page.close();

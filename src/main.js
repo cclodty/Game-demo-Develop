@@ -1252,10 +1252,10 @@ class Game {
     // 澳門一夜 from where it starts to its end, each map at its hour; any other the maps after the one picked
     const maps = r.night ? NIGHT.slice(Math.max(0, NIGHT.indexOf(start))).map((i) => MAPS[i]) : Array.from({ length: Math.ceil(r.waves / r.perStage) }, (_, i) => MAPS[(start + i) % MAPS.length]);
     const stages = maps.length;
+    const named = (def) => (def.kind === 'duo' ? def.pair.map(named).join('與') : BOSSES[def.kind].cfg.route || BOSSES[def.kind].cfg.short); // two at once: 刀后與重炮
     const bosses = maps
-      .map((m, i) => (r.midBoss || i === stages - 1) && m.boss && BOSSES[m.boss.kind])
-      .filter(Boolean)
-      .map((b) => b.cfg.route || b.cfg.short);
+      .map((m, i) => (r.midBoss || i === stages - 1) && m.boss && BOSSES[m.boss.kind] && named(m.boss))
+      .filter(Boolean);
     return `${maps.map((m) => (r.night ? `${m.hour} ${m.name}` : m.name)).join(' → ')}${bosses.length ? `（頭目：${bosses.join('、')}）` : ''}`;
   }
 

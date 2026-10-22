@@ -63,6 +63,13 @@
 // runs into him) takes a segment and staggers him; a kick, a pan smash or a thug bowled into him only
 // staggers him, plate down. No crew.
 //
+// duo, two at once (雙頭目, DECISIONS 2026-10-22): on a large map the stage's boss can be two people fighting the
+// player together (maps.js `boss: { kind: 'duo', pair: [def, def] }`, each def a kind of its own with its own data).
+// The duo is the boss the rest of the game talks to: it hands each shot, blast, kick, smash and ram to whichever of
+// the two it meets, the HUD shows a bar for each (`members`), the two never start a warning within DUO.gap s of each
+// other (`mayTell`), and only when both are down is the BOSS bonus paid and the clip kept. Vehicles (heli, truck,
+// convoy) and the DJ behind his glass (`waits`) no longer stand on any map: every boss is a person (同上).
+//
 // Logic: a boss runs in the fixed steps on game.rng and the world, and resets with the run.
 
 import * as THREE from 'three';
@@ -237,6 +244,12 @@ export class Boss {
     this.bonus = 0;
     this.x = this.z = 0;
     this.pass = null; // a solid player shots fly over while this boss is on (bullets.js)
+    this.team = null; // the duo this boss is one of (Duo), or null alone
+  }
+
+  /** May it start a warning now (a red line, a ring, the blades raised)? Alone always; one of a duo, not on top of the other's. */
+  mayTell() {
+    return this.team ? this.team.mayTell(this) : true;
   }
 
   /**
@@ -307,12 +320,17 @@ export class Boss {
     this.finish();
   }
 
-  /** Down for good: the BOSS bonus, the run's clip, and the wave can end. */
+  /** Down for good: the BOSS bonus, the run's clip, and the wave can end; one of a duo tells the duo instead. */
   finish() {
     const g = this.game;
     const c = this.cfg;
     this.active = false;
     this.downed = true;
+    if (this.team) {
+      g.notes.log(`${c.downed}${c.short}`);
+      this.team.memberDown(this);
+      return;
+    }
     g.score.bonus('BOSS', this.bonus);
     g.clip.kill(Number.MAX_SAFE_INTEGER); // the boss going down is the run's clip, whatever else it had
     g.notes.log(`${c.downed}${c.short}：BOSS +${this.bonus}`);
@@ -1045,7 +1063,7 @@ class Blade extends Boss {
     switch (this.state) {
       case 'perch':
         this.faceTo(p.x, p.z, 4 * dt);
-        if (this.timer <= 0) this.dashTo(p.x, p.z, 'dash');
+        if (this.timer <= 0 && this.mayTell()) this.dashTo(p.x, p.z, 'dash');
         break;
       case 'dash':
       case 'feint':
@@ -2028,7 +2046,7 @@ class Gunner extends Boss {
     switch (this.gunState) {
       case 'idle':
         this.gunT -= dt;
-        if (this.gunT <= 0 && !this.blind && p.alive && this.state === 'walk' && Math.hypot(p.x - this.x, p.z - this.z) < G.range && g.level.hasLOS(this.x, this.z, p.x, p.z)) {
+        if (this.gunT <= 0 && !this.blind && p.alive && this.state === 'walk' && Math.hypot(p.x - this.x, p.z - this.z) < G.range && g.level.hasLOS(this.x, this.z, p.x, p.z) && this.mayTell()) {
           this.gunState = 'warn';
           this.gunTimer = G.warn;
           this.lock = { x: p.x, z: p.z };
@@ -2080,7 +2098,7 @@ class Gunner extends Boss {
     const dx = Math.sin(a);
     const dz = Math.cos(a);
     // the source is the boss as the game sees it (game.boss): its label names the bullets that hit
-    g.bullets.spawn({ x: this.x + dx * 1.2, z: this.z + dz * 1.2, dx, dz, speed: G.speed, owner: 'enemy', damage: G.dmg, range: G.range, source: g.boss });
+    g.bullets.spawn({ x: this.x + dx * 1.2, z: this.z + dz * 1.2, dx, dz, speed: G.speed, owner: 'enemy', damage: G.dmg, range: G.range, source: this.team ? this : g.boss });
     g.audio.shot('minigun', g.panFor(this.x));
   }
 
@@ -2090,7 +2108,7 @@ class Gunner extends Boss {
     const p = g.player;
     const M = GUNNER.mortar;
     this.mortarT -= dt;
-    if (this.mortarT > 0 || this.blind || !p.alive) return;
+    if (this.mortarT > 0 || this.blind || !p.alive || !this.mayTell()) return;
     this.mortarT = M.every;
     for (let i = 0; i < M.rounds; i++) {
       const a = g.rng.range(0, Math.PI * 2);
@@ -2670,6 +2688,124 @@ class Convoy extends Boss {
 }
 
 /** Every kind of boss, by the name a map's `boss.kind` uses. */
+/** Two at once (雙頭目): the duo's own numbers; each of the two keeps its kind's. */
+export const DUO = {
+  label: 'DUO',
+  name: '雙頭目',
+  short: '雙頭目',
+  downed: '打倒',
+  pull: false,
+  segments: 3, // each of the two, in the run's last wave; a stage's (waves.js MODES midBoss `each`) fewer
+  bonus: 2000,
+  gap: 0.6, // s at least between the two starting a warning (a red line, a ring of shells, the blades raised)
+};
+
+/** The two at once: one boss to the game, two inside (the comment at the top). */
+class Duo extends Boss {
+  constructor(game) {
+    super(game, DUO);
+    this.members = [];
+    this.made = []; // the members' objects by slot and kind, made once and reused (two of a kind are two objects)
+  }
+
+  /** Its wave: `def.pair` the two (each a map's boss def of its kind); `size` a stage's shorter fight. */
+  start(def, size) {
+    this.reset();
+    super.start(def, size);
+    const g = this.game;
+    const each = size ? { segments: size.each || 2, bonus: 0 } : { segments: DUO.segments, bonus: 0 };
+    this.members = def.pair.map((d, i) => {
+      const slot = this.made[i] || (this.made[i] = {});
+      const m = slot[d.kind] || (slot[d.kind] = BOSSES[d.kind].make(g));
+      m.start(d, each);
+      m.team = this;
+      return m;
+    });
+    this.segments = this.members.reduce((s, m) => s + m.segments, 0);
+    this.hp = this.segments;
+    this.lastTell = -Infinity;
+    this.lastTeller = null;
+    this.sync();
+  }
+
+  reset() {
+    for (const m of this.members) {
+      m.reset();
+      m.team = null;
+    }
+    this.members = [];
+    super.reset();
+  }
+
+  /** One of the two may start a warning: not within DUO.gap s (world time) of the other's. */
+  mayTell(m) {
+    const t = this.game.worldTime;
+    if (this.lastTeller && this.lastTeller !== m && this.lastTeller.active && t - this.lastTell < DUO.gap) return false;
+    this.lastTell = t;
+    this.lastTeller = m;
+    return true;
+  }
+
+  /** One of the two is down (its own finish): when both are, the duo is: the BOSS bonus, the clip, the wave's end. */
+  memberDown() {
+    this.sync();
+    if (this.members.every((m) => m.downed)) this.finish();
+  }
+
+  /** The duo as one boss: health the sum of the two, where it is the first one standing. */
+  sync() {
+    this.hp = this.members.reduce((s, m) => s + Math.max(0, m.hp), 0);
+    const up = this.members.find((m) => m.active) || this.members[0];
+    if (up) {
+      this.x = up.x;
+      this.z = up.z;
+    }
+  }
+
+  update(dt) {
+    if (!this.active) return;
+    for (const m of this.members) if (m.active) m.update(dt);
+    if (this.active) this.sync();
+  }
+
+  // the rest of the game talks to the duo as to one boss: each call goes to the one of the two it meets
+  blast(x, z, opts) {
+    for (const m of this.members) if (m.active) m.blast(x, z, opts);
+  }
+
+  under(x, z) {
+    return this.members.some((m) => m.active && m.under(x, z));
+  }
+
+  shotAt(x0, z0, x1, z1) {
+    let best = null;
+    for (const m of this.members) {
+      if (!m.active) continue;
+      const h = m.shotAt(x0, z0, x1, z1);
+      if (h && (!best || h.t < best.t)) best = { t: h.t, part: { member: m, part: h.part } };
+    }
+    return best;
+  }
+
+  shot(b, part) {
+    return part.member.shot(b, part.part);
+  }
+
+  shotSolid(s, b) {
+    for (const m of this.members) if (m.active) m.shotSolid(s, b);
+  }
+
+  rammed(x, z, r) {
+    return this.members.some((m) => m.active && m.rammed(x, z, r));
+  }
+
+  melee(inCone, reach, how) {
+    let struck = false;
+    for (const m of this.members) if (m.active && m.melee(inCone, reach, how)) struck = true;
+    return struck;
+  }
+}
+
 export const BOSSES = {
   heli: { make: (game) => new Heli(game), cfg: HELI },
   dj: { make: (game) => new Dj(game), cfg: DJ },
@@ -2677,7 +2813,11 @@ export const BOSSES = {
   truck: { make: (game) => new Truck(game), cfg: TRUCK },
   gunner: { make: (game) => new Gunner(game), cfg: GUNNER },
   convoy: { make: (game) => new Convoy(game), cfg: CONVOY },
+  duo: { make: (game) => new Duo(game), cfg: DUO },
 };
+
+/** Kinds no map may use any more (同一水平 and 頭目全部是人, DECISIONS 2026-10-22): vehicles, and one who only waits behind glass. */
+export const RETIRED = { heli: 'vehicle', truck: 'vehicle', convoy: 'vehicle', dj: 'waits' };
 
 /** The run's boss: none until a boss wave starts one; each kind is built once and reused. */
 export class Bosses {

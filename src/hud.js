@@ -170,15 +170,20 @@ export class HUD {
     const last = g.waves.rules.waves; // arcade runs show how far there is to go
     const waveLabel = g.waves.wave > 0 ? `WAVE ${g.waves.wave}${Number.isFinite(last) ? ` / ${last}` : ''}` : '';
     this.set('wave', waveLabel, (v) => (e.wave.textContent = v));
-    // a boss: its name and health bar, one segment a hit (a stage's boss has fewer than the run's last)
-    this.set('bossName', g.boss.active ? `${g.boss.cfg.name}/${g.boss.segments}` : '', (v) => {
+    // a boss: its name and health bar, one segment a hit (a stage's boss has fewer than the run's last); two at once
+    // (boss.js duo), a bar each, side by side
+    const bosses = g.boss.active ? g.boss.members || [g.boss] : [];
+    this.set('bossName', bosses.map((b) => `${b.cfg.name}/${b.segments}`).join('|'), (v) => {
       if (!v) return;
-      e.bossBar.querySelector('.boss-name').innerHTML = `${g.boss.cfg.name} <small>${g.boss.cfg.label}</small>`;
-      e.bossBar.querySelector('.boss-segs').innerHTML = '<i></i>'.repeat(g.boss.segments);
+      e.bossBar.classList.toggle('duo', bosses.length > 1);
+      e.bossBar.innerHTML = bosses
+        .map((b) => `<div class="boss-row"><span class="boss-name">${b.cfg.name} <small>${b.cfg.label}</small></span><span class="boss-segs">${'<i></i>'.repeat(b.segments)}</span></div>`)
+        .join('');
     });
-    this.set('boss', g.boss.active ? g.boss.hp : -1, (v) => {
-      e.bossBar.classList.toggle('hidden', v < 0);
-      [...e.bossBar.querySelectorAll('.boss-segs i')].forEach((s, i) => s.classList.toggle('lost', i >= v));
+    this.set('boss', bosses.length ? bosses.map((b) => Math.max(0, b.hp)).join('|') : '', (v) => {
+      e.bossBar.classList.toggle('hidden', !v);
+      const rows = [...e.bossBar.querySelectorAll('.boss-row')];
+      bosses.forEach((b, k) => rows[k] && [...rows[k].querySelectorAll('.boss-segs i')].forEach((s, i) => s.classList.toggle('lost', i >= b.hp)));
     });
     const wv = g.waves;
     const place = wv.rules.night ? `${g.level.map.hour} ${g.level.map.name}` : g.level.map.name; // 澳門一夜: the hour too

@@ -16,13 +16,13 @@ import { clamp } from './utils.js';
  * records store a mode's place in this list, so only ever append.
  */
 export const MODES = {
-  arcade: { name: '街機', en: 'ARCADE', color: '#ffc861', desc: '12 波一局，約十分鐘 · 打完有結算', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, bonus: 1000 }, graded: true, beats: true },
+  arcade: { name: '街機', en: 'ARCADE', color: '#ffc861', desc: '12 波一局，約十分鐘 · 打完有結算', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, beats: true },
   endless: { name: '無盡', en: 'ENDLESS', color: '#2ee8ff', desc: '打到倒下為止', waves: Infinity, perStage: 3 },
   // the daily challenge (daily.js): an arcade run on the day's seed, map and rules; started from its own title card
-  daily: { name: '每日挑戰', en: 'DAILY', color: '#ff4fa3', desc: '全世界同一局，每天一次', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, bonus: 1000 }, graded: true, daily: true, beats: true },
+  daily: { name: '每日挑戰', en: 'DAILY', color: '#ff4fa3', desc: '全世界同一局，每天一次', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, daily: true, beats: true },
   // 澳門一夜 (night.js): the maps by the hour of the night each is set at (maps.js `hour`), three waves a stage, the
   // third the map's boss where it has one; it goes on from the first stage not yet cleared (main.js route, routeAt)
-  night: { name: '澳門一夜', en: 'A NIGHT IN MACAU', color: '#b48cff', desc: '晚上八點到凌晨三點 · 打完一關存進度', waves: 21, perStage: 3, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, bonus: 1000 }, graded: true, night: true, beats: true },
+  night: { name: '澳門一夜', en: 'A NIGHT IN MACAU', color: '#b48cff', desc: '晚上八點到凌晨三點 · 打完一關存進度', waves: 21, perStage: 3, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, night: true, beats: true },
 };
 export const MODE_IDS = Object.keys(MODES);
 
