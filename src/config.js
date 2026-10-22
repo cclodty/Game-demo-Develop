@@ -165,6 +165,16 @@ export const BEATS = {
   perchClear: 5, // m: no balcony this close to the player is picked
 };
 
+/**
+ * 同一水平 (DECISIONS 2026-10-22): the player and the enemies fight on one level. Two people are on one level when the
+ * ground under them differs by at most `tol` m (maps.js `zones`; Senado's sunk fountain ring, 0.48 m down, is one level
+ * with the square). Across more, an enemy neither aims nor fires nor throws but walks to the player's level, and a
+ * bullet stops where the ground under it has risen or fallen more than `tol` from where it was fired (a step's edge).
+ */
+export const LEVELS = {
+  tol: 0.6,
+};
+
 /** Things in the maps that play along (環境互動). */
 /**
  * The race on the Guia circuit (src/race.js; the timetable and the racing line are the map's `race`): `warn` s before

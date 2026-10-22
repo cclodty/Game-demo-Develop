@@ -202,21 +202,31 @@ export class Waves {
   /**
    * Where a beat comes through: the next door in the wave's order that suits (pickSpawn, so a
    * sniper's distance counts for the whole beat), and the nearest other door within BEATS.spread
-   * m of it to share the crowd; one far from the player is never shared with.
+   * m of it to share the crowd; one far from the player is never shared with. 同一水平: the beat
+   * plays out on the player's level (level.js zones): its stage and its doors are on his zone, the
+   * nearest one when he is on the steps between two.
    */
   pickSpots(beat) {
     const far = beat.find((t) => TYPES[t].spawn && TYPES[t].spawn.minDist);
     const p = this.game.player;
-    const stages = this.game.level.map.stages;
+    const L = this.game.level;
+    const zone = L.nearestZone(p.x, p.z);
+    const here = (x, z) => L.zoneAt(x, z) === zone;
+    const stages = L.map.stages;
     if (stages && stages.length && this.stageOrder.length) {
-      // a stage to play at: the two doors nearest to it that are not on top of the player (a sniper's beat keeps his distance)
-      this.stage = stages[this.stageOrder[this.beatI % this.stageOrder.length]];
+      // a stage to play at, the next in the wave's order on the player's level: the two doors nearest to it that are
+      // not on top of the player (a sniper's beat keeps his distance)
+      const n = this.stageOrder.length;
+      let k = 0;
+      while (k < n - 1 && !here(...stages[this.stageOrder[(this.beatI + k) % n]].at)) k++;
+      this.stage = stages[this.stageOrder[(this.beatI + k) % n]];
       const min = far ? TYPES[far].spawn.minDist : 7.5;
       const [sx, sz] = this.stage.at;
-      const near = this.game.level.spawns
+      const doors = this.levelSpawns();
+      const near = doors
         .filter((sp) => Math.hypot(sp.ex - p.x, sp.ez - p.z) > min)
         .sort((a, b) => Math.hypot(a.ex - sx, a.ez - sz) - Math.hypot(b.ex - sx, b.ez - sz));
-      const spots = near.length ? near : [...this.game.level.spawns].sort((a, b) => Math.hypot(b.ex - p.x, b.ez - p.z) - Math.hypot(a.ex - p.x, a.ez - p.z));
+      const spots = near.length ? near : [...doors].sort((a, b) => Math.hypot(b.ex - p.x, b.ez - p.z) - Math.hypot(a.ex - p.x, a.ez - p.z));
       const anchor = spots[0];
       const second = spots[1] && Math.hypot(spots[1].ex - anchor.ex, spots[1].ez - anchor.ez) < BEATS.spread ? spots[1] : anchor;
       return [anchor, second];
@@ -225,7 +235,7 @@ export class Waves {
     const anchor = this.pickSpawn(far || beat[0]);
     let second = null;
     let bd = BEATS.spread;
-    for (const sp of this.game.level.spawns) {
+    for (const sp of this.levelSpawns()) {
       if (sp === anchor || Math.hypot(sp.ex - p.x, sp.ez - p.z) < 7.5) continue;
       const d = Math.hypot(sp.ex - anchor.ex, sp.ez - anchor.ez);
       if (d < bd) {
@@ -312,20 +322,33 @@ export class Waves {
   pickSpawn(type) {
     const { player, level } = this.game;
     const S = level.spawns;
+    const L = this.levelSpawns();
     const dist = (sp) => Math.hypot(sp.ex - player.x, sp.ez - player.z);
     const min = (TYPES[type] && TYPES[type].spawn && TYPES[type].spawn.minDist) || 9; // a sniper wants a far door
     for (let k = 0; k < S.length; k++) {
       const sp = S[this.order[(this.orderI + k) % S.length]];
       const d = dist(sp);
-      if (d > min && d < 45) {
+      if (d > min && d < 45 && (L === S || L.includes(sp))) {
         this.orderI += k + 1;
         return sp;
       }
     }
     // nowhere suits: the nearest point not on top of the player (the furthest, for one who wants a far door), or the next in order
-    if (min > 9) return [...S].sort((a, b) => dist(b) - dist(a))[0];
-    const near = S.filter((sp) => dist(sp) > 7.5).sort((a, b) => dist(a) - dist(b))[0];
+    if (min > 9) return [...L].sort((a, b) => dist(b) - dist(a))[0];
+    const near = L.filter((sp) => dist(sp) > 7.5).sort((a, b) => dist(a) - dist(b))[0];
     return near || S[this.order[this.orderI++ % S.length]];
+  }
+
+  /**
+   * 同一水平: the doors whose way in is on the player's level (his zone, the nearest one when he is on the steps
+   * between two); all of them on a map of one zone, or when none is on his.
+   */
+  levelSpawns() {
+    const { player, level } = this.game;
+    if (level.zones.length < 2) return level.spawns;
+    const zone = level.nearestZone(player.x, player.z);
+    const here = level.spawns.filter((sp) => level.zoneAt(sp.ex, sp.ez) === zone);
+    return here.length ? here : level.spawns;
   }
 
   /** The first run's warm-up holds wave 1 back until endWarmup(). */

@@ -705,44 +705,7 @@
       "z": 2.5
     }
   ],
-  "perches": [
-    {
-      "x": -24,
-      "z": -2.55,
-      "height": 3.05,
-      "facing": 0
-    },
-    {
-      "x": -8,
-      "z": -2.55,
-      "height": 3.05,
-      "facing": 0
-    },
-    {
-      "x": 13,
-      "z": -2.55,
-      "height": 3.05,
-      "facing": 0
-    },
-    {
-      "x": 26,
-      "z": -2.55,
-      "height": 3.05,
-      "facing": 0
-    },
-    {
-      "x": -13,
-      "z": 2.55,
-      "height": 3.05,
-      "facing": 180
-    },
-    {
-      "x": 18,
-      "z": 2.55,
-      "height": 3.05,
-      "facing": 180
-    }
-  ],
+  "perches": [],
   "water": [],
   "race": null,
   "steps": null,

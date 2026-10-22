@@ -237,11 +237,6 @@ export class Player {
     return -(dx * Math.sin(this.facing) + dz * Math.cos(this.facing)) >= Math.cos((PLAYER.humanShield.arc * Math.PI) / 180);
   }
 
-  /** How high the player stands (up a flight of steps, 大三巴): his shots fly over lower cover. 0 on level ground. */
-  get over() {
-    return Math.max(0, this.game.level.groundY(this.x, this.z));
-  }
-
   get weapon() {
     return this.slot === 'special' && this.special ? PLAYER_WEAPONS[this.special.id] : PLAYER_WEAPONS.pistols;
   }
@@ -707,7 +702,6 @@ export class Player {
             weapon: w.id,
             spinShot: s.spin !== undefined,
             diveShot: this.diveT > 0,
-            over: this.over, // fired from up the steps: over lower cover
           });
         }
         dx = Math.sin(base);
@@ -1077,19 +1071,18 @@ export class Player {
     let dx = aim.x - m.x;
     let dz = aim.z - m.z;
     const l = Math.hypot(dx, dz);
-    // up a flight of steps (大三巴) the line runs at the gun's height there, over the lower cover the shots clear
-    const high = this.over;
+    // up a flight of steps (大三巴) the line runs at the gun's height there
     const gunY = GUN_Y + g.level.groundY(this.x, this.z);
     if (l > 0.5) {
       dx /= l;
       dz /= l;
       if (w.scope) {
         // the sniper's sight runs all the way to the first wall
-        const len = g.level.rayLength(m.x, m.z, dx, dz, 60, high);
+        const len = g.level.rayLength(m.x, m.z, dx, dz, 60);
         this.aimLaser.base.setRGB(1.6, 0.2, 0.25);
         this.aimLaser.set(m.x, m.z, m.x + dx * len, m.z + dz * len, 0.05, 1.1, gunY);
       } else {
-        const len = g.level.rayLength(m.x, m.z, dx, dz, Math.min(l, 45), high);
+        const len = g.level.rayLength(m.x, m.z, dx, dz, Math.min(l, 45));
         this.aimLaser.base.setRGB(0.25, 1.2, 1.5);
         this.aimLaser.set(m.x, m.z, m.x + dx * len, m.z + dz * len, 0.035, this.reloadT > 0 ? 0.25 : 0.7, gunY);
       }
@@ -1106,7 +1099,7 @@ export class Player {
       const sl = Math.hypot(sx, sz) || 1;
       sx /= sl;
       sz /= sl;
-      const len = g.level.rayLength(ml.x, ml.z, sx, sz, sl, high);
+      const len = g.level.rayLength(ml.x, ml.z, sx, sz, sl);
       this.splitLaser.set(ml.x, ml.z, ml.x + sx * len, ml.z + sz * len, 0.05, 1.2, gunY);
     } else {
       this.splitLaser.hide();

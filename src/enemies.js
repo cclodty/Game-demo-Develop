@@ -321,9 +321,13 @@ class Enemy {
     if (this.hp <= 0) this.die(b.dx, b.dz, { cause: 'shield' });
   }
 
-  /** How high he sees and shoots from: lower cover is no obstacle to his sight or his bullets (up a flight of steps too). */
+  /**
+   * How high over the floor he sees and shoots from: lower cover is no obstacle to his sight or his bullets. A drone's
+   * flight, a balcony (a test's: no map has perches); 0 on his feet, wherever the ground is (同一水平: he fights only on
+   * the player's level, where the cover stands on the same floor as he does).
+   */
   get over() {
-    return this.cfg.fly ? this.cfg.fly.height : this.perch || Math.max(0, this.game.level.groundY(this.x, this.z));
+    return this.cfg.fly ? this.cfg.fly.height : this.perch;
   }
 
   /** The riot shield, held in front on the left: a dark clear panel with a yellow rim. */
@@ -684,7 +688,7 @@ class Enemy {
         if (w > 3) spots.push([cx - w / 4, z], [cx + w / 4, z]);
       }
       for (const [x, z] of spots) {
-        if (!L.nav.isWalkable(x, z) || L.hasLOS(x, z, p.x, p.z)) continue;
+        if (!L.nav.isWalkable(x, z) || L.hasLOS(x, z, p.x, p.z) || !L.sameLevel(x, z, p.x, p.z)) continue; // cover on the player's level
         const dp = Math.hypot(x - p.x, z - p.z);
         if (dp < dmin || dp > dmax) continue;
         const dm = Math.hypot(x - this.x, z - this.z);
@@ -743,7 +747,8 @@ class Enemy {
       const B = g.level.bounds;
       if (Math.abs(x) > B.halfW - 1 || Math.abs(z) > B.halfD - 1) continue;
       if (!g.level.nav.isWalkable(x, z)) continue;
-      let score = g.level.hasLOS(x, z, p.x, p.z) ? 6 : 0;
+      // a place on the player's level that sees him; one on another level (大三巴's steps) is no place to fight from
+      let score = g.level.sameLevel(x, z, p.x, p.z) ? (g.level.hasLOS(x, z, p.x, p.z) ? 6 : 0) : -10;
       score -= Math.hypot(x - this.x, z - this.z) * 0.3;
       for (const o of this.mgr.list) {
         if (o === this || !o.alive) continue;
@@ -897,7 +902,8 @@ class Enemy {
     this.losT -= dt;
     if (this.losT <= 0) {
       this.losT = 0.12;
-      this.los = p.alive && g.level.hasLOS(this.x, this.z, p.x, p.z, this.over);
+      // 同一水平: the player on another level (up or down 大三巴's steps) is out of his reach, whatever is between
+      this.los = p.alive && g.level.sameLevel(this.x, this.z, p.x, p.z) && g.level.hasLOS(this.x, this.z, p.x, p.z, this.over);
     }
     // in the dark under a lamp shot out (fixtures.js) or in an extinguisher's cloud: no aiming from there
     if (g.level.darkAt(this.x, this.z) || g.level.smokeAt(this.x, this.z)) {
@@ -1037,9 +1043,11 @@ class Enemy {
               break;
             }
           }
-          // a grenadier throws over cover: he needs the distance, not a line of sight; a man up on a balcony cannot
-          // come closer, so he fires at whatever distance he sees the player (東望洋跑道's grandstand over the infield)
-          const inReach = cfg.lob ? distP < cfg.range[1] + 3 && distP > cfg.lob.radius + 1 : this.los && (distP < cfg.range[1] + 3 || this.perch > 0);
+          // a grenadier throws over cover: he needs the distance and the player on his level, not a line of sight; a man
+          // up on a balcony (a test's) cannot come closer, so he fires at whatever distance he sees the player
+          const inReach = cfg.lob
+            ? distP < cfg.range[1] + 3 && distP > cfg.lob.radius + 1 && g.level.sameLevel(this.x, this.z, p.x, p.z)
+            : this.los && (distP < cfg.range[1] + 3 || this.perch > 0);
           if (inReach && this.fireCd <= 0 && this.mgr.requestToken(this)) {
             this.startAim();
             break;
@@ -1067,7 +1075,7 @@ class Enemy {
             this.repath = 0;
             break;
           }
-          if (this.timer <= 0 && this.fireCd <= 0 && distP < cfg.range[1] + 3 && this.mgr.requestToken(this)) {
+          if (this.timer <= 0 && this.fireCd <= 0 && distP < cfg.range[1] + 3 && g.level.sameLevel(this.x, this.z, p.x, p.z) && this.mgr.requestToken(this)) {
             // the aim happens behind the cover (its laser shows on the box: the warning); he steps out to fire
             this.startAim();
             this.peekAim = true;

@@ -2,11 +2,11 @@
 // stylised. From the forecourt in the south 68 steps climb north in three
 // flights with two landings to the terrace under the façade. The ground's height
 // is the map's `ground` (level.js groundY): the player and the enemies walk up
-// and down the steps on it, and the camera rises with the player. From up the
-// steps a man sees and shoots over cover lower than where he stands
-// (enemies.js over; the player's shots too), so the landings are the high
-// ground to take. In MAPS (key 7), in the daily rotation, and taken by the back
-// end. Run: npm test
+// and down the steps on it, and the camera rises with the player. Two levels
+// (同一水平, DECISIONS 2026-10-22; test/levels.test.mjs): the forecourt and the
+// terrace each fight on their own, the steps between: nobody fires from one
+// level onto another and a shot stops at the edge of a flight. In MAPS (key 7),
+// in the daily rotation, and taken by the back end. Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { gameHarness, installBot, OUT, problems } from './helpers.mjs';
@@ -223,35 +223,34 @@ test('up on the terrace the cut-away holes what stands between the camera and th
   assert.deepEqual(problems(logs), []);
 });
 
-test('the high ground: a man on a landing sees over a forecourt planter that hides the player from one on the forecourt; the player up there shoots over it, and still hits a barrel', async () => {
+test('no high ground: a man on a landing does not see over a forecourt planter to the player below; the player up there cannot shoot down at a man behind it, nor at a barrel on the forecourt', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     const L = g.level;
-    const p = g.player;
     window.begin(-9, 21.2);
     // the planter at (-9, 19.5): the player crouched behind it, south of it
     const low = window.post('grunt', -9, 15);
-    const high = window.post('grunt', -3, 2.5); // on the first landing, clear of its urns
+    const high = window.post('grunt', -3, 2.5); // on the first landing, 1.6 m up, clear of its urns
     window.play(30);
-    const sight = { low: low.los, high: high.los, overLow: low.over, overHigh: high.over };
-    // the player up on the first landing shoots a man behind that planter (north of it now, the player above)
+    const sight = { low: low.los, high: high.los };
+    // the player up on the first landing fires at a man behind that planter
     window.begin(-8, 3);
     const behind = window.post('grunt', -9, 17.6);
     behind.hp = 1;
     window.play(90, ['Mouse0'], [-9, 17.6]);
-    const shotOver = !behind.alive;
-    // and from there a barrel on the forecourt still takes the shot
+    const shotDown = !behind.alive;
+    // and at a barrel on the forecourt
     window.begin(-8, 3);
     const barrel = L.barrels.find((b) => b.alive && b.kind === 'barrel' && b.variant === 'barrel');
     barrel.x = -9;
     barrel.z = 14;
     window.play(90, ['Mouse0'], [-9, 14]);
-    return { sight, shotOver, barrel: barrel.fuse >= 0 || !barrel.alive || barrel.hp < barrel.maxHp, overPlayer: p.over };
+    return { sight, shotDown, barrel: barrel.fuse >= 0 || !barrel.alive || barrel.hp < barrel.maxHp };
   });
   assert.equal(r.sight.low, false, 'from the forecourt, the planter hides the player');
-  assert.equal(r.sight.high, true, `from the landing, ${r.sight.overHigh.toFixed(1)} m up, over it`);
-  assert.equal(r.shotOver, true, 'the player on the landing shoots over the planter');
-  assert.equal(r.barrel, true, 'and a barrel below still takes the shot');
+  assert.equal(r.sight.high, false, 'from the landing, 1.6 m up, not a line on him either: another level');
+  assert.equal(r.shotDown, false, 'the player’s shots from the landing stop at the edge of the flight');
+  assert.equal(r.barrel, false, 'and a barrel below is untouched');
   assert.deepEqual(problems(logs), []);
 });
 

@@ -90,6 +90,8 @@ const rooftop = {
   desc: '雨夜的天台：直升機坪、玻璃溫室和一排排油桶。',
   color: '#ff3fa4',
   size: [22, 15],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): one floor, one level
+  zones: [{ id: 'floor', name: '天台', en: 'ROOF', y: 0, box: [-22, -15, 22, 15] }],
   start: [0, 4],
   theme: {
     bg: 0x0a0816,
@@ -200,6 +202,8 @@ const club = {
   desc: '跟著節拍閃爍的舞池、吧枱後的一整排酒瓶，和一顆鏡面球。',
   color: '#9b6bff',
   size: [20, 14],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): one floor, one level
+  zones: [{ id: 'floor', name: '舞池', en: 'FLOOR', y: 0, box: [-20, -14, 20, 14] }],
   start: [0, 6.5],
   theme: {
     bg: 0x07040c,
@@ -215,9 +219,10 @@ const club = {
     rain: false,
   },
   floor: 'club',
-  // the stage's last wave here (boss.js): the blade queen, dashing between her perches ([x, z] or [x, z, height]:
-  // the lounge between the sofas, the top of the DJ booth, the glass walk, the floor before the bar)
-  boss: { kind: 'blade', perches: [[15.5, 0], [6, -10, 1.3], [-13.5, 3], [-12, -8.5]] },
+  // the stage's last wave here (boss.js): the blade queen, dashing between her perches ([x, z], or [x, z, height] a
+  // map could give but none does: 同一水平): the lounge between the sofas, the front of the DJ booth, the glass walk,
+  // the floor before the bar
+  boss: { kind: 'blade', perches: [[15.5, 0], [6, -8.2], [-13.5, 3], [-12, -8.5]] },
   edges: { n: [3.2, 'clubWall', 'neonPink'], s: [0.9, 'clubWall', 'neonCyan'], w: [3.2, 'clubWall', 'neonCyan'], e: [3.2, 'clubWall', 'neonCyan'] },
   // Four stages: the long bar with its flap, the DJ booth, the lounge in the east, a glass walk in the west.
   solids: [
@@ -427,6 +432,8 @@ const docks = {
   desc: '貨櫃迷宮、會大爆炸的氣罐，敵人還會從海裡爬上來。',
   color: '#ffa040',
   size: [24, 15],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): one floor, one level
+  zones: [{ id: 'floor', name: '碼頭', en: 'QUAY', y: 0, box: [-24, -15, 24, 15] }],
   start: [0, 2],
   theme: {
     bg: 0x050a10,
@@ -596,6 +603,8 @@ const senado = {
   color: '#f2c94c',
   credit: '地圖資料 © OpenStreetMap contributors（ODbL）',
   size: [SENADO.halfW, SENADO.halfD],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): one level; the sunk ring round the fountain, 0.48 m down, is within it
+  zones: [{ id: 'square', name: '廣場', en: 'SQUARE', y: 0, box: [-SENADO.halfW, -SENADO.halfD, SENADO.halfW, SENADO.halfD] }],
   start: [2, 54],
   camera: { dist: 31, pitch: 72, fov: 30 },
   cutaway: true,
@@ -924,6 +933,8 @@ const felicidade = {
   desc: '紅窗木門的兩層舊舖夾着一條窄街：踢門入舖、鐵閘落下，橫巷兩頭都有人殺到。',
   color: '#ff5a4a',
   size: [FEL.halfW, FEL.halfD],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): one floor, one level
+  zones: [{ id: 'floor', name: '街', en: 'STREET', y: 0, box: [-FEL.halfW, -FEL.halfD, FEL.halfW, FEL.halfD] }],
   start: [-2, 0.5],
   camera: { dist: 26, pitch: 66, fov: 34 },
   cutaway: true,
@@ -975,9 +986,10 @@ const felicidade = {
   // the mahjong tables, lamps and sign posts, turning in a teardrop just past each open end (the street is too narrow
   // to turn in); it lets its thugs out and charges only on the map (boss.js onMap)
   boss: { kind: 'truck', from: [-40, -0.9], loop: felicidadeTruckLoop() },
-  // balconies up the fronts of the solid blocks (level.js balconies, waves.js pickPerches): [x, z, height, facing], the
-  // man sent up stands at (x, z) that high, over the street, facing out; four on the north row, two on the south
-  perches: [
+  // balconies up the fronts of the solid blocks, [x, z, height, facing]: drawn only (level.js ledges; decorate). Nobody
+  // is sent up to them any more (同一水平, DECISIONS 2026-10-22: a man up there was a man the player could not tell how
+  // to hit); four on the north row, two on the south
+  balconies: [
     [-24, -2.55, 3.05, 0],
     [-8, -2.55, 3.05, 0],
     [13, -2.55, 3.05, 0],
@@ -1140,10 +1152,11 @@ const felicidade = {
       L.deco(x, h, z, w, ht, d, tank, true);
     }
     // the balconies: a slab and its railing, one piece each (numbered with the building behind, so it fades with it),
-    // and the window he comes out of, lit while he is coming (level.js present)
+    // and the window behind; if a man is sent out onto one (a test's perches, level.js balconies) it lights while he
+    // is coming (level.js present)
     const iron = std({ color: 0x2f7a62, roughness: 0.55, metalness: 0.3 }); // painted ironwork, green as the old ones are
     const slab = std({ color: 0x9a948a, roughness: 0.9 });
-    for (const b of L.balconies) {
+    for (const b of L.ledges) {
       const across = Math.abs(b.dirZ) > 0.5; // the balcony runs along x
       const piece = (w, ht, d, x, y, z) => new THREE.BoxGeometry(across ? w : d, ht, across ? d : w).translate(across ? x : z, y, across ? z : x);
       const out = 0.95; // its depth out from the wall
@@ -1173,7 +1186,8 @@ const felicidade = {
       window.position.set(b.ex, b.perch + 1.05, wallZ + b.dirZ * 0.06); // in front of the facade's own picture (decorate's `front`)
       window.rotation.y = b.dirZ > 0 ? 0 : Math.PI;
       L.add(window);
-      b.lamp = { mat: glow };
+      const live = L.balconies.find((o) => o.ex === b.ex && o.ez === b.ez);
+      if (live) live.lamp = { mat: glow };
     }
     // power lines and lanterns strung across the street
     const cable = std({ color: 0x141214, roughness: 0.6 });
@@ -1194,7 +1208,7 @@ const felicidade = {
 // A hairpin of the street circuit at night, built by hand to the ROADMAP's size (OSM cannot be reached from the
 // build): the track comes in along the north, turns round the west end and goes back out along the south. Inside
 // the hairpin a grass infield behind blue-and-white tyre walls with the timing tower; outside it guardrails with
-// marshals' gates, the grandstand to the north (its front row a line of perches), the spectators' side to the south
+// marshals' gates, the grandstand to the north (nobody on it: 同一水平), the spectators' side to the south
 // and a gravel run-off past the bend. The track goes on past the east edge. The teams, sponsors and lap times are
 // made up.
 const GUIA = {
@@ -1265,9 +1279,11 @@ const guia = {
   en: 'GUIA CIRCUIT',
   hour: '02:00',
   line: ['他們沿着跑道逃。夜裏試車的賽車不會停下來。', 'They run down the circuit. The night\'s test laps won\'t stop for anyone.'],
-  desc: '格蘭披治的髮夾彎，晚上：藍白輪胎牆只夠蹲低，看台上的人望得到你；過賽道要快。',
+  desc: '格蘭披治的髮夾彎，晚上：藍白輪胎牆只夠蹲低；賽車掠過前，過賽道要快。',
   color: '#4fb4ff',
   size: [GUIA.halfW, GUIA.halfD],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): one floor, one level
+  zones: [{ id: 'floor', name: '賽道', en: 'TRACK', y: 0, box: [-GUIA.halfW, -GUIA.halfD, GUIA.halfW, GUIA.halfD] }],
   start: [-2, 1.5],
   cutaway: true,
   theme: {
@@ -1314,12 +1330,11 @@ const guia = {
     [22.8, -15.4, 'sign', 270],
   ],
   pads: [[2, 1], [-25, 0], [20, 16.5]],
-  // boxes on the grandstand's front (level.js balconies, waves.js pickPerches), over the north straight's edge: a tyre
-  // wall is no cover from up there (enemies.js over), and the infield's walls stop the player's shots back, so a man
-  // up there is answered from out on the track
+  // boxes on the grandstand's front, over the north straight's edge: drawn only (decorate). Nobody is sent up there
+  // any more (同一水平, DECISIONS 2026-10-22)
   // the race (src/race.js, 東望洋跑道 ②): the first pass `first` s into the stage, then one every `every` s, in world time
   race: { first: 16, every: 24, line: guiaRacingLine() },
-  perches: [
+  balconies: [
     [-7, -12.8, 2.2, 0],
     [-0.5, -12.8, 2.2, 0],
     [5.5, -12.8, 2.2, 0],
@@ -1451,9 +1466,9 @@ function guiaDecorate(L) {
   const roofPosts = [];
   for (let x = sx0 + 1; x <= sx1 - 1; x += 7) roofPosts.push([x, 0, sz0 + 0.4, 0.25, 6.4, 0.25]);
   boxes(roofPosts, L.mat.darkMetal, true);
-  // the boxes on the stand's front, over the walkway, where a beat sends a man up (the map's perches)
+  // the boxes on the stand's front, over the walkway (the map's balconies)
   const ledges = [];
-  for (const [x, z, y] of L.map.perches) {
+  for (const [x, z, y] of L.map.balconies) {
     ledges.push([x, y - 0.15, z - 0.05, 2.4, 0.15, 0.9], [x, y, z + 0.38, 2.4, 0.55, 0.06]);
   }
   boxes(ledges, std({ color: 0x3a404c, roughness: 0.7, metalness: 0.2 }), true);
@@ -1507,9 +1522,10 @@ function guiaDecorate(L) {
 // The forecourt and the great flight of steps up to the façade, stylised (a World Heritage site: no attempt at the
 // real stone), about 40 × 60 m, built to the ROADMAP's size. From the forecourt in the south 68 steps climb north in
 // three flights with two landings to the terrace under the façade; walls and slopes close the steps in at the sides.
-// The ground's height is the map's `ground` (level.js groundY): everything stands on it, and from up the steps a man
-// sees and shoots over cover lower than where he stands (enemies.js over), so the landings are the high ground to
-// take. The façade is only a façade: its three doorways are open to the old nave behind it, a way round the wall.
+// The ground's height is the map's `ground` (level.js groundY): everything stands on it. Two levels (`zones`, 同一水平):
+// the forecourt and the terrace each fight on their own, the steps are the way between (a man below walks up to the
+// player above rather than shoot at him; a shot stops at the edge of a flight). The façade is only a façade: its three
+// doorways are open to the old nave behind it, a way round the wall.
 // A barrel on the steps, shot or kicked, falls over and rolls down them (`slope`, level.js Barrel tip): ROLLING.
 // Shop names are made up.
 const RUINS = {
@@ -1602,9 +1618,16 @@ const ruins = {
   en: "RUINS OF ST. PAUL'S",
   hour: '03:00',
   line: ['最後一段：六十八級石階。走到牌坊，這一夜就完。', 'The last of it: sixty-eight steps. Reach the facade and the night is over.'],
-  desc: '六十八級石階上落：站得高的望得到你，要搶高位；牌坊門洞繞得到後面，石階上的油桶一踢就滾落去。',
+  desc: '六十八級石階連住前地和牌坊下的平台：兩層各打各的，追上來的人迎面踢個油桶落去；牌坊門洞繞得到後面。',
   color: '#ffb35a',
   size: [RUINS.halfW, RUINS.halfD],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): two levels, the forecourt at the foot of the steps and the terrace
+  // under the façade with the old nave behind it; the steps and their two narrow landings are the way between, where
+  // nobody fights (the landings are 3 m deep)
+  zones: [
+    { id: 'forecourt', name: '前地', en: 'FORECOURT', y: 0, box: [-RUINS.halfW, 9, RUINS.halfW, RUINS.halfD] },
+    { id: 'terrace', name: '平台', en: 'TERRACE', y: 4.8, box: [-RUINS.terrace, -RUINS.halfD, RUINS.terrace, -12] },
+  ],
   start: [-3, 21],
   ground: ruinsGround,
   slope: ruinsSlope, // a barrel knocked over on the steps rolls down them (level.js Barrel)
@@ -1664,7 +1687,7 @@ const ruins = {
   stages: [
     { name: '前地', en: 'FORECOURT', at: [-2.5, 17.5], move: 'pan' },
     { name: '花槽', en: 'PLANTERS', at: [-9, 21.4], move: 'boom' },
-    { name: '第一平台', en: 'FIRST LANDING', at: [0, 2.5], move: 'high' },
+    { name: '平台', en: 'THE TERRACE', at: [-7, -15], move: 'boom' }, // on the terrace (同一水平: the landings are the way up, not a place to fight)
     { name: '牌坊下', en: 'UNDER THE FAÇADE', at: [3, -19.8], move: 'slide' },
   ],
   spawns: [
