@@ -1755,8 +1755,51 @@ class Game {
       // at gun height over the ground the player stands on (up a flight of steps: 大三巴)
       this.aimPlane.constant = -(GUN_Y + this.level.groundY(this.player.x, this.player.z));
       this.raycaster.ray.intersectPlane(this.aimPlane, this.aimPoint);
+      // what the player sees is what the aim hits (同一水平 ②): the cursor on an enemy's body as it is drawn, wherever
+      // that is (a drone 2.5 m up), aims at him, not at the floor behind or in front of him
+      const e = this.pickEnemy(m.x, m.y);
+      if (e) this.aimPoint.set(e.x, this.aimPoint.y, e.z);
     }
     this.aimFresh = true;
+  }
+
+  /**
+   * The enemy whose body as drawn the screen point (px, py) is on, or null: his body is the line on the screen from
+   * his feet to the top of his head (a drone's: its body up in the air), as wide as his radius and a shot's; of two,
+   * the one nearer the camera. Only what is shown: the aim point it gives is the step's recorded input.
+   */
+  pickEnemy(px, py) {
+    const cam = this.camera;
+    const v = this.pickV || (this.pickV = new THREE.Vector3());
+    const right = this.pickR || (this.pickR = new THREE.Vector3());
+    right.setFromMatrixColumn(cam.matrixWorld, 0); // the camera's right, in the world
+    const screen = (x, y, z) => {
+      v.set(x, y, z).project(cam);
+      return [((v.x + 1) / 2) * innerWidth, ((1 - v.y) / 2) * innerHeight, v.z];
+    };
+    let best = null;
+    let bestDepth = Infinity;
+    for (const e of this.enemies.list) {
+      if (!e.alive || !e.rig) continue;
+      const at = e.rig.root.position; // where he is drawn: his feet, or under a drone at its height
+      const [lo, hi] = e.cfg.fly ? [-0.3, 0.3] : [0.1, 1.8 * ((e.cfg.look && e.cfg.look.scale) || 1)];
+      const [ax, ay, depth] = screen(at.x, at.y + lo, at.z);
+      const [bx, by] = screen(at.x, at.y + hi, at.z);
+      const mid = (lo + hi) / 2;
+      const reach = e.radius + 0.16; // a shot meets him this close to his middle (bullets.js)
+      const [cx] = screen(at.x, at.y + mid, at.z);
+      const [rx] = screen(at.x + right.x * reach, at.y + mid + right.y * reach, at.z + right.z * reach);
+      const r = Math.max(4, Math.abs(rx - cx));
+      // the cursor's distance on the screen from the line feet to head
+      const sx = bx - ax;
+      const sy = by - ay;
+      const t = clamp(((px - ax) * sx + (py - ay) * sy) / (sx * sx + sy * sy || 1), 0, 1);
+      if (Math.hypot(px - ax - sx * t, py - ay - sy * t) <= r && depth < bestDepth) {
+        bestDepth = depth;
+        best = e;
+      }
+    }
+    return best;
   }
 
   /**
