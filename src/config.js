@@ -267,6 +267,16 @@ export const PAD = {
   assistRange: 25, // m: enemies further off are not snapped to
 };
 
+/**
+ * Touch on a phone (手機版 ①, input.js): a stick wherever each thumb comes down, the left one moving, the right one
+ * aiming and firing; how far it is pushed counts against `radius` (CSS px). The aim snaps onto enemies as the pad's does.
+ */
+export const TOUCH = {
+  radius: 60, // px: a thumb this far from where it came down pushes its stick all the way
+  moveAt: 0.35, // the left stick past this (each axis) holds W / A / S / D
+  deadzone: 0.25, // the right stick inside this neither fires nor turns the aim
+};
+
 /** The best-kill clip (clip.js): overlapping recordings of a small copy of the screen. */
 export const CLIP = {
   before: 6, // seconds kept ahead of the best kill
