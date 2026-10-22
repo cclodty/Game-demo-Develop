@@ -8,7 +8,7 @@
 目標：第四階段「一夜」②：先把下面的清單寫成 docs/TASKS.md 的卡，再按次序做完。規矩全文在 docs/GOAL.md「完整工作規矩」，與 CLAUDE.md 為準。回覆用繁體中文。
 
 第一步：main 要有 PR #18、#19；#19 未合併就先把 origin/claude/kind-lovelace-xzwogm 合併進工作分支（merge）。這份提示詞的全文（docs/GOAL.md「第四階段『一夜』②」）在那之後才讀得到。
-然後讀：CLAUDE.md、docs/GOAL.md、docs/ROADMAP.md（§3、§4、§6、§10）、docs/TASKS.md（第四階段「一夜」①、待排）、docs/DECISIONS.md（2026-10-21 起）。開發者可能同時在另一個對話改 repo：每張卡開工前 git fetch，main 有新東西就先合併進來。
+然後讀：CLAUDE.md、docs/GOAL.md、docs/ROADMAP.md（§1、§3、§4、§6、§10）、docs/TASKS.md（第四階段「一夜」①、待排）、docs/DECISIONS.md（2026-10-21 起）。開發者可能同時在另一個對話改 repo：每張卡開工前 git fetch，main 有新東西就先合併進來。
 
 次序：
 0. TASKS.md 若有「試玩回饋 ④」，那幾張卡最先做；「一夜 ①」若還有未打勾的卡，先做完。
@@ -41,7 +41,7 @@
 技術底線（細節見 GOAL.md）：
 - 邏輯只用 game.rng、只讀 game.cmd、120 Hz 固定步；一局留下的東西在 resetWorld／resetProps 重設。
 - 新內容是地圖資料，行為在系統；新東西過 game.style.dress()，?style=off 玩起來一樣。
-- 新地圖：加在 MAPS 最後；hour、line、budget（連兩架無人機 600 次繪製以內）、路線、每日輪替；後端 LIMITS.maps 跟着加，總表寫「要重新部署」。
+- 新地圖：加在 MAPS 最後；hour、line、budget（連兩架無人機 600 次繪製以內）、路線、每日輪替；後端 LIMITS.maps 跟着加（後端不部署）。
 - 不加執行期依賴、模型檔、音檔；不碰 senado/；真實地點，其餘全部虛構。
 
 停止條件（PR 頂部寫明原因再停）：同一張卡連續兩次 CI 紅而找不到原因；需要新執行期依賴、改 senado/、加模型檔或音檔。
@@ -54,16 +54,17 @@
 ```
 目標：第四階段「一夜」②。第四階段 ① 做了：測試分三份、福隆新街頭目、地圖匯出、飛撲、人盾、東望洋跑道（連賽車）、大三巴（石階、牌坊、滾落的油桶）、澳門一夜 ①（七張地圖按時間串起、每關一句對白、進度存在本機）、合併繪製次數 ①②（每個道具模型載入時按材質合併）、手機版 ①（觸控雙搖桿）。這一輪做四件事：先看 ① 有沒有未做完的卡（寫這份提示詞時已全部做完，連可選的手機版 ①）；補上 ① 發現的問題（版本號、提示、切走的外框）；給東望洋跑道和大三巴各一個頭目；加 00:00 賭廳和 06:00 燈塔兩張圖，令「一夜」由 20:00 走到日出。做完的定義：每張卡的驗收項目全部核對、lint 與測試通過、CI 綠、TASKS.md 打勾、DECISIONS.md 補上該記的決定、PR 描述更新。
 
-開始前先讀 CLAUDE.md、docs/ROADMAP.md（第 3 節的四條支柱、第 4 節「新的玩家動作」、第 6 節新地圖、第 10 節的進度）、docs/TASKS.md（「第四階段『一夜』①」和「待排」）、docs/DECISIONS.md（2026-10-21 起的每一行）。所有規矩以 CLAUDE.md 為準；這份提示詞只補充怎樣連續工作。回覆用繁體中文。
+開始前先讀 CLAUDE.md、docs/ROADMAP.md（第 1 節開發者 10-22 的五個決定、第 3 節的四條支柱、第 4 節「新的玩家動作」、第 6 節新地圖、第 10 節的進度）、docs/TASKS.md（「第四階段『一夜』①」和「待排」）、docs/DECISIONS.md（2026-10-21 起的每一行）。所有規矩以 CLAUDE.md 為準；這份提示詞只補充怎樣連續工作。回覆用繁體中文。
 
 ## 現況（2026-10-22）
-- main 是線上版（GitHub Pages 自動部署 main；瀏覽器快取每個檔 10 分鐘，所以開發者試玩時要強制重新載入）。PR #18（第四階段 ① 到大三巴 ②）已合併。PR #19「第四階段：一夜 ①（續）」在 claude/kind-lovelace-xzwogm：澳門一夜 ①、合併繪製次數 ①②、手機版 ①、這份提示詞、第四階段 ① 的總結；開發者說合併才合併。開工時 main 若還沒有它，先把 origin/claude/kind-lovelace-xzwogm 合併進工作分支（merge，不 rebase）。
+- main 是線上版（GitHub Pages 自動部署 main；瀏覽器快取每個檔 10 分鐘，所以開發者試玩時要強制重新載入）。PR #18（第四階段 ① 到大三巴 ②）已合併。PR #19「第四階段：一夜 ①（續）」（澳門一夜 ①、合併繪製次數 ①②、手機版 ①、這份提示詞、第四階段 ① 的總結）也已合併。
+- ROADMAP 在 10-22 重新整理（§1 開發者的五個決定）：不設試玩關卡，驗收是開發者自己試玩；模型審視和第五階段「手機」排在這一階段之後；地圖互動（現有地圖的新互動件、重排）等開發者的地圖量體與生成，這一階段不做；一夜不補 04:00、05:00；後端不部署、上架未定。
 - 開發者可能同時在另一個對話改這個 repo（手感數字、文件、他自己的修改）。每張卡開工前 git fetch origin main；main 有新的 commit 就先合併進工作分支，衝突照 CLAUDE.md 的規矩處理（兩邊都改了同一段邏輯、選哪邊都會丟東西時才問）。不要覆寫別人的改動。
 - 七張地圖：天台、夜店、碼頭、議事亭、福隆新街、東望洋跑道、大三巴。東望洋跑道和大三巴未有頭目（待排）。模式：街機、無盡、每日挑戰、澳門一夜（`waves.js` MODES，`night.js`）。
 - 每張地圖開局都在 300 次繪製以下（福隆新街約 600，是它自己的牆），因為道具模型載入時按材質合併（`models.js` mergeByMaterial）；天台、碼頭、議事亭的預算已收到 500。
 - 手機：觸控層（`input.js` enableTouch，`?touch=1` 在電腦上試）只有移動、瞄準開火、子彈時間和暫停；其他動作的按鈕在待排。
-- 後端：`src/config.js` 的 BACKEND.url 是空的，遊戲完全離線；`LIMITS.maps` 加了要重新部署，但開發者未部署後端，總表照寫即可。
-- 開發者會試玩 PR #18 的內容。若 docs/TASKS.md 出現「試玩回饋 ④」一節，那裏的卡最先做。
+- 後端：開發者決定不部署（10-22）。`src/config.js` 的 BACKEND.url 是空的，遊戲完全離線；新地圖照樣把 `LIMITS.maps` 加一，保持程式一致，總表不用寫「要重新部署」。
+- 開發者會試玩 PR #18、#19 的內容。若 docs/TASKS.md 出現「試玩回饋 ④」一節，那裏的卡最先做。
 - 三條線照舊：打得精彩、地圖會說話、不開槍也能打。每張卡都要能回答「玩家多了一個什麼漂亮的解法」。
 - 人物與道具模型：新東西一律方塊版加現有材質；不加模型檔、音檔。部署、上架、試玩是開發者的事；標「開發者」的項目跳過。
 
@@ -82,7 +83,7 @@
 為什麼這樣排：先收 ① 的尾和開發者試玩的回饋；版本號令試玩不會拿錯版；提示和外框是 ① 發現的問題；頭目令七張圖都有頭目，之後新圖才有比較；賭廳和燈塔補完一夜。
 
 ## 分支與 PR（開發者的做法）
-1. 用被指派的分支。開工時若 main 未包含 PR #19，先把 origin/claude/kind-lovelace-xzwogm 合併進來（merge，不 rebase）。每張卡開工前 git fetch origin main，有新 commit 就合併進來。
+1. 用被指派的分支，由最新的 main 開始（PR #19 已合併）。每張卡開工前 git fetch origin main，有新 commit 就合併進來。
 2. 第一次 push 時開一個草稿 PR（標題「第四階段：一夜 ②」）（「一夜 ①」的總結已在 PR #19 頂部），之後每張卡累加一段並更新總表；不另開 PR。開發者說「合併吧」之類的話：把 PR 標為可審，用合併提交（英文標題、一段中文內文）合併進 main，再把工作分支快轉到 main（git checkout -B <分支> origin/main，普通 push，不 force）繼續，餘下的卡開新 PR；告訴開發者 Pages 部署好了、要強制重新載入。開發者沒說就不合併；永遠不 force-push、不 rebase 已推送的歷史。
 3. 每張卡做完就 push，CI 綠了才 push 下一張；在等 CI 時可以在本機先做下一張（只是不 push）。CI 紅就修到綠：修正排在下一張卡之前；不准刪、跳過或放寬測試。
 4. PR 描述照 .github/pull_request_template.md；每張卡的那一段寫「玩家會感受到什麼不同」、逐項打勾的驗收、手感數字、截圖；頂部總表每卡一行：卡名｜狀態｜新增測試數｜截圖｜待開發者確認的事。開發者只看這張表和截圖。
@@ -102,7 +103,7 @@
 - 互動件、門、水邊、工具、舞台、頭目的路、賽車的時間表、高低差都是地圖資料（maps.js），行為寫在系統。不寫「只有這張地圖才有」的程式。
 - 頭目：Boss 子類登記在 boss.js 的 BOSSES，地圖用 `boss: { kind, … }` 選。加頭目時 waves.js 的 bossWave、main.js 的路線文字（routeText）、test/route.test.mjs、test/boss.test.mjs、各地圖的整局測試都要跟着；機械人（test/helpers.mjs）要打得贏它，整局測試仍然通關。
 - 高低差（大三巴）：地圖給 `ground(x, z)`（level.js groundY）和 `slope`；所有畫出來的東西畫在「離地高度＋該點地面高度」；站在高處的人用 `over` 越過矮過他的掩體看和射；鏡頭、瞄準平面、切走都跟玩家腳下的地面；掩體的模型由腳下的地面量起。燈塔山頂沿用同一套。
-- 新地圖要一併做的（大三巴是例子，見 PR #18）：maps.js 的資料與 `budget`（量度後寫入；連兩架無人機在場也要在預算內，`test/drone.test.mjs`）、`hour` 與 `line`（澳門一夜，`test/night.test.mjs` 要每張圖都有）、`stages`、`spawns`、`spots`；加在 MAPS 最後（重播記的是 MAPS 的位置，不可改舊的次序）；路線文字和 test/route.test.mjs；rules.js DAILY_ROTATION 加幾天（加了之後固定日期的每日測試會遇到另一張圖，要跑 test/daily*.test.mjs）；backend/worker.js 的 LIMITS.maps 加一（總表寫「要重新部署」）；標題的地圖卡與數字鍵，1280×720 不捲動（九張卡要另想排法，例如兩行或縮窄）；數地圖卡的測試（title、guia、ruins）跟着改；地圖匯出（npm run assets:docs）；README、CLAUDE.md、docs/itch、assets/SPEC.md 的地圖數。
+- 新地圖要一併做的（大三巴是例子，見 PR #18）：maps.js 的資料與 `budget`（量度後寫入；連兩架無人機在場也要在預算內，`test/drone.test.mjs`）、`hour` 與 `line`（澳門一夜，`test/night.test.mjs` 要每張圖都有）、`stages`、`spawns`、`spots`；加在 MAPS 最後（重播記的是 MAPS 的位置，不可改舊的次序）；路線文字和 test/route.test.mjs；rules.js DAILY_ROTATION 加幾天（加了之後固定日期的每日測試會遇到另一張圖，要跑 test/daily*.test.mjs）；backend/worker.js 的 LIMITS.maps 加一（後端不部署，總表不用寫）；標題的地圖卡與數字鍵，1280×720 不捲動（九張卡要另想排法，例如兩行或縮窄）；數地圖卡的測試（title、guia、ruins）跟着改；地圖匯出（npm run assets:docs）；README、CLAUDE.md、docs/itch、assets/SPEC.md 的地圖數。
 - 會動的危險（賽車、滾落的油桶、光束）沿資料裡的路或時間表走，預告比危險早到；危險用世界時間（子彈時間中一樣慢）。
 - 繪製次數：新的佈景合併成幾個網格（maps.js 的 boxes／mergeGeometries）或 InstancedMesh；新的道具模型自動按材質合併。可見與否不能取決於特效隨機數（test/maps.test.mjs 每張圖載入四次要一樣）。
 - 風格層 src/style.js 只管渲染。新加進場景的東西要過 game.style.dress()；?style=off 必須玩起來完全一樣。
@@ -137,7 +138,7 @@ PR 描述頂部維持一張總表，每張卡一行：卡名｜狀態（做完�
 
 ## 使用方法
 
-1. 試玩 PR #18 的內容（記得強制重新載入）；有回饋就寫進 docs/TASKS.md「試玩回饋 ④」（或用遊戲的匯出交給 Claude 寫卡）。最好先合併 PR #19（澳門一夜、合併繪製、手機版，連這份提示詞）：新對話由 main 開始，一開頭就讀得到全文；不合併也可以，它第一步會把那個分支合併進來。
+1. 試玩 PR #18、#19 的內容（記得強制重新載入）；有回饋就寫進 docs/TASKS.md「試玩回饋 ④」（或用遊戲的匯出交給 Claude 寫卡）。兩個 PR 都已合併，新對話由 main 開始，一開頭就讀得到這份提示詞和重新整理過的 ROADMAP。
 2. 開新對話，把「短版」框內全文貼進 /goal。它會讀「完整工作規矩」，先看試玩回饋，再寫卡、按次序做。
 3. 你在另一個對話改的東西：推上 main 就好，它每張卡開工前會合併 main。
 4. PR 就是進度表；隨時可以手動停止。寫卡那一步做完就值得看一眼卡，覺得方向不對可以即時改 TASKS.md 或叫停。
