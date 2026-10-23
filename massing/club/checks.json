@@ -1,0 +1,13 @@
+[
+  { "id": "floor-length", "what": "夜店樓面長（遊戲 x，內牆到內牆；外牆 44.1 米減兩邊牆約 0.5 米）", "real": 43.1, "tol": 1, "source": "量度表 #1（OSM way 330769763）", "game": { "type": "gap", "at": [0, 0], "axis": "x" } },
+  { "id": "floor-depth", "what": "夜店樓面深（遊戲 z，內牆到內牆；外牆 29.6 米減兩邊牆）", "real": 28.6, "tol": 1, "source": "量度表 #2（OSM way 330769763）", "game": { "type": "gap", "at": [0, 0], "axis": "z" } },
+  { "id": "outline-length", "what": "大廈輪廓長（可玩範圍連牆）", "real": 44.1, "tol": 1.5, "source": "量度表 #1", "game": { "type": "size", "axis": "w" } },
+  { "id": "outline-depth", "what": "大廈輪廓深（可玩範圍連牆）", "real": 29.6, "tol": 1.5, "source": "量度表 #2", "game": { "type": "size", "axis": "d" } },
+  { "id": "east-street", "what": "馬場海邊馬路：大廈東牆到對面樓（牆到牆）", "real": 15.8, "tol": 1, "source": "量度表 #5（OSM 輪廓）", "game": { "type": "gap", "at": [30, -10], "axis": "x" } },
+  { "id": "north-lane", "what": "北面的巷：大廈北牆到對面樓", "real": 3.4, "tol": 0.5, "source": "量度表 #6（OSM 輪廓）", "game": { "type": "gap", "at": [0, -16.8], "axis": "z" } },
+  { "id": "west-lane", "what": "西面的巷：大廈西牆到對面樓", "real": 4.6, "tol": 0.5, "source": "量度表 #7（OSM 輪廓）", "game": { "type": "gap", "at": [-24.6, -10], "axis": "x" } },
+  { "id": "own-height", "what": "夜店所在的工業大廈高度", "real": 54.4, "tol": 0.5, "source": "量度表 #3（OSM height）", "game": { "type": "height", "at": [0, 0] } },
+  { "id": "east-block", "what": "馬場海邊馬路對面的樓", "real": 50.4, "tol": 0.5, "source": "量度表 #9（OSM height）", "game": { "type": "height", "at": [60, -15] } },
+  { "id": "north-block", "what": "北面巷對面的樓", "real": 42.5, "tol": 0.5, "source": "量度表 #10（OSM height）", "game": { "type": "height", "at": [0, -25] } },
+  { "id": "south-block", "what": "南面貼住的高樓", "real": 77.7, "tol": 1, "source": "量度表 #11（OSM height）", "game": { "type": "height", "at": [0, 25] } }
+]

@@ -1,6 +1,9 @@
-// Seeded runs: with ?seed=321 the bot plays 600 frames and gets the same wave
-// rosters, the same spawn points and the same enemy shots, at the same moments,
-// in a second page and after a restart in the same page. Without a seed every
+// Seeded runs: with ?seed=321 the bot plays 1,200 frames (on 芭蕾, where the
+// enemies aim faster: since the aim hits what is drawn, DECISIONS 2026-10-22,
+// the bot downs a man on 普通 before he fires, and a run with no enemy shot
+// proves nothing) and gets the same wave rosters, the same spawn points and
+// the same enemy shots, at the same moments, in a second page and after a
+// restart in the same page. Without a seed every
 // run differs. Effects have their own RNG: switching them all off and
 // reseeding that RNG leaves the run exactly as it was.
 // Run: npm test
@@ -8,7 +11,7 @@ import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { gameHarness, installBot, problems } from './helpers.mjs';
 
-const FRAMES = 600;
+const FRAMES = 1200;
 let h;
 before(async () => {
   h = await gameHarness();
@@ -43,6 +46,7 @@ async function installTrace(page) {
 
 /** Start a run on the rooftop and let the (seeded) bot play it; returns the trace and the end state. */
 async function play(page) {
+  await page.evaluate(() => window.game.setRules('ballet', []));
   await installBot(page, { map: 0, view: 2, seed: 7 });
   return page.evaluate((frames) => {
     const g = window.game;

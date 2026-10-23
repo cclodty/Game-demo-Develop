@@ -1,11 +1,14 @@
-// Balconies (福隆新街 ②: 露台). The shop fronts of 福隆新街 have balconies 3 m
-// up (maps.js `perches`; level.js makes each a spawn of kind 'balcony'). A beat
-// sends at most BEATS.perch of its riflemen, snipers and thugs up there: one
-// steps out from inside onto the balcony and keeps it, never moving. From up
-// there he sees over low cover and his shots fly over it; his laser and his
-// bullets come down from the balcony. Nothing on the street reaches him (a
-// kick, a pan, a net, a trolley): he is shot dead, and falls to the street, or
-// a blast or a thrown thing knocks him off: FALL +150, dead. Run: npm test
+// Balconies (福隆新街 ②: 露台), kept as a mechanism a map can ask for (maps.js
+// `perches`; level.js makes each a spawn of kind 'balcony'). No shipped map asks
+// any more: 同一水平 (DECISIONS 2026-10-22) has nobody fight from above, and
+// 福隆新街's balconies are only drawn (`balconies`). This test gives 福隆新街 its
+// balconies back as perches. A beat sends at most BEATS.perch of its riflemen,
+// snipers and thugs up there: one steps out from inside onto the balcony and
+// keeps it, never moving. From up there he sees over low cover and his shots fly
+// over it; his laser and his bullets come down from the balcony. Nothing on the
+// street reaches him (a kick, a pan, a net, a trolley): he is shot dead, and
+// falls to the street, or a blast or a thrown thing knocks him off: FALL +150,
+// dead. Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { gameHarness, OUT, problems } from './helpers.mjs';
@@ -20,6 +23,9 @@ before(async () => {
     const g = window.game;
     g.frame = () => {};
     /** A quiet run on 福隆新街, the player at (x, z). */
+    // the balconies as perches again, as they were before 同一水平 (the street's own map no longer sends men up)
+    const fel = g.maps.find((m) => m.id === 'felicidade');
+    fel.perches = fel.balconies;
     window.begin = (x = 0, z = 0) => {
       g.setRules('normal', []);
       g.setMode('arcade');
@@ -94,7 +100,7 @@ test('the balconies: up the shop fronts, about 3 m up, out over the street; a ma
     assert.ok(Math.abs(b.ez) > 2 && Math.abs(b.ez) < 3, `out over the street from a shop front (${b.ez})`);
     assert.equal(b.inside, true, 'he comes out of the building');
   }
-  assert.deepEqual(r.other, ['guia'], 'besides 福隆新街 only 東望洋跑道 has them, on its grandstand (its card asks for that high ground)');
+  assert.deepEqual(r.other, [], 'no other map has them either: 東望洋跑道’s grandstand is only drawn too (同一水平)');
   assert.ok(Math.abs(r.start.y - r.balconies[0].y) < 0.01, 'up there from the start');
   assert.deepEqual([Math.round(r.out.x * 100) / 100, Math.round(r.out.z * 100) / 100], r.at.map((v) => Math.round(v * 100) / 100), 'out on the balcony');
   assert.notEqual(r.out.state, 'enter');

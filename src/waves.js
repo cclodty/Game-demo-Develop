@@ -4,7 +4,7 @@
 // one spot, quiet, then the next; endless trickles them in.
 
 import { BOSSES } from './boss.js';
-import { BEATS } from './config.js';
+import { BEATS, FIREPOWER, RAMP } from './config.js';
 import { TYPES } from './enemies.js';
 import { clamp } from './utils.js';
 
@@ -16,13 +16,13 @@ import { clamp } from './utils.js';
  * records store a mode's place in this list, so only ever append.
  */
 export const MODES = {
-  arcade: { name: '街機', en: 'ARCADE', color: '#ffc861', desc: '12 波一局，約十分鐘 · 打完有結算', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, bonus: 1000 }, graded: true, beats: true },
+  arcade: { name: '街機', en: 'ARCADE', color: '#ffc861', desc: '12 波一局，約十分鐘 · 打完有結算', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, beats: true },
   endless: { name: '無盡', en: 'ENDLESS', color: '#2ee8ff', desc: '打到倒下為止', waves: Infinity, perStage: 3 },
   // the daily challenge (daily.js): an arcade run on the day's seed, map and rules; started from its own title card
-  daily: { name: '每日挑戰', en: 'DAILY', color: '#ff4fa3', desc: '全世界同一局，每天一次', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, bonus: 1000 }, graded: true, daily: true, beats: true },
+  daily: { name: '每日挑戰', en: 'DAILY', color: '#ff4fa3', desc: '全世界同一局，每天一次', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, daily: true, beats: true },
   // 澳門一夜 (night.js): the maps by the hour of the night each is set at (maps.js `hour`), three waves a stage, the
   // third the map's boss where it has one; it goes on from the first stage not yet cleared (main.js route, routeAt)
-  night: { name: '澳門一夜', en: 'A NIGHT IN MACAU', color: '#b48cff', desc: '晚上八點到凌晨三點 · 打完一關存進度', waves: 21, perStage: 3, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, bonus: 1000 }, graded: true, night: true, beats: true },
+  night: { name: '澳門一夜', en: 'A NIGHT IN MACAU', color: '#b48cff', desc: '晚上八點到凌晨三點 · 打完一關存進度', waves: 21, perStage: 3, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, night: true, beats: true },
 };
 export const MODE_IDS = Object.keys(MODES);
 
@@ -68,6 +68,11 @@ export class Waves {
 
   get rules() {
     return MODES[this.game.mode];
+  }
+
+  /** The stage of the run the wave is in, from 0: one every `perStage` waves (澳門一夜 counts the night's waves before it). ENEMY_HP climbs with it. */
+  get stageIndex() {
+    return Math.max(0, Math.floor((this.wave - 1) / this.rules.perStage));
   }
 
   get isFinal() {
@@ -141,7 +146,7 @@ export class Waves {
     const count = {};
     for (const t of this.queue) count[t] = (count[t] || 0) + 1;
     g.notes.log(`第 ${this.wave} 波開始：${Object.entries(count).map(([t, n]) => `${TYPES[t] ? TYPES[t].label : t}×${n}`).join(' ')}`);
-    this.maxAlive = this.isFinal ? this.rules.finale.maxAlive : Math.min(3 + Math.floor(this.wave * 0.7), 9);
+    this.maxAlive = this.isFinal ? this.rules.finale.maxAlive : Math.min(3 + Math.floor(this.wave * 0.7), RAMP.maxAlive);
     this.state = 'active';
     this.spawnCd = 0.3;
     this.hurt = false;
@@ -174,7 +179,7 @@ export class Waves {
       '按 G 拿起平底鑊或油桶擲向敵人；空中的平底鑊被子彈打中會散射：SCATTER',
       '特殊武器打空後按 G 把空槍丟向敵人，打暈他',
       '按住右鍵：左手槍鎖定另一個目標',
-      '金色武器台每波都會刷出新武器',
+      '金色武器台每關只刷一次：重火力要省着用',
       '把敵人踢向同伴，可以打保齡球',
       '狙擊槍的子彈會穿透敵人和玻璃',
       '站在另一把武器上按 E 交換；1 / 2 或滾輪切換',
@@ -185,7 +190,11 @@ export class Waves {
     } else if (this.isFinal) g.hud.banner('FINAL WAVE', `最後一波 · 撐過去就通關`, 'stage');
     else g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
     g.audio.waveStart();
-    if (g.ruleset.pads) g.pickups.refillPads(wr);
+    // the weapon pads: once a stage, at its first wave (config.js FIREPOWER); what is left on them stays till the next map
+    if (g.ruleset.pads && (FIREPOWER.pads === 'wave' || (this.wave - 1) % this.rules.perStage === 0)) {
+      g.pickups.refillPads(wr);
+      g.notes.log('武器台刷新');
+    }
   }
 
   /** The roster cut into beats of BEATS.size (the finale's bigger), as even as that allows, in roster order. */
@@ -202,21 +211,31 @@ export class Waves {
   /**
    * Where a beat comes through: the next door in the wave's order that suits (pickSpawn, so a
    * sniper's distance counts for the whole beat), and the nearest other door within BEATS.spread
-   * m of it to share the crowd; one far from the player is never shared with.
+   * m of it to share the crowd; one far from the player is never shared with. 同一水平: the beat
+   * plays out on the player's level (level.js zones): its stage and its doors are on his zone, the
+   * nearest one when he is on the steps between two.
    */
   pickSpots(beat) {
     const far = beat.find((t) => TYPES[t].spawn && TYPES[t].spawn.minDist);
     const p = this.game.player;
-    const stages = this.game.level.map.stages;
+    const L = this.game.level;
+    const zone = L.nearestZone(p.x, p.z);
+    const here = (x, z) => L.zoneAt(x, z) === zone;
+    const stages = L.map.stages;
     if (stages && stages.length && this.stageOrder.length) {
-      // a stage to play at: the two doors nearest to it that are not on top of the player (a sniper's beat keeps his distance)
-      this.stage = stages[this.stageOrder[this.beatI % this.stageOrder.length]];
+      // a stage to play at, the next in the wave's order on the player's level: the two doors nearest to it that are
+      // not on top of the player (a sniper's beat keeps his distance)
+      const n = this.stageOrder.length;
+      let k = 0;
+      while (k < n - 1 && !here(...stages[this.stageOrder[(this.beatI + k) % n]].at)) k++;
+      this.stage = stages[this.stageOrder[(this.beatI + k) % n]];
       const min = far ? TYPES[far].spawn.minDist : 7.5;
       const [sx, sz] = this.stage.at;
-      const near = this.game.level.spawns
+      const doors = this.levelSpawns();
+      const near = doors
         .filter((sp) => Math.hypot(sp.ex - p.x, sp.ez - p.z) > min)
         .sort((a, b) => Math.hypot(a.ex - sx, a.ez - sz) - Math.hypot(b.ex - sx, b.ez - sz));
-      const spots = near.length ? near : [...this.game.level.spawns].sort((a, b) => Math.hypot(b.ex - p.x, b.ez - p.z) - Math.hypot(a.ex - p.x, a.ez - p.z));
+      const spots = near.length ? near : [...doors].sort((a, b) => Math.hypot(b.ex - p.x, b.ez - p.z) - Math.hypot(a.ex - p.x, a.ez - p.z));
       const anchor = spots[0];
       const second = spots[1] && Math.hypot(spots[1].ex - anchor.ex, spots[1].ez - anchor.ez) < BEATS.spread ? spots[1] : anchor;
       return [anchor, second];
@@ -225,7 +244,7 @@ export class Waves {
     const anchor = this.pickSpawn(far || beat[0]);
     let second = null;
     let bd = BEATS.spread;
-    for (const sp of this.game.level.spawns) {
+    for (const sp of this.levelSpawns()) {
       if (sp === anchor || Math.hypot(sp.ex - p.x, sp.ez - p.z) < 7.5) continue;
       const d = Math.hypot(sp.ex - anchor.ex, sp.ez - anchor.ez);
       if (d < bd) {
@@ -312,20 +331,33 @@ export class Waves {
   pickSpawn(type) {
     const { player, level } = this.game;
     const S = level.spawns;
+    const L = this.levelSpawns();
     const dist = (sp) => Math.hypot(sp.ex - player.x, sp.ez - player.z);
     const min = (TYPES[type] && TYPES[type].spawn && TYPES[type].spawn.minDist) || 9; // a sniper wants a far door
     for (let k = 0; k < S.length; k++) {
       const sp = S[this.order[(this.orderI + k) % S.length]];
       const d = dist(sp);
-      if (d > min && d < 45) {
+      if (d > min && d < 45 && (L === S || L.includes(sp))) {
         this.orderI += k + 1;
         return sp;
       }
     }
     // nowhere suits: the nearest point not on top of the player (the furthest, for one who wants a far door), or the next in order
-    if (min > 9) return [...S].sort((a, b) => dist(b) - dist(a))[0];
-    const near = S.filter((sp) => dist(sp) > 7.5).sort((a, b) => dist(a) - dist(b))[0];
+    if (min > 9) return [...L].sort((a, b) => dist(b) - dist(a))[0];
+    const near = L.filter((sp) => dist(sp) > 7.5).sort((a, b) => dist(a) - dist(b))[0];
     return near || S[this.order[this.orderI++ % S.length]];
+  }
+
+  /**
+   * 同一水平: the doors whose way in is on the player's level (his zone, the nearest one when he is on the steps
+   * between two); all of them on a map of one zone, or when none is on his.
+   */
+  levelSpawns() {
+    const { player, level } = this.game;
+    if (level.zones.length < 2) return level.spawns;
+    const zone = level.nearestZone(player.x, player.z);
+    const here = level.spawns.filter((sp) => level.zoneAt(sp.ex, sp.ez) === zone);
+    return here.length ? here : level.spawns;
   }
 
   /** The first run's warm-up holds wave 1 back until endWarmup(). */
@@ -370,9 +402,11 @@ export class Waves {
 
     if (this.beats.length) this.updateBeats(dt, enemies);
     else {
-      // the trickle: one at a time, up to maxAlive standing
+      // the trickle: one at a time, up to maxAlive standing (a captain counts with the guards he brings: TYPES `escort`)
       this.spawnCd -= dt;
-      if (this.queue.length && this.spawnCd <= 0 && enemies.aliveCount + this.pending.length < this.maxAlive) {
+      const room = (type) => 1 + (TYPES[type].escort ? TYPES[type].escort.n : 0);
+      const coming = this.pending.reduce((n, p) => n + room(p.type), 0);
+      if (this.queue.length && this.spawnCd <= 0 && enemies.aliveCount + coming + room(this.queue[0]) <= this.maxAlive) {
         const type = this.queue.shift();
         this.pending.push({ type, sp: this.pickSpawn(type), t: 0.9 });
         this.spawnCd = this.wr.range(0.5, 1.3);

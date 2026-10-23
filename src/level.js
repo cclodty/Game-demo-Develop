@@ -6,13 +6,13 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { addCutaway, FADE_SLOTS } from './cutaway.js';
 import { Flock } from './ambient.js';
-import { ENV } from './config.js';
+import { ENV, LEVELS } from './config.js';
 import { MAPS } from './maps.js';
 import { propModel } from './models.js';
 import { buildFixtures } from './fixtures.js';
 import { NavGrid } from './nav.js';
 import { Race } from './race.js';
-import { clamp, rand, resolveCircleAABB, resolveCirclePoly, segAABB, segCircle, segPoly, TAU } from './utils.js';
+import { clamp, pointSegDist2, rand, resolveCircleAABB, resolveCirclePoly, segAABB, segCircle, segPoly, TAU } from './utils.js';
 import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenceTexture, floorTexture } from './textures.js';
 
 const _hit = { t: 0, nx: 0, nz: 0 };
@@ -872,6 +872,8 @@ export class Level {
     this.root = null;
     this.owned = [];
     this.balconies = []; // (load: the map's perches)
+    this.ledges = []; // (load: the map's balconies, drawn only)
+    this.zones = []; // (load: the map's zones)
     this.tables = []; // (load: its mahjong tables)
     // camera -> player cutaway, shared by every material that opts in (see maps.js)
     this.cut = {
@@ -1078,6 +1080,8 @@ export class Level {
     this.animators = [];
     this.ambient = [];
     this.groundFn = map.ground || null; // the ground's height, for a map with steps (maps.js `ground`); Senado's decorate sets its own
+    // 同一水平: the map's zones, flat floors each at one height (maps.js `zones`); a map without is one zone at 0
+    this.zones = map.zones || [{ id: 'all', name: '全場', en: 'ALL', y: 0, box: [-halfW, -halfD, halfW, halfD] }];
     this.slopeFn = map.slope || null; // where it slopes, which way (maps.js `slope`): a barrel knocked over there rolls down
     this.fadeables = []; // buildings the follow fade can see through: { pts, h } (addFadeable)
     this.fadedNow = [];
@@ -1125,12 +1129,17 @@ export class Level {
     // balconies (maps.js `perches`: [x, z, height, facing]): posts up a building's front where a beat sends a man to
     // stand and shoot from (waves.js, enemies.js perch). Each is a spawn of kind 'balcony': he steps out onto it from
     // inside the building, 1.2 m behind; `lamp` (the map's decorate) lights its window when one is coming
-    this.balconies = (map.perches || []).map(([x, z, y, face]) => {
+    const post = ([x, z, y, face]) => {
       const a = (face * Math.PI) / 180;
       const dx = Math.sin(a);
       const dz = Math.cos(a);
       return { kind: 'balcony', x: x - dx * 1.2, z: z - dz * 1.2, ex: x, ez: z, perch: y, stay: true, dirX: dx, dirZ: dz, heat: 0, lamp: null };
-    });
+    };
+    // no shipped map has perches any more (同一水平, DECISIONS 2026-10-22: nobody fights from above); a test can still
+    // give a map some (test/perch.test.mjs). Its balconies (maps.js `balconies`, the same [x, z, height, facing]) are
+    // only drawn: the map's decorate puts a slab and a railing at each, and lights the window of one a man comes out on
+    this.balconies = (map.perches || []).map(post);
+    this.ledges = (map.balconies || []).map(post);
     if (map.decorate) map.decorate(this);
     this.race = map.race ? new Race(this, map.race) : null; // the Guia circuit's racing cars (race.js)
     // Everything lit in the map can be cut away when it hides the player
@@ -1537,6 +1546,35 @@ export class Level {
     return this.groundFn ? this.groundFn(x, z) : 0;
   }
 
+  /** The zone (maps.js `zones`) whose floor (x, z) is on, or null on the way between two (大三巴's steps). */
+  zoneAt(x, z) {
+    for (const zn of this.zones) {
+      const [x0, z0, x1, z1] = zn.box;
+      if (x >= x0 && x <= x1 && z >= z0 && z <= z1) return zn;
+    }
+    return null;
+  }
+
+  /** The zone (x, z) is in, or the nearest one to it: where a beat plays out for a player on the steps. */
+  nearestZone(x, z) {
+    let best = null;
+    let bd = Infinity;
+    for (const zn of this.zones) {
+      const [x0, z0, x1, z1] = zn.box;
+      const d = Math.hypot(Math.max(x0 - x, 0, x - x1), Math.max(z0 - z, 0, z - z1));
+      if (d < bd) {
+        bd = d;
+        best = zn;
+      }
+    }
+    return best;
+  }
+
+  /** 同一水平: are (ax, az) and (bx, bz) on one level, the ground under them within LEVELS.tol of each other. */
+  sameLevel(ax, az, bx, bz) {
+    return Math.abs(this.groundY(ax, az) - this.groundY(bx, bz)) <= LEVELS.tol;
+  }
+
   /** Where the ground slopes (maps.js `slope`), its rise per metre [east, south]; null where it is level. */
   slopeAt(x, z) {
     const s = this.slopeFn ? this.slopeFn(x, z) : null;
@@ -1682,6 +1720,7 @@ export class Level {
     const g = this.game;
     const p = g.player;
     for (const f of this.flocks) {
+      f.upT = Math.max(0, f.upT - dt);
       if (f.away > 0) {
         f.away = Math.max(0, f.away - dt);
         continue;
@@ -1698,6 +1737,7 @@ export class Level {
   startle(f, x, z) {
     const g = this.game;
     f.away = g.rng.range(ENV.flockAway[0], ENV.flockAway[1]);
+    f.upT = ENV.flockCloud.time;
     f.gen++;
     f.fromX = x;
     f.fromZ = z;
@@ -1710,6 +1750,12 @@ export class Level {
       }
     }
     g.notes.log(n ? `白鴿驚起，打斷 ${n} 個敵人的瞄準` : '白鴿驚起');
+  }
+
+  /** A flock just taken off (ENV.flockCloud) across the line from (x0, z0) to (x1, z1): a marksman cannot see down it (boss.js). */
+  flockBlocks(x0, z0, x1, z1) {
+    const r = ENV.flockCloud.radius;
+    return this.flocks.some((f) => f.upT > 0 && pointSegDist2(f.x, f.z, x0, z0, x1, z1) < r * r);
   }
 
   resetProps() {

@@ -3,8 +3,10 @@
 // track comes in along the north, turns round the west end and goes back out
 // along the south; inside the hairpin an infield behind blue-and-white tyre
 // walls, outside it guardrails with marshals' gates, the grandstand to the
-// north and a run-off past the bend. A tyre wall stops a shot but is low: a man
-// up on the grandstand's front (its perches) sees over it. In MAPS (sixth,
+// north and a run-off past the bend. A tyre wall stops a shot and hides a man
+// crouched behind it; nobody stands on the grandstand (同一水平, DECISIONS
+// 2026-10-22: a man up there could see over the tyres, and the player could not
+// tell where to shoot him), so a man has to come round to the player. In MAPS (sixth,
 // key 6), in the daily rotation, and taken by the back end. The teams and
 // sponsors are made up. Run: npm test
 import { after, before, test } from 'node:test';
@@ -81,33 +83,34 @@ test('the hairpin: about 56 × 40 m, a track round a bend between tyre walls and
   assert.equal(r.track, true, 'the track is open from one straight round the bend to the other');
   assert.ok(r.westmost < -15.5, `the way round goes past the bend (${r.westmost.toFixed(1)})`);
   assert.ok(r.east >= 2 && r.west >= 2 && r.north >= 2 && r.south >= 2, `spawns: ${r.east} east, ${r.west} past the bend, ${r.north} north, ${r.south} south`);
-  assert.equal(r.perches, 4, 'four places on the grandstand');
+  assert.equal(r.perches, 0, 'nobody is sent up to the grandstand (同一水平)');
   assert.ok(r.daily >= 1, 'in the daily rotation');
   assert.equal(r.backend, r.count, 'the leaderboard back end takes every map');
   assert.deepEqual(problems(logs), []);
 });
 
-test('a tyre wall stops a shot along the ground and hides a man crouched behind it from the street, but not from the grandstand', async () => {
+test('a tyre wall stops a shot along the ground and hides a man crouched behind it from the track; the grandstand is a wall nobody stands on', async () => {
   const r = await page.evaluate(() => {
     const L = window.load();
     // the inner tyre wall on the north straight: the infield behind it at z -4, the track in front at z -8
     const shot = L.raycast(4, -8, 4, -3, false, 0, false);
-    const perch = L.balconies[1];
-    const from = { x: perch.ex, z: perch.ez };
+    const stand = L.solids.find((s) => s.matKey === 'stand');
     return {
       wall: shot ? shot.solid.matKey : null,
       street: L.hasLOS(4, -9, 4, -3.8, 0),
-      stand: L.hasLOS(from.x, from.z, 4, -3.8, perch.perch),
-      standHigh: perch.perch,
+      stand: !!stand,
+      ledges: L.ledges.length,
+      perches: L.balconies.length,
     };
   });
   assert.equal(r.wall, 'tyres', 'a shot along the ground stops at the tyres');
   assert.equal(r.street, false, 'from the track, no line of sight over the tyre wall');
-  assert.equal(r.stand, true, `from the grandstand, ${r.standHigh} m up, over it`);
+  assert.equal(r.stand, true, 'the grandstand is there, a wall along the north straight');
+  assert.ok(r.ledges === 4 && r.perches === 0, 'its four boxes are drawn, and nobody is sent up to them');
   assert.deepEqual(problems(logs), []);
 });
 
-test('a man sent up to the grandstand shoots at the player in the infield however far off he is: up there he cannot come closer', async () => {
+test('a man who comes in by the grandstand, past the marshals’ gate, comes round to the player in the infield and fires: nobody waits up on the stand', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     g.setRules('normal', []);
@@ -119,8 +122,8 @@ test('a man sent up to the grandstand shoots at the player in the infield howeve
     const L = g.level;
     const p = g.player;
     [p.x, p.z] = L.map.start; // in the infield, behind the tyre walls
-    const far = (b) => Math.hypot(b.ex - p.x, b.ez - p.z);
-    const sp = L.balconies.reduce((a, b) => (far(b) > far(a) ? b : a));
+    // the door past the grandstand, the farthest from the infield
+    const sp = L.spawns.reduce((a, b) => (Math.hypot(b.ex - p.x, b.ez - p.z) > Math.hypot(a.ex - p.x, a.ez - p.z) ? b : a));
     const e = g.enemies.spawn('grunt', sp);
     e.spawnLock = 0;
     const hits = [];
@@ -133,18 +136,19 @@ test('a man sent up to the grandstand shoots at the player in the infield howeve
     };
     g.input.keys.clear();
     g.input.mouse.left = false;
-    for (let i = 0; i < 120 * 15 && !hits.length; i++) {
+    let t = 0;
+    for (; t < 120 * 25 && !hits.length; t++) {
       g.killcamT = 0;
       g.hitstopT = 0;
       p.x = L.map.start[0];
       p.z = L.map.start[1];
       g.updatePlay(1 / 120);
     }
-    return { d: far(sp), reach: e.cfg.range[1] + 3, perch: e.perch, los: e.los, hits: hits.length };
+    return { perch: e.perch, hits: hits.length, s: t / 120, closer: Math.hypot(e.x - p.x, e.z - p.z) < Math.hypot(sp.ex - p.x, sp.ez - p.z) };
   });
-  assert.ok(r.perch > 0 && r.d > r.reach, `up ${r.perch} m, ${r.d.toFixed(1)} m off: past where a grunt on the street would fire (${r.reach} m)`);
-  assert.equal(r.los, true, 'he sees the player over the tyre wall');
-  assert.ok(r.hits >= 1, 'and fires at him');
+  assert.equal(r.perch, 0, 'he stays on the ground');
+  assert.equal(r.closer, true, 'he came closer');
+  assert.ok(r.hits >= 1, `and hit the player within 25 s (${r.s.toFixed(1)} s)`);
   assert.deepEqual(problems(logs), []);
 });
 

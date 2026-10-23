@@ -3,7 +3,10 @@
 // map, mode, rules, warm-up, every step's input from the record), downloads
 // it as .bbr or imports one. During playback the HUD says REPLAY, 1 / 2 / 3
 // set half, normal and double speed, Esc leaves, and the game's own keys do
-// nothing. A broken or foreign file is refused with a message.
+// nothing. A broken or foreign file is refused with a message. A run recorded
+// on maps since rebuilt (maps.js rev) is marked in the list and still plays,
+// with a word that it will not be the same; one from before revisions, as not
+// known.
 // Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -134,7 +137,7 @@ test('a run is kept when it ends, and playing it back gives the same score and e
     g.render();
     return { during };
   });
-  assert.deepEqual(back.during, { err: null, badge: true, aim: 0.7, mode: 'arcade' }, 'the record brought its rules');
+  assert.deepEqual(back.during, { err: null, badge: true, aim: 0.6, mode: 'arcade' }, 'the record brought its rules (芭蕾: ×0.6)');
   await page.screenshot({ path: new URL('replay-playing.png', OUT).pathname });
   const end = await page.evaluate(() => {
     window.playToEnd(60 * 600, true);
@@ -211,6 +214,68 @@ test('the list keeps each run; a broken or foreign file is refused with a messag
   await page.waitForFunction(() => window.game.replay !== null);
   const good = await page.evaluate(() => ({ state: window.game.state, map: window.game.level.map.id }));
   assert.deepEqual(good, { state: 'playing', map: 'club' });
+  await page.keyboard.press('Escape');
+  assert.deepEqual(problems(logs), []);
+});
+
+test('a replay of a run on maps since rebuilt (another maps’ revision) is marked in the list, and still plays, with a word that it will not be the same; one from before revisions, as not known', async () => {
+  const r = await page.evaluate(async () => {
+    const { MAPS_REV } = await import('/src/maps.js');
+    const g = window.game;
+    g.toTitle();
+    const entry = g.replays.list[0];
+    const bytes = g.replays.bytes(entry);
+    // the same run as if recorded on the maps before their last rebuild
+    const old = { ...entry, mapsRev: (MAPS_REV + 255) % 256 };
+    g.replays.list.unshift(old);
+    g.showReplays(true);
+    const rows = [...document.querySelectorAll('#replay-list .replay-row')].map((x) => x.textContent);
+    g.replays.list.shift();
+    const stale = bytes.slice();
+    stale[15] = (MAPS_REV + 255) % 256;
+    const err = g.playReplay(stale, old);
+    const out = { rows, err, stale: g.replay && g.replay.stale, said: g.notes.events.some((e) => e.text.includes('遊戲已改版')) };
+    g.toTitle();
+    const same = g.playReplay(bytes, entry);
+    out.fresh = { err: same, stale: g.replay && g.replay.stale };
+    g.toTitle();
+    // one kept from before the maps had revisions: a version 4 record (no revision byte), a list entry without one
+    const v4 = new Uint8Array(bytes.length - 1);
+    v4.set(bytes.subarray(0, 15));
+    v4.set(bytes.subarray(16), 15);
+    v4[2] = 4;
+    const before = { ...entry };
+    delete before.mapsRev;
+    g.replays.list.unshift(before);
+    g.showReplays(true);
+    out.unknownRow = document.querySelector('#replay-list .replay-row').textContent;
+    g.replays.list.shift();
+    g.notes.events.length = 0;
+    const errV4 = g.playReplay(v4, before);
+    out.unknown = { err: errV4, stale: g.replay && g.replay.stale, said: g.notes.events.some((e) => e.text.includes('遊戲版本未知')) };
+    g.toTitle();
+    return out;
+  });
+  assert.match(r.rows[0], /遊戲已改版/, 'the old run is marked');
+  assert.doesNotMatch(r.rows[1], /遊戲已改版|遊戲版本未知/, 'a run on these maps is not');
+  assert.equal(r.err, null, 'it still plays');
+  assert.equal(r.stale, true);
+  assert.equal(r.said, true, 'and the notes say it will not be the same');
+  assert.deepEqual(r.fresh, { err: null, stale: false });
+  assert.match(r.unknownRow, /遊戲版本未知/, 'a run from before the maps had revisions is marked as not known');
+  assert.deepEqual(r.unknown, { err: null, stale: 'unknown', said: true }, 'it plays, and the notes say it may not be the same');
+  // the list with one of each on top
+  await page.evaluate(async () => {
+    const { MAPS_REV } = await import('/src/maps.js');
+    const g = window.game;
+    const entry = g.replays.list[0];
+    const before = { ...entry };
+    delete before.mapsRev;
+    g.replays.list.unshift({ ...entry, mapsRev: (MAPS_REV + 255) % 256 }, before);
+    g.showReplays(true);
+    g.replays.list.splice(0, 2);
+  });
+  await page.screenshot({ path: new URL('replays-rev.png', OUT).pathname });
   await page.keyboard.press('Escape');
   assert.deepEqual(problems(logs), []);
 });

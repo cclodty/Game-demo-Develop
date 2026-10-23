@@ -1,0 +1,17 @@
+{
+  "id": "guia",
+  "name": "東望洋跑道",
+  "en": "Guia Circuit",
+  "origin": {
+    "lat": 22.1896388,
+    "lon": 113.5457042,
+    "note": "the apex of the bend where the circuit leaves Avenida da Amizade for Avenida de Lopo Sarmento de Carvalho (OSM relation 8877949, ways 753546939 and 1231146594)"
+  },
+  "rotDeg": -22,
+  "rotNote": "Avenida da Amizade comes in at a bearing of about 248° (towards the bend): turned 22° clockwise it runs along the game's x axis, the cars coming in from the right, the exit up the screen",
+  "half": 200,
+  "plan": {
+    "view": [-110, -110, 110, 80],
+    "note": "the bend, the straight into it, the climb out of it as far as Estrada de São Francisco, the grandstand's park"
+  }
+}

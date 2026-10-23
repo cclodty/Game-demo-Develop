@@ -5,7 +5,9 @@
 // for good. Until both escorts are out the lead shrugs everything off; alone,
 // it slows down and five hits take a segment. A moving car runs into a player
 // in its way (12 HP; a slide gets through). Five segments: it burns, blows,
-// BOSS +2,000, the clip, RUN CLEAR.
+// BOSS +2,000, the clip, RUN CLEAR. Senado's boss is now the marksman
+// (test/senado-boss.test.mjs); the convoy stays a kind a map can ask for, and
+// this test puts it back on the square.
 // Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -20,6 +22,12 @@ before(async () => {
   await page.evaluate(() => {
     const g = window.game;
     g.frame = () => {};
+    // the convoy back on the square, on the road it had (maps.js before 議事亭：頭目 ①)
+    g.maps.find((m) => m.id === 'senado').boss = {
+      kind: 'convoy',
+      entry: [[31, 65.6], [3, 65.6], [-3.5, 46.7]],
+      loop: [[-8.9, 34.5], [-8.9, 41.5], [-3.5, 46.7], [4.5, 46.7], [11.7, 40.5], [11.7, 34.8], [8.6, 29.2], [-4, 29.2], [-7.6, 31]],
+    };
     /** An arcade run from the club, moved on to its third stage (Senado) and the start of wave 12. */
     window.toFinal = () => {
       g.setRules('normal', []);

@@ -1,0 +1,22 @@
+{
+  "id": "docks",
+  "name": "七號碼頭（內港）",
+  "en": "Ponte No. 7, Inner Harbour",
+  "origin": {
+    "lat": 22.19272,
+    "lon": 113.53418,
+    "note": "the middle of OSM way 314945764, 7號碼頭 Ponte Nº. 7 (to be moved to the play area's middle once the study has chosen it)"
+  },
+  "rotDeg": -53,
+  "half": 200,
+  "plan": {
+    "view": [
+      -80,
+      -60,
+      80,
+      60
+    ],
+    "note": "Ponte No. 7 and the piers either side, the quay road, the shophouses across it"
+  },
+  "rotNote": "the Inner Harbour shore by Ponte No. 7 runs at a bearing of about 37°: turned 53° clockwise it lies along the game x axis, the water up the screen"
+}

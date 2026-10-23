@@ -1080,32 +1080,7 @@
       "facing": 270
     }
   ],
-  "perches": [
-    {
-      "x": -7,
-      "z": -12.8,
-      "height": 2.2,
-      "facing": 0
-    },
-    {
-      "x": -0.5,
-      "z": -12.8,
-      "height": 2.2,
-      "facing": 0
-    },
-    {
-      "x": 5.5,
-      "z": -12.8,
-      "height": 2.2,
-      "facing": 0
-    },
-    {
-      "x": 11.5,
-      "z": -12.8,
-      "height": 2.2,
-      "facing": 0
-    }
-  ],
+  "perches": [],
   "water": [],
   "race": {
     "first": 16,

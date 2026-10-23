@@ -1,14 +1,17 @@
-// 大三巴 Ruins of St. Paul's (新地圖 ①): the seventh map, about 40 × 60 m,
-// stylised. From the forecourt in the south 68 steps climb north in three
-// flights with two landings to the terrace under the façade. The ground's height
+// 大三巴 Ruins of St. Paul's (新地圖 ①; rebuilt to its massing study, 大三巴：重建 ①):
+// the seventh map, stylised, at the real size: from the forecourt in the south
+// 68 steps climb north 42.7 m and about 10 m in three flights with two landings
+// to the terrace under the façade (massing/ruins/checks.json). The ground's height
 // is the map's `ground` (level.js groundY): the player and the enemies walk up
-// and down the steps on it, and the camera rises with the player. From up the
-// steps a man sees and shoots over cover lower than where he stands
-// (enemies.js over; the player's shots too), so the landings are the high
-// ground to take. In MAPS (key 7), in the daily rotation, and taken by the back
-// end. Run: npm test
+// and down the steps on it, and the camera rises with the player. Two levels
+// (同一水平, DECISIONS 2026-10-22; test/levels.test.mjs): the forecourt and the
+// terrace each fight on their own, the steps between: nobody fires from one
+// level onto another and a shot stops at the edge of a flight. In MAPS (key 7),
+// in the daily rotation, and taken by the back end. Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { runChecks } from '../scripts/massing/checks.mjs';
 import { gameHarness, installBot, OUT, problems } from './helpers.mjs';
 
 let h;
@@ -26,7 +29,7 @@ before(async () => {
       return g.level;
     };
     /** A quiet run here: no waves, the player at (x, z). */
-    window.begin = (x = -3, z = 21) => {
+    window.begin = (x = -4, z = 56) => {
       g.setRules('normal', []);
       g.setMode('arcade');
       g.startRun(window.ruins());
@@ -71,7 +74,16 @@ after(async () => {
   await h.close();
 });
 
-test('the forecourt, 68 steps in three flights with two landings, the terrace under the façade: about 40 × 60 m; spawns below and at the top; seventh in MAPS, in the daily rotation, and the back end takes it', async () => {
+test('the rebuild against its study (massing/ruins/checks.json): the steps’ foot, the terrace’s height, 68 steps, the steps’ and the terrace’s widths, the façade’s width and top', () => {
+  const ids = ['steps-foot', 'terrace-rise', 'steps-count', 'steps-width', 'terrace-width', 'facade-width', 'facade-top'];
+  const checks = JSON.parse(fs.readFileSync(new URL('../massing/ruins/checks.json', import.meta.url), 'utf8')).filter((c) => ids.includes(c.id));
+  const map = JSON.parse(fs.readFileSync(new URL('../assets/maps/ruins.json', import.meta.url), 'utf8'));
+  assert.equal(checks.length, ids.length);
+  const failed = runChecks(map, checks).filter((c) => !c.ok);
+  assert.deepEqual(failed, [], failed.map((c) => `${c.what} ${c.value} (real ${c.real} ± ${c.tol})`).join('; '));
+});
+
+test('the forecourt, 68 steps in three flights with two landings 42.7 m up to the terrace 10 m above it, the façade: about 48 × 106 m to walk; spawns below and at the top; seventh in MAPS, in the daily rotation, and the back end takes it', async () => {
   const r = await page.evaluate(async () => {
     const { DAILY_ROTATION } = await import('/src/rules.js');
     const { LIMITS } = await import('/backend/worker.js');
@@ -79,45 +91,57 @@ test('the forecourt, 68 steps in three flights with two landings, the terrace un
     const i = window.ruins();
     const L = window.load();
     const { halfW, halfD } = L.bounds;
-    const at = (z) => Math.round(L.groundY(0, z) * 100) / 100;
+    const at = (z) => Math.round(L.groundY(-4, z) * 100) / 100;
     // up the middle of the steps, every 10 cm: never down, and where it is flat
     const profile = [];
-    for (let z = 12; z >= -20; z -= 0.1) profile.push(L.groundY(0, z));
+    for (let z = 45; z >= -20; z -= 0.1) profile.push(L.groundY(-4, z));
     const rises = profile.every((y, k) => k === 0 || y >= profile[k - 1] - 1e-9);
     const flats = [];
     for (let k = 1; k < profile.length; k++) {
       const flat = Math.abs(profile[k] - profile[k - 1]) < 1e-9;
-      if (flat && (!flats.length || flats[flats.length - 1].y !== profile[k])) flats.push({ y: Math.round(profile[k] * 100) / 100 });
+      const y = Math.round(profile[k] * 100) / 100;
+      if (flat && (!flats.length || flats[flats.length - 1].y !== y)) flats.push({ y });
     }
-    const path = L.nav.findPath(0, 25, 0, -16);
+    const path = L.nav.findPath(-4, 50, -4, -12);
+    const walk = [[-4, 76], [-7, -26], [-4, 40], [12.8, 20]].map(([x, z]) => L.nav.isWalkable(x, z));
+    const shut = [[-4, 79], [-20, 20], [7.2, 20]].map(([x, z]) => L.nav.isWalkable(x, z));
+    const nave = L.nav.findPath(-4, 50, 0, -60); // up the steps, through a doorway, to the nave's far end
+    const behind = L.nav.findPath(-4, 50, 0, -70); // the hill past the nave's back: no way there
     const facade = L.solids.find((s) => s.matKey === 'facade');
     return {
       index: i,
       count: g.maps.length,
       name: [g.maps[i].name, g.maps[i].en],
       size: [halfW * 2, halfD * 2],
-      heights: { forecourt: at(20), landing1: at(2.5), landing2: at(-5.5), terrace: at(-16) },
+      walk,
+      shut,
+      nave: !!nave,
+      behind,
+      heights: { forecourt: at(50), landing1: at(24.2), landing2: at(8.8), terrace: at(-12) },
       rises,
       levels: flats.map((f) => f.y),
       steps: g.maps[i].steps.flights.reduce((a, b) => a + b, 0),
       path: !!path,
       facade: facade ? { h: facade.h, z: (facade.minZ + facade.maxZ) / 2 } : null,
-      low: L.spawns.filter((s) => s.ez > 9).length,
-      top: L.spawns.filter((s) => s.ez < -12).length,
+      low: L.spawns.filter((s) => s.ez > 38.1).length,
+      top: L.spawns.filter((s) => s.ez < -4.6).length,
       daily: DAILY_ROTATION.filter((d) => d.map === i).length,
       backend: LIMITS.maps,
     };
   });
   assert.equal(r.index, 6, 'the seventh map');
   assert.deepEqual(r.name, ['大三巴', "RUINS OF ST. PAUL'S"]);
-  assert.ok(r.size[0] >= 36 && r.size[0] <= 44 && r.size[1] >= 56 && r.size[1] <= 64, `about 40 × 60 m (${r.size})`);
-  assert.equal(r.heights.forecourt, 0);
-  assert.ok(r.heights.landing1 > 1 && r.heights.landing2 > r.heights.landing1 && r.heights.terrace > r.heights.landing2, JSON.stringify(r.heights));
+  assert.deepEqual(r.size, [48, 160], 'the bounds');
+  assert.deepEqual(r.walk, [true, true, true, true], 'the forecourt’s south end, the nave, the steps’ foot and the walkway are walkable');
+  assert.deepEqual(r.shut, [false, false, false], 'past the south rows, the west wall and the zigzag planter are not');
+  assert.equal(r.nave, true, 'the old nave behind the façade, its full 37 m, is walkable');
+  assert.equal(r.behind, null, 'the hill past its back is not');
+  assert.deepEqual(r.heights, { forecourt: 0, landing1: 3.45, landing2: 6.9, terrace: 10.2 });
   assert.equal(r.rises, true, 'up the steps the ground never drops');
   assert.deepEqual(r.levels, [0, r.heights.landing1, r.heights.landing2, r.heights.terrace], 'four levels: the forecourt, two landings, the terrace');
   assert.equal(r.steps, 68, '68 steps');
   assert.equal(r.path, true, 'from the forecourt up to the terrace on foot');
-  assert.ok(r.facade && r.facade.h > 15 && r.facade.z < -18, `the façade across the top (${JSON.stringify(r.facade)})`);
+  assert.ok(r.facade && r.facade.h > 20 && r.facade.z < -20, `the façade across the top (${JSON.stringify(r.facade)})`);
   assert.ok(r.low >= 3 && r.top >= 2, `spawns: ${r.low} round the forecourt, ${r.top} at the top`);
   assert.ok(r.daily >= 1, 'in the daily rotation');
   assert.equal(r.backend, r.count, 'the leaderboard back end takes every map');
@@ -129,34 +153,34 @@ test('up the steps and down: the player and an enemy stand on the ground’s hei
     const g = window.game;
     const p = g.player;
     const L = g.level;
-    window.begin(0, 12);
+    window.begin(-4, 40);
     let worst = 0;
     const heights = [];
-    for (let i = 0; i < 120 * 8 && p.z > -15; i++) {
+    for (let i = 0; i < 120 * 12 && p.z > -10; i++) {
       window.play(1, ['KeyW']);
       worst = Math.max(worst, Math.abs(p.rig.root.position.y - L.groundY(p.x, p.z)));
       if (i % 60 === 0) heights.push(Math.round(p.rig.root.position.y * 10) / 10);
     }
     const top = { z: p.z, y: p.rig.root.position.y, cam: g.camTarget.y };
     // an enemy walks down from the terrace towards the player at the bottom
-    p.x = 0;
-    p.z = 20;
-    const e = g.enemies.spawn('rusher', { x: 0, z: -16, ex: 0, ez: -15.9, stay: false });
+    p.x = -4;
+    p.z = 50;
+    const e = g.enemies.spawn('rusher', { x: -4, z: -12, ex: -4, ez: -11.9, stay: false });
     e.spawnLock = 0;
     let enemyWorst = 0;
     let lowest = 99;
-    for (let i = 0; i < 120 * 8 && e.alive; i++) {
+    for (let i = 0; i < 120 * 12 && e.alive; i++) {
       window.play(1);
-      p.x = 0;
-      p.z = 20;
+      p.x = -4;
+      p.z = 50;
       enemyWorst = Math.max(enemyWorst, Math.abs(e.rig.root.position.y - L.groundY(e.x, e.z)));
       lowest = Math.min(lowest, e.rig.root.position.y);
-      if (e.z > 9.5) break;
+      if (e.z > 38.6) break;
     }
-    return { worst, heights, top, enemyWorst, enemyDown: e.z > 9, lowest, camBottom: g.camTarget.y };
+    return { worst, heights, top, enemyWorst, enemyDown: e.z > 38.1, lowest, camBottom: g.camTarget.y };
   });
-  assert.ok(r.top.z < -14, `the player got to the terrace (z ${r.top.z.toFixed(1)})`);
-  assert.ok(r.top.y > 4, `up there, ${r.top.y.toFixed(2)} m up`);
+  assert.ok(r.top.z < -9, `the player got to the terrace (z ${r.top.z.toFixed(1)})`);
+  assert.ok(r.top.y > 10, `up there, ${r.top.y.toFixed(2)} m up`);
   assert.ok(r.worst < 0.02, `on the ground all the way up (off by ${r.worst.toFixed(3)} at most): ${r.heights.join(' ')}`);
   assert.ok(Math.abs(r.top.cam - r.top.y) < 0.6, `the camera rose with him (${r.top.cam.toFixed(2)})`);
   assert.equal(r.enemyDown, true, 'the enemy came down the steps');
@@ -170,10 +194,10 @@ test('up on the terrace the cut-away holes what stands between the camera and th
     const g = window.game;
     const L = g.level;
     g.view = 2;
-    window.begin(0, -17.5);
+    window.begin(-4, -17.5);
     // a barrel 3 m from him towards the camera (the 45° view's, south-west)
     const barrel = L.barrels.find((b) => b.alive && b.variant === 'barrel');
-    barrel.x = -2.3;
+    barrel.x = -6.3;
     barrel.z = -15.5;
     barrel.update(0);
     window.play(30);
@@ -188,7 +212,7 @@ test('up on the terrace the cut-away holes what stands between the camera and th
       const t = THREE.MathUtils.clamp(v.clone().sub(A).dot(ab) / ab.dot(ab), 0, 1);
       return t < 0.97 ? R - v.distanceTo(A.clone().add(ab.multiplyScalar(t))) : -1;
     };
-    const floor = new THREE.Vector3(-1.5, L.groundY(-1.5, -14), -14);
+    const floor = new THREE.Vector3(-5.5, L.groundY(-5.5, -14), -14);
     const onBarrel = new THREE.Vector3(barrel.x, L.groundY(barrel.x, barrel.z) + 0.9, barrel.z);
     const rt = new THREE.WebGLRenderTarget(640, 360);
     const shot = () => {
@@ -209,7 +233,7 @@ test('up on the terrace the cut-away holes what stands between the camera and th
     rt.dispose();
     return { R, depth: { floor: inside(floor), barrel: inside(onBarrel) }, holed, whole, ground: B.y - 1.2 };
   });
-  assert.ok(r.ground > 4.5, `the player stands on the terrace (${r.ground.toFixed(1)} m up)`);
+  assert.ok(r.ground > 10, `the player stands on the terrace (${r.ground.toFixed(1)} m up)`);
   assert.ok(r.depth.floor > 0.7 && r.depth.barrel > 0.7, `both points lie well inside the cut (${r.depth.floor.toFixed(2)}, ${r.depth.barrel.toFixed(2)} m of ${r.R})`);
   assert.deepEqual(r.holed[0], r.whole[0], 'the terrace floor in front of him is drawn as without the cut');
   assert.notDeepEqual(r.holed[1], r.whole[1], 'the barrel between him and the camera is cut away');
@@ -223,35 +247,34 @@ test('up on the terrace the cut-away holes what stands between the camera and th
   assert.deepEqual(problems(logs), []);
 });
 
-test('the high ground: a man on a landing sees over a forecourt planter that hides the player from one on the forecourt; the player up there shoots over it, and still hits a barrel', async () => {
+test('no high ground: a man on a landing does not see over a forecourt planter to the player below; the player up there cannot shoot down at a man behind it, nor at a barrel on the forecourt', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     const L = g.level;
-    const p = g.player;
-    window.begin(-9, 21.2);
-    // the planter at (-9, 19.5): the player crouched behind it, south of it
-    const low = window.post('grunt', -9, 15);
-    const high = window.post('grunt', -3, 2.5); // on the first landing, clear of its urns
+    window.begin(-8, 48.2);
+    // the planter at (-8, 46.5): the player crouched behind it, south of it
+    const low = window.post('grunt', -8, 41);
+    const high = window.post('grunt', -4, 24.2); // on the first landing, 3.45 m up, clear of its urns
     window.play(30);
-    const sight = { low: low.los, high: high.los, overLow: low.over, overHigh: high.over };
-    // the player up on the first landing shoots a man behind that planter (north of it now, the player above)
-    window.begin(-8, 3);
-    const behind = window.post('grunt', -9, 17.6);
+    const sight = { low: low.los, high: high.los };
+    // the player up on the first landing fires at a man behind that planter
+    window.begin(-6, 24.2);
+    const behind = window.post('grunt', -8, 44.8);
     behind.hp = 1;
-    window.play(90, ['Mouse0'], [-9, 17.6]);
-    const shotOver = !behind.alive;
-    // and from there a barrel on the forecourt still takes the shot
-    window.begin(-8, 3);
+    window.play(90, ['Mouse0'], [-8, 44.8]);
+    const shotDown = !behind.alive;
+    // and at a barrel on the forecourt
+    window.begin(-6, 24.2);
     const barrel = L.barrels.find((b) => b.alive && b.kind === 'barrel' && b.variant === 'barrel');
-    barrel.x = -9;
-    barrel.z = 14;
-    window.play(90, ['Mouse0'], [-9, 14]);
-    return { sight, shotOver, barrel: barrel.fuse >= 0 || !barrel.alive || barrel.hp < barrel.maxHp, overPlayer: p.over };
+    barrel.x = -8;
+    barrel.z = 41;
+    window.play(90, ['Mouse0'], [-8, 41]);
+    return { sight, shotDown, barrel: barrel.fuse >= 0 || !barrel.alive || barrel.hp < barrel.maxHp };
   });
   assert.equal(r.sight.low, false, 'from the forecourt, the planter hides the player');
-  assert.equal(r.sight.high, true, `from the landing, ${r.sight.overHigh.toFixed(1)} m up, over it`);
-  assert.equal(r.shotOver, true, 'the player on the landing shoots over the planter');
-  assert.equal(r.barrel, true, 'and a barrel below still takes the shot');
+  assert.equal(r.sight.high, false, 'from the landing, 3.45 m up, not a line on him either: another level');
+  assert.equal(r.shotDown, false, 'the player’s shots from the landing stop at the edge of the flight');
+  assert.equal(r.barrel, false, 'and a barrel below is untouched');
   assert.deepEqual(problems(logs), []);
 });
 
@@ -276,41 +299,81 @@ test('seven map cards on the title, no scrolling at 1280 × 720; key 7 starts he
   assert.deepEqual(problems(logs), []);
 });
 
-test('screenshots: up the steps from their foot (the default camera); the whole map from above', { timeout: 120000 }, async () => {
+test('up on the terrace, 10 m up, the camera still shows the terrace’s edge and the head of the steps', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const out = [];
+    for (const view of [0, 1, 2]) {
+      g.view = view;
+      // 4.4 m back from its edge: the edge; at the edge: the top of the last flight below it
+      window.begin(-4, -9);
+      window.play(30);
+      g.updateCamera(1, true);
+      g.camera.updateMatrixWorld(true);
+      const edge = g.camera.position.clone().set(-4, 10.2, -4.6).project(g.camera);
+      window.begin(-4, -6);
+      window.play(30);
+      g.updateCamera(1, true);
+      g.camera.updateMatrixWorld(true);
+      const head = g.camera.position.clone().set(-4, 9.5, -2).project(g.camera);
+      out.push({ view, edge: [edge.x, edge.y], head: [head.x, head.y] });
+    }
+    return out;
+  });
+  for (const v of r) {
+    assert.ok(Math.abs(v.edge[0]) < 0.95 && Math.abs(v.edge[1]) < 0.95, `view ${v.view}: the terrace’s edge on the screen (${v.edge.map((x) => x.toFixed(2))})`);
+    assert.ok(Math.abs(v.head[0]) < 0.95 && Math.abs(v.head[1]) < 0.95, `view ${v.view}: the head of the steps too (${v.head.map((x) => x.toFixed(2))})`);
+  }
+  assert.deepEqual(problems(logs), []);
+});
+
+test('screenshots: up the steps from their foot (the default camera); the whole map from above; from the forecourt’s south end, as the study’s photograph (massing/ruins/reference/photos/largo.jpg)', { timeout: 120000 }, async () => {
   await page.evaluate(() => {
     const g = window.game;
     g.view = 2;
-    window.begin(-1, 11.5);
+    window.begin(-4, 41);
     for (const [x, z] of [
-      [-5, 2.5],
-      [6, -5],
-      [1, -15],
+      [-7, 24.2],
+      [2, 8.8],
+      [-2, -10],
     ]) {
       const e = g.enemies.spawn('grunt', { x, z, ex: x, ez: z + 0.1, stay: true });
       e.spawnLock = 0;
     }
-    window.play(60, [], [0, 2]);
+    window.play(60, [], [-4, 30]);
     g.updateCamera(1, true);
     g.hud.update(1 / 60);
     g.render();
   });
   await page.screenshot({ path: new URL('ruins-steps.png', OUT).pathname });
-  await page.evaluate(() => {
-    const g = window.game;
-    document.getElementById('hud').style.visibility = 'hidden';
-    g.level.cut.uFadeSet.value.fill(0);
-    g.level.cut.uCutR.value = 0;
-    const cam = g.camera;
-    cam.position.set(0, 75, 0.01);
-    cam.up.set(0, 0, -1);
-    cam.lookAt(0, 0, 0);
-    cam.updateProjectionMatrix();
-    g.renderer.render(g.scene, cam);
-  });
-  await page.screenshot({ path: new URL('ruins-top.png', OUT).pathname });
+  const look = async (name, pos, at, up = [0, 1, 0], fov = null) => {
+    await page.evaluate(
+      ({ pos, at, up, fov }) => {
+        const g = window.game;
+        document.getElementById('hud').style.visibility = 'hidden';
+        g.level.cut.uFadeSet.value.fill(0);
+        g.level.cut.uCutR.value = 0;
+        const cam = g.camera;
+        const fov0 = cam.fov;
+        if (fov) cam.fov = fov;
+        cam.position.set(...pos);
+        cam.up.set(...up);
+        cam.lookAt(...at);
+        cam.updateProjectionMatrix();
+        g.renderer.render(g.scene, cam);
+        cam.fov = fov0;
+      },
+      { pos, at, up, fov },
+    );
+    await page.screenshot({ path: new URL(name, OUT).pathname });
+  };
+  await look('ruins-top.png', [-2, 160, 24.01], [-2, 0, 24], [0, 0, -1]);
+  // where the photograph was taken (massing/ruins/README.md #8: 1.5 m up, 84 m south of the façade)
+  await look('ruins-largo.png', [-4, 1.5, 62.4], [-2, 17, -21.6], [0, 1, 0], 50);
   await page.evaluate(() => {
     document.getElementById('hud').style.visibility = '';
     window.game.camera.up.set(0, 1, 0);
+    window.game.camera.updateProjectionMatrix();
   });
   assert.deepEqual(problems(logs), []);
 });

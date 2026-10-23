@@ -1,0 +1,12 @@
+[
+  { "id": "entry-width", "what": "入彎直路（友誼大馬路賽道那邊）的闊：護欄到護欄", "real": 14, "tol": 2, "source": "量度表 #2（OSM lanes 4 × 3.5 米，推算）", "game": { "type": "gap", "at": [40, 0.7], "axis": "z" } },
+  { "id": "exit-width", "what": "出彎的路（賈羅布大馬路賽道那邊）的闊：護欄到護欄", "real": 7, "tol": 1.5, "source": "量度表 #3（OSM lanes 2 × 3.5 米，推算；Wikipedia 最窄 7 米）", "game": { "type": "gap", "at": [-16, -40], "axis": "x" } },
+  { "id": "exit-street", "what": "出彎路兩旁的樓，牆到牆（z −40，只計高過 3 米的牆）", "real": 42.9, "tol": 1.5, "source": "量度表 #6（OSM 樓宇輪廓）", "game": { "type": "gap", "at": [-14, -40], "axis": "x", "over": 3 } },
+  { "id": "exit-street-north", "what": "同上，z −60", "real": 27.4, "tol": 1.5, "source": "量度表 #7（OSM 樓宇輪廓）", "game": { "type": "gap", "at": [-14, -60], "axis": "x", "over": 3 } },
+  { "id": "outside-wing", "what": "彎外酒店的裙樓", "real": 37.3, "tol": 1, "source": "量度表 #8（OSM way 807699987 height）", "game": { "type": "height", "at": [-60, -40] } },
+  { "id": "outside-tower", "what": "彎外酒店的塔樓", "real": 76.8, "tol": 1, "source": "量度表 #8（OSM way 807699988 height）", "game": { "type": "height", "at": [-110, -90] } },
+  { "id": "inside-block", "what": "彎內的商業大廈", "real": 20.6, "tol": 1, "source": "量度表 #9（OSM way 205784414 height）", "game": { "type": "height", "at": [25, -20] } },
+  { "id": "inside-tower", "what": "彎內商業大廈的塔樓", "real": 73.8, "tol": 1, "source": "量度表 #9（OSM way 1201888819 height）", "game": { "type": "height", "at": [10, -50] } },
+  { "id": "north-tower", "what": "入彎直路北面的住宅（西面一幢）", "real": 68.6, "tol": 1, "source": "量度表 #10（OSM height）", "game": { "type": "height", "at": [50, -40] } },
+  { "id": "north-tower-2", "what": "入彎直路北面的住宅（近路一幢）", "real": 63.5, "tol": 1, "source": "量度表 #10（OSM height）", "game": { "type": "height", "at": [68, -18] } }
+]

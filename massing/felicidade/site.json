@@ -1,0 +1,17 @@
+{
+  "id": "felicidade",
+  "name": "福隆新街",
+  "en": "Rua da Felicidade",
+  "origin": {
+    "lat": 22.1941965,
+    "lon": 113.5376691,
+    "note": "the middle of the street's ground floor, halfway between the mouths of Pátio da Felicidade and Travessa do Aterro Novo (OSM way 306854022): the OSM outlines' middle moved 1.2 m north-east, where the photo puts the shop fronts"
+  },
+  "rotDeg": 71,
+  "rotNote": "the street runs straight at a bearing of about 341° (north-north-west) for 172 m: turned 71° anticlockwise it lies along the game's x axis, its north end on the left",
+  "half": 180,
+  "plan": {
+    "view": [-70, -30, 70, 35],
+    "note": "the chosen stretch between the two lanes, the back lane south of it, the ends of the street"
+  }
+}

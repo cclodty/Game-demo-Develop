@@ -31,11 +31,11 @@ test('every rule is one number or one switch of BASE, and only rules.js names th
     const r = rulesFor(d, v);
     return [r.aimMul, r.styleMul];
   };
-  assert.deepEqual(pick('ballet'), [0.7, 1.5]);
+  assert.deepEqual(pick('ballet'), [0.6, 1.5]);
   assert.deepEqual(pick('street'), [1.4, 1]);
-  assert.deepEqual(pick('normal'), [1, 1]);
-  assert.deepEqual(pick('normal', ['noSlowmo']), [1, 2]);
-  assert.deepEqual(pick('ballet', ['noSlowmo']), [0.7, 3], 'multipliers multiply');
+  assert.deepEqual(pick('normal'), [0.85, 1]);
+  assert.deepEqual(pick('normal', ['noSlowmo']), [0.85, 2]);
+  assert.deepEqual(pick('ballet', ['noSlowmo']), [0.6, 3], 'multipliers multiply');
   assert.deepEqual(rulesFor('normal', ['glassCity', 'dualist']).variants, ['dualist', 'glassCity'], 'a fixed order');
   assert.equal(rulesFor('ballet', ['glassCity']).label, '芭蕾 · 玻璃之城');
   assert.equal(rulesFor().label, '');
@@ -57,9 +57,10 @@ let logs;
 before(async () => {
   h = await gameHarness();
   ({ page, logs } = await h.open('?seed=31'));
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
     const g = window.game;
     g.frame = () => {};
+    window.FIREPOWER = (await import('./src/config.js')).FIREPOWER; // the game's own (one module): what enemies drop
     /** Start a run on `map` under the given picks; nobody about unless `waves`. */
     window.run = (map, difficulty, variants = [], waves = false) => {
       g.setRules(difficulty, variants);
@@ -162,6 +163,10 @@ test('玻璃之城: on every map each box of cover is glass, a bullet breaks it,
 test('雙槍主義: the weapon pads stay empty and enemies drop nothing', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
+    // a brute drops his minigun only some of the time (config.js FIREPOWER): here always, so a drop that is not there is the variant's doing
+    const { FIREPOWER } = window;
+    const brute = FIREPOWER.drops.brute;
+    FIREPOWER.drops.brute = [['minigun', 1]];
     const look = (variants) => {
       window.run(0, 'normal', variants, true);
       let n = 0;
@@ -171,10 +176,12 @@ test('雙槍主義: the weapon pads stay empty and enemies drop nothing', async 
       g.enemies.clear();
       g.pickups.clear();
       const e = g.enemies.spawn('brute', { x: g.player.x, z: g.player.z - 5, ex: g.player.x, ez: g.player.z - 4.9, stay: true });
-      e.die(0, -1, { cause: 'bullet' }); // a brute always drops his minigun
+      e.die(0, -1, { cause: 'bullet' });
       return { pads, of: g.level.pads.length, drops: g.pickups.list.length };
     };
-    return { normal: look([]), dualist: look(['dualist']) };
+    const out = { normal: look([]), dualist: look(['dualist']) };
+    FIREPOWER.drops.brute = brute;
+    return out;
   });
   assert.ok(r.normal.of > 0 && r.normal.pads === r.normal.of, `normally the pads fill (${r.normal.pads}/${r.normal.of})`);
   assert.equal(r.normal.drops, 1, 'and a brute drops his gun');
@@ -196,7 +203,10 @@ test('無槍: hidden until 赤手空拳; then empty hands: the left button and R
     g.achievements.wave(false, 0);
     g.toTitle();
     out.openCard = !!card() && !card().classList.contains('hidden');
-    // the run: the pads at wave 1, then a brute who always drops his minigun
+    // the run: the pads at wave 1, then a brute who would always drop his minigun (config.js FIREPOWER: here always)
+    const fp = window.FIREPOWER;
+    const keep = fp.drops.brute;
+    fp.drops.brute = [['minigun', 1]];
     window.run(0, 'normal', ['noGuns'], true);
     let n = 0;
     while (g.waves.wave < 1 && n++ < 600) window.play(1);
@@ -208,6 +218,7 @@ test('無槍: hidden until 赤手空拳; then empty hands: the left button and R
     const brute = g.enemies.spawn('brute', { x: p.x, z: p.z - 5, ex: p.x, ez: p.z - 4.9, stay: true });
     brute.die(0, -1, { cause: 'kick' });
     out.drops = g.pickups.list.length;
+    fp.drops.brute = keep;
     out.label = g.ruleset.label;
     // the left button held, R pressed: nothing
     const shots = g.waves.shots;
@@ -298,7 +309,7 @@ test('無槍: hidden until 赤手空拳; then empty hands: the left button and R
   assert.deepEqual(problems(logs), []);
 });
 
-test('芭蕾 aims in 0.7× the time and scores ×1.5; 街頭 aims in 1.4× and scores ×1', async () => {
+test('正常 aims in 0.85× the time, 芭蕾 in 0.6× and scores ×1.5; 街頭 aims in 1.4× and scores ×1', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     const out = {};
@@ -323,8 +334,8 @@ test('芭蕾 aims in 0.7× the time and scores ×1.5; 街頭 aims in 1.4× and s
     return out;
   });
   const near = (a, b) => Math.abs(a - b) < 0.02;
-  assert.ok(near(r.normal.aim, r.normal.base), `normal aims ${r.normal.aim}`);
-  assert.ok(near(r.ballet.aim, r.normal.base * 0.7), `ballet aims ${r.ballet.aim}`);
+  assert.ok(near(r.normal.aim, r.normal.base * 0.85), `normal aims ${r.normal.aim}`);
+  assert.ok(near(r.ballet.aim, r.normal.base * 0.6), `ballet aims ${r.ballet.aim}`);
   assert.ok(near(r.street.aim, r.normal.base * 1.4), `street aims ${r.street.aim}`);
   assert.equal(r.ballet.state, 'fire');
   assert.deepEqual([r.street.pts, r.normal.pts, r.ballet.pts], [100, 100, 150]);
@@ -371,7 +382,7 @@ test('the title screen offers the picks, remembers them, and a run records them'
     assert.deepEqual(run.kept, { difficulty: ['ballet'], variants: ['glassCity'] }, 'remembered after a reload');
     assert.deepEqual(run.recorded, { difficulty: 'ballet', variants: ['glassCity'] }, 'in the input record');
     assert.match(run.sub, /芭蕾 · 玻璃之城/, 'the HUD says which rules');
-    assert.equal(run.aimMul, 0.7);
+    assert.equal(run.aimMul, 0.6); // 芭蕾
     await snap(p2, 'rules-glass-city.png');
     await p2.evaluate(() => window.game.setRules('normal', []));
     assert.deepEqual(problems(l2), []);

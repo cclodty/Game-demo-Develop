@@ -1,0 +1,13 @@
+[
+  { "id": "roof-length", "what": "屋頂長（遊戲 x，北邊 52.6 米、南邊 56.0 米的平均）", "real": 54.3, "tol": 2, "source": "量度表 #1（OSM way 306158878）", "game": { "type": "size", "axis": "w" } },
+  { "id": "roof-depth", "what": "屋頂深（遊戲 z，中段）", "real": 30.5, "tol": 1.5, "source": "量度表 #2（OSM way 306158878）", "game": { "type": "size", "axis": "d" } },
+  { "id": "south-street", "what": "市東街：屋頂南邊到對面樓（牆到牆）", "real": 9, "tol": 1, "source": "量度表 #5（OSM 輪廓）", "game": { "type": "gap", "at": [0, 17.5], "axis": "z" } },
+  { "id": "east-street", "what": "市北街：屋頂東邊到對面樓（牆到牆）", "real": 11, "tol": 1, "source": "量度表 #6（OSM 輪廓）", "game": { "type": "gap", "at": [38, -10], "axis": "x" } },
+  { "id": "north-avenue", "what": "提督馬路：屋頂北邊到對面樓（牆到牆）", "real": 23.7, "tol": 1.5, "source": "量度表 #7（OSM 輪廓）", "game": { "type": "gap", "at": [0, -21], "axis": "z" } },
+  { "id": "west-avenue", "what": "高士德大馬路：屋頂西邊到對面樓（牆到牆）", "real": 22.9, "tol": 1.5, "source": "量度表 #8（OSM 輪廓）", "game": { "type": "gap", "at": [-30, 0], "axis": "x" } },
+  { "id": "south-block", "what": "市東街對面西段的樓，比屋頂高（23.2 − 14）", "real": 9.2, "tol": 0.5, "source": "量度表 #10（OSM height）", "game": { "type": "height", "at": [-20, 27] } },
+  { "id": "east-block", "what": "市北街對面的樓，比屋頂高（23.2 − 14）", "real": 9.2, "tol": 0.5, "source": "量度表 #11（OSM height）", "game": { "type": "height", "at": [52, 5] } },
+  { "id": "south-tower", "what": "南面的高樓，比屋頂高（49.7 − 14）", "real": 35.7, "tol": 1, "source": "量度表 #12（OSM height）", "game": { "type": "height", "at": [13, 45] } },
+  { "id": "north-industrial", "what": "提督馬路對面的工業大廈，比屋頂高（46.4 − 14）", "real": 32.4, "tol": 1, "source": "量度表 #13（OSM height）", "game": { "type": "height", "at": [-8, -60] } },
+  { "id": "clock-tower", "what": "鐘樓，比屋頂高（照片估算；位置照 OSM building:part，待核實）", "real": 4.5, "tol": 1.5, "source": "量度表 #4（照片 red-market-ne.jpg；OSM 標 27.3 米不採用）", "game": { "type": "height", "at": [5.7, 6.7] } }
+]

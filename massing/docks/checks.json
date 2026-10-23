@@ -1,0 +1,12 @@
+[
+  { "id": "warehouse", "what": "7 號碼頭貨倉的高度", "real": 17.3, "tol": 0.5, "source": "量度表 #3（OSM height）", "game": { "type": "height", "at": [0, 0] } },
+  { "id": "warehouse-6c", "what": "西鄰 6C 號碼頭貨倉的高度", "real": 18.7, "tol": 0.5, "source": "量度表 #4（OSM height）", "game": { "type": "height", "at": [-40, 0] } },
+  { "id": "warehouse-7a", "what": "東鄰 7A 號碼頭貨倉的高度", "real": 17.4, "tol": 0.5, "source": "量度表 #5（OSM height）", "game": { "type": "height", "at": [40, 0] } },
+  { "id": "west-lane", "what": "6C 與 7 號之間的巷（牆到牆）", "real": 6.1, "tol": 0.5, "source": "量度表 #6（OSM 輪廓）", "game": { "type": "gap", "at": [-24.5, 0], "axis": "x" } },
+  { "id": "east-lane", "what": "7 與 7A 號之間的巷（牆到牆）", "real": 5.4, "tol": 0.5, "source": "量度表 #7（OSM 輪廓）", "game": { "type": "gap", "at": [24.1, 0], "axis": "x" } },
+  { "id": "apron", "what": "貨倉北牆到岸邊（水邊的碼頭路面）", "real": 13.9, "tol": 1, "source": "量度表 #8（OSM 輪廓、內港的海灣多邊形）", "game": { "type": "gap", "at": [0, -17], "axis": "z", "water": true } },
+  { "id": "road", "what": "貨倉南牆到對面騎樓（比厘喇馬忌士街，牆到牆）", "real": 15.3, "tol": 1, "source": "量度表 #9（OSM 輪廓）", "game": { "type": "gap", "at": [0, 17], "axis": "z" } },
+  { "id": "shophouses-west", "what": "對面西段的騎樓", "real": 20.3, "tol": 0.5, "source": "量度表 #10（OSM height）", "game": { "type": "height", "at": [-20, 33] } },
+  { "id": "shophouses-east", "what": "對面東段的騎樓", "real": 15, "tol": 0.5, "source": "量度表 #11（OSM height）", "game": { "type": "height", "at": [40, 38] } },
+  { "id": "between-neighbours", "what": "6C 東牆到 7A 西牆（7 號貨倉 42.9 米加兩條巷；由貨倉裏面量，貨倉本身不算牆）", "real": 54.4, "tol": 1, "source": "量度表 #1、#6、#7（OSM 輪廓）", "game": { "type": "gap", "at": [0, 0], "axis": "x" } }
+]

@@ -145,6 +145,28 @@ export const AI = {
   flankAngle: 60, // degrees off the straight line each of a pair of rushers takes
   flankSwing: 0.9, // how wide the arc is: the point he heads for lies this × his distance from the player
   flankClose: 3, // m: from here they just come straight at you
+  flinch: 0.25, // s a shot that does not kill rocks him back (characters.js KEY_POSES.flinch), fading (試玩回饋 ④: thicker enemies, so the hits must show)
+  // 閃避翻滾 (試玩回饋 ④): a gunman or a blade (enemies.js TYPES `dodge`) with the player's aim on him (within `reach` m of
+  // his body) for `watch` s while the player fires crouches `tell` s, then rolls `dist` m to the side in `roll` s; once
+  // each `cooldown` s. Never into a wall or off the floor (the nav grid), so with no room he stands
+  dodge: { watch: 0.4, reach: 0.5, tell: 0.25, roll: 0.4, dist: 2.5, cooldown: 3 },
+  // 敵人動作 ② (試玩回饋 ④): a rifleman or a shotgunner (TYPES `strafe`) steps sideways at `speed` m/s while he aims and
+  // fires, turning back every `flip` s or at a wall
+  strafe: { speed: 1.8, flip: 1.5 },
+  // low cover (no higher than `maxH`, no deeper than `depth` m) in a man's straight way within `look` m (TYPES `vault`):
+  // over it in `time` s, in the air, no shot, no roll; looked for every `every` s
+  vault: { maxH: 1, depth: 1.6, look: 2, time: 0.5, every: 0.25 },
+  // a gunman (TYPES `retreat`) down to `at` of his health falls back to cover farther from the player, or `away` m off
+  // when there is none; never the last man standing
+  retreat: { at: 0.5, away: 6 },
+  // 飛仔 TUMBLER (試玩回饋 ④; TYPES `tumble`): rolls of `dist` m in `roll` s at the player, swung `angle`° one side then
+  // the other, bullets passing through him mid-roll; `land` s open after each; after `rolls` rolls `pant` s for breath;
+  // within `reach` m a kick, `windup` s to wind up, for `kick`
+  tumble: { roll: 0.4, dist: 3, angle: 25, land: 0.5, rolls: 3, pant: 2, reach: 1.8, windup: 0.3, kick: 20 },
+  // 帶頭大佬 CAPTAIN (試玩回饋 ④; TYPES `captain`): while he stands the others hide less and go round to the player's
+  // sides, a place `side[0]`–`side[1]`° off the line from the player to him worth `bonus` more to them; when he falls,
+  // for `panic` s they take `panicAim` times as long to aim and fall back `back` m from the player
+  captain: { side: [50, 130], bonus: 5, panic: 4, panicAim: 1.6, back: 6 },
 };
 
 /**
@@ -163,6 +185,49 @@ export const BEATS = {
   clean: 100, // CLEAN BEAT: a beat cleared without taking a hit
   perch: 2, // men a beat sends up to a map's balconies (maps.js perches), at most: enemies.js TYPES `perch` say who goes
   perchClear: 5, // m: no balcony this close to the player is picked
+};
+
+/**
+ * 同一水平 (DECISIONS 2026-10-22): the player and the enemies fight on one level. Two people are on one level when the
+ * ground under them differs by at most `tol` m (maps.js `zones`; Senado's sunk fountain ring, 0.48 m down, is one level
+ * with the square). Across more, an enemy neither aims nor fires nor throws but walks to the player's level, and a
+ * bullet stops where the ground under it has risen or fallen more than `tol` from where it was fired (a step's edge).
+ */
+/**
+ * The firepower the player is handed (試玩回饋 ④, DECISIONS 2026-10-23): a heavy gun is something to save, not a
+ * new one every wave, so the waves between are got through with kicks, throws, the map and bullet time. The weapon
+ * pads (maps.js `pads`) fill once a stage, at its first wave; what each enemy type may drop, and how much of the
+ * gun's ammo comes with it. The pistols stay unlimited.
+ */
+export const FIREPOWER = {
+  pads: 'stage', // when the pads fill: 'stage' (a stage's first wave) or 'wave' (every wave, as before 2026-10-23)
+  drops: { grunt: [['smg', 0.12]], shotgun: [['shotgun', 0.5]], rifle: [['rifle', 0.5]], brute: [['minigun', 0.35]] }, // [weapon, chance], tried in order (the brute's was 1)
+  dropAmmo: 0.4, // of the gun's ammo, in any dropped gun (was 0.6, and a brute's minigun came full)
+};
+
+/**
+ * How thick the enemies are (試玩回饋 ④, DECISIONS 2026-10-23): each comes in with `base` times the health his type
+ * has in enemies.js TYPES, and every stage of the run (waves.js stageIndex) adds `perStage` of that again, so a gun
+ * takes more shots as the night goes on. What is not a bullet (a kick, a throw, a barrel, a door, a stray round) is
+ * made as much stronger: it takes as many as it always did, and an execution or a fall still takes him at once.
+ */
+export const ENEMY_HP = {
+  base: 1.5, // ×: a thug 3 → 5, a brute 20 → 30 (rounded)
+  perStage: 0.25, // + per stage after the first: the second ×1.25, the third ×1.5
+};
+
+/**
+ * The run gets harder as it goes (試玩回饋 ④, DECISIONS 2026-10-23): each stage (waves.js stageIndex) the enemies'
+ * aim (on top of the difficulty's, rules.js aimMul) and the gap before they fire again take `perStage` less again,
+ * so late in a run bullet time is for seeing who fires first; and more may stand at once in a trickle.
+ */
+export const RAMP = {
+  perStage: 0.1, // × (1 − this) a stage: the second ×0.9, the third ×0.81
+  maxAlive: 11, // most standing at once while a wave trickles in (endless; arcade comes in beats, BEATS): was 9
+};
+
+export const LEVELS = {
+  tol: 0.6,
 };
 
 /** Things in the maps that play along (環境互動). */
@@ -190,6 +255,7 @@ export const ENV = {
   flockBlind: 0.5, // world seconds before he can aim again (a kill meanwhile is a PIGEON STRIKE)
   flockScare: 1.5, // metres: a player bullet passing this close to a resting flock startles it
   flockAway: [14, 24], // world seconds a startled flock stays away
+  flockCloud: { time: 2.5, radius: 3 }, // for `time` s after it takes off, a flock is a cloud `radius` m round its spot that a marksman's line cannot cross (level.js flockBlocks)
   // fixtures (fixtures.js): street lamps and hanging signs
   lampHits: 2, // player bullets that put a street lamp out
   darkRadius: 4, // m: the dark pool under a lamp shot out…

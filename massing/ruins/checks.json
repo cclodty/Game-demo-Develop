@@ -1,0 +1,12 @@
+[
+  { "id": "facade-width", "what": "牌坊立面闊（OSM 輪廓 21.2 米；公開資料 23 米）", "real": 21.2, "tol": 2, "source": "量度表 #1（OSM way 192183185）", "game": { "type": "span", "kind": "facade", "axis": "x" } },
+  { "id": "facade-top", "what": "立面頂，由前地計（平台約 10 米 + 立面 25.5 米）", "real": 35.5, "tol": 2, "source": "量度表 #3、#8", "game": { "type": "height", "at": [3.2, -21.6] } },
+  { "id": "steps-foot", "what": "石階腳以南是前地的平地（石階腳在 z 38.1）", "real": 0, "tol": 0.2, "source": "量度表 #6（OSM way 670357826）", "game": { "type": "ground", "at": [0, 40] } },
+  { "id": "terrace-rise", "what": "平台比前地高（照片估算）", "real": 10, "tol": 1.5, "source": "量度表 #8（照片 largo.jpg；68 × 0.15 = 10.2）", "game": { "type": "ground", "at": [0, -12] } },
+  { "id": "steps-count", "what": "主石階的級數", "real": 68, "tol": 0.5, "source": "量度表 #5（Wikipedia、海報）", "game": { "type": "value", "path": "steps.flights" } },
+  { "id": "steps-width", "what": "主石階闊（西邊的牆到東面花槽）", "real": 16.9, "tol": 1.5, "source": "量度表 #7（OSM way 192573697 的邊；照片相符）", "game": { "type": "gap", "at": [-4, 20], "axis": "x" } },
+  { "id": "terrace-width", "what": "平台闊", "real": 31.8, "tol": 1.5, "source": "量度表 #12（OSM way 192573697 的邊）", "game": { "type": "gap", "at": [0, -10], "axis": "x" } },
+  { "id": "nave-width", "what": "舊教堂遺址闊", "real": 19.6, "tol": 1, "source": "量度表 #15（OSM way 1001795463）", "game": { "type": "gap", "at": [0, -45], "axis": "x" } },
+  { "id": "largo-width", "what": "前地闊：西面住宅到東面黃色騎樓建築（牆到牆，z 50）", "real": 17.1, "tol": 1, "source": "量度表 #17（OSM 樓宇輪廓）", "game": { "type": "gap", "at": [-4, 50], "axis": "x" } },
+  { "id": "west-block", "what": "前地西面一幢住宅的高度", "real": 31.7, "tol": 1, "source": "量度表 #18（OSM height；照片相符）", "game": { "type": "height", "at": [-20, 52] } }
+]

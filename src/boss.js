@@ -63,12 +63,44 @@
 // runs into him) takes a segment and staggers him; a kick, a pan smash or a thug bowled into him only
 // staggers him, plate down. No crew.
 //
+// marksman, Senado's marksman (議事亭長槍手, 議事亭：頭目 ①): a long gun from one of the map's posts (`boss.posts`), the
+// first his first, in on foot from a street's mouth (`boss.from`). At a post his red line comes up after MARKSMAN.line.first s
+// and swings onto the player at line.track rad/s; on him with nothing between, it stops there for line.warn s, then one round
+// comes down it for line.dmg (a step out of the line meanwhile and it misses). A solid between (a lamp post, a stall, the
+// kiosk) breaks his line, and so does a flock of the square's pigeons bursting into the air across it (level.js flockBlocks);
+// broken move.lost s, after move.shots rounds, or with the player within move.near m, he moves on to another post, one
+// move.band m from the player, and on the move nothing covers him. Shots on him count, perSegment to a segment, anywhere but
+// on his way in; a kick, a pan smash or a thug bowled into him staggers him and sends him on. The camera leans towards him
+// (`pull`), so he is in the picture whenever he shoots. No crew.
+//
+// buckshot, the marksman's partner (議事亭散彈手, 議事亭：頭目 ②): a shotgunner in from a street's mouth (`boss.from` to
+// `boss.at`), after the player at BUCKSHOT.speed m/s (slower than him). Within gun.reach m and in sight he braces gun.tell s,
+// his fan of three red lines on the floor, then the blast (gun.pellets across ± gun.spread); then gun.pump s working the
+// slide. Shots count, perSegment to a segment; his partner's round takes one outright (CROSSFIRE). His part of a combo: a
+// rush onto the spot the player stood on, timed to be there as the marksman's round comes (rush).
+//
+// bulwark, 大三巴's shield man (大三巴鐵盾, 大三巴：頭目 ①): out through the façade's middle doorway (`boss.from` behind it, to
+// `boss.at` on the terrace) and after the player at BULWARK.speed m/s, turning at BULWARK.turn rad/s behind a big shield: a
+// shot from within BULWARK.shield degrees of his facing glances off, one on his back counts, perSegment to a segment. Out of
+// his sight (behind the façade) he goes to where he saw the player last, heeding nothing else, and looks round there
+// (lost), so out of another doorway the player is at his side or his back. Within bash.reach m, facing the player, he braces bash.tell s, his shield lit, and charges bash.dist
+// m; after it bash.spent s with his shield down (a shot from the front counts then). Further off, a revolver round the
+// shield's edge onto a red line (gun). A barrel rolling down the steps into him bowls him over (ROLLING): a segment and
+// his shield down; a blast beside him takes a segment; a kick, a pan smash or a thug bowled into him only staggers him.
+//
+// duo, two at once (雙頭目, DECISIONS 2026-10-22): on a large map the stage's boss can be two people fighting the
+// player together (maps.js `boss: { kind: 'duo', pair: [def, def] }`, each def a kind of its own with its own data).
+// The duo is the boss the rest of the game talks to: it hands each shot, blast, kick, smash and ram to whichever of
+// the two it meets, the HUD shows a bar for each (`members`), the two never start a warning within DUO.gap s of each
+// other (`mayTell`), and only when both are down is the BOSS bonus paid and the clip kept. Vehicles (heli, truck,
+// convoy) and the DJ behind his glass (`waits`) no longer stand on any map: every boss is a person (同上).
+//
 // Logic: a boss runs in the fixed steps on game.rng and the world, and resets with the run.
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { animateRig, BODY, buildCharacter, disposeRig, finishRig, setFlash } from './characters.js';
-import { GUN_Y } from './config.js';
+import { ENV, GUN_Y } from './config.js';
 import { addCutaway } from './cutaway.js';
 import { Laser } from './fx.js';
 import { angleTo, clamp, damp, lerp, segAABB, segCircle, smoothstep, turnTowards, wrapAngle } from './utils.js';
@@ -221,6 +253,83 @@ export const CONVOY = {
   wreck: { burn: 1.6, radius: 4 }, // the lead brought down: s burning, then the blast
 };
 
+export const MARKSMAN = {
+  label: 'MARKSMAN',
+  name: '議事亭長槍手',
+  short: '長槍手',
+  downed: '擊倒',
+  pull: { lean: 0.5, zoom: 1.35 }, // the camera leans this far towards him and pulls back this much (main.js): him and the player in the picture
+  segments: 5,
+  bonus: 2000,
+  radius: 0.4, // his body, for shots and the player's reach
+  enter: 3.5, // m/s in from the street's mouth (`boss.from`) to his first post (`boss.posts[0]`)
+  speed: 3.2, // m/s from one post to the next
+  perSegment: 4, // hits that take a segment
+  // his line: up `first` s after he reaches a post, it swings onto the player at `track` rad/s; on him (within `on` rad) with
+  // nothing between, it stops there for `warn` s, then one round down it at `speed` m/s for `dmg`, out to `range` m; `cycle`
+  // s to work the bolt
+  line: { first: 1.2, track: 1.2, on: 0.02, warn: 1, speed: 72, dmg: 40, range: 40, cycle: 1.2 },
+  // on to another post after `shots` rounds from one, once his line has been broken `lost` s, with the player within `near` m or
+  // farther than `far`; the next is one `band` m from the player (seeing him if one can), `giveUp` s at most on the way
+  move: { shots: 2, lost: 1.5, near: 10, far: 30, band: [12, 26], giveUp: 12 },
+  stagger: 0.8, // s he reels after a kick, a pan smash or a thug bowled into him; then he moves on
+  bowl: 5, // m/s a kicked thug needs to knock him off balance
+  blast: 2.4, // m: a blast this close takes a segment
+};
+
+export const BUCKSHOT = {
+  label: 'BUCKSHOT',
+  name: '議事亭散彈手',
+  short: '散彈手',
+  downed: '擊倒',
+  pull: false,
+  segments: 5,
+  bonus: 2000,
+  radius: 0.45, // his body, for shots and the player's reach
+  enter: 4, // m/s in from his street's mouth (`boss.from`) to `boss.at`
+  speed: 4.2, // m/s after the player (who runs 7.4): he can be outrun, not left behind
+  perSegment: 4, // hits that take a segment
+  // the blast: within `reach` m and in sight, every `every` s at most (first after `first`), he braces `tell` s with his fan
+  // on the floor, then `pellets` pellets across ±`spread` rad at `speed` m/s for `dmg` each, out to `range` m; `pump` s after
+  gun: { first: 2, every: 2.4, reach: 7, tell: 0.6, pellets: 7, spread: 0.28, speed: 20, dmg: 11, range: 11, pump: 1.1 }, // an odd count: one down the middle
+  // the rush (his part of a combo): `windup` s crouched, then straight at the spot the player stood on, there in `time` s (at
+  // `max` m/s at most), stopping `short` m from a player still on it; braced there till `brace` s after the rush was due, then the blast
+  rush: { windup: 0.3, time: 0.7, max: 14, short: 1.6, brace: 0.35 },
+  stagger: 0.8, // s he reels after a kick, a pan smash or a thug bowled into him
+  bowl: 5, // m/s a kicked thug needs to knock him off balance
+  blast: 2.6, // m: a blast this close takes a segment
+};
+
+export const BULWARK = {
+  label: 'BULWARK',
+  name: '大三巴鐵盾',
+  short: '鐵盾',
+  downed: '擊倒',
+  pull: false,
+  segments: 5,
+  bonus: 2000,
+  radius: 0.55, // his body, for shots and the player's reach
+  enter: 3, // m/s out through the doorway (`boss.from` to `boss.at`)
+  speed: 2.6, // m/s after the player
+  turn: 1.5, // rad/s: he turns slowly, so a way round gets behind the shield
+  shield: 70, // degrees either side of his facing the shield covers
+  perSegment: 4, // hits on him (his back, or him with the shield down) that take a segment
+  // the bash: within `reach` m, the player in sight within `aim` degrees of his facing, every `every` s at most (first after
+  // `first`): `tell` s braced, then `dist` m in `time` s; a player in its way takes `dmg` and is thrown back at `knock` m/s;
+  // after it `spent` s with the shield down
+  bash: { first: 2.5, every: 3.5, reach: 7, aim: 25, tell: 0.7, dist: 7, time: 0.45, dmg: 25, knock: 9, spent: 1.4 },
+  // the revolver round the shield's edge, the player in sight beyond the bash's reach: a red line `warn` s, then `shots`
+  gun: { first: 4, every: 4.5, warn: 0.7, shots: 3, interval: 0.15, speed: 26, dmg: 9, range: 22 },
+  roll: 2, // m/s a rolling barrel needs to bowl him over (ROLLING)
+  stagger: { kick: 0.8, smash: 1.2, roll: 1.6, blast: 1.2, bowl: 1 }, // s he reels, his shield down
+  near: 2.2, // m: this close he stands and turns
+  blast: 2.8, // m: a blast this close takes a segment
+  // out of his sight more than `after` s (behind the façade) he goes to where he saw the player last, at most `search` s,
+  // paying the player no heed unless right before his shield or shooting him; there he looks round `look` s: the way
+  // round through the doorways
+  lost: { after: 0.5, search: 4, look: 0.8 },
+};
+
 const UP = new THREE.Vector3(0, 1, 0);
 const _a = new THREE.Vector3();
 const _b = new THREE.Vector3();
@@ -237,6 +346,31 @@ export class Boss {
     this.bonus = 0;
     this.x = this.z = 0;
     this.pass = null; // a solid player shots fly over while this boss is on (bullets.js)
+    this.team = null; // the duo this boss is one of (Duo), or null alone
+  }
+
+  /** One of a duo whose partner is down: a kind fights harder its own way (more feints, more shells); the duo speeds it up. */
+  enrage() {}
+
+  /**
+   * Whether something the player can do would take a segment off it right now (a shot, a blast, a kick, a smash):
+   * the no-waiting rule (DECISIONS 2026-10-22) is that this is never false for long. A kind says when it is.
+   */
+  vulnerable() {
+    return this.active;
+  }
+
+  /** One of a duo, for the combo (Duo): is it free to start its part right now (not mid-attack, the player in sight)? */
+  comboReady() {
+    return false;
+  }
+
+  /** One of a duo: start its part of the combo now (its usual attack, at the player), whatever the gap. */
+  combo() {}
+
+  /** May it start a warning now (a red line, a ring, the blades raised)? Alone always; one of a duo, not on top of the other's. */
+  mayTell() {
+    return this.team ? this.team.mayTell(this) : true;
   }
 
   /**
@@ -307,12 +441,17 @@ export class Boss {
     this.finish();
   }
 
-  /** Down for good: the BOSS bonus, the run's clip, and the wave can end. */
+  /** Down for good: the BOSS bonus, the run's clip, and the wave can end; one of a duo tells the duo instead. */
   finish() {
     const g = this.game;
     const c = this.cfg;
     this.active = false;
     this.downed = true;
+    if (this.team) {
+      g.notes.log(`${c.downed}${c.short}`);
+      this.team.memberDown(this);
+      return;
+    }
     g.score.bonus('BOSS', this.bonus);
     g.clip.kill(Number.MAX_SAFE_INTEGER); // the boss going down is the run's clip, whatever else it had
     g.notes.log(`${c.downed}${c.short}：BOSS +${this.bonus}`);
@@ -996,6 +1135,8 @@ class Blade extends Boss {
     this.glow = 0; // the blades' light, up through the tell
     this.firstTell = true;
     this.deflectLogT = 0;
+    this.rage = 0;
+    this.comboLag = 0; // a duo's combo: s on her perch before she goes (Duo)
     this.build();
   }
 
@@ -1013,13 +1154,39 @@ class Blade extends Boss {
     this.sync();
   }
 
-  /** Segments lost so far: she gets faster and trickier with each. */
+  /** Segments lost so far: she gets faster and trickier with each (and two more once her partner is down: enrage). */
   get lost() {
-    return this.segments - this.hp;
+    return this.segments - this.hp + this.rage;
+  }
+
+  /** Her partner down (a duo): as if two more segments were gone, faster, shorter waits, more feints. */
+  enrage() {
+    this.rage = 2;
   }
 
   get dashing() {
     return this.state === 'dash' || this.state === 'feint' || this.state === 'retreat';
+  }
+
+  /**
+   * Something the player can do takes a segment now: with the blades raised (until one has landed) a shot, a kick or a
+   * smash; any time she is not mid-dash, a blast (a barrel, a grenade: at her perch too). Only a dash is out of reach.
+   */
+  vulnerable() {
+    if (!this.active || this.dashing) return false;
+    return this.state === 'tell' ? !this.taken : true;
+  }
+
+  comboReady() {
+    return this.active && this.state === 'perch' && this.comboLag <= 0 && this.game.player.alive;
+  }
+
+  /** The combo: she crouches, blades lit, and goes at the player DUO.combo.lag s later, as the gunner's sweep comes across. */
+  combo() {
+    const g = this.game;
+    this.comboLag = DUO.combo.lag;
+    this.glow = 1;
+    g.fx.ring(this.x, this.z, 1.2, DUO.combo.lag, 0xff2bd0, 3);
   }
 
   /** Her dash speed now (m/s). */
@@ -1045,7 +1212,11 @@ class Blade extends Boss {
     switch (this.state) {
       case 'perch':
         this.faceTo(p.x, p.z, 4 * dt);
-        if (this.timer <= 0) this.dashTo(p.x, p.z, 'dash');
+        if (this.comboLag > 0) {
+          // a combo: she goes when her partner's part is under way (DUO.combo.lag)
+          this.comboLag -= dt;
+          if (this.comboLag <= 0) this.dashTo(p.x, p.z, 'dash');
+        } else if (this.timer <= 0 && this.mayTell()) this.dashTo(p.x, p.z, 'dash');
         break;
       case 'dash':
       case 'feint':
@@ -1919,6 +2090,7 @@ class Gunner extends Boss {
     this.phase = 0;
     this.flash = 0;
     this.plateFlash = 0;
+    this.raging = false; // his partner down (a duo): shells more often (enrage)
     this.build();
   }
 
@@ -2023,23 +2195,11 @@ class Gunner extends Boss {
   /** The sweep: a red line onto the player, then the burst across it; he stands for it, and loses it blinded. */
   updateGun(dt) {
     const g = this.game;
-    const p = g.player;
     const G = GUNNER.gun;
     switch (this.gunState) {
       case 'idle':
         this.gunT -= dt;
-        if (this.gunT <= 0 && !this.blind && p.alive && this.state === 'walk' && Math.hypot(p.x - this.x, p.z - this.z) < G.range && g.level.hasLOS(this.x, this.z, p.x, p.z)) {
-          this.gunState = 'warn';
-          this.gunTimer = G.warn;
-          this.lock = { x: p.x, z: p.z };
-          this.lineA = angleTo(this.x, this.z, p.x, p.z);
-          this.state = 'plant';
-          g.audio.aimWarn(g.panFor(this.x));
-          if (this.firstWarn) {
-            this.firstWarn = false;
-            g.hud.banner('STEEL PLATE', '正面打不穿：繞到他背後', 'clear');
-          }
-        }
+        if (this.gunT <= 0 && this.canSweep() && this.mayTell()) this.startSweep();
         break;
       case 'warn':
         this.gunTimer -= dt;
@@ -2064,6 +2224,44 @@ class Gunner extends Boss {
     }
   }
 
+  /** Free to plant and sweep: walking, seeing, the player alive, in range and in sight. */
+  canSweep() {
+    const g = this.game;
+    const p = g.player;
+    return this.state === 'walk' && this.gunState === 'idle' && !this.blind && p.alive && Math.hypot(p.x - this.x, p.z - this.z) < GUNNER.gun.range && g.level.hasLOS(this.x, this.z, p.x, p.z);
+  }
+
+  /** The sweep begins: he plants his feet and the red line goes onto the player. */
+  startSweep() {
+    const g = this.game;
+    const p = g.player;
+    this.gunState = 'warn';
+    this.gunTimer = GUNNER.gun.warn;
+    this.lock = { x: p.x, z: p.z };
+    this.lineA = angleTo(this.x, this.z, p.x, p.z);
+    this.state = 'plant';
+    g.audio.aimWarn(g.panFor(this.x));
+    if (this.firstWarn) {
+      this.firstWarn = false;
+      g.hud.banner('STEEL PLATE', '正面打不穿：繞到他背後', 'clear');
+    }
+  }
+
+  /** Open to the player: once in through the gate, his back takes shots (and a stagger, his front), always. */
+  vulnerable() {
+    return this.active && this.state !== 'enter';
+  }
+
+  /** Free for the combo: walking and seeing. Unlike his own sweep he needs no clear line: cover between is the player's. */
+  comboReady() {
+    return this.active && this.state === 'walk' && this.gunState === 'idle' && !this.blind && this.game.player.alive;
+  }
+
+  /** The combo: the sweep across the player's spot, now. */
+  combo() {
+    this.startSweep();
+  }
+
   endSweep() {
     this.gunState = 'idle';
     this.gunT = GUNNER.gun.every;
@@ -2080,7 +2278,7 @@ class Gunner extends Boss {
     const dx = Math.sin(a);
     const dz = Math.cos(a);
     // the source is the boss as the game sees it (game.boss): its label names the bullets that hit
-    g.bullets.spawn({ x: this.x + dx * 1.2, z: this.z + dz * 1.2, dx, dz, speed: G.speed, owner: 'enemy', damage: G.dmg, range: G.range, source: g.boss });
+    g.bullets.spawn({ x: this.x + dx * 1.2, z: this.z + dz * 1.2, dx, dz, speed: G.speed, owner: 'enemy', damage: G.dmg, range: G.range, source: this.team ? this : g.boss });
     g.audio.shot('minigun', g.panFor(this.x));
   }
 
@@ -2090,12 +2288,12 @@ class Gunner extends Boss {
     const p = g.player;
     const M = GUNNER.mortar;
     this.mortarT -= dt;
-    if (this.mortarT > 0 || this.blind || !p.alive) return;
-    this.mortarT = M.every;
+    if (this.mortarT > 0 || this.blind || !p.alive || !this.mayTell()) return;
+    this.mortarT = M.every * (this.raging ? 0.6 : 1);
     for (let i = 0; i < M.rounds; i++) {
       const a = g.rng.range(0, Math.PI * 2);
       const r = i === 0 ? 0 : g.rng.range(0.8, M.scatter);
-      g.grenades.lob(this.x, this.z, p.x + Math.sin(a) * r, p.z + Math.cos(a) * r, M.lob, MORTAR_SOURCE);
+      g.grenades.lob(this.x, this.z, p.x + Math.sin(a) * r, p.z + Math.cos(a) * r, M.lob, this.team ? this : MORTAR_SOURCE); // in a duo, his own (CROSSFIRE)
     }
     g.audio.shot('launcher', g.panFor(this.x));
     g.notes.log('重炮發射迫擊砲：看地上的紅圈');
@@ -2205,6 +2403,11 @@ class Gunner extends Boss {
     if (this.active) this.stagger(GUNNER.stagger.blast);
   }
 
+  /** His partner down (a duo): his shells come half as often again. */
+  enrage() {
+    this.raging = true;
+  }
+
   /** The last segment: he goes down where he stands. */
   goDown() {
     const g = this.game;
@@ -2236,6 +2439,1102 @@ class Gunner extends Boss {
     animateRig(r, this.phase, walking ? 1 : 0, this.facing);
     this.plate.rotation.x = S === 'stagger' ? 1.1 : S === 'down' ? 1.5 : 0;
     r.inner.rotation.x = S === 'down' ? 1.45 : S === 'stagger' ? -0.25 : 0;
+    r.inner.position.y = S === 'down' ? 0.15 : 0;
+    finishRig(r, g.worldTime);
+  }
+}
+
+/** Senado's marksman: a long gun from one of the map's posts, his red line the warning; between posts, in the open. */
+class Marksman extends Boss {
+  constructor(game) {
+    super(game, MARKSMAN);
+    this.rig = null;
+    this.reset();
+  }
+
+  reset() {
+    if (this.rig) {
+      const g = this.game;
+      g.scene.remove(this.rig.root);
+      disposeRig(this.rig);
+      this.laser.dispose(g.scene);
+      this.rig = null;
+    }
+    super.reset();
+    this.state = 'idle';
+  }
+
+  /** His wave: `def` is the map's (maps.js `boss`: `from` a street's mouth, `posts` where he shoots from, the first his first). */
+  start(def, size) {
+    this.reset();
+    super.start(def, size);
+    this.posts = def.posts.map(([x, z]) => ({ x, z }));
+    this.target = this.posts[0];
+    this.x = def.from[0];
+    this.z = def.from[1];
+    this.facing = angleTo(this.x, this.z, this.target.x, this.target.z);
+    this.state = 'enter'; // enter, post (his line swings onto the player), lock (it stands still), cycle (the bolt), move, stagger, down
+    this.lineA = this.facing; // where his line points
+    this.lineT = 0; // s before his line is up, at a post
+    this.timer = 0;
+    this.shots = 0; // rounds from this post
+    this.lostT = 0; // s his line has been broken
+    this.moveT = 0; // s on the way to the next post
+    this.hits = 0; // towards the next segment
+    this.path = null;
+    this.pathT = 0;
+    this.phase = 0;
+    this.flash = 0;
+    this.firstLine = true;
+    this.raging = false; // his partner down (a duo): enrage
+    this.build();
+  }
+
+  /** The look: the rifleman's rig a size up in a dark coat, the long rifle, his red line. */
+  build() {
+    const g = this.game;
+    this.rig = buildCharacter({ body: 0x23262c, pants: 0x15171b, accent: 0xff3030, hair: 0x101010, weapon: 'sniper', scale: 1.1, ring: 0.45, model: 'rifle' });
+    this.laser = new Laser(g.scene, 0xff1a1a, true); // painted on, not added: Senado's paving is white
+    g.scene.add(this.rig.root);
+    this.sync();
+  }
+
+  /** One logic step. */
+  update(dt) {
+    if (!this.active) return;
+    const g = this.game;
+    this.t += dt;
+    this.flash = Math.max(0, this.flash - dt * 5);
+    switch (this.state) {
+      case 'enter':
+        if (this.walkTo(this.target, MARKSMAN.enter, dt, false)) this.arrive();
+        break;
+      case 'move':
+        this.moveT += dt;
+        if (this.walkTo(this.target, MARKSMAN.speed, dt, true)) this.arrive();
+        else if (this.moveT > MARKSMAN.move.giveUp) this.moveOn();
+        break;
+      case 'post':
+        this.aim(dt);
+        break;
+      case 'lock':
+        this.timer -= dt;
+        if (!this.lineClear()) {
+          this.state = 'post';
+          g.notes.log('白鴿驚起，擋住長槍手的紅線');
+        } else if (this.timer <= 0) {
+          this.fire();
+          this.state = 'cycle';
+          this.timer = MARKSMAN.line.cycle;
+        }
+        break;
+      case 'cycle':
+        this.timer -= dt;
+        if (this.timer <= 0) {
+          if (this.shots >= MARKSMAN.move.shots + (this.raging ? 1 : 0) && !this.holding) this.moveOn('長槍手開完槍，換位');
+          else this.state = 'post';
+        }
+        break;
+      case 'stagger':
+        this.timer -= dt;
+        if (this.timer <= 0) this.moveOn();
+        break;
+    }
+    if (this.state !== 'enter' && this.state !== 'down') {
+      g.level.collideCircle(this, MARKSMAN.radius);
+      this.bowled();
+    }
+    this.sync();
+  }
+
+  /** A step towards `to` (along the nav grid if `nav`); true on arrival. */
+  walkTo(to, speed, dt, nav) {
+    const L = this.game.level;
+    let w = to;
+    if (nav) {
+      this.pathT -= dt;
+      if (!this.path || this.pathT <= 0) {
+        this.path = L.nav.findPath(this.x, this.z, to.x, to.z) || [{ x: to.x, z: to.z }];
+        this.pathT = 0.6;
+      }
+      while (this.path.length > 1 && Math.hypot(this.path[0].x - this.x, this.path[0].z - this.z) < 0.5) this.path.shift();
+      w = this.path[0];
+    }
+    const d = Math.hypot(w.x - this.x, w.z - this.z);
+    const step = Math.min(speed * dt, d);
+    if (d > 1e-4) {
+      this.facing = angleTo(this.x, this.z, w.x, w.z);
+      this.x += Math.sin(this.facing) * step;
+      this.z += Math.cos(this.facing) * step;
+    }
+    this.phase += dt * speed * 2.2;
+    return Math.hypot(to.x - this.x, to.z - this.z) < 0.3;
+  }
+
+  /** At a post: his line comes up along the way he came, and has to swing round to the player. */
+  arrive() {
+    this.state = 'post';
+    this.path = null;
+    this.lineA = this.facing;
+    this.lineT = MARKSMAN.line.first;
+    this.shots = 0;
+    this.lostT = 0;
+  }
+
+  /** At a post: the line swings onto the player; on him and clear, it stops (lock); broken too long, or the player too near or far, he moves on. */
+  aim(dt) {
+    const g = this.game;
+    const p = g.player;
+    const M = MARKSMAN;
+    if (!p.alive) return;
+    const dist = Math.hypot(p.x - this.x, p.z - this.z);
+    if (dist < M.move.near) return this.moveOn('長槍手被逼近，換位');
+    if (dist > M.move.far) return this.moveOn('長槍手換位追上');
+    this.lineT -= dt;
+    if (this.lineT > 0) return;
+    const want = angleTo(this.x, this.z, p.x, p.z);
+    this.lineA = turnTowards(this.lineA, want, M.line.track * (this.raging ? 1.5 : 1) * dt);
+    this.facing = this.lineA;
+    const clear = dist < M.line.range && g.level.hasLOS(this.x, this.z, p.x, p.z) && !g.level.flockBlocks(this.x, this.z, p.x, p.z);
+    this.lostT = clear ? 0 : this.lostT + dt;
+    if (this.lostT >= M.move.lost && !this.holding) return this.moveOn('長槍手看不到你，換位');
+    if (clear && Math.abs(wrapAngle(want - this.lineA)) <= M.line.on && this.mayTell()) this.lock();
+  }
+
+  /** The line stops on the player: `warn` s, then the round. */
+  lock() {
+    const g = this.game;
+    const p = g.player;
+    this.state = 'lock';
+    this.timer = MARKSMAN.line.warn;
+    this.lineA = this.facing = angleTo(this.x, this.z, p.x, p.z);
+    g.audio.aimWarn(g.panFor(this.x));
+    if (this.firstLine && !this.team) {
+      this.firstLine = false;
+      g.hud.banner('MARKSMAN', '紅線停住一秒就開槍：躲到柱後，或者射驚白鴿', 'clear');
+    }
+  }
+
+  /** How far his line reaches: to the first solid along it, or its range. */
+  lineLength() {
+    return this.game.level.rayLength(this.x, this.z, Math.sin(this.lineA), Math.cos(this.lineA), MARKSMAN.line.range);
+  }
+
+  /** The stopped line still holds: no flock has burst into the air across it. */
+  lineClear() {
+    const n = this.lineLength();
+    return !this.game.level.flockBlocks(this.x, this.z, this.x + Math.sin(this.lineA) * n, this.z + Math.cos(this.lineA) * n);
+  }
+
+  /** The round, down the line. */
+  fire() {
+    const g = this.game;
+    const M = MARKSMAN.line;
+    const dx = Math.sin(this.lineA);
+    const dz = Math.cos(this.lineA);
+    // the source is the boss as the game sees it (game.boss): its label names the bullets that hit
+    g.bullets.spawn({ x: this.x + dx * 0.8, z: this.z + dz * 0.8, dx, dz, speed: M.speed, owner: 'enemy', damage: M.dmg, range: M.range, source: this.team ? this : g.boss });
+    g.audio.shot('sniper', g.panFor(this.x));
+    this.shots++;
+  }
+
+  /** On to another post: one MARKSMAN.move.band m from the player, seeing him if it can, the nearer of those; `why` for the notes. */
+  moveOn(why) {
+    const g = this.game;
+    const p = g.player;
+    const [lo, hi] = MARKSMAN.move.band;
+    let best = null;
+    let bs = -Infinity;
+    for (const q of this.posts) {
+      if (q === this.target) continue;
+      const d = Math.hypot(q.x - p.x, q.z - p.z);
+      let s = -Math.abs(d - (lo + hi) / 2) * 0.5 - Math.hypot(q.x - this.x, q.z - this.z) * 0.3;
+      if (d < lo || d > hi) s -= 20;
+      if (g.level.hasLOS(q.x, q.z, p.x, p.z)) s += 6;
+      if (s > bs) {
+        bs = s;
+        best = q;
+      }
+    }
+    this.target = best || this.target;
+    this.state = 'move';
+    this.path = null;
+    this.moveT = 0;
+    if (why) g.notes.log(why);
+  }
+
+  /** Open to the player once he is in: at his posts and on the move between them. */
+  vulnerable() {
+    return this.active && this.state !== 'enter';
+  }
+
+  /** One of a duo with the combo due (Duo): he keeps his post for it (but for a player at close quarters). */
+  get holding() {
+    return !!this.team && !this.team.raged && this.team.comboT <= 0;
+  }
+
+  /** Free for a combo: at a post with his line up. Like the gunner's, his part needs no clear line: cover between is the player's. */
+  comboReady() {
+    return this.active && this.state === 'post' && this.lineT <= 0 && this.game.player.alive;
+  }
+
+  /** His part of a combo: the line straight onto the player, stopped there now. */
+  combo() {
+    this.lock();
+  }
+
+  /** His partner down (a duo): his line swings faster and he fires once more from each post. */
+  enrage() {
+    this.raging = true;
+  }
+
+  /** A thug kicked into him knocks him off balance. */
+  bowled() {
+    for (const e of this.game.enemies.list) {
+      if (e.stunT <= 0) {
+        e.bowledBoss = false;
+        continue;
+      }
+      if (!e.alive || e.bowledBoss || e.cfg.fly || Math.hypot(e.vx, e.vz) < MARKSMAN.bowl) continue;
+      if (Math.hypot(e.x - this.x, e.z - this.z) > MARKSMAN.radius + e.radius + 0.15) continue;
+      e.bowledBoss = true;
+      e.vx *= 0.2;
+      e.vz *= 0.2;
+      this.game.audio.kick(true);
+      this.stagger('打手撞到長槍手身上');
+    }
+  }
+
+  /** He reels `MARKSMAN.stagger` s, his line down; then he moves on. */
+  stagger(how) {
+    if (!this.active || this.state === 'enter') return;
+    this.state = 'stagger';
+    this.timer = MARKSMAN.stagger;
+    this.flash = 1;
+    if (how) this.game.notes.log(how);
+  }
+
+  shotAt(x0, z0, x1, z1) {
+    if (!this.active || this.state === 'enter') return null; // on his way in the shot flies past
+    const t = segCircle(x0, z0, x1, z1, this.x, this.z, MARKSMAN.radius);
+    return t < 0 ? null : { t, part: 'body' };
+  }
+
+  shot(b) {
+    const g = this.game;
+    this.flash = 1;
+    g.fx.blood(b.x, GUN_Y, b.z, b.dx, b.dz, 8);
+    g.audio.flesh(g.panFor(b.x));
+    if (++this.hits >= MARKSMAN.perSegment) {
+      this.hits = 0;
+      this.hurt(this.state === 'move' ? '換位時中彈' : '中彈');
+    }
+    return true;
+  }
+
+  /** The player's kick or pan smash (player.js): he staggers, and moves on after; no segment. */
+  melee(inCone, reach, kind) {
+    if (!this.active || this.state === 'enter') return false;
+    const dir = inCone(this.x, this.z, reach + MARKSMAN.radius);
+    if (!dir) return false;
+    this.x += dir.x * 0.4;
+    this.z += dir.z * 0.4;
+    this.stagger(kind === 'smash' ? '鑊擊中長槍手' : '踢中長槍手');
+    return true;
+  }
+
+  rammed(x, z, r) {
+    return this.active && this.state !== 'enter' && Math.hypot(x - this.x, z - this.z) <= MARKSMAN.radius + r + 0.1;
+  }
+
+  /** A blast beside him takes a segment and staggers him. */
+  blast(x, z, opts = {}) {
+    if (!this.active || this.state === 'enter' || Math.hypot(x - this.x, z - this.z) > MARKSMAN.blast) return;
+    this.flash = 1;
+    this.hits = 0;
+    this.hurt(opts.rocket ? '被火箭油桶炸中' : '被炸到');
+    if (this.active) this.stagger();
+  }
+
+  /** The last segment: he goes down where he stands. */
+  goDown() {
+    const g = this.game;
+    this.state = 'down';
+    g.fx.blood(this.x, 1, this.z, 0, 0, 16);
+    g.notes.log('長槍手倒下');
+    g.hud.banner('BOSS DOWN', '長槍手倒下了', 'clear');
+    this.finish();
+    this.sync();
+  }
+
+  /** Where he is drawn, and his line: faint while it swings, bright and growing once it stops. */
+  sync() {
+    const g = this.game;
+    const r = this.rig;
+    const S = this.state;
+    r.root.position.set(this.x, g.level.groundY(this.x, this.z), this.z);
+    r.root.rotation.y = this.facing;
+    setFlash(r, this.flash * 2.5);
+    const up = (S === 'post' && this.lineT <= 0) || S === 'lock';
+    if (up) {
+      const n = this.lineLength();
+      const k = S === 'lock' ? clamp(1 - this.timer / MARKSMAN.line.warn, 0, 1) : 0;
+      this.laser.set(this.x, this.z, this.x + Math.sin(this.lineA) * n, this.z + Math.cos(this.lineA) * n, S === 'lock' ? 0.1 + 0.06 * k : 0.05, S === 'lock' ? 1.5 + 2.5 * k : 0.8, GUN_Y);
+    } else this.laser.hide();
+    r.ring.material.color.setRGB(S === 'lock' ? 2.2 : 1, 0.3, 0.1);
+    if (!g.style.poseDue(r, g.worldTime)) return;
+    const walking = S === 'enter' || S === 'move';
+    animateRig(r, this.phase, walking ? 1 : 0, this.facing);
+    r.inner.rotation.x = S === 'down' ? 1.45 : S === 'stagger' ? -0.25 : 0;
+    r.inner.position.y = S === 'down' ? 0.15 : 0;
+    finishRig(r, g.worldTime);
+  }
+}
+
+/** Senado's shotgunner, the marksman's partner: after the player, a braced blast at close range, a rush for the combo. */
+class Buckshot extends Boss {
+  constructor(game) {
+    super(game, BUCKSHOT);
+    this.rig = null;
+    this.reset();
+  }
+
+  reset() {
+    if (this.rig) {
+      const g = this.game;
+      g.scene.remove(this.rig.root);
+      disposeRig(this.rig);
+      for (const l of this.fan) l.dispose(g.scene);
+      this.rig = null;
+    }
+    super.reset();
+    this.state = 'idle';
+  }
+
+  /** His wave: `def` is the map's (`from` his street's mouth, `at` just inside). */
+  start(def, size) {
+    this.reset();
+    super.start(def, size);
+    this.at = { x: def.at[0], z: def.at[1] };
+    this.x = def.from[0];
+    this.z = def.from[1];
+    this.facing = angleTo(this.x, this.z, this.at.x, this.at.z);
+    this.state = 'enter'; // enter, chase, tell (braced, the fan), pump, windup, rush, brace (the combo's), stagger, down
+    this.timer = 0;
+    this.gunT = BUCKSHOT.gun.first;
+    this.aimA = 0; // where the blast goes
+    this.rushTo = null;
+    this.rushV = 0;
+    this.rushT = 0; // s since his part of the combo began
+    this.hits = 0;
+    this.path = null;
+    this.pathT = 0;
+    this.phase = 0;
+    this.flash = 0;
+    this.raging = false;
+    this.build();
+  }
+
+  /** The look: the shotgunner's rig a size up, a pale shirt, the shotgun; his fan of three lines. */
+  build() {
+    const g = this.game;
+    this.rig = buildCharacter({ body: 0xd8cfc0, pants: 0x2a2620, accent: 0xff7a1a, hair: 0x1a1410, weapon: 'shotgun', scale: 1.2, ring: 0.5, model: 'shotgun' });
+    this.fan = [0, 1, 2].map(() => new Laser(g.scene, 0xff5a10, true)); // painted on: Senado's paving is white
+    g.scene.add(this.rig.root);
+    this.sync();
+  }
+
+  /** One logic step. */
+  update(dt) {
+    if (!this.active) return;
+    const g = this.game;
+    const p = g.player;
+    const B = BUCKSHOT;
+    this.t += dt;
+    this.flash = Math.max(0, this.flash - dt * 5);
+    this.timer -= dt;
+    switch (this.state) {
+      case 'enter': {
+        const d = Math.hypot(this.at.x - this.x, this.at.z - this.z);
+        const step = Math.min(B.enter * dt, d);
+        this.facing = angleTo(this.x, this.z, this.at.x, this.at.z);
+        this.x += Math.sin(this.facing) * step;
+        this.z += Math.cos(this.facing) * step;
+        this.phase += dt * B.enter * 2.2;
+        if (d <= 0.05) this.state = 'chase';
+        break;
+      }
+      case 'chase':
+        this.chase(dt);
+        break;
+      case 'tell':
+        if (this.timer <= 0) this.fire();
+        break;
+      case 'pump':
+      case 'stagger':
+        if (this.timer <= 0) this.state = 'chase';
+        break;
+      case 'windup':
+        this.rushT += dt;
+        this.facing = angleTo(this.x, this.z, this.rushTo.x, this.rushTo.z);
+        if (this.timer <= 0) this.state = 'rush';
+        break;
+      case 'rush': {
+        // straight at the spot; a player still on it, he stops short of
+        this.rushT += dt;
+        const d = Math.hypot(this.rushTo.x - this.x, this.rushTo.z - this.z);
+        const step = Math.min(this.rushV * dt, d);
+        this.facing = angleTo(this.x, this.z, this.rushTo.x, this.rushTo.z);
+        this.x += Math.sin(this.facing) * step;
+        this.z += Math.cos(this.facing) * step;
+        this.phase += dt * this.rushV * 1.6;
+        if (d <= 0.05 || (p.alive && Math.hypot(p.x - this.x, p.z - this.z) <= B.rush.short) || this.rushT > B.rush.windup + B.rush.time + 0.5) {
+          // there (or as near as he gets): braced till the marksman's round has come, a beat after the rush was due
+          this.state = 'brace';
+          this.timer = Math.max(B.rush.brace, B.rush.windup + B.rush.time + B.rush.brace - this.rushT);
+          this.aimA = this.facing = angleTo(this.x, this.z, p.x, p.z);
+          g.notes.log('散彈手衝到');
+        }
+        break;
+      }
+      case 'brace':
+        this.aimA = this.facing = angleTo(this.x, this.z, p.x, p.z);
+        if (this.timer <= 0) this.fire();
+        break;
+    }
+    if (this.state !== 'enter' && this.state !== 'down') {
+      g.level.collideCircle(this, B.radius);
+      this.bowled();
+    }
+    this.sync();
+  }
+
+  /** After the player on the nav grid; near enough, in sight and free to warn, the brace (tell). */
+  chase(dt) {
+    const g = this.game;
+    const L = g.level;
+    const p = g.player;
+    const B = BUCKSHOT;
+    if (!p.alive) return;
+    this.gunT -= dt;
+    const dist = Math.hypot(p.x - this.x, p.z - this.z);
+    if (this.gunT <= 0 && dist <= B.gun.reach && L.hasLOS(this.x, this.z, p.x, p.z) && this.mayTell()) {
+      this.state = 'tell';
+      this.timer = B.gun.tell;
+      this.aimA = this.facing = angleTo(this.x, this.z, p.x, p.z); // the fan where the player stands now: step out of it
+      g.audio.aimWarn(g.panFor(this.x));
+      return;
+    }
+    this.facing = turnTowards(this.facing, angleTo(this.x, this.z, p.x, p.z), 6 * dt);
+    if (dist < 2.5) return; // close enough: he stands and turns
+    this.pathT -= dt;
+    if (!this.path || this.pathT <= 0) {
+      this.path = L.nav.findPath(this.x, this.z, p.x, p.z) || [{ x: p.x, z: p.z }];
+      this.pathT = 0.4;
+    }
+    while (this.path.length > 1 && Math.hypot(this.path[0].x - this.x, this.path[0].z - this.z) < 0.5) this.path.shift();
+    const w = this.path[0];
+    const a = angleTo(this.x, this.z, w.x, w.z);
+    this.x += Math.sin(a) * B.speed * dt;
+    this.z += Math.cos(a) * B.speed * dt;
+    this.phase += dt * B.speed * 2.2;
+  }
+
+  /** The blast across the fan; then the slide (pump), the moment to get him. */
+  fire() {
+    const g = this.game;
+    const G = BUCKSHOT.gun;
+    for (let i = 0; i < G.pellets; i++) {
+      const a = this.aimA + (G.pellets > 1 ? i / (G.pellets - 1) - 0.5 : 0) * 2 * G.spread;
+      const dx = Math.sin(a);
+      const dz = Math.cos(a);
+      g.bullets.spawn({ x: this.x + dx * 0.8, z: this.z + dz * 0.8, dx, dz, speed: G.speed, owner: 'enemy', damage: G.dmg, range: G.range, source: this.team ? this : g.boss });
+    }
+    g.audio.shot('shotgun', g.panFor(this.x));
+    this.state = 'pump';
+    this.timer = G.pump * (this.raging ? 0.7 : 1);
+    this.gunT = G.every * (this.raging ? 0.6 : 1);
+  }
+
+  vulnerable() {
+    return this.active && this.state !== 'enter';
+  }
+
+  /** Free for a combo: after the player, not mid-blast. */
+  comboReady() {
+    return this.active && this.state === 'chase' && this.game.player.alive;
+  }
+
+  /** His part of a combo: a rush onto the spot the player stands on now, to be there as the marksman's round comes. */
+  combo() {
+    const g = this.game;
+    const p = g.player;
+    const R = BUCKSHOT.rush;
+    this.rushTo = { x: p.x, z: p.z };
+    this.rushV = clamp(Math.hypot(p.x - this.x, p.z - this.z) / R.time, BUCKSHOT.speed, R.max);
+    this.rushT = 0;
+    this.state = 'windup';
+    this.timer = R.windup;
+    this.path = null;
+    g.notes.log('散彈手衝向紅線');
+  }
+
+  /** His partner down (a duo): he blasts more often and pumps quicker. */
+  enrage() {
+    this.raging = true;
+  }
+
+  /** A thug kicked into him knocks him off balance. */
+  bowled() {
+    for (const e of this.game.enemies.list) {
+      if (e.stunT <= 0) {
+        e.bowledBoss = false;
+        continue;
+      }
+      if (!e.alive || e.bowledBoss || e.cfg.fly || Math.hypot(e.vx, e.vz) < BUCKSHOT.bowl) continue;
+      if (Math.hypot(e.x - this.x, e.z - this.z) > BUCKSHOT.radius + e.radius + 0.15) continue;
+      e.bowledBoss = true;
+      e.vx *= 0.2;
+      e.vz *= 0.2;
+      this.game.audio.kick(true);
+      this.stagger('打手撞到散彈手身上');
+    }
+  }
+
+  stagger(how) {
+    if (!this.active || this.state === 'enter') return;
+    this.state = 'stagger';
+    this.timer = BUCKSHOT.stagger;
+    this.flash = 1;
+    this.path = null;
+    if (how) this.game.notes.log(how);
+  }
+
+  shotAt(x0, z0, x1, z1) {
+    if (!this.active || this.state === 'enter') return null;
+    const t = segCircle(x0, z0, x1, z1, this.x, this.z, BUCKSHOT.radius);
+    return t < 0 ? null : { t, part: 'body' };
+  }
+
+  /** A shot on him: perSegment to a segment; his partner's round, one outright (the duo scores it: CROSSFIRE). */
+  shot(b) {
+    const g = this.game;
+    this.flash = 1;
+    g.fx.blood(b.x, GUN_Y, b.z, b.dx, b.dz, 8);
+    g.audio.flesh(g.panFor(b.x));
+    if (this.team && b.source && b.source !== this && b.source.team === this.team) {
+      this.hits = 0;
+      this.hurt('被長槍手誤中');
+      if (this.active) this.stagger();
+      return true;
+    }
+    if (++this.hits >= BUCKSHOT.perSegment) {
+      this.hits = 0;
+      this.hurt(this.state === 'pump' ? '上膛時中彈' : '中彈');
+    }
+    return true;
+  }
+
+  melee(inCone, reach, kind) {
+    if (!this.active || this.state === 'enter') return false;
+    const dir = inCone(this.x, this.z, reach + BUCKSHOT.radius);
+    if (!dir) return false;
+    this.x += dir.x * 0.4;
+    this.z += dir.z * 0.4;
+    this.stagger(kind === 'smash' ? '鑊擊中散彈手' : '踢中散彈手');
+    return true;
+  }
+
+  rammed(x, z, r) {
+    return this.active && this.state !== 'enter' && Math.hypot(x - this.x, z - this.z) <= BUCKSHOT.radius + r + 0.1;
+  }
+
+  blast(x, z, opts = {}) {
+    if (!this.active || this.state === 'enter' || Math.hypot(x - this.x, z - this.z) > BUCKSHOT.blast) return;
+    this.flash = 1;
+    this.hits = 0;
+    this.hurt(opts.rocket ? '被火箭油桶炸中' : '被炸到');
+    if (this.active) this.stagger();
+  }
+
+  goDown() {
+    const g = this.game;
+    this.state = 'down';
+    g.fx.blood(this.x, 1, this.z, 0, 0, 16);
+    g.notes.log('散彈手倒下');
+    this.finish();
+    this.sync();
+  }
+
+  /** Where he is drawn; braced, his fan of three lines on the floor, brighter as the blast comes; the rush's line to the spot. */
+  sync() {
+    const g = this.game;
+    const r = this.rig;
+    const S = this.state;
+    const G = BUCKSHOT.gun;
+    r.root.position.set(this.x, g.level.groundY(this.x, this.z), this.z);
+    r.root.rotation.y = this.facing;
+    setFlash(r, this.flash * 2.5);
+    if (S === 'tell' || S === 'brace') {
+      const k = S === 'tell' ? clamp(1 - this.timer / G.tell, 0, 1) : 1;
+      this.fan.forEach((l, i) => {
+        const a = this.aimA + (i - 1) * G.spread;
+        const n = g.level.rayLength(this.x, this.z, Math.sin(a), Math.cos(a), G.range);
+        l.set(this.x, this.z, this.x + Math.sin(a) * n, this.z + Math.cos(a) * n, 0.06 + 0.05 * k, 1.5 + 2.5 * k, 0.05);
+      });
+    } else if (S === 'windup' && this.rushTo) {
+      this.fan[0].set(this.x, this.z, this.rushTo.x, this.rushTo.z, 0.12, 2.5, 0.05); // where he will run: on the floor
+      this.fan[1].hide();
+      this.fan[2].hide();
+    } else for (const l of this.fan) l.hide();
+    r.ring.material.color.setRGB(S === 'tell' || S === 'brace' || S === 'windup' ? 2.2 : 1, 0.4, 0.1);
+    if (!g.style.poseDue(r, g.worldTime)) return;
+    const walking = S === 'enter' || S === 'chase' || S === 'rush';
+    animateRig(r, this.phase, walking ? 1 : 0, this.facing);
+    r.inner.rotation.x = S === 'down' ? 1.45 : S === 'stagger' ? -0.25 : S === 'windup' ? 0.3 : 0;
+    r.inner.position.y = S === 'down' ? 0.15 : S === 'windup' ? -0.12 : 0;
+    finishRig(r, g.worldTime);
+  }
+}
+
+/** 大三巴's shield man: a big shield before him, his back the way in; a bash up close, a revolver further off. */
+class Bulwark extends Boss {
+  constructor(game) {
+    super(game, BULWARK);
+    this.rig = null;
+    this.reset();
+  }
+
+  reset() {
+    if (this.rig) {
+      const g = this.game;
+      g.scene.remove(this.rig.root);
+      disposeRig(this.rig);
+      this.shieldMat.dispose();
+      this.shieldLit.dispose();
+      this.laser.dispose(g.scene);
+      this.rig = null;
+    }
+    super.reset();
+    this.state = 'idle';
+  }
+
+  /** His wave: `def` is the map's (maps.js `boss`: `from` behind the façade, `at` on the terrace before it). */
+  start(def, size) {
+    this.reset();
+    super.start(def, size);
+    this.x = def.from[0];
+    this.z = def.from[1];
+    this.at = { x: def.at[0], z: def.at[1] };
+    this.facing = angleTo(this.x, this.z, this.at.x, this.at.z);
+    this.state = 'enter'; // enter, chase, aim (the revolver's line), brace, bash, spent, stagger, down; 'stand' holds him (tests)
+    this.timer = 0;
+    this.bashT = BULWARK.bash.first;
+    this.gunT = BULWARK.gun.first;
+    this.shots = 0;
+    this.lock = null;
+    this.bashDir = [0, 0];
+    this.bashHit = false;
+    this.seen = null; // where he last saw the player
+    this.unseen = 0; // s since he last saw him
+    this.searching = false; // on his way to `seen`, the player lost
+    this.searchT = 0;
+    this.lookT = 0; // s left looking round, there
+    this.hits = 0;
+    this.blocked = 0; // shots his shield has turned aside (tests)
+    this.blockLogT = 0;
+    this.path = null;
+    this.pathTo = null;
+    this.pathT = 0;
+    this.phase = 0;
+    this.flash = 0;
+    this.lit = 0; // the shield's glow, braced for the bash
+    this.firstBrace = true;
+    this.raging = false;
+    this.build();
+  }
+
+  /** The look: the brute's rig a size up, a tall shield before him with a band of light, his red line. */
+  build() {
+    const g = this.game;
+    this.rig = buildCharacter({ body: 0x2d3038, pants: 0x1c1e24, accent: 0xffb02a, hair: 0x22242a, weapon: 'pistol', scale: 1.3, ring: 0.55, model: 'brute' });
+    this.shieldMat = new THREE.MeshStandardMaterial({ color: 0x5a6068, roughness: 0.4, metalness: 0.6, emissive: 0xffb02a, emissiveIntensity: 0 });
+    const shield = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.75, 0.1), this.shieldMat);
+    shield.position.set(0, 0.95, 0.55);
+    shield.castShadow = true;
+    this.rig.inner.add(shield);
+    g.style.dress(shield);
+    this.shieldLit = shield.material; // its toon twin (style.js) once dressed: the one whose glow shows
+    this.shield = shield;
+    this.laser = new Laser(g.scene, 0xff2020);
+    g.scene.add(this.rig.root);
+    this.sync();
+  }
+
+  /** His shield is up: not after a bash, not reeling. */
+  get shieldUp() {
+    return this.active && this.state !== 'spent' && this.state !== 'stagger' && this.state !== 'down';
+  }
+
+  update(dt) {
+    if (!this.active) return;
+    const g = this.game;
+    const L = g.level;
+    const p = g.player;
+    const B = BULWARK;
+    this.t += dt;
+    this.timer -= dt;
+    this.blockLogT -= dt;
+    this.flash = Math.max(0, this.flash - dt * 5);
+    this.lit = this.state === 'brace' ? Math.min(1, this.lit + dt * 3) : Math.max(0, this.lit - dt * 4);
+    this.lookT -= dt;
+    if (p.alive && L.hasLOS(this.x, this.z, p.x, p.z) && L.sameLevel(this.x, this.z, p.x, p.z)) {
+      // searching he notices the player only right before his shield
+      if (this.searching && Math.hypot(p.x - this.x, p.z - this.z) <= B.bash.reach && Math.abs(wrapAngle(angleTo(this.x, this.z, p.x, p.z) - this.facing)) <= (B.shield * Math.PI) / 180) this.alert();
+      if (!this.searching) {
+        this.unseen = 0;
+        this.seen = { x: p.x, z: p.z };
+      }
+    } else {
+      this.unseen += dt;
+      if (this.state === 'chase' && !this.searching && this.seen && this.unseen > B.lost.after) {
+        this.searching = true;
+        this.searchT = B.lost.search;
+        this.path = null;
+        g.notes.log('鐵盾跟丟了人');
+      }
+    }
+    switch (this.state) {
+      case 'enter': {
+        const d = Math.hypot(this.at.x - this.x, this.at.z - this.z);
+        const step = Math.min(B.enter * dt, d);
+        this.facing = angleTo(this.x, this.z, this.at.x, this.at.z);
+        this.x += Math.sin(this.facing) * step;
+        this.z += Math.cos(this.facing) * step;
+        this.phase += dt * B.enter * 2.2;
+        if (d <= 0.05) this.state = 'chase';
+        break;
+      }
+      case 'chase':
+        this.chase(dt);
+        break;
+      case 'aim':
+        // the red line onto where the player stood; then the rounds down it
+        if (this.timer <= 0 && this.shots > 0) {
+          this.fire();
+          this.shots--;
+          this.timer = this.shots > 0 ? B.gun.interval : 0.3;
+        } else if (this.timer <= 0) {
+          this.lock = null;
+          this.state = 'chase';
+        }
+        break;
+      case 'brace':
+        if (this.timer <= 0) {
+          this.state = 'bash';
+          this.timer = B.bash.time;
+          this.bashDir = [Math.sin(this.facing), Math.cos(this.facing)];
+          this.bashHit = false;
+          g.audio.kick(true);
+        }
+        break;
+      case 'bash': {
+        const v = B.bash.dist / B.bash.time;
+        const [dx, dz] = this.bashDir;
+        const x0 = this.x;
+        const z0 = this.z;
+        this.x += dx * v * dt;
+        this.z += dz * v * dt;
+        L.collideCircle(this, B.radius);
+        const stopped = Math.hypot(this.x - x0, this.z - z0) < v * dt * 0.3; // into a wall
+        if (!this.bashHit && p.alive && Math.hypot(p.x - this.x, p.z - this.z) < B.radius + 0.5) {
+          this.bashHit = true;
+          if (p.hurt(B.bash.dmg, dx, dz, false, '鐵盾撞飛')) {
+            p.vx += dx * B.bash.knock;
+            p.vz += dz * B.bash.knock;
+            g.shake(0.35);
+          }
+        }
+        if (this.timer <= 0 || stopped) {
+          this.state = 'spent';
+          this.timer = B.bash.spent;
+          this.bashT = B.bash.every * (this.raging ? 0.6 : 1);
+        }
+        break;
+      }
+      case 'spent':
+      case 'stagger':
+        if (this.timer <= 0) this.state = 'chase';
+        break;
+    }
+    if (this.state !== 'enter' && this.state !== 'down') {
+      if (this.state !== 'bash') L.collideCircle(this, B.radius);
+      this.rolled();
+      this.bowled();
+      this.shove();
+    }
+    this.sync();
+  }
+
+  /**
+   * After the player on the nav grid, his shield turned slowly onto him while he sees him. Out of sight (behind the
+   * façade) more than lost.after s, he goes to where he last saw him, facing the way he walks and paying the player no
+   * heed (unless right before his shield, or shot), and there looks round lost.look s; then on after him. So a player
+   * who goes in by one doorway and out by another comes out at his side or his back. The bash and the revolver.
+   */
+  chase(dt) {
+    const g = this.game;
+    const L = g.level;
+    const p = g.player;
+    const B = BULWARK;
+    if (!p.alive) return;
+    this.bashT -= dt;
+    this.gunT -= dt;
+    const turn = B.turn * (this.raging ? 1.3 : 1) * dt;
+    if (this.searching) {
+      this.searchT -= dt;
+      if (Math.hypot(this.seen.x - this.x, this.seen.z - this.z) > 0.6 && this.searchT > 0) return this.walk(this.seen, dt, turn);
+      this.searching = false;
+      this.seen = null;
+      this.path = null;
+      this.lookT = B.lost.look;
+    }
+    if (this.lookT > 0) return; // looking round for him
+    const dist = Math.hypot(p.x - this.x, p.z - this.z);
+    const sight = L.hasLOS(this.x, this.z, p.x, p.z) && L.sameLevel(this.x, this.z, p.x, p.z);
+    if (sight) {
+      this.facing = turnTowards(this.facing, angleTo(this.x, this.z, p.x, p.z), turn);
+      const off = Math.abs(wrapAngle(angleTo(this.x, this.z, p.x, p.z) - this.facing));
+      if (dist <= B.bash.reach && this.bashT <= 0 && off <= (B.bash.aim * Math.PI) / 180 && this.mayTell()) return this.brace();
+      if (dist > B.bash.reach && dist < B.gun.range && this.gunT <= 0 && this.mayTell()) return this.aim();
+      if (dist < B.near) return;
+    }
+    this.walk(p, dt, sight ? 0 : turn); // out of sight, on after him all the same: he hears where he went
+  }
+
+  /** A step along the nav grid to `to`, turning `turn` rad towards the way he walks. */
+  walk(to, dt, turn) {
+    const L = this.game.level;
+    const B = BULWARK;
+    this.pathT -= dt;
+    if (!this.path || this.pathT <= 0 || Math.hypot(to.x - this.pathTo.x, to.z - this.pathTo.z) > 1) {
+      this.path = L.nav.findPath(this.x, this.z, to.x, to.z) || [{ x: to.x, z: to.z }];
+      this.pathTo = { x: to.x, z: to.z };
+      this.pathT = 0.4;
+    }
+    while (this.path.length > 1 && Math.hypot(this.path[0].x - this.x, this.path[0].z - this.z) < 0.5) this.path.shift();
+    const w = this.path[0];
+    const a = angleTo(this.x, this.z, w.x, w.z);
+    this.x += Math.sin(a) * B.speed * dt;
+    this.z += Math.cos(a) * B.speed * dt;
+    this.phase += dt * B.speed * 2.2;
+    this.facing = turnTowards(this.facing, a, turn);
+  }
+
+  /** Shot, kicked, knocked about, or the player right before him: he knows where the player is again. */
+  alert() {
+    const p = this.game.player;
+    this.searching = false;
+    this.lookT = 0;
+    this.unseen = 0;
+    this.seen = { x: p.x, z: p.z };
+    this.path = null;
+  }
+
+  /** The bash's wind-up: he plants his feet behind the shield, lit. */
+  brace() {
+    const g = this.game;
+    this.state = 'brace';
+    this.timer = BULWARK.bash.tell;
+    this.path = null;
+    g.audio.aimWarn(g.panFor(this.x));
+    if (this.firstBrace && !this.team) {
+      this.firstBrace = false;
+      g.hud.banner('BULWARK', '正面打不穿：由門洞繞到他背後，或者由石階頂滾個油桶落去', 'clear');
+    }
+  }
+
+  /** The revolver: a red line onto where the player stands. */
+  aim() {
+    const g = this.game;
+    const p = g.player;
+    this.state = 'aim';
+    this.timer = BULWARK.gun.warn;
+    this.shots = BULWARK.gun.shots;
+    this.lock = { x: p.x, z: p.z };
+    this.gunT = BULWARK.gun.every;
+    g.audio.aimWarn(g.panFor(this.x));
+  }
+
+  fire() {
+    const g = this.game;
+    const G = BULWARK.gun;
+    const a = angleTo(this.x, this.z, this.lock.x, this.lock.z);
+    const dx = Math.sin(a);
+    const dz = Math.cos(a);
+    // round the shield's edge: from his right hand
+    const sx = this.x + Math.cos(this.facing) * 0.6 + dx * 0.6;
+    const sz = this.z - Math.sin(this.facing) * 0.6 + dz * 0.6;
+    g.bullets.spawn({ x: sx, z: sz, dx, dz, speed: G.speed, owner: 'enemy', damage: G.dmg, range: G.range, source: this.team ? this : g.boss });
+    g.audio.shot('pistol', g.panFor(this.x));
+  }
+
+  vulnerable() {
+    return this.active && this.state !== 'enter';
+  }
+
+  /** A barrel rolling down the steps into him (level.js Barrel, rolling) bowls him over: a segment, ROLLING, his shield down. */
+  rolled() {
+    const g = this.game;
+    for (const b of g.level.barrels) {
+      if (!b.rolling) {
+        b.rolledBoss = false;
+        continue;
+      }
+      if (!b.alive || b.rolledBoss || Math.hypot(b.vx, b.vz) < BULWARK.roll) continue;
+      if (Math.hypot(b.x - this.x, b.z - this.z) > BULWARK.radius + 0.55) continue;
+      b.rolledBoss = true;
+      b.vx *= ENV.roll.knock;
+      b.vz *= ENV.roll.knock;
+      g.shake(0.25);
+      g.score.style('ROLLING', ENV.roll.pts);
+      this.hits = 0;
+      this.hurt('被滾落的油桶撞倒');
+      if (this.active) this.stagger(BULWARK.stagger.roll);
+    }
+  }
+
+  /** A thug kicked into him knocks him off balance. */
+  bowled() {
+    for (const e of this.game.enemies.list) {
+      if (e.stunT <= 0) {
+        e.bowledBoss = false;
+        continue;
+      }
+      if (!e.alive || e.bowledBoss || e.cfg.fly || Math.hypot(e.vx, e.vz) < 5) continue;
+      if (Math.hypot(e.x - this.x, e.z - this.z) > BULWARK.radius + e.radius + 0.15) continue;
+      e.bowledBoss = true;
+      e.vx *= 0.2;
+      e.vz *= 0.2;
+      this.game.audio.kick(true);
+      this.stagger(BULWARK.stagger.bowl, '打手撞到鐵盾身上');
+    }
+  }
+
+  /** Nobody stands inside him. */
+  shove() {
+    const p = this.game.player;
+    if (!p.alive) return;
+    const dx = p.x - this.x;
+    const dz = p.z - this.z;
+    const d = Math.hypot(dx, dz);
+    const rr = BULWARK.radius + 0.35;
+    if (d >= rr || d < 1e-4) return;
+    p.x += (dx / d) * (rr - d);
+    p.z += (dz / d) * (rr - d);
+  }
+
+  /** He reels `t` s, his shield down. */
+  stagger(t, how) {
+    if (!this.active || this.state === 'enter') return;
+    this.state = 'stagger';
+    this.timer = Math.max(this.timer, t);
+    this.flash = 1;
+    this.lock = null;
+    this.alert();
+    if (how) this.game.notes.log(how);
+  }
+
+  shotAt(x0, z0, x1, z1) {
+    if (!this.active || this.state === 'enter') return null; // on his way out the shot flies past
+    const t = segCircle(x0, z0, x1, z1, this.x, this.z, BULWARK.radius);
+    if (t < 0) return null;
+    const hx = x0 + (x1 - x0) * t;
+    const hz = z0 + (z1 - z0) * t;
+    const a = Math.abs(wrapAngle(Math.atan2(hx - this.x, hz - this.z) - this.facing));
+    return { t, part: this.shieldUp && a <= (BULWARK.shield * Math.PI) / 180 ? 'shield' : 'body' };
+  }
+
+  shot(b, part) {
+    const g = this.game;
+    this.alert();
+    if (part === 'shield') {
+      this.blocked++;
+      g.fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 6, [7, 5, 2], 7);
+      g.audio.deflect(g.panFor(b.x));
+      if (this.blockLogT <= 0) {
+        this.blockLogT = 2;
+        g.notes.log('子彈打在鐵盾的盾上：繞到背後');
+      }
+      return true;
+    }
+    this.flash = 1;
+    g.fx.blood(b.x, GUN_Y, b.z, b.dx, b.dz, 8);
+    g.audio.flesh(g.panFor(b.x));
+    if (++this.hits >= BULWARK.perSegment) {
+      this.hits = 0;
+      this.hurt(this.shieldUp ? '背後中彈' : '盾垂下時中彈');
+    }
+    return true;
+  }
+
+  /** The player's kick or pan smash: he staggers, shield down; no segment. */
+  melee(inCone, reach, kind) {
+    if (!this.active || this.state === 'enter') return false;
+    const dir = inCone(this.x, this.z, reach + BULWARK.radius);
+    if (!dir) return false;
+    this.x += dir.x * 0.3;
+    this.z += dir.z * 0.3;
+    this.stagger(kind === 'smash' ? BULWARK.stagger.smash : BULWARK.stagger.kick, kind === 'smash' ? '鑊擊中鐵盾：盾垂下' : '踢得鐵盾一個踉蹌');
+    return true;
+  }
+
+  rammed(x, z, r) {
+    return this.active && this.state !== 'enter' && Math.hypot(x - this.x, z - this.z) <= BULWARK.radius + r + 0.1;
+  }
+
+  blast(x, z, opts = {}) {
+    if (!this.active || this.state === 'enter' || Math.hypot(x - this.x, z - this.z) > BULWARK.blast) return;
+    this.flash = 1;
+    this.hits = 0;
+    this.hurt(opts.rocket ? '被火箭油桶炸中' : '被炸到');
+    if (this.active) this.stagger(BULWARK.stagger.blast);
+  }
+
+  /** His partner down (a duo): he bashes more often and turns quicker. */
+  enrage() {
+    this.raging = true;
+  }
+
+  goDown() {
+    const g = this.game;
+    this.state = 'down';
+    this.lock = null;
+    g.fx.blood(this.x, 1, this.z, 0, 0, 20);
+    g.notes.log('鐵盾倒下');
+    if (!this.team) g.hud.banner('BOSS DOWN', '鐵盾倒下了', 'clear');
+    this.finish();
+    this.sync();
+  }
+
+  /** Where he is drawn: the shield (lit when braced, down when spent or reeling), his red line, down at the end. */
+  sync() {
+    const g = this.game;
+    const r = this.rig;
+    const S = this.state;
+    r.root.position.set(this.x, g.level.groundY(this.x, this.z), this.z);
+    r.root.rotation.y = this.facing;
+    setFlash(r, this.flash * 2.5);
+    this.shieldLit.emissiveIntensity = this.lit * 2.4;
+    r.ring.material.color.setRGB(S === 'brace' || S === 'aim' ? 2.2 : 1, 0.45, 0.1);
+    if (S === 'aim' && this.lock) this.laser.set(this.x, this.z, this.lock.x, this.lock.z, 0.06, 1.5 + 2 * clamp(1 - this.timer / BULWARK.gun.warn, 0, 1), GUN_Y);
+    else this.laser.hide();
+    if (!g.style.poseDue(r, g.worldTime)) return;
+    const walking = S === 'enter' || S === 'bash' || (S === 'chase' && this.path);
+    animateRig(r, this.phase, walking ? 1 : 0, this.facing);
+    this.shield.rotation.x = S === 'spent' || S === 'stagger' ? 1.1 : S === 'down' ? 1.5 : 0;
+    this.shield.position.y = S === 'spent' || S === 'stagger' ? 0.5 : 0.95;
+    r.inner.rotation.x = S === 'down' ? 1.45 : S === 'brace' ? 0.15 : S === 'stagger' ? -0.25 : 0;
     r.inner.position.y = S === 'down' ? 0.15 : 0;
     finishRig(r, g.worldTime);
   }
@@ -2670,6 +3969,224 @@ class Convoy extends Boss {
 }
 
 /** Every kind of boss, by the name a map's `boss.kind` uses. */
+/** Two at once (雙頭目): the duo's own numbers; each of the two keeps its kind's. */
+export const DUO = {
+  label: 'DUO',
+  name: '雙頭目',
+  short: '雙頭目',
+  downed: '打倒',
+  pull: false,
+  segments: 3, // each of the two, in the run's last wave; a stage's (waves.js MODES midBoss `each`) fewer
+  bonus: 2000,
+  gap: 0.6, // s at least between the two starting a warning (a red line, a ring of shells, the blades raised)
+  rage: { pause: 1.5, speed: 1.2 }, // one down, the other stands still this many s (any hit then takes a segment), then fights this much faster
+  doubleKo: { within: 3, pts: 500 }, // DOUBLE KO: the second down within this many s of the first
+  crossfire: 300, // CROSSFIRE: one of the two takes a segment from the other's bullet or blast
+  // the combo (合招): the two start their attacks at the player at once (the one exception to `gap`), first `first` s
+  // into the fight and then every `every` s; once it is due neither starts an attack of its own, and when both are not
+  // free within `wait` s (the gunner without a line on the player) this one is let go.
+  // A map's duo can name its own (maps.js `boss.combo`); the solution: the queen between the player and the gunner, the
+  // sweep hits her (CROSSFIRE)
+  // (the queen goes `lag` s after the gunner's red line goes on: she stands with her blades up in front of the player
+  // as the middle of his sweep, aimed at the player, arrives)
+  combo: { first: 10, every: 15, wait: 3, lag: 1, name: '夾擊', en: 'PINCER', hint: '讓刀后擋在你和重炮之間：掃射打中她' },
+};
+
+/** The two at once: one boss to the game, two inside (the comment at the top). */
+class Duo extends Boss {
+  constructor(game) {
+    super(game, DUO);
+    this.members = [];
+    this.made = []; // the members' objects by slot and kind, made once and reused (two of a kind are two objects)
+  }
+
+  /** Its wave: `def.pair` the two (each a map's boss def of its kind); `size` a stage's shorter fight. */
+  start(def, size) {
+    this.reset();
+    super.start(def, size);
+    const g = this.game;
+    const each = size ? { segments: size.each || 2, bonus: 0 } : { segments: DUO.segments, bonus: 0 };
+    this.members = def.pair.map((d, i) => {
+      const slot = this.made[i] || (this.made[i] = {});
+      const m = slot[d.kind] || (slot[d.kind] = BOSSES[d.kind].make(g));
+      m.start(d, each);
+      m.team = this;
+      return m;
+    });
+    this.segments = this.members.reduce((s, m) => s + m.segments, 0);
+    this.hp = this.segments;
+    this.lastTell = -Infinity;
+    this.lastTeller = null;
+    this.firstDown = -Infinity; // world time the first of the two went down
+    this.raged = null; // the one left standing
+    this.rageT = 0; // its pause before the rage
+    this.comboDef = { ...DUO.combo, ...(def.combo || {}) };
+    this.comboT = this.comboDef.first; // world s to the next combo
+    this.comboWait = 0; // s it has waited for both to be free
+    this.combos = 0;
+    this.comboAt = -Infinity; // world time of the last
+    this.sync();
+  }
+
+  reset() {
+    for (const m of this.members) {
+      m.reset();
+      m.team = null;
+    }
+    this.members = [];
+    super.reset();
+  }
+
+  /**
+   * The combo: when it is due and both are free, both start their attacks now (the queen off her perch, the gunner's red
+   * line), named on a banner; not both free within `wait` s, this one is let go. None once one of the two is down.
+   */
+  updateCombo(dt) {
+    const g = this.game;
+    const C = this.comboDef;
+    this.comboT -= dt;
+    if (this.comboT > 0) return;
+    if (this.members.every((m) => m.active && m.comboReady())) {
+      for (const m of this.members) m.combo();
+      this.lastTell = g.worldTime;
+      this.lastTeller = this; // neither starts another warning on top of it for DUO.gap s
+      this.comboT = C.every;
+      this.comboWait = 0;
+      this.combos++;
+      this.comboAt = g.worldTime;
+      g.hud.banner('COMBO', `合招「${C.name}」${C.en} · ${C.hint}`, 'stage');
+      g.notes.log(`合招：${C.name}`);
+    } else if ((this.comboWait += dt) > C.wait) {
+      this.comboT = C.every;
+      this.comboWait = 0;
+    }
+  }
+
+  /** One of the two may start a warning: not within DUO.gap s (world time) of the other's, nor while a combo is due. */
+  mayTell(m) {
+    const t = this.game.worldTime;
+    if (!this.raged && this.comboT <= 0) return false;
+    if (this.lastTeller && this.lastTeller !== m && this.lastTeller.active && t - this.lastTell < DUO.gap) return false;
+    this.lastTell = t;
+    this.lastTeller = m;
+    return true;
+  }
+
+  /**
+   * One of the two is down (its own finish). The other stands still for DUO.rage.pause s, open to anything (a shot then
+   * takes a segment), and then fights DUO.rage.speed times as fast and its own harder way (enrage). Both down: the
+   * duo is (the BOSS bonus, the clip, the wave's end), a DOUBLE KO if the second fell within DUO.doubleKo.within s.
+   */
+  memberDown(m) {
+    const g = this.game;
+    this.sync();
+    const up = this.members.find((o) => o.active);
+    if (up) {
+      this.firstDown = g.worldTime;
+      this.raged = up;
+      this.rageT = DUO.rage.pause;
+      up.enrage();
+      g.notes.log(`${m.cfg.short}倒下，${up.cfg.short}發狂`);
+      g.hud.banner('RAGE', `${up.cfg.short}發狂：停一停就衝過來`, 'stage');
+      return;
+    }
+    if (g.worldTime - this.firstDown <= DUO.doubleKo.within) {
+      g.score.style('DOUBLE KO', DUO.doubleKo.pts);
+      g.notes.log(`DOUBLE KO：${DUO.doubleKo.within} 秒內打倒兩個`);
+    }
+    this.finish();
+  }
+
+  /** CROSSFIRE: `m` lost a segment to its partner's bullet or blast. */
+  crossfire(m) {
+    const g = this.game;
+    g.score.style('CROSSFIRE', DUO.crossfire);
+    g.notes.log(`${m.cfg.short}被拍檔誤傷（CROSSFIRE）`);
+  }
+
+  /** The duo as one boss: health the sum of the two, where it is the first one standing. */
+  sync() {
+    this.hp = this.members.reduce((s, m) => s + Math.max(0, m.hp), 0);
+    const up = this.members.find((m) => m.active) || this.members[0];
+    if (up) {
+      this.x = up.x;
+      this.z = up.z;
+    }
+  }
+
+  update(dt) {
+    if (!this.active) return;
+    if (!this.raged) this.updateCombo(dt);
+    for (const m of this.members) {
+      if (!m.active) continue;
+      if (m !== this.raged) m.update(dt);
+      else if (this.rageT > 0) this.rageT -= dt; // its pause: it stands where it is
+      else m.update(dt * DUO.rage.speed);
+    }
+    if (this.active) this.sync();
+  }
+
+  vulnerable() {
+    return this.members.some((m) => m.active && (m === this.raged && this.rageT > 0 ? true : m.vulnerable()));
+  }
+
+  // the rest of the game talks to the duo as to one boss: each call goes to the one of the two it meets
+  blast(x, z, opts = {}) {
+    for (const m of this.members) {
+      if (!m.active) continue;
+      const hp = m.hp;
+      if (m === this.raged && this.rageT > 0 && Math.hypot(m.x - x, m.z - z) < 4) m.hurt('發狂前被炸到');
+      else m.blast(x, z, opts);
+      if (m.hp < hp && opts.by && opts.by !== m && this.members.includes(opts.by)) this.crossfire(m);
+    }
+  }
+
+  under(x, z) {
+    return this.members.some((m) => m.active && m.under(x, z));
+  }
+
+  /** Where a shot first meets one of the two; `except` the one who fired it (a partner's bullet: bullets.js). */
+  shotAt(x0, z0, x1, z1, except = null) {
+    let best = null;
+    for (const m of this.members) {
+      if (!m.active || m === except) continue;
+      const h = m === this.raged && this.rageT > 0 ? this.bodyAt(m, x0, z0, x1, z1) : m.shotAt(x0, z0, x1, z1);
+      if (h && (!best || h.t < best.t)) best = { t: h.t, part: { member: m, part: h.part } };
+    }
+    return best;
+  }
+
+  /** The one standing still before its rage: its body, anywhere, takes a shot. */
+  bodyAt(m, x0, z0, x1, z1) {
+    const t = segCircle(x0, z0, x1, z1, m.x, m.z, 0.8);
+    return t >= 0 ? { t, part: 'rage' } : null;
+  }
+
+  shot(b, part) {
+    const m = part.member;
+    const hp = m.hp;
+    let stop = true;
+    if (part.part === 'rage') m.hurt('發狂前中彈');
+    else stop = m.shot(b, part.part);
+    if (m.hp < hp && b.source && b.source !== m && this.members.includes(b.source)) this.crossfire(m);
+    return stop;
+  }
+
+  shotSolid(s, b) {
+    for (const m of this.members) if (m.active) m.shotSolid(s, b);
+  }
+
+  rammed(x, z, r) {
+    return this.members.some((m) => m.active && m.rammed(x, z, r));
+  }
+
+  melee(inCone, reach, how) {
+    let struck = false;
+    for (const m of this.members) if (m.active && m.melee(inCone, reach, how)) struck = true;
+    return struck;
+  }
+}
+
 export const BOSSES = {
   heli: { make: (game) => new Heli(game), cfg: HELI },
   dj: { make: (game) => new Dj(game), cfg: DJ },
@@ -2677,7 +4194,14 @@ export const BOSSES = {
   truck: { make: (game) => new Truck(game), cfg: TRUCK },
   gunner: { make: (game) => new Gunner(game), cfg: GUNNER },
   convoy: { make: (game) => new Convoy(game), cfg: CONVOY },
+  marksman: { make: (game) => new Marksman(game), cfg: MARKSMAN },
+  buckshot: { make: (game) => new Buckshot(game), cfg: BUCKSHOT },
+  bulwark: { make: (game) => new Bulwark(game), cfg: BULWARK },
+  duo: { make: (game) => new Duo(game), cfg: DUO },
 };
+
+/** Kinds no map may use any more (同一水平 and 頭目全部是人, DECISIONS 2026-10-22): vehicles, and one who only waits behind glass. */
+export const RETIRED = { heli: 'vehicle', truck: 'vehicle', convoy: 'vehicle', dj: 'waits' };
 
 /** The run's boss: none until a boss wave starts one; each kind is built once and reused. */
 export class Bosses {

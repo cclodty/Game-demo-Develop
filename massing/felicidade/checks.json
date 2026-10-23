@@ -1,0 +1,10 @@
+[
+  {"id": "street-west", "what": "正街的闊（地面，西段 x −20）", "real": 5.4, "tol": 0.7, "source": "量度表 #2（照片 street.jpg，以行人作比例）", "game": {"type": "gap", "at": [-20, 0], "axis": "z"}},
+  {"id": "street-middle", "what": "正街的闊（地面，中段 x 0）", "real": 5.4, "tol": 0.7, "source": "量度表 #2（照片 street.jpg）", "game": {"type": "gap", "at": [0, 0], "axis": "z"}},
+  {"id": "street-east", "what": "正街的闊（地面，東段 x 20）", "real": 5.4, "tol": 0.7, "source": "量度表 #2（照片 street.jpg）", "game": {"type": "gap", "at": [20, 0], "axis": "z"}},
+  {"id": "back-lane-west", "what": "後巷福榮里的闊（x −10）", "real": 4.7, "tol": 0.8, "source": "量度表 #8（OSM 樓宇輪廓）", "game": {"type": "gap", "at": [-10, 16], "axis": "z"}},
+  {"id": "back-lane-east", "what": "後巷福榮里的闊（x 20，最窄處放闊到 4 米：遊戲化改動表 #2）", "real": 3.7, "tol": 0.8, "source": "量度表 #8（OSM 樓宇輪廓）", "game": {"type": "gap", "at": [20, 16], "axis": "z"}},
+  {"id": "aterro-novo", "what": "新填巷的闊", "real": 5.3, "tol": 0.8, "source": "量度表 #10（OSM 樓宇輪廓）", "game": {"type": "gap", "at": [33.9, -6], "axis": "x"}},
+  {"id": "shop-tagged", "what": "北排一間有 OSM 高度的舖屋（兩層連瓦頂）", "real": 11.2, "tol": 1, "source": "量度表 #7（OSM way 754625826 height）", "game": {"type": "height", "at": [11.7, -5]}},
+  {"id": "shop-tagged-2", "what": "北排另一間有 OSM 高度的舖屋", "real": 11.2, "tol": 1, "source": "量度表 #7（OSM way 754625822 height）", "game": {"type": "height", "at": [30, -5]}}
+]

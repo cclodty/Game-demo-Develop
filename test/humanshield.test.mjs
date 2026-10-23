@@ -138,7 +138,7 @@ test('bullets from within 60° of the front hit the man held there, not the play
       const manHp = e.hp;
       window.shootAt(deg);
       window.play(24);
-      out[deg] = { player: 100 - Math.round(p.hp), man: manHp - e.hp };
+      out[deg] = { player: 100 - Math.round(p.hp), man: Math.round(((manHp - e.hp) / e.tough) * 1000) / 1000 }; // in hits (config.js ENEMY_HP: as many as ever)
     }
     const held = !!p.hostage;
     // his last hit
@@ -209,6 +209,7 @@ test('held 1.5 s or until E; a walk at 0.6 of the pace; the left gun alone, its 
     // firing with him held: the left gun alone, and he is not hit
     window.begin();
     const e3 = window.post('grunt', p.x + 1, p.z);
+    const full = e3.hp; // what he came in with (config.js ENEMY_HP)
     window.play(1, [], ['KeyE']);
     let left = 0;
     let right = 0;
@@ -220,7 +221,7 @@ test('held 1.5 s or until E; a walk at 0.6 of the pace; the left gun alone, its 
       left = Math.max(left, p.recoilL);
       right = Math.max(right, p.recoilR);
     }
-    return { time, hold: PLAYER.humanShield.hold, letGo, walk, fire: { shots, left, right, manHp: e3.hp, full: e3.cfg.hp } };
+    return { time, hold: PLAYER.humanShield.hold, letGo, walk, fire: { shots, left, right, manHp: e3.hp, full } };
   });
   assert.ok(Math.abs(r.time.steps / 120 - r.hold) <= 1 / 60, `held ${(r.time.steps / 120).toFixed(3)} s`);
   assert.equal(r.time.freed, true);
