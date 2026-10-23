@@ -105,7 +105,8 @@ test('the forecourt, 68 steps in three flights with two landings 42.7 m up to th
     const path = L.nav.findPath(-4, 50, -4, -12);
     const walk = [[-4, 76], [-7, -26], [-4, 40], [12.8, 20]].map(([x, z]) => L.nav.isWalkable(x, z));
     const shut = [[-4, 79], [-20, 20], [7.2, 20]].map(([x, z]) => L.nav.isWalkable(x, z));
-    const behind = L.nav.findPath(-4, 50, 0, -40); // the open ground past the hill at the nave's back: no way there
+    const nave = L.nav.findPath(-4, 50, 0, -60); // up the steps, through a doorway, to the nave's far end
+    const behind = L.nav.findPath(-4, 50, 0, -70); // the hill past the nave's back: no way there
     const facade = L.solids.find((s) => s.matKey === 'facade');
     return {
       index: i,
@@ -114,6 +115,7 @@ test('the forecourt, 68 steps in three flights with two landings 42.7 m up to th
       size: [halfW * 2, halfD * 2],
       walk,
       shut,
+      nave: !!nave,
       behind,
       heights: { forecourt: at(50), landing1: at(24.2), landing2: at(8.8), terrace: at(-12) },
       rises,
@@ -132,7 +134,8 @@ test('the forecourt, 68 steps in three flights with two landings 42.7 m up to th
   assert.deepEqual(r.size, [48, 160], 'the bounds');
   assert.deepEqual(r.walk, [true, true, true, true], 'the forecourt’s south end, the nave, the steps’ foot and the walkway are walkable');
   assert.deepEqual(r.shut, [false, false, false], 'past the south rows, the west wall and the zigzag planter are not');
-  assert.equal(r.behind, null, 'nor is there a way round behind the nave');
+  assert.equal(r.nave, true, 'the old nave behind the façade, its full 37 m, is walkable');
+  assert.equal(r.behind, null, 'the hill past its back is not');
   assert.deepEqual(r.heights, { forecourt: 0, landing1: 3.45, landing2: 6.9, terrace: 10.2 });
   assert.equal(r.rises, true, 'up the steps the ground never drops');
   assert.deepEqual(r.levels, [0, r.heights.landing1, r.heights.landing2, r.heights.terrace], 'four levels: the forecourt, two landings, the terrace');

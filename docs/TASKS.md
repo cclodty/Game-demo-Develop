@@ -1261,10 +1261,11 @@
 - 漂亮的解法：地圖會說話——門洞後面是一大塊舊教堂地基，繞後有地方繞
 - 涉及：`src/maps.js`（ruins 的 `buildings`、`nave`、`fade`）、`test/ruins.test.mjs`
 - 驗收：
-  - [ ] `checks.json` 10 項全過
-  - [ ] 開局繪製 ≤ 600
-  - [ ] npm run lint && npm test 通過
+  - [x] `checks.json` 10 項全過（2026-10-23：地圖標了 `massing: 'ruins'`，`test/massing.test.mjs`「照研究重建的地圖過研究的 checks」逐項核對：舊教堂遺址闊 19.6、前地闊 17.19、西面住宅 31.7，加上 ① 的七項）
+  - [x] 開局繪製 ≤ 600（128 次、124,694 個三角形）
+  - [x] npm run lint && npm test 通過（npm test 417 個一次過；test:game 3 個）
 - 這次不做：頭目
+- 做了：22 幢樓照 OSM 輪廓（樓名不放入遊戲），黃色建築用相片的 15 米；舊教堂遺址伸到 z −64.1，東面一條小路上大炮台；拍子「前地」的位、三個出生點跟着樓移（DECISIONS）；截圖 `docs/shots/phase-4b/ruins-largo.jpg`（同相片並排，換上了真的樓）、`ruins-nave.jpg`、平面圖 `massing-ruins-rebuilt.jpg`
 
 ### 大三巴：頭目 ①：盾牌頭目（估計：一天）
 - 目標：大三巴的頭目（雙頭目的第一個）：一個新的人類 kind「盾牌頭目」（虛構），守在牌坊的門洞前，大盾正面打不穿；他轉身追你的時候背面打得中；沒有「等」（ROADMAP §4：一盾一炮，門洞繞後）

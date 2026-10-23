@@ -244,6 +244,8 @@ function mapJson(map) {
     pigeonFlocks: (map.flocks || []).map(([x, z]) => ({ x, z })),
     spawns: map.spawns,
   };
+  // a map rebuilt from OSM outlines (大三巴): its buildings, as the checks measure them (scripts/massing/checks.mjs)
+  if (map.buildings) j.buildings = map.buildings.map((b) => ({ id: b.id, name: null, height: b.height, minHeight: 0, footprint: b.footprint }));
   if (map.id === 'senado') {
     const f = SENADO_DATA.fountain;
     const [fx, fz] = toGame(f.x, f.y);
