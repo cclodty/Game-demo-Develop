@@ -98,6 +98,29 @@ export const TYPES = {
     look: { body: 0xe8b21c, pants: 0x18181c, accent: 0x2ee8a0, hair: 0x101010, weapon: 'fists', band: 0xff3b30 },
     spawn: { from: 5, weight: 1.4, max: 2 },
   },
+  captain: {
+    label: 'CAPTAIN',
+    name: '帶頭大佬',
+    // while he stands the others are bolder; when he falls they waver (AI.captain); he comes with `escort`
+    captain: true,
+    escort: { type: 'grunt', n: 2, side: 1.4 }, // two thugs who keep `side` m either side of him
+    dodge: true,
+    strafe: true,
+    hp: 10,
+    speed: 3.2,
+    radius: 0.36,
+    aimTime: 0.8,
+    cooldown: [1.2, 1.8],
+    range: [6, 13],
+    weapon: 'dual',
+    score: 400,
+    lead: [0.2, 0.6],
+    turn: 8,
+    tactic: 'cover',
+    // the block rig in a cream suit, gold and a black hat: no model of his own
+    look: { body: 0xece6d8, pants: 0xd8d0c0, accent: 0xffc861, hair: 0x101010, weapon: 'dualPistol', hat: 0x141414 },
+    spawn: { from: 7, weight: 0.8, max: 1 },
+  },
   brute: {
     label: 'BRUTE',
     hp: 20,
@@ -215,11 +238,12 @@ const WEAPONS = {
   minigun: { shots: 14, interval: 0.09, speed: 18, dmg: 11, pellets: 1, spread: 0.07, sound: 'minigun', track: 1.1 },
   sniper: { shots: 1, interval: 0.1, speed: 72, dmg: 40, pellets: 1, spread: 0, sound: 'sniper' },
   drone: { shots: 4, interval: 0.09, speed: 24, dmg: 9, pellets: 1, spread: 0.05, sound: 'smg' },
+  dual: { shots: 2, interval: 0.12, speed: 21, dmg: 16, pellets: 1, spread: 0.03, sound: 'pistol' }, // the captain's pair: one from each hand
 };
 
 const _aim = { x: 0, z: 0 };
 
-const LASER_COLOR = { pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05], sniper: [1, 0.02, 0.02], drone: [1, 0.15, 0.6] };
+const LASER_COLOR = { pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05], sniper: [1, 0.02, 0.02], drone: [1, 0.15, 0.6], dual: [1, 0.72, 0.12] };
 
 class Enemy {
   constructor(mgr, type, sp) {
@@ -248,6 +272,9 @@ class Enemy {
     if (cfg.bomb) this.buildVest();
     if (cfg.lob) this.buildBag();
     if (cfg.look.band) this.buildBand(cfg.look.band);
+    if (cfg.look.hat) this.buildHat(cfg.look.hat, cfg.look.accent);
+    this.escortOf = null; // the captain this man came in beside (TYPES `escort`), and keeps by while he stands
+    this.escortSide = 0; // how far to which side of him (escortSpot)
     this.rolls = 0; // a tumbler's rolls since he last caught his breath (AI.tumble)
     this.rollDist = 0;
     this.idleOffset = rand(0, 10);
@@ -393,9 +420,17 @@ class Enemy {
     this.shieldMesh = g;
   }
 
-  /** Seconds from the laser coming on to the shot: the type's, times the difficulty's (rules.js aimMul) and the stage's (`pace`). */
+  /**
+   * Seconds from the laser coming on to the shot: the type's, times the difficulty's (rules.js aimMul) and the stage's
+   * (`pace`); longer while his captain's fall shakes him (AI.captain).
+   */
   get aimTime() {
-    return this.cfg.aimTime * this.game.ruleset.aimMul * this.pace;
+    return this.cfg.aimTime * this.game.ruleset.aimMul * this.pace * (this.mgr.panicT > 0 ? AI.captain.panicAim : 1);
+  }
+
+  /** A captain stands (AI.captain): the others hide less and go round to the player's sides. */
+  get bold() {
+    return !this.cfg.captain && !!this.mgr.captain;
   }
 
   /** Those who run at the player instead of keeping a range: blades and bombers. */
@@ -463,6 +498,24 @@ class Enemy {
     this.rig.head.add(g);
     this.game.style.dress(g);
     this.band = g;
+  }
+
+  /** A hat (the captain's): a brim and a crown over the hair, with a band in `trim`. */
+  buildHat(color, trim) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
+    const band = new THREE.MeshStandardMaterial({ color: trim, roughness: 0.5 });
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(BODY.headW + 0.16, 0.025, BODY.headD + 0.16), mat));
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(BODY.headW + 0.03, 0.1, BODY.headD + 0.03), mat);
+    crown.position.y = 0.06;
+    g.add(crown);
+    const ring = new THREE.Mesh(new THREE.BoxGeometry(BODY.headW + 0.04, 0.025, BODY.headD + 0.04), band);
+    ring.position.y = 0.025;
+    g.add(ring);
+    g.position.y = BODY.headH / 2 + 0.04;
+    this.rig.head.add(g);
+    this.game.style.dress(g);
+    this.hat = g;
   }
 
   get shieldUp() {
@@ -659,6 +712,49 @@ class Enemy {
     g.notes.log(`${this.cfg.label} 受傷後撤`);
   }
 
+  /** A guard's place (TYPES `escort`): `side` m to his own side of his captain, across the line from the captain to the player. */
+  escortSpot() {
+    const c = this.escortOf;
+    const p = this.game.player;
+    const d = Math.hypot(p.x - c.x, p.z - c.z) || 1;
+    const nav = this.game.level.nav;
+    const x = c.x + (-(p.z - c.z) / d) * this.escortSide;
+    const z = c.z + ((p.x - c.x) / d) * this.escortSide;
+    if (nav.isWalkable(x, z)) return { x, z };
+    return { x: c.x, z: c.z }; // a wall there: just behind him (the bodies push apart)
+  }
+
+  /**
+   * His captain down (AI.captain): a gunman on the street breaks off his aim and his cover and falls back AI.captain.back
+   * m from the player, straight away or as near that as the floor allows; his aim stays slow while the panic lasts.
+   */
+  waver() {
+    const C = AI.captain;
+    const g = this.game;
+    const p = g.player;
+    if (!this.alive || this.aloft || this.held || this.rushes || this.sp.stay || this.stunT > 0) return;
+    if (!['move', 'idle', 'duck', 'peek', 'aim', 'recover'].includes(this.state)) return;
+    const nav = g.level.nav;
+    const now = Math.hypot(this.x - p.x, this.z - p.z) || 1;
+    const away = Math.atan2(this.x - p.x, this.z - p.z);
+    for (const a of [0, 35, -35, 70, -70]) {
+      const b = away + (a * Math.PI) / 180;
+      const i = nav.nearestOpen(this.x + Math.sin(b) * C.back, this.z + Math.cos(b) * C.back);
+      if (i < 0) continue;
+      const x = nav.centerX(i);
+      const z = nav.centerZ(i);
+      if (Math.hypot(x - p.x, z - p.z) < now + C.back / 2 || !g.level.sameLevel(this.x, this.z, x, z)) continue;
+      this.endAim();
+      this.peekAim = false;
+      this.state = 'move';
+      this.cover = null;
+      this.path = null;
+      this.repath = 0;
+      this.retreatTo = { x, z };
+      return;
+    }
+  }
+
   /**
    * A tumbler in the chase (AI.tumble): within reach, the kick's wind-up; else his next roll at the player, swung to one
    * side then the other, short of him; true when he does either (else he walks, as a blade would).
@@ -809,6 +905,7 @@ class Enemy {
     }
     this.dropWeapon();
     this.fuseT = -1;
+    if (this.cfg.captain) this.mgr.captainDown(this);
     if (info.cause === 'self') return; // his own fuse: no kill for anyone (goOff follows)
     if (this.cfg.bomb) this.bombT = this.cfg.bomb.delay; // killed: the charges go off a moment later
     g.onEnemyKilled(this, info);
@@ -979,6 +1076,9 @@ class Enemy {
     const g = this.game;
     const p = g.player;
     const [rmin, rmax] = this.cfg.range;
+    const C = AI.captain;
+    const cap = this.bold ? this.mgr.captain : null;
+    const capA = cap ? Math.atan2(cap.x - p.x, cap.z - p.z) : 0;
     let best = null;
     let bestScore = -Infinity;
     for (let i = 0; i < 14; i++) {
@@ -992,6 +1092,11 @@ class Enemy {
       // a place on the player's level that sees him; one on another level (大三巴's steps) is no place to fight from
       let score = g.level.sameLevel(x, z, p.x, p.z) ? (g.level.hasLOS(x, z, p.x, p.z) ? 6 : 0) : -10;
       score -= Math.hypot(x - this.x, z - this.z) * 0.3;
+      if (cap) {
+        // a captain about (AI.captain): round to the player's side of the line from him to the captain
+        const off = ((Math.atan2(x - p.x, z - p.z) - capA + 3 * Math.PI) % TAU) - Math.PI;
+        if (Math.abs(off) >= (C.side[0] * Math.PI) / 180 && Math.abs(off) <= (C.side[1] * Math.PI) / 180) score += C.bonus;
+      }
       for (const o of this.mgr.list) {
         if (o === this || !o.alive) continue;
         if (Math.hypot(o.x - x, o.z - z) < 3) score -= 3;
@@ -1258,6 +1363,7 @@ class Enemy {
                 this.path = g.level.nav.findPath(this.x, this.z, t.x, t.z);
                 this.pathI = 0;
               }
+              if (!this.path) this.retreatTo = null; // no way there: he fights from where he is
               want = this.followPath(cfg.speed);
               if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
               this.tryVault(dt, t);
@@ -1265,9 +1371,9 @@ class Enemy {
             }
           }
           this.coverRest -= dt;
-          if (this.tactic === 'cover' && !this.sp.stay && this.blindT <= 0 && this.coverRest <= 0 && this.mgr.aliveCount > 1) {
+          if (this.tactic === 'cover' && !this.sp.stay && !this.bold && this.blindT <= 0 && this.coverRest <= 0 && this.mgr.aliveCount > 1) {
             // a gunner with cover near goes there first, ducks, and fights by stepping out (peek); one holding
-            // a post keeps it, and the last man standing comes on instead of hiding
+            // a post keeps it, the last man standing comes on instead of hiding, and so do all with a captain about
             this.coverCheck -= dt;
             if (this.coverCheck <= 0) {
               this.coverCheck = 0.5;
@@ -1320,8 +1426,9 @@ class Enemy {
           }
           this.repath -= dt;
           if (this.repath <= 0 || !this.path || this.pathI >= this.path.length) {
-            this.repath = g.rng.range(1.4, 2.6);
-            const goal = this.pickGoal();
+            const by = this.escortOf && this.escortOf.alive ? this.escortSpot() : null; // a guard keeps by his captain
+            this.repath = by ? 0.5 : g.rng.range(1.4, 2.6);
+            const goal = by || this.pickGoal();
             this.path = g.level.nav.findPath(this.x, this.z, goal.x, goal.z);
             this.pathI = 0;
           }
@@ -1336,8 +1443,8 @@ class Enemy {
           this.timer -= dt;
           want = [0, 0];
           face = angleTo(this.x, this.z, p.x, p.z);
-          if (!this.coverValid() || distP < AI.flankClose || distP > cfg.range[1] + 3 || this.mgr.aliveCount <= 1) {
-            // the cover shows him, the player is on top of him or out of his reach, or he is the last: out of it
+          if (!this.coverValid() || distP < AI.flankClose || distP > cfg.range[1] + 3 || this.mgr.aliveCount <= 1 || this.bold) {
+            // the cover shows him, the player is on top of him or out of his reach, he is the last, or a captain came: out of it
             this.cover = null;
             this.state = 'move';
             this.repath = 0;
@@ -1827,6 +1934,8 @@ export class Enemies {
     this.corpses = [];
     this.tokens = 0;
     this.flankSeq = 0; // flankers spawned so far: they take the two sides in turn
+    this.captain = null; // the 帶頭大佬 on his feet, if one is (AI.captain)
+    this.panicT = 0; // s left of the others wavering after he fell
   }
 
   /** Another living flanker for `e` to split up with. */
@@ -1843,13 +1952,42 @@ export class Enemies {
   spawn(type, sp) {
     const e = new Enemy(this, type, sp);
     this.list.push(e);
+    const E = e.cfg.escort;
+    if (E) {
+      // a captain: in with his guards either side of him, across the way he comes in
+      this.captain = e;
+      const nav = this.game.level.nav;
+      const dx = sp.ex - sp.x;
+      const dz = sp.ez - sp.z;
+      const d = Math.hypot(dx, dz) || 1;
+      for (let i = 0; i < E.n; i++) {
+        const k = (i % 2 ? 1 : -1) * E.side * (1 + Math.floor(i / 2));
+        const ox = (-dz / d) * k;
+        const oz = (dx / d) * k;
+        const by = nav.isWalkable(sp.x + ox, sp.z + oz) && nav.isWalkable(sp.ex + ox, sp.ez + oz);
+        const m = new Enemy(this, E.type, by ? { ...sp, x: sp.x + ox, z: sp.z + oz, ex: sp.ex + ox, ez: sp.ez + oz } : sp);
+        m.escortOf = e;
+        m.escortSide = k;
+        this.list.push(m);
+      }
+      this.game.notes.log(`${e.cfg.name}帶${E.n}個手下入場`);
+    }
     return e;
+  }
+
+  /** The captain fell (AI.captain): the rest waver for a while, slower to aim and falling back. */
+  captainDown(c) {
+    if (this.captain === c) this.captain = null;
+    this.panicT = AI.captain.panic;
+    for (const e of this.list) if (e !== c) e.waver();
+    this.game.notes.log(`${c.cfg.name}倒下：手下亂了陣腳`);
   }
 
   /** Take a live enemy away without a death (the warm-up ending early). */
   remove(e) {
     e.endAim();
     e.alive = false;
+    if (this.captain === e) this.captain = null;
     this.list = this.list.filter((x) => x !== e);
     this.game.fx.ring(e.x, e.z, 1.2, 0.4, 0xff3355, 2);
     e.dispose();
@@ -1862,6 +2000,8 @@ export class Enemies {
     this.corpses = [];
     this.tokens = 0;
     this.flankSeq = 0;
+    this.captain = null;
+    this.panicT = 0;
   }
 
   maxTokens() {
@@ -1923,6 +2063,7 @@ export class Enemies {
   }
 
   update(dt) {
+    this.panicT = Math.max(0, this.panicT - dt);
     for (const e of this.list) e.update(dt);
     for (const e of this.corpses) e.update(dt);
 

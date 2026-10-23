@@ -402,9 +402,11 @@ export class Waves {
 
     if (this.beats.length) this.updateBeats(dt, enemies);
     else {
-      // the trickle: one at a time, up to maxAlive standing
+      // the trickle: one at a time, up to maxAlive standing (a captain counts with the guards he brings: TYPES `escort`)
       this.spawnCd -= dt;
-      if (this.queue.length && this.spawnCd <= 0 && enemies.aliveCount + this.pending.length < this.maxAlive) {
+      const room = (type) => 1 + (TYPES[type].escort ? TYPES[type].escort.n : 0);
+      const coming = this.pending.reduce((n, p) => n + room(p.type), 0);
+      if (this.queue.length && this.spawnCd <= 0 && enemies.aliveCount + coming + room(this.queue[0]) <= this.maxAlive) {
         const type = this.queue.shift();
         this.pending.push({ type, sp: this.pickSpawn(type), t: 0.9 });
         this.spawnCd = this.wr.range(0.5, 1.3);

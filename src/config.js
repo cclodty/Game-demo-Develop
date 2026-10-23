@@ -163,6 +163,10 @@ export const AI = {
   // the other, bullets passing through him mid-roll; `land` s open after each; after `rolls` rolls `pant` s for breath;
   // within `reach` m a kick, `windup` s to wind up, for `kick`
   tumble: { roll: 0.4, dist: 3, angle: 25, land: 0.5, rolls: 3, pant: 2, reach: 1.8, windup: 0.3, kick: 20 },
+  // 帶頭大佬 CAPTAIN (試玩回饋 ④; TYPES `captain`): while he stands the others hide less and go round to the player's
+  // sides, a place `side[0]`–`side[1]`° off the line from the player to him worth `bonus` more to them; when he falls,
+  // for `panic` s they take `panicAim` times as long to aim and fall back `back` m from the player
+  captain: { side: [50, 130], bonus: 5, panic: 4, panicAim: 1.6, back: 6 },
 };
 
 /**
