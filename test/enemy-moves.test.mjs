@@ -20,10 +20,10 @@ async function setup(p) {
   await p.evaluate(() => {
     const g = window.game;
     g.frame = () => {};
-    window.begin = (type, dx = 0, dz = -8) => {
+    window.begin = (type, dx = 0, dz = -8, map = 0) => {
       g.setRules('normal', []);
       g.setMode('arcade');
-      g.startRun(0);
+      g.startRun(map);
       g.waves.state = 'done';
       g.enemies.clear();
       const p = g.player;
@@ -38,8 +38,7 @@ async function setup(p) {
           break;
         }
       }
-      p.x = at[0];
-      p.z = at[1];
+      if (at) [p.x, p.z] = at; // else where the map starts him
       p.vx = p.vz = 0;
       const e = g.enemies.spawn(type, { x: p.x + dx, z: p.z + dz, ex: p.x + dx, ez: p.z + dz + 0.1, stay: true });
       e.state = e.rushes ? 'chase' : 'move';
@@ -221,4 +220,143 @@ test('screenshots in bullet time: the tell, and half way through the roll', asyn
   assert.deepEqual(roll, { state: 'roll', focus: true });
   await page.screenshot({ path: new URL('enemy-dodge-roll.png', OUT).pathname });
   assert.deepEqual(problems(logs), []);
+});
+
+// Enemy moves ②: on the move while firing, over low cover, back when hurt (試玩回饋 ④). A rifleman or a
+// shotgunner steps sideways while he aims and fires (AI.strafe); a man whose way is blocked by low cover vaults it
+// (AI.vault: in the air, no shot, no roll: the moment to get him); a gunman down to half his health falls back to
+// cover away from the player, unless he is the last (AI.retreat).
+
+test('a rifleman and a shotgunner move sideways while they aim and fire: 1 m or more across within 3 s', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const out = {};
+    for (const type of ['rifle', 'shotgun']) {
+      const e = window.begin(type, 0, -9);
+      e.fireCd = 0;
+      e.coverRest = 99; // in the open: no cover sought
+      const p = g.player;
+      const ax = e.x - p.x;
+      const az = e.z - p.z;
+      const l = Math.hypot(ax, az);
+      let lo = Infinity;
+      let hi = -Infinity;
+      let firing = 0;
+      for (let i = 0; i < 360; i++) {
+        window.step(null, false); // the player stands and does not fire (no roll)
+        if (e.state === 'aim' || e.state === 'fire') {
+          firing++;
+          const side = ((e.x - p.x) * az - (e.z - p.z) * ax) / l; // across the first line between them
+          lo = Math.min(lo, side);
+          hi = Math.max(hi, side);
+        }
+      }
+      out[type] = { across: hi - lo, firing: firing / 120 };
+    }
+    return out;
+  });
+  for (const t of ['rifle', 'shotgun']) {
+    assert.ok(r[t].firing > 0.5, `${t}: ${r[t].firing.toFixed(2)} s aiming and firing`);
+    assert.ok(r[t].across >= 1, `${t}: ${r[t].across.toFixed(2)} m across while he does`);
+  }
+});
+
+test('low cover in a blade’s straight way: he vaults it (in the air, then down on the far side), and reaches the player sooner than going round', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { AI } = await import('./src/config.js');
+    // a low box, thin enough across one axis, with open floor 1.4 m before it and 4 m past it there: the first map with one
+    let pick = null;
+    for (let map = 0; map < g.maps.length && !pick; map++) {
+      window.begin('rusher', 0, -8, map);
+      const L = g.level;
+      for (const s of L.solids) {
+      if (!s.alive || s.poly || s.kind === 'glass' || s.h > AI.vault.maxH || s.edge) continue;
+      const cx = (s.minX + s.maxX) / 2;
+      const cz = (s.minZ + s.maxZ) / 2;
+      for (const [ux, uz, depth, half] of [[1, 0, s.maxX - s.minX, s.maxZ - s.minZ], [0, 1, s.maxZ - s.minZ, s.maxX - s.minX]]) {
+        if (depth > AI.vault.depth || half < 1.6) continue;
+        const a = [cx - ux * (depth / 2 + 1.4), cz - uz * (depth / 2 + 1.4)];
+        const b = [cx + ux * (depth / 2 + 4), cz + uz * (depth / 2 + 4)];
+        if (L.nav.isWalkable(...a) && L.nav.isWalkable(...b) && L.nav.lineWalkable(cx + ux * (depth / 2 + 0.6), cz + uz * (depth / 2 + 0.6), ...b)) pick = pick || { a, b, h: s.h, kind: s.kind, map, id: L.map.id };
+      }
+      }
+    }
+    const run = (vault) => {
+      const e = window.begin('rusher', 0, -8, pick.map);
+      const p = g.player;
+      p.x = pick.b[0];
+      p.z = pick.b[1];
+      e.x = pick.a[0];
+      e.z = pick.a[1];
+      e.state = 'chase';
+      e.cfg.vault = vault;
+      const states = new Set();
+      let maxY = 0;
+      let n = 0;
+      while (Math.hypot(e.x - p.x, e.z - p.z) > 1.8 && n++ < 1200) {
+        window.step(null, false);
+        states.add(e.state);
+        maxY = Math.max(maxY, e.y);
+      }
+      e.cfg.vault = true;
+      return { t: n / 120, states: [...states], maxY, y: e.y, notes: g.notes.events.map((x) => x.text) };
+    };
+    const over = run(true);
+    const round = run(false);
+    return { pick, over, round, notes: over.notes };
+  });
+  assert.ok(r.pick, 'a low box to try it on');
+  assert.ok(r.over.states.includes('vault'), `he vaults (${r.over.states})`);
+  assert.ok(r.over.maxY > r.pick.h * 0.6, `up over the ${r.pick.h} m ${r.pick.kind} on ${r.pick.id} (${r.over.maxY.toFixed(2)} m)`);
+  assert.ok(r.over.t < r.round.t, `over it in ${r.over.t} s, round it ${r.round.t} s`);
+  assert.ok(!r.round.states.includes('vault'), 'without it he goes round');
+  assert.ok(r.notes.some((t) => t.includes('翻過矮掩體')), r.notes.join(' / '));
+});
+
+test('a gunman down to half his health falls back from the player to cover, farther than he would unhurt; the last man standing does not', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const p = g.player;
+    /** A thug free to move, `from` (or 6 m north of the player), with a mate far off unless `alone`; 4 s on, after a wound to half if `hurt`. */
+    const run = (hurt, alone, from = null) => {
+      const e = window.begin('grunt', 0, -6);
+      e.sp.stay = false;
+      e.hp = e.hpMax;
+      if (from) [e.x, e.z] = from;
+      if (!alone) {
+        const mate = g.enemies.spawn('grunt', { x: p.x + 30, z: p.z + 30, ex: p.x + 30, ez: p.z + 30.1, stay: true });
+        mate.fireCd = 99;
+      }
+      const d0 = Math.hypot(e.x - p.x, e.z - p.z);
+      g.notes.events.length = 0;
+      if (hurt) while (e.hp > e.hpMax * 0.5) e.hit({ owner: 'player', dx: 0, dz: -1, x: e.x, z: e.z + 0.5, damage: 1 });
+      let far = d0;
+      let ducked = false;
+      for (let i = 0; i < 120 * 4; i++) {
+        window.step(null, false);
+        far = Math.max(far, Math.hypot(e.x - p.x, e.z - p.z));
+        ducked = ducked || e.state === 'duck';
+      }
+      // and then back in the fight: free to fire, he aims at the player again within 8 s (fallen back is not hidden for good)
+      e.fireCd = 0;
+      let back = null;
+      for (let i = 0; i < 120 * 8 && back === null; i++) {
+        window.step(null, false);
+        if (e.state === 'aim' || e.state === 'peek' || e.state === 'fire') back = i / 120;
+      }
+      return { d0, far, ducked, back, at: [e.x, e.z], alive: e.alive, said: g.notes.events.filter((x) => x.text.includes('受傷後撤')).length };
+    };
+    // where an unhurt thug hides from here: from there, unhurt he stays; hurt he falls back farther
+    const first = run(false, false);
+    return { first, calm: run(false, false, first.at), hurt: run(true, false, first.at), last: run(true, true, first.at) };
+  });
+  assert.ok(r.first.ducked, `unhurt, he takes cover ${r.first.far.toFixed(1)} m off`);
+  assert.ok(r.hurt.alive);
+  assert.ok(r.hurt.far - r.calm.far >= 1.5, `from there, hurt he falls back to ${r.hurt.far.toFixed(1)} m; unhurt ${r.calm.far.toFixed(1)} m`);
+  assert.equal(r.hurt.said, 1, 'the notes say so');
+  assert.ok(r.hurt.back !== null, 'and he comes back into the fight (aims again within 8 s)');
+  assert.equal(r.calm.said, 0);
+  assert.equal(r.last.said, 0, 'the last man: no fall back');
+  assert.ok(r.last.far - r.calm.far < 1.5, `the last man stays about as near (${r.last.far.toFixed(1)} m)`);
 });

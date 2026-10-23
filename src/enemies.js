@@ -11,6 +11,8 @@ export const TYPES = {
   grunt: {
     label: 'THUG',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
+    vault: true, // over low cover in his way (AI.vault)
+    retreat: true, // falls back to cover when hurt (AI.retreat)
     hp: 3,
     speed: 3.6,
     radius: 0.32,
@@ -29,6 +31,9 @@ export const TYPES = {
   shotgun: {
     label: 'SHOTGUNNER',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
+    strafe: true, // sideways while he aims and fires (AI.strafe)
+    vault: true,
+    retreat: true,
     hp: 4,
     speed: 3.3,
     radius: 0.34,
@@ -46,6 +51,9 @@ export const TYPES = {
   rifle: {
     label: 'RIFLEMAN',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
+    strafe: true,
+    vault: true,
+    retreat: true,
     hp: 3,
     speed: 3.2,
     radius: 0.32,
@@ -64,6 +72,7 @@ export const TYPES = {
   rusher: {
     label: 'BLADE',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
+    vault: true,
     hp: 2,
     speed: 6.6,
     radius: 0.3,
@@ -237,6 +246,14 @@ class Enemy {
     this.aimedT = 0; // s the player's aim has stayed on him while firing (AI.dodge)
     this.dodgeCd = 0; // s until he may roll again
     this.rollX = this.rollZ = 0; // the roll's direction
+    this.hpMax = this.hp;
+    this.strafeDir = 1; // AI.strafe: which way he steps while he fires, and for how long more
+    this.strafeT = 0;
+    this.vaultCheck = 0; // AI.vault: s to the next look for low cover in his way
+    this.vaultFrom = this.vaultTo = null;
+    this.vaulting = false;
+    this.retreated = false; // AI.retreat: he has fallen back once
+    this.retreatTo = null; // where to, with no cover farther back
     this.alive = true;
     this.dead = false;
     this.sp = sp;
@@ -468,6 +485,7 @@ class Enemy {
     }
     g.hud.hitMarker(false);
     this.flinchT = AI.flinch; // rocked back, so a shot that does not kill shows
+    this.wounded();
     if (!this.cfg.heavy && this.state === 'aim') this.aimT = Math.max(0, this.aimT - 0.22);
   }
 
@@ -516,6 +534,91 @@ class Enemy {
     this.dodgeCd = D.watch; // no room either side: he looks again in a moment
   }
 
+  /** Sideways while he aims and fires (AI.strafe; TYPES `strafe`), on top of `want`; back the other way every `flip` s or at a wall. */
+  strafe(dt, want) {
+    const S = AI.strafe;
+    const p = this.game.player;
+    const nav = this.game.level.nav;
+    this.strafeT -= dt;
+    const d = Math.hypot(p.x - this.x, p.z - this.z) || 1;
+    let sx = (-(p.z - this.z) / d) * this.strafeDir;
+    let sz = ((p.x - this.x) / d) * this.strafeDir;
+    if (this.strafeT <= 0 || !nav.isWalkable(this.x + sx * 0.8, this.z + sz * 0.8)) {
+      this.strafeDir = -this.strafeDir;
+      this.strafeT = S.flip;
+      sx = -sx;
+      sz = -sz;
+      if (!nav.isWalkable(this.x + sx * 0.8, this.z + sz * 0.8)) return want; // no room either way
+    }
+    return [want[0] + sx * S.speed, want[1] + sz * S.speed];
+  }
+
+  /**
+   * Low cover in his straight way to `to` (AI.vault; TYPES `vault`): over it rather than round, when it is low and thin
+   * enough and there is floor on the far side. Looked for every AI.vault.every s; true when he goes.
+   */
+  tryVault(dt, to) {
+    const V = AI.vault;
+    if (!this.cfg.vault) return false;
+    this.vaultCheck -= dt;
+    if (this.vaultCheck > 0) return false;
+    this.vaultCheck = V.every;
+    const g = this.game;
+    const L = g.level;
+    const d = Math.hypot(to.x - this.x, to.z - this.z);
+    if (d < 1) return false;
+    const ux = (to.x - this.x) / d;
+    const uz = (to.z - this.z) / d;
+    const look = Math.min(V.look, d);
+    const hit = L.raycast(this.x, this.z, this.x + ux * look, this.z + uz * look, false, 0, false);
+    if (!hit) return false;
+    const s = hit.solid;
+    if (s.poly || s.kind === 'glass' || s.h > V.maxH) return false;
+    // where the line leaves the box, and the floor past it
+    const ex = ux > 0 ? (s.maxX - this.x) / ux : ux < 0 ? (s.minX - this.x) / ux : Infinity;
+    const ez = uz > 0 ? (s.maxZ - this.z) / uz : uz < 0 ? (s.minZ - this.z) / uz : Infinity;
+    const exit = Math.min(ex, ez);
+    if (exit - hit.t * look > V.depth) return false;
+    const land = exit + this.radius + 0.25;
+    const lx = this.x + ux * land;
+    const lz = this.z + uz * land;
+    if (!L.nav.isWalkable(lx, lz) || !L.sameLevel(this.x, this.z, lx, lz)) return false;
+    if (L.raycast(this.x + ux * (exit + 0.02), this.z + uz * (exit + 0.02), lx, lz, false, 0, false)) return false;
+    this.endAim();
+    this.state = 'vault';
+    this.timer = V.time;
+    this.vaultFrom = { x: this.x, z: this.z };
+    this.vaultTo = { x: lx, z: lz, h: s.h };
+    this.vaulting = true;
+    g.notes.log(`${this.cfg.label} 翻過矮掩體`);
+    return true;
+  }
+
+  /**
+   * Hurt and not dead (AI.retreat; TYPES `retreat`): down to half his health a gunman falls back once, to cover farther
+   * from the player, or straight away from him with none; never the last man standing, nor one holding a post.
+   */
+  wounded() {
+    const R = AI.retreat;
+    if (!this.cfg.retreat || this.retreated || !this.alive || this.hp > this.hpMax * R.at || this.sp.stay) return;
+    if (this.mgr.aliveCount <= 1) return;
+    const g = this.game;
+    const p = g.player;
+    this.retreated = true;
+    this.endAim();
+    if (this.state !== 'enter' && this.stunT <= 0) this.state = 'move';
+    this.path = null;
+    this.repath = 0;
+    this.coverRest = 0;
+    this.cover = this.findCover(true);
+    if (!this.cover) {
+      const d = Math.hypot(this.x - p.x, this.z - p.z) || 1;
+      const i = g.level.nav.nearestOpen(this.x + ((this.x - p.x) / d) * R.away, this.z + ((this.z - p.z) / d) * R.away);
+      if (i >= 0) this.retreatTo = { x: g.level.nav.centerX(i), z: g.level.nav.centerZ(i) };
+    }
+    g.notes.log(`${this.cfg.label} 受傷後撤`);
+  }
+
   /** Pigeons in the face: the aim breaks off and cannot start again for `t` seconds. */
   blind(t) {
     this.endAim();
@@ -557,6 +660,7 @@ class Enemy {
     this.flash = 1;
     if (dmg > 0) this.game.fx.blood(this.x, 1.2, this.z, dx, dz, 5); // a shove (the human shield let go) draws none
     if (this.hp <= 0) this.die(dx, dz, { cause });
+    else if (dmg > 0) this.wounded();
   }
 
   /** A mahjong tile hits him (thrown.js throwTiles): dazed for `t` s where he stands, no harm done. */
@@ -598,6 +702,7 @@ class Enemy {
     else {
       this.stunT = 0.5;
       this.stunCause = 'blast';
+      this.wounded();
     }
   }
 
@@ -717,13 +822,15 @@ class Enemy {
    * the player, walkable, within AI.coverSearch m of him and at a sensible distance from the player,
    * with a place beside it to step out to that sees the player (peekFrom). Null when there is none.
    */
-  findCover() {
+  /** The best spot to hide from the player at; `away`: one farther from him than he is (AI.retreat), the farther the better. */
+  findCover(away = false) {
     const g = this.game;
     const p = g.player;
     const L = g.level;
     const [rmin, rmax] = this.cfg.range;
-    const dmin = Math.max(2, rmin * 0.6);
-    const dmax = rmax + 3;
+    const now = Math.hypot(this.x - p.x, this.z - p.z);
+    const dmin = away ? now + 2 : Math.max(2, rmin * 0.6);
+    const dmax = rmax + 3; // in reach of his gun still, or he would never come out of it (duck)
     const ideal = (rmin + rmax) / 2;
     const gap = AI.coverGap + this.radius;
     let best = null;
@@ -752,7 +859,7 @@ class Enemy {
         if (dp < dmin || dp > dmax) continue;
         const dm = Math.hypot(x - this.x, z - this.z);
         if (dm > AI.coverSearch) continue;
-        let score = -dm * 0.5 - Math.abs(dp - ideal) * 0.15;
+        let score = away ? dp - dm * 0.3 : -dm * 0.5 - Math.abs(dp - ideal) * 0.15;
         for (const o of this.mgr.list) if (o !== this && o.alive && o.cover && Math.hypot(o.cover.x - x, o.cover.z - z) < 1.5) score -= 4; // one man per spot
         if (score <= bestScore) continue;
         const peek = this.peekFrom(x, z, s, gap);
@@ -857,6 +964,10 @@ class Enemy {
     this.aimT = 0;
     this.losLost = 0;
     this.lead = this.game.rng.range(this.cfg.lead[0], this.cfg.lead[1]);
+    if (this.cfg.strafe) {
+      this.strafeDir = this.game.rng.next() < 0.5 ? 1 : -1; // which way he steps while he fires (AI.strafe)
+      this.strafeT = AI.strafe.flip;
+    }
     const a = this.aimPoint();
     this.aimAngle = turnTowards(this.facing, angleTo(this.x, this.z, a.x, a.z), 0.6);
     this.game.audio.aimWarn(this.game.panFor(this.x));
@@ -1060,6 +1171,23 @@ class Enemy {
             face = angleTo(this.x, this.z, p.x, p.z);
             break;
           }
+          if (this.retreatTo) {
+            // fallen back with no cover farther off (AI.retreat): away from the player first
+            const t = this.retreatTo;
+            if (Math.hypot(t.x - this.x, t.z - this.z) < 0.6) this.retreatTo = null;
+            else {
+              this.repath -= dt;
+              if (this.repath <= 0 || !this.path || this.pathI >= this.path.length) {
+                this.repath = 0.6;
+                this.path = g.level.nav.findPath(this.x, this.z, t.x, t.z);
+                this.pathI = 0;
+              }
+              want = this.followPath(cfg.speed);
+              if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
+              this.tryVault(dt, t);
+              break;
+            }
+          }
           this.coverRest -= dt;
           if (this.tactic === 'cover' && !this.sp.stay && this.blindT <= 0 && this.coverRest <= 0 && this.mgr.aliveCount > 1) {
             // a gunner with cover near goes there first, ducks, and fights by stepping out (peek); one holding
@@ -1099,6 +1227,7 @@ class Enemy {
                   this.pathI = 0;
                 }
                 want = this.followPath(cfg.speed);
+                if (this.tryVault(dt, c)) break;
               }
               if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
               break;
@@ -1123,6 +1252,7 @@ class Enemy {
           want = this.followPath(cfg.speed);
           if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
           if (this.los && cfg.reload) want = [0, 0]; // a sniper who can see the player stands his ground
+          else if (this.path && this.path.length && this.tryVault(dt, this.path[this.path.length - 1])) break;
           break;
         }
         case 'duck': {
@@ -1130,7 +1260,8 @@ class Enemy {
           this.timer -= dt;
           want = [0, 0];
           face = angleTo(this.x, this.z, p.x, p.z);
-          if (!this.coverValid() || distP < AI.flankClose || this.mgr.aliveCount <= 1) {
+          if (!this.coverValid() || distP < AI.flankClose || distP > cfg.range[1] + 3 || this.mgr.aliveCount <= 1) {
+            // the cover shows him, the player is on top of him or out of his reach, or he is the last: out of it
             this.cover = null;
             this.state = 'move';
             this.repath = 0;
@@ -1190,6 +1321,7 @@ class Enemy {
             }
           } else this.losLost = 0;
           if (cfg.weapon === 'shotgun' && distP > 4) want = [(dxp / distP) * 1.2, (dzp / distP) * 1.2];
+          if (cfg.strafe && !this.cover) want = this.strafe(dt, want); // not standing still to fire (AI.strafe)
           if (this.aimT >= this.aimTime && cfg.lob) {
             this.throwGrenade();
             break;
@@ -1215,6 +1347,7 @@ class Enemy {
             this.aimAngle = turnTowards(this.aimAngle, angleTo(this.x, this.z, a.x, a.z), w.track * dt);
           }
           face = this.aimAngle;
+          if (cfg.strafe && !this.cover) want = this.strafe(dt, want);
           this.burstT -= dt;
           if (this.burstT <= 0 && this.burst > 0) {
             this.shoot();
@@ -1286,11 +1419,30 @@ class Enemy {
             if (distP < bomb.reach) this.light();
             break;
           }
+          if (this.tryVault(dt, p)) break;
           if (distP < 1.7 && this.mgr.requestToken(this)) {
             this.state = 'windup';
             this.timer = 0.34;
             this.aimAngle = angleTo(this.x, this.z, p.x, p.z);
             g.audio.aimWarn(g.panFor(this.x));
+          }
+          break;
+        }
+        case 'vault': {
+          // over low cover (AI.vault): in the air, no shot, no roll: the moment to get him
+          this.timer -= dt;
+          const k = clamp(1 - this.timer / AI.vault.time, 0, 1);
+          this.x = lerp(this.vaultFrom.x, this.vaultTo.x, k);
+          this.z = lerp(this.vaultFrom.z, this.vaultTo.z, k);
+          this.y = Math.sin(k * Math.PI) * (this.vaultTo.h + 0.15);
+          this.vx = this.vz = 0;
+          want = null;
+          collide = false;
+          face = angleTo(this.vaultFrom.x, this.vaultFrom.z, this.vaultTo.x, this.vaultTo.z);
+          if (this.timer <= 0) {
+            this.state = this.rushes ? 'chase' : 'move';
+            this.repath = 0;
+            this.path = null;
           }
           break;
         }
@@ -1352,6 +1504,10 @@ class Enemy {
       }
     }
 
+    if (this.vaulting && this.state !== 'vault') {
+      this.vaulting = false; // down from a vault, however it ended (a kick knocks him out of it)
+      this.y = 0;
+    }
     if (this.perch) {
       // up on his balcony he never moves from it, and nothing on the street is in his way
       want = null;
@@ -1466,6 +1622,7 @@ class Enemy {
     animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
     // crouched for the roll, rolling, or rocked back by a shot (fading)
     if (this.state === 'tell') keyPose(r, 'crouch');
+    else if (this.state === 'vault') keyPose(r, 'vault');
     else if (this.state === 'roll') keyPose(r, 'roll');
     else keyPose(r, this.flinchT > 0 ? 'flinch' : null, this.flinchT / AI.flinch);
     if (this.shieldMesh) {

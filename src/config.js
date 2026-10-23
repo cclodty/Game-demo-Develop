@@ -150,6 +150,15 @@ export const AI = {
   // his body) for `watch` s while the player fires crouches `tell` s, then rolls `dist` m to the side in `roll` s; once
   // each `cooldown` s. Never into a wall or off the floor (the nav grid), so with no room he stands
   dodge: { watch: 0.4, reach: 0.5, tell: 0.25, roll: 0.4, dist: 2.5, cooldown: 3 },
+  // 敵人動作 ② (試玩回饋 ④): a rifleman or a shotgunner (TYPES `strafe`) steps sideways at `speed` m/s while he aims and
+  // fires, turning back every `flip` s or at a wall
+  strafe: { speed: 1.8, flip: 1.5 },
+  // low cover (no higher than `maxH`, no deeper than `depth` m) in a man's straight way within `look` m (TYPES `vault`):
+  // over it in `time` s, in the air, no shot, no roll; looked for every `every` s
+  vault: { maxH: 1, depth: 1.6, look: 2, time: 0.5, every: 0.25 },
+  // a gunman (TYPES `retreat`) down to `at` of his health falls back to cover farther from the player, or `away` m off
+  // when there is none; never the last man standing
+  retreat: { at: 0.5, away: 6 },
 };
 
 /**
