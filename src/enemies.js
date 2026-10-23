@@ -229,6 +229,63 @@ export const TYPES = {
     look: { body: 0x23262e, accent: 0xff3aa0, gun: 0x2b2b33 },
     spawn: { from: 8, weight: 1.2, max: 2 },
   },
+  // 彈幕試驗 ③ (DECISIONS 2026-10-23): three who each fire a bullet pattern (WEAPONS `pattern`), Enter the Gungeon's way.
+  // They keep their distance, stand and glow for `aimTime` (the tell, no laser), then fire. Only 彈幕試驗 sends them
+  // (waves.js MODES.danmaku `roster`; no `spawn` here). Light coats: they stand out on a dark floor.
+  ringer: {
+    label: 'RING',
+    name: '環形手',
+    patternNote: '一圈子彈向外散，留一個缺口',
+    vault: true,
+    hp: 4,
+    speed: 2.6,
+    radius: 0.32,
+    aimTime: 1.0,
+    cooldown: [2.4, 3.2],
+    range: [5, 11],
+    weapon: 'ring',
+    score: 150,
+    lead: [0, 0],
+    turn: 4,
+    model: 'grunt',
+    look: { body: 0xb9a6ff, pants: 0x3a2e66, accent: 0x7a4dff, hair: 0x2a1f4d, weapon: 'pistol' },
+  },
+  spiraler: {
+    label: 'SPIRAL',
+    name: '螺旋手',
+    patternNote: '轉住噴的螺旋，在兩條之間穿過去',
+    vault: true,
+    hp: 5,
+    speed: 2.2,
+    radius: 0.34,
+    aimTime: 0.9,
+    cooldown: [3, 3.8],
+    range: [4, 10],
+    weapon: 'spiral',
+    score: 200,
+    lead: [0, 0],
+    turn: 4,
+    model: 'brute',
+    look: { body: 0x6fe3d0, pants: 0x1d4a44, accent: 0x18b39a, hair: 0x123a35, weapon: 'minigun' },
+  },
+  fanner: {
+    label: 'FAN',
+    name: '扇形手',
+    patternNote: '對準你的扇形，中間最密：向旁閃',
+    vault: true,
+    hp: 3,
+    speed: 3,
+    radius: 0.32,
+    aimTime: 0.8,
+    cooldown: [1.8, 2.6],
+    range: [5, 12],
+    weapon: 'fan',
+    score: 120,
+    lead: [0, 0],
+    turn: 6,
+    model: 'shotgun',
+    look: { body: 0xffc27a, pants: 0x5a3416, accent: 0xff7a1a, hair: 0x3a2210, weapon: 'shotgun' },
+  },
 };
 
 const WEAPONS = {
@@ -239,11 +296,18 @@ const WEAPONS = {
   sniper: { shots: 1, interval: 0.1, speed: 72, dmg: 40, pellets: 1, spread: 0, sound: 'sniper' },
   drone: { shots: 4, interval: 0.09, speed: 24, dmg: 9, pellets: 1, spread: 0.05, sound: 'smg' },
   dual: { shots: 2, interval: 0.12, speed: 21, dmg: 16, pellets: 1, spread: 0.03, sound: 'pistol' }, // the captain's pair: one from each hand
+  // the patterns (彈幕試驗 ③): `shots` volleys `interval` s apart, slow bullets in their own look (bullets.js 'danmaku')
+  // ring: `count` places round him, `gap` of them left out together (where, the rng's), each ring turned `twist` places
+  ring: { pattern: 'ring', shots: 3, interval: 0.5, speed: 6.5, dmg: 10, count: 34, gap: 4, twist: 0.5, range: 26, sound: 'pistol' },
+  // spiral: `arms` bullets a shot, the arms turned `turn` rad each shot
+  spiral: { pattern: 'spiral', shots: 28, interval: 0.075, speed: 6, dmg: 8, arms: 4, turn: 0.21, range: 24, sound: 'smg' },
+  // fan: `count` bullets across ± `spread` rad at the player, bunched to the middle (|u| ** `bunch` for u in -1…1)
+  fan: { pattern: 'fan', shots: 3, interval: 0.32, speed: 8, dmg: 10, count: 9, spread: 0.6, bunch: 1.7, range: 26, sound: 'shotgun' },
 };
 
 const _aim = { x: 0, z: 0 };
 
-const LASER_COLOR = { pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05], sniper: [1, 0.02, 0.02], drone: [1, 0.15, 0.6], dual: [1, 0.72, 0.12] };
+const LASER_COLOR = { ring: [0.6, 0.4, 1], spiral: [0.3, 1, 0.9], fan: [1, 0.6, 0.2], pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05], sniper: [1, 0.02, 0.02], drone: [1, 0.15, 0.6], dual: [1, 0.72, 0.12] };
 
 class Enemy {
   constructor(mgr, type, sp) {
@@ -330,6 +394,10 @@ class Enemy {
     this.netT = 0; // under a fishing net (level.js Net): held, and a kill now is NETTED
     this.stunCause = 'kick';
     this.flash = 0;
+    this.glow = 0; // a pattern man's tell, 0 to 1 (彈幕試驗 ③)
+    this.volleyN = 0;
+    this.patternA = 0;
+    this.gapAt = 0;
     this.phase = rand(0, TAU);
     this.moveAmt = 0;
     this.hasToken = false;
@@ -1187,6 +1255,10 @@ class Enemy {
     const g = this.game;
     const rng = g.rng;
     const w = WEAPONS[this.cfg.weapon];
+    if (w.pattern) {
+      this.volley(w);
+      return;
+    }
     const m = this.muzzle();
     const ox = this.x + Math.sin(this.aimAngle) * 0.35;
     const oz = this.z + Math.cos(this.aimAngle) * 0.35;
@@ -1212,6 +1284,39 @@ class Enemy {
     g.fx.flash(m.x, my + 0.4, m.z, 0xff6040, 14, 0.08, 8);
     g.audio.shot(w.sound, g.panFor(this.x));
     g.level.noise(this.x, this.z, 9);
+  }
+
+  /**
+   * One volley of his pattern (WEAPONS `pattern`, 彈幕試驗 ③): `volleyN` counts them from the first of this firing; the
+   * ring's gap and turn come from where he started (patternA, drawn from game.rng when he began: the same seed, the same).
+   */
+  volley(w) {
+    const g = this.game;
+    const k = this.volleyN++;
+    const angles = [];
+    if (w.pattern === 'ring') {
+      const step = (Math.PI * 2) / w.count;
+      const base = this.patternA + k * w.twist * step;
+      for (let i = 0; i < w.count; i++) if ((i - this.gapAt + w.count) % w.count >= w.gap) angles.push(base + i * step);
+    } else if (w.pattern === 'spiral') {
+      for (let j = 0; j < w.arms; j++) angles.push(this.patternA + k * w.turn + (j * Math.PI * 2) / w.arms);
+    } else {
+      const a0 = angleTo(this.x, this.z, g.player.x, g.player.z);
+      for (let i = 0; i < w.count; i++) {
+        const u = (i / (w.count - 1)) * 2 - 1;
+        angles.push(a0 + Math.sign(u) * Math.abs(u) ** w.bunch * w.spread);
+      }
+    }
+    for (const a of angles) {
+      const dx = Math.sin(a);
+      const dz = Math.cos(a);
+      g.bullets.spawn({ x: this.x + dx * 0.45, z: this.z + dz * 0.45, dx, dz, speed: w.speed, owner: 'enemy', damage: w.dmg, range: w.range, source: this, look: 'danmaku' });
+    }
+    if (!this.mgr.patternsSeen.has(this.type)) {
+      this.mgr.patternsSeen.add(this.type);
+      g.notes.log(`彈幕：${this.cfg.name}（${this.cfg.patternNote}）`);
+    }
+    if (k === 0 || w.pattern !== 'spiral' || k % 4 === 0) g.audio.shot(w.sound, g.panFor(this.x));
   }
 
   update(dt) {
@@ -1493,6 +1598,21 @@ class Enemy {
           const a = this.aimPoint();
           this.aimAngle = turnTowards(this.aimAngle, angleTo(this.x, this.z, a.x, a.z), cfg.turn * dt);
           face = this.aimAngle;
+          if (WEAPONS[cfg.weapon]?.pattern) {
+            // the tell: he stands and glows (sync), then the pattern (a grenadier's throw has no WEAPONS entry)
+            want = [0, 0];
+            this.glow = clamp(this.aimT / this.aimTime, 0, 1);
+            if (this.aimT >= this.aimTime) {
+              const w = WEAPONS[cfg.weapon];
+              this.state = 'fire';
+              this.burst = w.shots;
+              this.burstT = 0;
+              this.volleyN = 0;
+              this.patternA = this.aimAngle + g.rng.range(-Math.PI, Math.PI);
+              this.gapAt = Math.floor(g.rng.range(0, w.count || 1));
+            }
+            break;
+          }
           if (!this.los && !cfg.lob && !this.peekAim) {
             this.losLost += dt;
             if (this.losLost > 0.35) {
@@ -1525,6 +1645,10 @@ class Enemy {
         }
         case 'fire': {
           const w = WEAPONS[cfg.weapon];
+          if (w && w.pattern) {
+            want = [0, 0]; // he stands while it goes out
+            this.glow = 1;
+          }
           if (w.track) {
             const a = this.aimPoint();
             this.aimAngle = turnTowards(this.aimAngle, angleTo(this.x, this.z, a.x, a.z), w.track * dt);
@@ -1824,7 +1948,8 @@ class Enemy {
     const r = this.rig;
     r.root.position.set(this.x, this.y + this.game.level.groundY(this.x, this.z), this.z);
     r.root.rotation.y = this.facing;
-    setFlash(r, this.flash * 2.5);
+    if (this.state !== 'aim' && this.state !== 'fire') this.glow = Math.max(0, this.glow - 0.05);
+    setFlash(r, Math.max(this.flash * 2.5, this.glow * 1.6));
     r.ring.material.color.setRGB(this.aiming || this.fuseT >= 0 ? 1.6 : 0.35, 0.05, 0.08);
     if (r.drone) {
       // looks only: the rotors spin and it leans into its flight
@@ -1865,7 +1990,8 @@ class Enemy {
 
   updateLaser() {
     const w = WEAPONS[this.cfg.weapon];
-    if (!w || (this.state !== 'aim' && this.state !== 'fire')) {
+    if (!w || w.pattern || (this.state !== 'aim' && this.state !== 'fire')) {
+      // a pattern's tell is his glow, not a line (彈幕試驗 ③)
       this.laser.hide();
       return;
     }
@@ -1936,6 +2062,7 @@ export class Enemies {
     this.flankSeq = 0; // flankers spawned so far: they take the two sides in turn
     this.captain = null; // the 帶頭大佬 on his feet, if one is (AI.captain)
     this.panicT = 0; // s left of the others wavering after he fell
+    this.patternsSeen = new Set(); // the pattern kinds that have fired this run (a line in the notes the first time)
   }
 
   /** Another living flanker for `e` to split up with. */
@@ -2002,6 +2129,7 @@ export class Enemies {
     this.flankSeq = 0;
     this.captain = null;
     this.panicT = 0;
+    this.patternsSeen.clear();
   }
 
   maxTokens() {

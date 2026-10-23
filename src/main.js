@@ -4,7 +4,7 @@ import { Bullets } from './bullets.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
-import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
+import { CAMERA, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
@@ -203,6 +203,20 @@ class Game {
     this.lastKillAt = -9;
     this.lastKillPos = null; // where the last kill fell (ROAM)
     this.lastCloseCall = -LOGIC_HZ; // a logic step number
+    this.grazes = 0; // bullets grazed this run (彈幕試驗: GRAZE), and those not yet scored or in the notes
+    this.grazePending = 0;
+    this.grazeFlushAt = -LOGIC_HZ;
+    this.grazeLogged = 0;
+    this.grazeLogAt = -LOGIC_HZ;
+    // the hitbox (彈幕試驗, in bullet time): a white dot the size of PLAYER.hitRadius in a dark ring, over everything
+    this.hitbox = new THREE.Group();
+    for (const [r0, r1, c] of [[0, PLAYER.hitRadius, 0xffffff], [PLAYER.hitRadius, PLAYER.hitRadius + 0.05, 0x14060a]]) {
+      const ring = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: c, depthTest: false, toneMapped: false }));
+      ring.renderOrder = 10;
+      this.hitbox.add(ring);
+    }
+    this.hitbox.visible = false;
+    this.scene.add(this.hitbox);
     this.time = 0; // real time for what is only shown (camera shake, title sway, pulses)
     this.last = performance.now();
     this.notes = new Notes(this);
@@ -245,6 +259,7 @@ class Game {
       b.dataset.mode = id;
       b.style.setProperty('--mode', m.color);
       b.innerHTML = `<span class="mode-zh">${m.name}</span><span class="mode-en">${m.en}</span><span class="mode-desc">${m.desc}</span>`;
+      b.title = m.desc; // the whole of it, if the card cuts it short (style.css .modes.four)
       b.addEventListener('click', (e) => {
         e.stopPropagation(); // choosing a mode is not starting a run
         this.setMode(id);
@@ -747,6 +762,8 @@ class Game {
     this.score.useBest(this.mode, this.ruleset);
     this.score.reset();
     this.waves.reset();
+    this.grazes = this.grazePending = this.grazeLogged = 0;
+    this.grazeFlushAt = this.grazeLogAt = -LOGIC_HZ; // logic steps: the run's count starts again (stepCount)
     // 澳門一夜 goes on where the night got to: its place in the night, and the night's waves before it as done
     this.routeAt = MODES[this.mode].night ? Math.max(0, NIGHT.indexOf(mapIndex)) : 0;
     this.waves.wave = this.routeAt * MODES[this.mode].perStage;
@@ -1602,6 +1619,27 @@ class Game {
     }
   }
 
+  /** A bullet grazed (彈幕試驗: GRAZE): the focus now, the Style gathered (logic: flushGraze). */
+  onGraze() {
+    this.grazes++;
+    this.grazePending++;
+    this.addFocus(GRAZE.focus);
+  }
+
+  /** The grazes since the last: one GRAZE at most every GRAZE.flush s, a line in the notes every GRAZE.log s. */
+  flushGraze() {
+    if (this.grazePending && this.stepCount - this.grazeFlushAt >= GRAZE.flush * LOGIC_HZ) {
+      this.score.style('GRAZE', GRAZE.pts * this.grazePending);
+      this.grazePending = 0;
+      this.grazeFlushAt = this.stepCount;
+    }
+    if (this.grazes > this.grazeLogged && this.stepCount - this.grazeLogAt >= GRAZE.log * LOGIC_HZ) {
+      this.notes.log(`擦彈 ×${this.grazes - this.grazeLogged}（這局共 ${this.grazes}）`);
+      this.grazeLogged = this.grazes;
+      this.grazeLogAt = this.stepCount;
+    }
+  }
+
   onPlayerHurt(dmg, source = '子彈') {
     this.deathCause = source; // the last thing that hit: the cause, if this was the end
     this.notes.log(`被${source}打中 −${dmg}（HP ${Math.max(0, Math.ceil(this.player.hp))}）`);
@@ -1957,6 +1995,7 @@ class Game {
     this.boss.update(dt);
     this.level.updateProps(dt);
     this.bullets.update(dt);
+    this.flushGraze();
     this.grenades.update(dt);
     this.thrown.update(dt);
     this.pickups.update(dt, h, cmd);
@@ -2116,6 +2155,10 @@ class Game {
 
   render() {
     this.bullets.draw(); // into their instanced meshes (bullets.js), whoever renders: a frame or a test
+    const p = this.player;
+    const hb = this.hitbox;
+    hb.visible = !!MODES[this.mode].graze && this.state === 'playing' && p.alive && this.focusAmt >= GRAZE.show;
+    if (hb.visible) hb.position.set(p.x, GUN_Y + this.level.groundY(p.x, p.z), p.z);
     this.renderer.info.reset();
     const u = this.post.u;
     let focus = this.focusAmt;

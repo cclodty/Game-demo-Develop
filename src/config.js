@@ -86,6 +86,14 @@ export const FOCUS = {
   closeCallRefill: 0.05,
 };
 
+/**
+ * Grazing (彈幕試驗 ③): in a mode with `graze` (waves.js MODES), every enemy bullet that passes within `radius` m of
+ * the player's middle without hitting him gives `focus` of the meter and GRAZE Style, `pts` a bullet (gathered into
+ * one GRAZE at most every `flush` s, so the HUD's feed is not flooded); the notes count them every `log` s. There the
+ * hitbox (PLAYER.hitRadius) shows as a dot once bullet time is `show` of the way in. Other modes keep CLOSE CALL.
+ */
+export const GRAZE = { radius: 0.5, focus: 0.02, pts: 10, flush: 0.25, log: 3, show: 0.3 };
+
 export const BULLET = {
   playerSpeed: 62,
   playerTrail: 2.2,

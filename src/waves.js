@@ -25,7 +25,20 @@ export const MODES = {
   night: { name: '澳門一夜', en: 'A NIGHT IN MACAU', color: '#b48cff', desc: '晚上八點到凌晨三點 · 打完一關存進度', waves: 21, perStage: 3, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, night: true, beats: true },
   // 彈幕試驗 (DECISIONS 2026-10-23: the bullet-hell trial): six waves in one room (rooms.js `room`), whatever map card is
   // picked; last in the list, so a record's mode number keeps its meaning
-  danmaku: { name: '彈幕試驗', en: 'BULLET HELL', color: '#ff6a3d', desc: '試驗：茶樓裏的六波彈幕', waves: 6, perStage: 6, graded: true, room: 'teahouse' },
+  // its waves: `total` men in wave n, of `types` { type: [from wave, weight, most a wave] } (the three pattern men, a
+  // few thugs); a wave of thugs alone takes a `fill` for its first. `graze`: bullets passing close count (config.js GRAZE)
+  danmaku: {
+    name: '彈幕試驗',
+    en: 'BULLET HELL',
+    color: '#ff6a3d',
+    desc: '試驗：茶樓裏的六波彈幕',
+    waves: 6,
+    perStage: 6,
+    graded: true,
+    room: 'teahouse',
+    graze: true,
+    roster: { total: [3, 4, 5, 6, 7, 8], types: { fanner: [1, 4], ringer: [1, 3], spiraler: [2, 2, 2], grunt: [1, 1] }, fill: 'fanner' },
+  },
 };
 export const MODE_IDS = Object.keys(MODES);
 
@@ -93,16 +106,19 @@ export class Waves {
   /** Wave n's roster, drawn from `rng` (the wave's own stream unless given). */
   compose(n, rng = this.game.rng.fork('wave', n)) {
     const finale = n === this.rules.waves ? this.rules.finale : null;
-    let total = 3 + Math.floor(n * 1.7);
-    let brutes = n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
+    const R = this.rules.roster; // a mode's own (彈幕試驗)
+    let total = R ? R.total[Math.min(n, R.total.length) - 1] : 3 + Math.floor(n * 1.7);
+    let brutes = R ? 0 : n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
     if (finale) {
       total = Math.round(total * finale.size);
       brutes += finale.brutes;
     }
     // who can come, and how often: TYPES[type].spawn (from which wave, weight, most per wave)
-    const weights = Object.entries(TYPES)
-      .filter(([, t]) => t.spawn)
-      .map(([type, t]) => [type, n >= t.spawn.from ? t.spawn.weight : 0, t.spawn.max ?? Infinity]);
+    const weights = R
+      ? Object.entries(R.types).map(([type, [from, weight, max]]) => [type, n >= from ? weight : 0, max ?? Infinity])
+      : Object.entries(TYPES)
+          .filter(([, t]) => t.spawn)
+          .map(([type, t]) => [type, n >= t.spawn.from ? t.spawn.weight : 0, t.spawn.max ?? Infinity]);
     const sum = weights.reduce((a, w) => a + w[1], 0);
     const list = [];
     const count = {};
@@ -111,7 +127,7 @@ export class Waves {
       for (const [type, w, max] of weights) {
         r -= w;
         if (r <= 0) {
-          const pick = (count[type] || 0) < max ? type : weights[0][0]; // over its cap: a thug instead
+          const pick = (count[type] || 0) < max ? type : R ? R.fill : weights[0][0]; // over its cap: a thug instead (a mode's own: its fill)
           count[pick] = (count[pick] || 0) + 1;
           list.push(pick);
           break;
@@ -119,6 +135,7 @@ export class Waves {
       }
     }
     for (let b = 0; b < brutes; b++) list.splice(Math.floor(rng.range(list.length * 0.4, list.length)), 0, 'brute');
+    if (R && list.every((t) => t === 'grunt')) list[0] = R.fill;
     return list;
   }
 
@@ -149,7 +166,7 @@ export class Waves {
     const count = {};
     for (const t of this.queue) count[t] = (count[t] || 0) + 1;
     g.notes.log(`第 ${this.wave} 波開始：${Object.entries(count).map(([t, n]) => `${TYPES[t] ? TYPES[t].label : t}×${n}`).join(' ')}`);
-    this.maxAlive = this.isFinal ? this.rules.finale.maxAlive : Math.min(3 + Math.floor(this.wave * 0.7), RAMP.maxAlive);
+    this.maxAlive = this.isFinal && this.rules.finale ? this.rules.finale.maxAlive : Math.min(3 + Math.floor(this.wave * 0.7), RAMP.maxAlive); // a mode without a finale (彈幕試驗) as any wave
     this.state = 'active';
     this.spawnCd = 0.3;
     this.hurt = false;

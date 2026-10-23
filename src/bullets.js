@@ -4,7 +4,7 @@
 // heads, however many bullets there are (draw, from main.js render).
 
 import * as THREE from 'three';
-import { BULLET, GUN_Y, LEVELS, PAN, PLAYER } from './config.js';
+import { BULLET, GRAZE, GUN_Y, LEVELS, PAN, PLAYER } from './config.js';
 import { pointSegDist2, segCircle } from './utils.js';
 
 function trailGeometry(headW, tailW) {
@@ -19,6 +19,9 @@ function trailGeometry(headW, tailW) {
 
 const _m = new THREE.Matrix4();
 const _s = new THREE.Vector3();
+
+/** A bullet hell's bullets (彈幕試驗 ③): solid colour, not added light, so a dense pattern still shows every one. */
+const solid = (r, g, b) => new THREE.MeshBasicMaterial({ color: new THREE.Color(r, g, b) });
 
 const additive = (r, g, b, vertexColors = false) =>
   new THREE.MeshBasicMaterial({
@@ -40,6 +43,7 @@ export class Bullets {
       enemyTrail: trailGeometry(0.26, 0.02),
       sniperTrail: trailGeometry(0.2, 0.03),
       head: new THREE.SphereGeometry(1, 8, 6),
+      rim: new THREE.CircleGeometry(1, 18).rotateX(-Math.PI / 2), // a pattern bullet's dark rim, flat round its head
     };
     this.looks = {
       player: { trail: additive(3.5, 2.4, 0.9, true), head: additive(7, 5.5, 3), headSize: 0.07, geo: this.geo.playerTrail },
@@ -47,6 +51,8 @@ export class Bullets {
       enemy: { trail: additive(5, 0.7, 0.35, true), head: additive(9, 2.6, 1.2), headSize: 0.13, geo: this.geo.enemyTrail },
       pellet: { trail: additive(3.5, 2, 0.7, true), head: additive(7, 4.5, 2), headSize: 0.05, geo: this.geo.playerTrail },
       sniper: { trail: additive(2.2, 3.6, 4.5, true), head: additive(8, 9, 10), headSize: 0.1, geo: this.geo.sniperTrail },
+      // a pattern's (enemies.js WEAPONS `pattern`): a solid pink-red head on a dark rim `rim` times its size, no trail
+      danmaku: { trail: solid(0.1, 0, 0.03), head: solid(1, 0.32, 0.52), headSize: 0.15, geo: this.geo.rim, rim: 1.5 },
     };
     this.batches = {}; // look -> { trail, head, cap }: its instanced meshes (meshesOf)
   }
@@ -101,8 +107,10 @@ export class Bullets {
       const i = bt.head.count++;
       bt.trail.count++;
       b.group.updateMatrix();
-      bt.trail.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.set(1, 1, Math.max(0.05, b.trailLen))));
-      bt.head.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.setScalar(this.looks[b.look].headSize)));
+      const L = this.looks[b.look];
+      if (L.rim) bt.trail.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.setScalar(L.headSize * L.rim)));
+      else bt.trail.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.set(1, 1, Math.max(0.05, b.trailLen))));
+      bt.head.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.setScalar(L.headSize)));
     }
     for (const look in counts) {
       const bt = this.batches[look];
@@ -511,11 +519,14 @@ export class Bullets {
     game.hitstop(0.04);
   }
 
+  /** An enemy bullet that passed the player close without hitting: a CLOSE CALL, or in a mode with `graze` a GRAZE (GRAZE). */
   checkCloseCall(b, sx, sz) {
     const p = this.game.player;
     if (!p.alive) return;
+    const graze = !!this.game.waves.rules.graze;
+    const near = graze ? GRAZE.radius : 1.1;
     const d2 = pointSegDist2(p.x, p.z, sx, sz, b.x, b.z);
-    if (d2 < 1.1 * 1.1) {
+    if (d2 < near * near) {
       b.near = true;
       if ((p.spinning || p.sliding) && d2 < 0.5 * 0.5) b.dodgedSpin = true;
       return;
@@ -525,7 +536,8 @@ export class Bullets {
       const dot = (b.x - p.x) * b.dx + (b.z - p.z) * b.dz;
       if (dot > 0) {
         b.awarded = true;
-        this.game.onCloseCall(b.dodgedSpin);
+        if (graze) this.game.onGraze();
+        else this.game.onCloseCall(b.dodgedSpin);
       }
     }
   }
