@@ -206,6 +206,8 @@ export const KEY_POSES = {
   dive: { lift: 0.55, ahead: -0.1, lean: -1.1, chest: 0.45, footL: [0.1, 0.35, 0.5], footR: [-0.08, 0.2, 0.62], kneeL: [0.2, 0.4, 1], kneeR: [0, 1, 0.3] },
   // landed from it: tucked low, rolling out
   roll: { lift: -0.35, ahead: 0.1, lean: 0.9, chest: 0.4, footL: [0.1, 0.25, 0.1], footR: [-0.1, 0.3, 0.05], kneeL: [0, 0.9, 0.4], kneeR: [0, 0.9, 0.4] },
+  // an enemy about to roll aside (enemies.js AI.dodge, the tell): down on his haunches, leaning into it
+  crouch: { lift: -0.32, ahead: 0, lean: 0.35, chest: 0.3, footL: [0.2, 0.02, 0.18], footR: [-0.2, 0.02, -0.1], kneeL: [0.3, 0.6, 1], kneeR: [-0.3, 0.6, 1] },
   // rocked back by a shot that did not kill (enemies.js flinch): the chest thrown back, the feet where they were
   flinch: { lift: -0.02, ahead: -0.04, lean: -0.42, chest: -0.3, footL: [0.12, 0.02, 0.04], footR: [-0.12, 0.02, -0.06], kneeL: [0, 0, 1], kneeR: [0, 0, 1], still: true },
   // a weight overhead: feet planted wide, knees soft, the back arched

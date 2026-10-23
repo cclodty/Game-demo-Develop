@@ -10,6 +10,7 @@ import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowar
 export const TYPES = {
   grunt: {
     label: 'THUG',
+    dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
     hp: 3,
     speed: 3.6,
     radius: 0.32,
@@ -27,6 +28,7 @@ export const TYPES = {
   },
   shotgun: {
     label: 'SHOTGUNNER',
+    dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
     hp: 4,
     speed: 3.3,
     radius: 0.34,
@@ -43,6 +45,7 @@ export const TYPES = {
   },
   rifle: {
     label: 'RIFLEMAN',
+    dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
     hp: 3,
     speed: 3.2,
     radius: 0.32,
@@ -60,6 +63,7 @@ export const TYPES = {
   },
   rusher: {
     label: 'BLADE',
+    dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
     hp: 2,
     speed: 6.6,
     radius: 0.3,
@@ -143,6 +147,7 @@ export const TYPES = {
   },
   sniper: {
     label: 'SNIPER',
+    dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
     model: 'rifle', // the rifleman's model with a long rifle
     hp: 3,
     speed: 3.0,
@@ -229,6 +234,9 @@ class Enemy {
     // and quicker each stage: his aim and the gap before he fires again (config.js RAMP)
     this.pace = (1 - RAMP.perStage) ** this.game.waves.stageIndex;
     this.flinchT = 0; // s left of being rocked back by a shot (AI.flinch)
+    this.aimedT = 0; // s the player's aim has stayed on him while firing (AI.dodge)
+    this.dodgeCd = 0; // s until he may roll again
+    this.rollX = this.rollZ = 0; // the roll's direction
     this.alive = true;
     this.dead = false;
     this.sp = sp;
@@ -470,6 +478,42 @@ class Enemy {
   harm(dmg) {
     this.hp -= dmg * this.tough;
     if (this.hp < 1e-6) this.hp = Math.min(0, this.hp); // no sliver left by the rounding of the multiple
+  }
+
+  /**
+   * 閃避翻滾 (AI.dodge): the player firing with his aim on this man (the step's game.cmd, so a replay sees the same)
+   * for long enough, and he rolls aside, if he is one who does (TYPES `dodge`), is free to and has the room.
+   */
+  watchAim(dt) {
+    const D = AI.dodge;
+    this.dodgeCd -= dt;
+    const c = this.game.cmd;
+    const free = this.cfg.dodge && this.stunT <= 0 && !this.perch && !this.aloft && ['move', 'idle', 'aim', 'chase', 'duck', 'peek', 'recover'].includes(this.state);
+    const on = free && this.game.player.alive && c.mouse.left && Math.hypot(c.aim.x - this.x, c.aim.z - this.z) <= this.radius + D.reach;
+    this.aimedT = on ? this.aimedT + dt : 0;
+    if (this.aimedT < D.watch || this.dodgeCd > 0) return;
+    this.aimedT = 0;
+    const g = this.game;
+    const p = g.player;
+    const d = Math.hypot(this.x - p.x, this.z - p.z) || 1;
+    // across the line from the player to him, to the side the run's stream picks, else the other; none with no room
+    const sides = g.rng.next() < 0.5 ? [1, -1] : [-1, 1];
+    const nav = g.level.nav;
+    for (const k of sides) {
+      const rx = (-(this.z - p.z) / d) * k;
+      const rz = ((this.x - p.x) / d) * k;
+      const lx = this.x + rx * D.dist;
+      const lz = this.z + rz * D.dist;
+      if (!nav.isWalkable(lx, lz) || !nav.lineWalkable(this.x, this.z, lx, lz) || !g.level.sameLevel(this.x, this.z, lx, lz)) continue;
+      this.rollX = rx;
+      this.rollZ = rz;
+      this.endAim();
+      this.state = 'tell';
+      this.timer = D.tell;
+      this.dodgeCd = D.cooldown;
+      return;
+    }
+    this.dodgeCd = D.watch; // no room either side: he looks again in a moment
   }
 
   /** Pigeons in the face: the aim breaks off and cannot start again for `t` seconds. */
@@ -911,6 +955,7 @@ class Enemy {
       this.updateLaser();
       return;
     }
+    this.watchAim(dt);
     this.fireCd -= dt;
     this.blindT = Math.max(0, this.blindT - dt);
     this.shieldDownT = Math.max(0, this.shieldDownT - dt);
@@ -1249,6 +1294,32 @@ class Enemy {
           }
           break;
         }
+        case 'tell':
+          // crouched, about to roll (AI.dodge): the moment to see it coming
+          this.timer -= dt;
+          face = angleTo(this.x, this.z, p.x, p.z);
+          want = [0, 0];
+          if (this.timer <= 0) {
+            this.state = 'roll';
+            this.timer = AI.dodge.roll;
+            g.notes.log(`${cfg.label} 翻滾閃避`);
+          }
+          break;
+        case 'roll': {
+          // across the line of fire, AI.dodge.dist m in AI.dodge.roll s; he is shot as he lands, or where he will land
+          this.timer -= dt;
+          const v = AI.dodge.dist / AI.dodge.roll;
+          this.vx = this.rollX * v;
+          this.vz = this.rollZ * v;
+          want = null;
+          face = angleTo(this.x, this.z, p.x, p.z);
+          if (this.timer <= 0) {
+            this.vx = this.vz = 0;
+            this.state = this.rushes ? 'chase' : 'move';
+            this.repath = 0;
+          }
+          break;
+        }
         case 'windup':
           this.timer -= dt;
           this.aimAngle = turnTowards(this.aimAngle, angleTo(this.x, this.z, p.x, p.z), 8 * dt);
@@ -1393,7 +1464,10 @@ class Enemy {
     }
     if (!this.game.style.poseDue(r, this.game.worldTime + this.idleOffset)) return; // the pose holds between the style's steps
     animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
-    keyPose(r, this.flinchT > 0 ? 'flinch' : null, this.flinchT / AI.flinch); // rocked back by a shot, fading
+    // crouched for the roll, rolling, or rocked back by a shot (fading)
+    if (this.state === 'tell') keyPose(r, 'crouch');
+    else if (this.state === 'roll') keyPose(r, 'roll');
+    else keyPose(r, this.flinchT > 0 ? 'flinch' : null, this.flinchT / AI.flinch);
     if (this.shieldMesh) {
       // kicked aside: the shield swings down and out
       const down = this.shieldDownT > 0;

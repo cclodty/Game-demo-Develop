@@ -146,6 +146,10 @@ export const AI = {
   flankSwing: 0.9, // how wide the arc is: the point he heads for lies this × his distance from the player
   flankClose: 3, // m: from here they just come straight at you
   flinch: 0.25, // s a shot that does not kill rocks him back (characters.js KEY_POSES.flinch), fading (試玩回饋 ④: thicker enemies, so the hits must show)
+  // 閃避翻滾 (試玩回饋 ④): a gunman or a blade (enemies.js TYPES `dodge`) with the player's aim on him (within `reach` m of
+  // his body) for `watch` s while the player fires crouches `tell` s, then rolls `dist` m to the side in `roll` s; once
+  // each `cooldown` s. Never into a wall or off the floor (the nav grid), so with no room he stands
+  dodge: { watch: 0.4, reach: 0.5, tell: 0.25, roll: 0.4, dist: 2.5, cooldown: 3 },
 };
 
 /**
