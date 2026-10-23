@@ -1,5 +1,7 @@
 // Every bullet is a real projectile with a glowing trail, so in bullet time
-// you can read, dodge, deflect and ricochet them.
+// you can read, dodge, deflect and ricochet them. They are drawn instanced
+// (彈幕試驗 ①): each look of bullet is two instanced meshes, its trails and its
+// heads, however many bullets there are (draw, from main.js render).
 
 import * as THREE from 'three';
 import { BULLET, GUN_Y, LEVELS, PAN, PLAYER } from './config.js';
@@ -14,6 +16,9 @@ function trailGeometry(headW, tailW) {
   g.setIndex([0, 1, 2, 1, 3, 2]);
   return g;
 }
+
+const _m = new THREE.Matrix4();
+const _s = new THREE.Vector3();
 
 const additive = (r, g, b, vertexColors = false) =>
   new THREE.MeshBasicMaterial({
@@ -43,31 +48,67 @@ export class Bullets {
       pellet: { trail: additive(3.5, 2, 0.7, true), head: additive(7, 4.5, 2), headSize: 0.05, geo: this.geo.playerTrail },
       sniper: { trail: additive(2.2, 3.6, 4.5, true), head: additive(8, 9, 10), headSize: 0.1, geo: this.geo.sniperTrail },
     };
+    this.batches = {}; // look -> { trail, head, cap }: its instanced meshes (meshesOf)
   }
 
+  /** A bullet of the pool, or a new one: `group` is where it is drawn (a transform only, not in the scene: draw). */
   acquire(look) {
-    let b = this.pool.pop();
-    if (!b) {
-      const group = new THREE.Group();
-      const trail = new THREE.Mesh(this.geo.playerTrail, this.looks.player.trail);
-      const head = new THREE.Mesh(this.geo.head, this.looks.player.head);
-      trail.frustumCulled = false;
-      group.add(trail, head);
-      b = { group, trail, head };
-    }
+    const b = this.pool.pop() || { group: new THREE.Object3D() };
     this.setLook(b, look);
-    b.group.visible = true;
-    this.game.scene.add(b.group);
     return b;
   }
 
   setLook(b, look) {
-    const L = this.looks[look];
-    b.trail.geometry = L.geo;
-    b.trail.material = L.trail;
-    b.head.material = L.head;
-    b.head.scale.setScalar(L.headSize);
     b.look = look;
+  }
+
+  /** The instanced meshes that draw look `look`, room for `n` bullets at least (made, or made again bigger, on demand). */
+  meshesOf(look, n = 1) {
+    let bt = this.batches[look];
+    if (bt && bt.cap >= n) return bt;
+    const scene = this.game.scene;
+    if (bt) {
+      scene.remove(bt.trail, bt.head);
+      bt.trail.dispose();
+      bt.head.dispose();
+    }
+    const L = this.looks[look];
+    const cap = Math.max(256, 2 ** Math.ceil(Math.log2(n)));
+    const trail = new THREE.InstancedMesh(L.geo, L.trail, cap);
+    const head = new THREE.InstancedMesh(this.geo.head, L.head, cap);
+    for (const mesh of [trail, head]) {
+      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      mesh.frustumCulled = false; // the bullets are all over the map: the bounds of one instance say nothing
+      mesh.count = 0;
+      mesh.visible = false;
+      scene.add(mesh);
+    }
+    bt = this.batches[look] = { trail, head, cap };
+    return bt;
+  }
+
+  /** Every live bullet into its look's instanced meshes: its head at its place and its look's size, its trail its length behind it. */
+  draw() {
+    const counts = {};
+    for (const look in this.looks) counts[look] = 0;
+    for (const b of this.list) counts[b.look]++;
+    for (const look in counts) {
+      const bt = this.meshesOf(look, counts[look]);
+      bt.trail.count = bt.head.count = 0;
+    }
+    for (const b of this.list) {
+      const bt = this.batches[b.look];
+      const i = bt.head.count++;
+      bt.trail.count++;
+      b.group.updateMatrix();
+      bt.trail.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.set(1, 1, Math.max(0.05, b.trailLen))));
+      bt.head.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.setScalar(this.looks[b.look].headSize)));
+    }
+    for (const look in counts) {
+      const bt = this.batches[look];
+      bt.trail.visible = bt.head.visible = bt.head.count > 0;
+      bt.trail.instanceMatrix.needsUpdate = bt.head.instanceMatrix.needsUpdate = true;
+    }
   }
 
   /**
@@ -121,15 +162,13 @@ export class Bullets {
 
   release(b) {
     b.alive = false;
-    b.group.visible = false;
-    this.game.scene.remove(b.group);
     this.pool.push(b);
   }
 
+  /** Where it is drawn (draw), after a step: over the ground below it (steps: 大三巴), turned along its way. */
   updateVisual(b) {
-    b.group.position.set(b.x, Math.max(0.05, b.y0 - b.drop * b.traveled) + this.game.level.groundY(b.x, b.z), b.z); // over the ground below it (steps: 大三巴)
+    b.group.position.set(b.x, Math.max(0.05, b.y0 - b.drop * b.traveled) + this.game.level.groundY(b.x, b.z), b.z);
     b.group.rotation.y = Math.atan2(b.dx, b.dz);
-    b.trail.scale.set(1, 1, Math.max(0.05, b.trailLen));
   }
 
   update(dt) {

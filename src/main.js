@@ -2089,6 +2089,7 @@ class Game {
   }
 
   render() {
+    this.bullets.draw(); // into their instanced meshes (bullets.js), whoever renders: a frame or a test
     this.renderer.info.reset();
     const u = this.post.u;
     let focus = this.focusAmt;
