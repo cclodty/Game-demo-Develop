@@ -158,6 +158,10 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
             door = { x: boss.x, z: boss.z };
             goal = { x: boss.x + bx * 4, z: boss.z + bz * 4 };
             behind = (p.x - boss.x) * bx + (p.z - boss.z) * bz > 1;
+          } else if (boss.active && boss.def && (boss.def.kind === 'marksman' || boss.def.kind === 'buckshot') && boss.state !== 'enter') {
+            // Senado's two: shots on either count wherever they hit, so the bot fires at the nearer
+            door = { x: boss.x, z: boss.z };
+            behind = g.level.hasLOS(p.x, p.z, boss.x, boss.z);
           } else if (boss.active && boss.def && boss.def.kind === 'blade') {
             // the blade queen: a shot counts only in her window (blades up after a dash), so the bot fires at her then
             door = { x: boss.x, z: boss.z };

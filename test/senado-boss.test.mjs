@@ -9,7 +9,8 @@
 // 12–26 m from the player, so he stays in the picture: the camera leans towards
 // him), and on the move nothing covers him. Hits take segments; five segments.
 // The taxi convoy he replaces stays a kind a map can ask for
-// (test/convoy.test.mjs puts it back).
+// (test/convoy.test.mjs puts it back). Senado's boss is now the marksman with
+// his partner (test/senado-duo.test.mjs); this test puts him back alone.
 // Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,6 +25,10 @@ before(async () => {
   await page.evaluate(() => {
     const g = window.game;
     g.frame = () => {};
+    // the marksman alone: the first of Senado's two
+    const senado = g.maps.find((m) => m.id === 'senado');
+    window.duo = senado.boss;
+    senado.boss = senado.boss.pair[0];
     /** An arcade run from the club, moved on to its third stage (Senado) and the start of wave 12; the player up the square. */
     window.toFinal = () => {
       g.setRules('normal', []);
@@ -94,6 +99,9 @@ before(async () => {
   });
 });
 after(async () => {
+  await page.evaluate(() => {
+    window.game.maps.find((m) => m.id === 'senado').boss = window.duo;
+  });
   await h.close();
 });
 

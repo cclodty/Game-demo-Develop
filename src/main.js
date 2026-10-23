@@ -2016,12 +2016,13 @@ class Game {
       tx += lx;
       tz += lz;
       zoom *= lerp(1, CAMERA.focusZoom, this.focusAmt);
-      const pull = this.boss.active && this.boss.cfg.pull;
-      if (pull) {
-        // a boss in the air, or one who shoots from afar: pull back and lean towards it, so it is in the picture
-        // (CAMERA.bossPull and bossZoom, or the kind's own `pull`: boss.js)
-        tx = lerp(tx, this.boss.x, pull.lean ?? CAMERA.bossPull);
-        tz = lerp(tz, this.boss.z, pull.lean ?? CAMERA.bossPull);
+      // a boss in the air, or one who shoots from afar (one of a duo, too): pull back and lean towards it, so it is in the
+      // picture (CAMERA.bossPull and bossZoom, or the kind's own `pull`: boss.js)
+      const far = this.boss.active && (this.boss.members ? this.boss.members.find((m) => m.active && m.cfg.pull) : this.boss.cfg.pull && this.boss);
+      if (far) {
+        const pull = far.cfg.pull;
+        tx = lerp(tx, far.x, pull.lean ?? CAMERA.bossPull);
+        tz = lerp(tz, far.z, pull.lean ?? CAMERA.bossPull);
         zoom *= pull.zoom ?? CAMERA.bossZoom;
       }
       if (this.killcamT > 0) {

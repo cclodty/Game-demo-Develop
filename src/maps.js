@@ -597,7 +597,7 @@ const SENADO_IMAGES =
 
 const senado = {
   id: 'senado',
-  rev: 2, // 2: the marksman instead of the taxi convoy
+  rev: 3, // 2: the marksman instead of the taxi convoy; 3: and his partner, the shotgunner
   budget: { tris: 340000, calls: 500 }, // rendered per frame, all passes (test/maps.test.mjs: 208,358 and 255 at the start; 1,218 before made props were merged by material, models.js; up the square, test/drawcalls.test.mjs, about 250; the marksman's fight, the camera pulled back, test/senado-boss.test.mjs: about 318,000 and 288)
   name: '議事亭前地',
   en: 'LARGO DO SENADO',
@@ -616,13 +616,18 @@ const senado = {
   // the buildings across the avenue, between the camera and the square: above 1.2 m, seen through;
   // and up the square, any building within 6 m of the line from the player to the camera, whole (level.js updateFade)
   fade: { above: 1.2, follow: 6 },
-  // the stage's last wave here (boss.js): the marksman, in on foot from the street east of the fountain to his first
-  // post, then from post to post down the strip: round the square and the fountain, the mouth of the narrows, along the narrows, the
-  // square before the post office (議事亭：頭目 ①; the taxi convoy it replaces stays a kind: test/convoy.test.mjs)
+  // the stage's last wave here (boss.js): two at once, one far and one near (議事亭：頭目 ①②; the taxi convoy they replace
+  // stays a kind: test/convoy.test.mjs). The marksman, in on foot from the street east of the fountain to his first post,
+  // then from post to post down the strip: round the square and the fountain, the mouth of the narrows, along the narrows,
+  // the square before the post office. The shotgunner, in from the west end of the avenue, after the player. Their combo:
+  // the marksman's line stops on the player as the shotgunner rushes the spot; out of the line, the round is his
   boss: {
-    kind: 'marksman',
-    from: [24.5, 40],
-    posts: [[14, 40], [-8, 44], [16, 30], [-10, 30], [-12, 56], [18, 62], [0, 28], [6, 10], [-4, 0], [4, -20], [-3, -36], [2, -52], [-14, -64], [0, -70]],
+    kind: 'duo',
+    pair: [
+      { kind: 'marksman', from: [24.5, 40], posts: [[14, 40], [-8, 44], [16, 30], [-10, 30], [-12, 56], [18, 62], [0, 28], [6, 10], [-4, 0], [4, -20], [-3, -36], [2, -52], [-14, -64], [0, -70]] },
+      { kind: 'buckshot', from: [-24.5, 68], at: [-17, 64] },
+    ],
+    combo: { name: '紅線衝鋒', en: 'RED LINE RUSH', hint: '閃出紅線：散彈手衝入去，長槍打中他', wait: 6 }, // up to 6 s for the marksman to reach a post
   },
   look: 'flat', // drawn like the characters (style.js), the trial of one look for maps and people
   theme: {
