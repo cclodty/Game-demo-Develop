@@ -167,8 +167,8 @@ test('shot down, it falls and bursts: the thug under it dies, the player 8 m off
     const thug = g.enemies.spawn('grunt', { x: 0.6, z: -5, ex: 0.6, ez: -4.9, stay: true });
     thug.spawnLock = 0;
     thug.fireCd = 99;
-    // three player bullets straight up at it (a drone is hit where it is over the floor)
-    for (let i = 0; i < 3; i++) g.bullets.spawn({ x: 0, z: 2.6 - i * 0.4, dx: 0, dz: -1, speed: 62, owner: 'player', damage: 1 });
+    // a player bullet for each point of its health (config.js ENEMY_HP) straight up at it (a drone is hit where it is over the floor)
+    for (let i = 0; i < Math.ceil(e.hp); i++) g.bullets.spawn({ x: 0, z: 2.6 - i * 0.4, dx: 0, dz: -1, speed: 62, owner: 'player', damage: 1 });
     let n = 0;
     while (e.alive && n++ < 120) window.step();
     const shotDown = !e.alive;
@@ -189,7 +189,7 @@ test('shot down, it falls and bursts: the thug under it dies, the player 8 m off
       log: g.notes.events.map((x) => x.text).filter((t) => t.includes('無人機墜毀') || t.startsWith('擊殺 THUG')),
     };
   });
-  assert.equal(r.shotDown, true, 'three hits');
+  assert.equal(r.shotDown, true, 'a hit for each point of its health');
   assert.equal(r.fell, true, 'it drops');
   assert.equal(r.crashed, true);
   assert.equal(r.hidden, true, 'nothing left of it');

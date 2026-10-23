@@ -70,6 +70,11 @@ export class Waves {
     return MODES[this.game.mode];
   }
 
+  /** The stage of the run the wave is in, from 0: one every `perStage` waves (澳門一夜 counts the night's waves before it). ENEMY_HP climbs with it. */
+  get stageIndex() {
+    return Math.max(0, Math.floor((this.wave - 1) / this.rules.perStage));
+  }
+
   get isFinal() {
     return this.wave === this.rules.waves;
   }

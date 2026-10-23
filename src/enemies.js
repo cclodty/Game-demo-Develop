@@ -2,8 +2,8 @@
 // brightens while they aim, so a quick read (or bullet time) lets you dodge.
 
 import * as THREE from 'three';
-import { AI, ENV, FIREPOWER, GUN_Y, LOGIC_HZ, PLAYER } from './config.js';
-import { animateRig, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, setFlash } from './characters.js';
+import { AI, ENEMY_HP, ENV, FIREPOWER, GUN_Y, LOGIC_HZ, PLAYER } from './config.js';
+import { animateRig, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, keyPose, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowards } from './utils.js';
 
@@ -223,7 +223,10 @@ class Enemy {
     const lc = LASER_COLOR[cfg.weapon] || LASER_COLOR.pistol;
     this.laser = new Laser(this.game.scene, new THREE.Color(lc[0], lc[1], lc[2]));
     this.radius = cfg.radius;
-    this.hp = cfg.hp;
+    // thicker each stage of the run (config.js ENEMY_HP); what is not a bullet is made as much stronger (harm)
+    this.hp = Math.round(cfg.hp * ENEMY_HP.base * (1 + ENEMY_HP.perStage * this.game.waves.stageIndex));
+    this.tough = this.hp / cfg.hp;
+    this.flinchT = 0; // s left of being rocked back by a shot (AI.flinch)
     this.alive = true;
     this.dead = false;
     this.sp = sp;
@@ -313,7 +316,7 @@ class Enemy {
   shieldHit(b) {
     if (!this.alive) return;
     const g = this.game;
-    this.hp -= PLAYER.humanShield.hit;
+    this.harm(PLAYER.humanShield.hit);
     this.flash = 1;
     g.fx.blood(this.x, 1.3, this.z, b.dx, b.dz, 7);
     g.audio.flesh(g.panFor(this.x));
@@ -431,7 +434,8 @@ class Enemy {
       return 'blocked';
     }
     const fromPlayer = b.owner === 'player';
-    this.hp -= fromPlayer ? b.damage : 3;
+    if (fromPlayer && !b.homeRun) this.hp -= b.damage;
+    else this.harm(fromPlayer ? b.damage : 3); // a round the pan batted back (HOME RUN), a gunman's stray one: as many as they ever took
     this.flash = 1;
     const knock = b.knock || 1;
     const push = (this.cfg.heavy ? 0.6 : 2.5) * knock;
@@ -453,7 +457,17 @@ class Enemy {
       return;
     }
     g.hud.hitMarker(false);
+    this.flinchT = AI.flinch; // rocked back, so a shot that does not kill shows
     if (!this.cfg.heavy && this.state === 'aim') this.aimT = Math.max(0, this.aimT - 0.22);
+  }
+
+  /**
+   * Damage that is not the player's bullet (a kick, a throw, a blast, a door, a stray round) made as strong as he is
+   * thick (`tough`, config.js ENEMY_HP): it takes as many to kill him as it always did.
+   */
+  harm(dmg) {
+    this.hp -= dmg * this.tough;
+    if (this.hp < 1e-6) this.hp = Math.min(0, this.hp); // no sliver left by the rounding of the multiple
   }
 
   /** Pigeons in the face: the aim breaks off and cannot start again for `t` seconds. */
@@ -493,7 +507,7 @@ class Enemy {
     this.endAim();
     if (this.state !== 'enter') this.state = this.rushes ? 'chase' : 'move';
     this.repath = 0;
-    this.hp -= dmg;
+    this.harm(dmg);
     this.flash = 1;
     if (dmg > 0) this.game.fx.blood(this.x, 1.2, this.z, dx, dz, 5); // a shove (the human shield let go) draws none
     if (this.hp <= 0) this.die(dx, dz, { cause });
@@ -530,7 +544,7 @@ class Enemy {
       this.fallOff(dx, dz); // a blast shakes him off his balcony, however hard
       return;
     }
-    this.hp -= dmg;
+    this.harm(dmg);
     this.flash = 1;
     this.vx += dx * 10;
     this.vz += dz * 10;
@@ -887,6 +901,7 @@ class Enemy {
     const p = g.player;
     const cfg = this.cfg;
     this.flash = Math.max(0, this.flash - dt * 6);
+    this.flinchT = Math.max(0, this.flinchT - dt);
     if (this.held) {
       // a human shield: the player moves him (player.js holdHostage); he neither moves nor aims
       this.moveAmt = 0;
@@ -1376,6 +1391,7 @@ class Enemy {
     }
     if (!this.game.style.poseDue(r, this.game.worldTime + this.idleOffset)) return; // the pose holds between the style's steps
     animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
+    keyPose(r, this.flinchT > 0 ? 'flinch' : null, this.flinchT / AI.flinch); // rocked back by a shot, fading
     if (this.shieldMesh) {
       // kicked aside: the shield swings down and out
       const down = this.shieldDownT > 0;

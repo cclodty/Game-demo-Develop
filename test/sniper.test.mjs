@@ -113,7 +113,8 @@ test('2.4 s on the red line, one shot for 40, then 2 s with the rifle down in wh
     while (g.bullets.list.some((b) => b.alive && b.source === e)) window.step();
     const inWindow = e.state === 'recover';
     const d = Math.hypot(e.x - g.player.x, e.z - g.player.z);
-    for (let i = 0; i < 3; i++) g.bullets.spawn({ x: g.player.x, z: g.player.z, dx: (e.x - g.player.x) / d, dz: (e.z - g.player.z) / d, speed: 62, owner: 'player', damage: 1 });
+    // a shot for each point of his health (config.js ENEMY_HP)
+    for (let i = 0; i < Math.ceil(e.hp); i++) g.bullets.spawn({ x: g.player.x, z: g.player.z, dx: (e.x - g.player.x) / d, dz: (e.z - g.player.z) / d, speed: 62, owner: 'player', damage: 1 });
     n = 0;
     while (e.alive && e.state === 'recover' && n++ < 120) window.step();
     return { inWindow, dead: e.dead, state: e.state };

@@ -1808,8 +1808,9 @@ export const MAPS = [rooftop, club, docks, senado, felicidade, guia, ruins];
 /**
  * How a run plays apart from the maps, as a revision: up one whenever a change to the game's own rules makes the same
  * input play another run. 1: the weapon pads fill once a stage, fewer and emptier dropped guns (config.js FIREPOWER).
+ * 2: thicker enemies, more each stage (ENEMY_HP).
  */
-export const PLAY_REV = 1;
+export const PLAY_REV = 2;
 
 /**
  * The game's revision as one byte, for the input record (replay.js): the sum of every map's `rev` and PLAY_REV. A

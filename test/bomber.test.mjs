@@ -124,7 +124,8 @@ test('shot dead he goes off where he lies; kills in his blast are CHAIN +120, an
     const other = window.put('bomber', -2.2, -3.6, 'idle');
     const far = window.put('grunt', -5.2, -3.2); // only the second bomber reaches him
     for (const x of [e, near, other, far]) x.facing = 0;
-    for (let i = 0; i < 2; i++) g.bullets.spawn({ x: 0, z: 2, dx: 0, dz: -1, speed: 62, owner: 'player', damage: 1 });
+    // as many shots as he has health (config.js ENEMY_HP), all from the same place
+    for (let i = 0; i < Math.ceil(e.hp); i++) g.bullets.spawn({ x: 0, z: 2, dx: 0, dz: -1, speed: 62, owner: 'player', damage: 1 });
     window.play(40);
     return { tags: window.tags, booms: window.booms.map((b) => b.chain), alive: [e, near, other, far].map((x) => x.alive), hp: p.hp };
   });

@@ -145,6 +145,7 @@ export const AI = {
   flankAngle: 60, // degrees off the straight line each of a pair of rushers takes
   flankSwing: 0.9, // how wide the arc is: the point he heads for lies this × his distance from the player
   flankClose: 3, // m: from here they just come straight at you
+  flinch: 0.25, // s a shot that does not kill rocks him back (characters.js KEY_POSES.flinch), fading (試玩回饋 ④: thicker enemies, so the hits must show)
 };
 
 /**
@@ -181,6 +182,17 @@ export const FIREPOWER = {
   pads: 'stage', // when the pads fill: 'stage' (a stage's first wave) or 'wave' (every wave, as before 2026-10-23)
   drops: { grunt: [['smg', 0.12]], shotgun: [['shotgun', 0.5]], rifle: [['rifle', 0.5]], brute: [['minigun', 0.35]] }, // [weapon, chance], tried in order (the brute's was 1)
   dropAmmo: 0.4, // of the gun's ammo, in any dropped gun (was 0.6, and a brute's minigun came full)
+};
+
+/**
+ * How thick the enemies are (試玩回饋 ④, DECISIONS 2026-10-23): each comes in with `base` times the health his type
+ * has in enemies.js TYPES, and every stage of the run (waves.js stageIndex) adds `perStage` of that again, so a gun
+ * takes more shots as the night goes on. What is not a bullet (a kick, a throw, a barrel, a door, a stray round) is
+ * made as much stronger: it takes as many as it always did, and an execution or a fall still takes him at once.
+ */
+export const ENEMY_HP = {
+  base: 1.5, // ×: a thug 3 → 5, a brute 20 → 30 (rounded)
+  perStage: 0.25, // + per stage after the first: the second ×1.25, the third ×1.5
 };
 
 export const LEVELS = {
