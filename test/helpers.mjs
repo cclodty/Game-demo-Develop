@@ -151,13 +151,14 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
             door = { x: boss.x + bx * (back + 0.1), z: boss.z + bz * (back + 0.1) };
             goal = { x: boss.x + bx * (back + 5), z: boss.z + bz * (back + 5) };
             behind = (p.x - boss.x) * bx + (p.z - boss.z) * bz > back + 0.5;
-          } else if (boss.active && boss.def && boss.def.kind === 'gunner' && boss.state !== 'enter') {
-            // the heavy gunner's steel plate: shots count only on his back, so the bot runs round behind him and fires
+          } else if (boss.active && boss.def && (boss.def.kind === 'gunner' || boss.def.kind === 'bulwark') && boss.state !== 'enter') {
+            // the heavy gunner's steel plate, the shield man's shield: shots count only on his back, so the bot runs
+            // round behind him and fires (the shield man's also while his shield is down)
             const bx = -Math.sin(boss.facing);
             const bz = -Math.cos(boss.facing);
             door = { x: boss.x, z: boss.z };
             goal = { x: boss.x + bx * 4, z: boss.z + bz * 4 };
-            behind = (p.x - boss.x) * bx + (p.z - boss.z) * bz > 1;
+            behind = (p.x - boss.x) * bx + (p.z - boss.z) * bz > 1 || (boss.def.kind === 'bulwark' && !boss.shieldUp);
           } else if (boss.active && boss.def && (boss.def.kind === 'marksman' || boss.def.kind === 'buckshot') && boss.state !== 'enter') {
             // Senado's two: shots on either count wherever they hit, so the bot fires at the nearer
             door = { x: boss.x, z: boss.z };

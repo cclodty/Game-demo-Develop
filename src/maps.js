@@ -1695,7 +1695,7 @@ const RUINS_WALLS = ruinsWalls();
 
 const ruins = {
   id: 'ruins',
-  rev: 2, // 2: rebuilt to the massing study (大三巴：重建 ①)
+  rev: 3, // 2: rebuilt to the massing study (大三巴：重建 ①); 3: its boss, the shield man (大三巴：頭目 ①)
   budget: { tris: 180000, calls: 600 }, // rendered per frame, all passes (test/maps.test.mjs: 124,694 and 128 at the start, the OSM buildings drawn; before the rebuild, which merged the walls into two meshes, 138,592 and 342)
   name: '大三巴',
   en: "RUINS OF ST. PAUL'S",
@@ -1768,6 +1768,8 @@ const ruins = {
     [Math.round((ruinsFace(RUINS_YELLOW, 62, -4) - 0.9) * 100) / 100, 62, 'sign', 270], // under the arcade, between its columns
   ],
   pads: [[-4, 58], [0, -13]],
+  // the shield man (boss.js BULWARK): out of the old nave through the façade's middle doorway onto the terrace
+  boss: { kind: 'bulwark', from: [RUINS.doors[1][0], -26], at: [RUINS.doors[1][0], -18] },
   stages: [
     { name: '前地', en: 'FORECOURT', at: [-1, 63], move: 'pan' }, // between the doors: a beat here comes in from the west and the east
     { name: '花槽', en: 'PLANTERS', at: [-6, 45], move: 'boom' },
