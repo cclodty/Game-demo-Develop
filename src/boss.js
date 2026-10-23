@@ -63,6 +63,16 @@
 // runs into him) takes a segment and staggers him; a kick, a pan smash or a thug bowled into him only
 // staggers him, plate down. No crew.
 //
+// marksman, Senado's marksman (議事亭長槍手, 議事亭：頭目 ①): a long gun from one of the map's posts (`boss.posts`), the
+// first his first, in on foot from a street's mouth (`boss.from`). At a post his red line comes up after MARKSMAN.line.first s
+// and swings onto the player at line.track rad/s; on him with nothing between, it stops there for line.warn s, then one round
+// comes down it for line.dmg (a step out of the line meanwhile and it misses). A solid between (a lamp post, a stall, the
+// kiosk) breaks his line, and so does a flock of the square's pigeons bursting into the air across it (level.js flockBlocks);
+// broken move.lost s, after move.shots rounds, or with the player within move.near m, he moves on to another post, one
+// move.band m from the player, and on the move nothing covers him. Shots on him count, perSegment to a segment, anywhere but
+// on his way in; a kick, a pan smash or a thug bowled into him staggers him and sends him on. The camera leans towards him
+// (`pull`), so he is in the picture whenever he shoots. No crew.
+//
 // duo, two at once (雙頭目, DECISIONS 2026-10-22): on a large map the stage's boss can be two people fighting the
 // player together (maps.js `boss: { kind: 'duo', pair: [def, def] }`, each def a kind of its own with its own data).
 // The duo is the boss the rest of the game talks to: it hands each shot, blast, kick, smash and ram to whichever of
@@ -226,6 +236,30 @@ export const CONVOY = {
   // the gunman in the lead's window: every `every` s a red line onto the player for `warn` s, then `shots` rounds
   gun: { first: 5, every: 4.5, warn: 0.6, shots: 3, interval: 0.12, speed: 30, dmg: 8, range: 24 },
   wreck: { burn: 1.6, radius: 4 }, // the lead brought down: s burning, then the blast
+};
+
+export const MARKSMAN = {
+  label: 'MARKSMAN',
+  name: '議事亭長槍手',
+  short: '長槍手',
+  downed: '擊倒',
+  pull: { lean: 0.5, zoom: 1.35 }, // the camera leans this far towards him and pulls back this much (main.js): him and the player in the picture
+  segments: 5,
+  bonus: 2000,
+  radius: 0.4, // his body, for shots and the player's reach
+  enter: 3.5, // m/s in from the street's mouth (`boss.from`) to his first post (`boss.posts[0]`)
+  speed: 3.2, // m/s from one post to the next
+  perSegment: 4, // hits that take a segment
+  // his line: up `first` s after he reaches a post, it swings onto the player at `track` rad/s; on him (within `on` rad) with
+  // nothing between, it stops there for `warn` s, then one round down it at `speed` m/s for `dmg`, out to `range` m; `cycle`
+  // s to work the bolt
+  line: { first: 1.2, track: 1.2, on: 0.02, warn: 1, speed: 72, dmg: 40, range: 40, cycle: 1.2 },
+  // on to another post after `shots` rounds from one, once his line has been broken `lost` s, with the player within `near` m or
+  // farther than `far`; the next is one `band` m from the player (seeing him if one can), `giveUp` s at most on the way
+  move: { shots: 2, lost: 1.5, near: 10, far: 30, band: [12, 26], giveUp: 12 },
+  stagger: 0.8, // s he reels after a kick, a pan smash or a thug bowled into him; then he moves on
+  bowl: 5, // m/s a kicked thug needs to knock him off balance
+  blast: 2.4, // m: a blast this close takes a segment
 };
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -2342,6 +2376,332 @@ class Gunner extends Boss {
   }
 }
 
+/** Senado's marksman: a long gun from one of the map's posts, his red line the warning; between posts, in the open. */
+class Marksman extends Boss {
+  constructor(game) {
+    super(game, MARKSMAN);
+    this.rig = null;
+    this.reset();
+  }
+
+  reset() {
+    if (this.rig) {
+      const g = this.game;
+      g.scene.remove(this.rig.root);
+      disposeRig(this.rig);
+      this.laser.dispose(g.scene);
+      this.rig = null;
+    }
+    super.reset();
+    this.state = 'idle';
+  }
+
+  /** His wave: `def` is the map's (maps.js `boss`: `from` a street's mouth, `posts` where he shoots from, the first his first). */
+  start(def, size) {
+    this.reset();
+    super.start(def, size);
+    this.posts = def.posts.map(([x, z]) => ({ x, z }));
+    this.target = this.posts[0];
+    this.x = def.from[0];
+    this.z = def.from[1];
+    this.facing = angleTo(this.x, this.z, this.target.x, this.target.z);
+    this.state = 'enter'; // enter, post (his line swings onto the player), lock (it stands still), cycle (the bolt), move, stagger, down
+    this.lineA = this.facing; // where his line points
+    this.lineT = 0; // s before his line is up, at a post
+    this.timer = 0;
+    this.shots = 0; // rounds from this post
+    this.lostT = 0; // s his line has been broken
+    this.moveT = 0; // s on the way to the next post
+    this.hits = 0; // towards the next segment
+    this.path = null;
+    this.pathT = 0;
+    this.phase = 0;
+    this.flash = 0;
+    this.firstLine = true;
+    this.build();
+  }
+
+  /** The look: the rifleman's rig a size up in a dark coat, the long rifle, his red line. */
+  build() {
+    const g = this.game;
+    this.rig = buildCharacter({ body: 0x23262c, pants: 0x15171b, accent: 0xff3030, hair: 0x101010, weapon: 'sniper', scale: 1.1, ring: 0.45, model: 'rifle' });
+    this.laser = new Laser(g.scene, 0xff1a1a, true); // painted on, not added: Senado's paving is white
+    g.scene.add(this.rig.root);
+    this.sync();
+  }
+
+  /** One logic step. */
+  update(dt) {
+    if (!this.active) return;
+    const g = this.game;
+    this.t += dt;
+    this.flash = Math.max(0, this.flash - dt * 5);
+    switch (this.state) {
+      case 'enter':
+        if (this.walkTo(this.target, MARKSMAN.enter, dt, false)) this.arrive();
+        break;
+      case 'move':
+        this.moveT += dt;
+        if (this.walkTo(this.target, MARKSMAN.speed, dt, true)) this.arrive();
+        else if (this.moveT > MARKSMAN.move.giveUp) this.moveOn();
+        break;
+      case 'post':
+        this.aim(dt);
+        break;
+      case 'lock':
+        this.timer -= dt;
+        if (!this.lineClear()) {
+          this.state = 'post';
+          g.notes.log('白鴿驚起，擋住長槍手的紅線');
+        } else if (this.timer <= 0) {
+          this.fire();
+          this.state = 'cycle';
+          this.timer = MARKSMAN.line.cycle;
+        }
+        break;
+      case 'cycle':
+        this.timer -= dt;
+        if (this.timer <= 0) {
+          if (this.shots >= MARKSMAN.move.shots) this.moveOn('長槍手開了兩槍，換位');
+          else this.state = 'post';
+        }
+        break;
+      case 'stagger':
+        this.timer -= dt;
+        if (this.timer <= 0) this.moveOn();
+        break;
+    }
+    if (this.state !== 'enter' && this.state !== 'down') {
+      g.level.collideCircle(this, MARKSMAN.radius);
+      this.bowled();
+    }
+    this.sync();
+  }
+
+  /** A step towards `to` (along the nav grid if `nav`); true on arrival. */
+  walkTo(to, speed, dt, nav) {
+    const L = this.game.level;
+    let w = to;
+    if (nav) {
+      this.pathT -= dt;
+      if (!this.path || this.pathT <= 0) {
+        this.path = L.nav.findPath(this.x, this.z, to.x, to.z) || [{ x: to.x, z: to.z }];
+        this.pathT = 0.6;
+      }
+      while (this.path.length > 1 && Math.hypot(this.path[0].x - this.x, this.path[0].z - this.z) < 0.5) this.path.shift();
+      w = this.path[0];
+    }
+    const d = Math.hypot(w.x - this.x, w.z - this.z);
+    const step = Math.min(speed * dt, d);
+    if (d > 1e-4) {
+      this.facing = angleTo(this.x, this.z, w.x, w.z);
+      this.x += Math.sin(this.facing) * step;
+      this.z += Math.cos(this.facing) * step;
+    }
+    this.phase += dt * speed * 2.2;
+    return Math.hypot(to.x - this.x, to.z - this.z) < 0.3;
+  }
+
+  /** At a post: his line comes up along the way he came, and has to swing round to the player. */
+  arrive() {
+    this.state = 'post';
+    this.path = null;
+    this.lineA = this.facing;
+    this.lineT = MARKSMAN.line.first;
+    this.shots = 0;
+    this.lostT = 0;
+  }
+
+  /** At a post: the line swings onto the player; on him and clear, it stops (lock); broken too long, or the player too near or far, he moves on. */
+  aim(dt) {
+    const g = this.game;
+    const p = g.player;
+    const M = MARKSMAN;
+    if (!p.alive) return;
+    const dist = Math.hypot(p.x - this.x, p.z - this.z);
+    if (dist < M.move.near) return this.moveOn('長槍手被逼近，換位');
+    if (dist > M.move.far) return this.moveOn('長槍手換位追上');
+    this.lineT -= dt;
+    if (this.lineT > 0) return;
+    const want = angleTo(this.x, this.z, p.x, p.z);
+    this.lineA = turnTowards(this.lineA, want, M.line.track * dt);
+    this.facing = this.lineA;
+    const clear = dist < M.line.range && g.level.hasLOS(this.x, this.z, p.x, p.z) && !g.level.flockBlocks(this.x, this.z, p.x, p.z);
+    this.lostT = clear ? 0 : this.lostT + dt;
+    if (this.lostT >= M.move.lost) return this.moveOn('長槍手看不到你，換位');
+    if (clear && Math.abs(wrapAngle(want - this.lineA)) <= M.line.on && this.mayTell()) this.lock();
+  }
+
+  /** The line stops on the player: `warn` s, then the round. */
+  lock() {
+    const g = this.game;
+    const p = g.player;
+    this.state = 'lock';
+    this.timer = MARKSMAN.line.warn;
+    this.lineA = this.facing = angleTo(this.x, this.z, p.x, p.z);
+    g.audio.aimWarn(g.panFor(this.x));
+    if (this.firstLine) {
+      this.firstLine = false;
+      g.hud.banner('MARKSMAN', '紅線停住一秒就開槍：躲到柱後，或者射驚白鴿', 'clear');
+    }
+  }
+
+  /** How far his line reaches: to the first solid along it, or its range. */
+  lineLength() {
+    return this.game.level.rayLength(this.x, this.z, Math.sin(this.lineA), Math.cos(this.lineA), MARKSMAN.line.range);
+  }
+
+  /** The stopped line still holds: no flock has burst into the air across it. */
+  lineClear() {
+    const n = this.lineLength();
+    return !this.game.level.flockBlocks(this.x, this.z, this.x + Math.sin(this.lineA) * n, this.z + Math.cos(this.lineA) * n);
+  }
+
+  /** The round, down the line. */
+  fire() {
+    const g = this.game;
+    const M = MARKSMAN.line;
+    const dx = Math.sin(this.lineA);
+    const dz = Math.cos(this.lineA);
+    // the source is the boss as the game sees it (game.boss): its label names the bullets that hit
+    g.bullets.spawn({ x: this.x + dx * 0.8, z: this.z + dz * 0.8, dx, dz, speed: M.speed, owner: 'enemy', damage: M.dmg, range: M.range, source: this.team ? this : g.boss });
+    g.audio.shot('sniper', g.panFor(this.x));
+    this.shots++;
+  }
+
+  /** On to another post: one MARKSMAN.move.band m from the player, seeing him if it can, the nearer of those; `why` for the notes. */
+  moveOn(why) {
+    const g = this.game;
+    const p = g.player;
+    const [lo, hi] = MARKSMAN.move.band;
+    let best = null;
+    let bs = -Infinity;
+    for (const q of this.posts) {
+      if (q === this.target) continue;
+      const d = Math.hypot(q.x - p.x, q.z - p.z);
+      let s = -Math.abs(d - (lo + hi) / 2) * 0.5 - Math.hypot(q.x - this.x, q.z - this.z) * 0.3;
+      if (d < lo || d > hi) s -= 20;
+      if (g.level.hasLOS(q.x, q.z, p.x, p.z)) s += 6;
+      if (s > bs) {
+        bs = s;
+        best = q;
+      }
+    }
+    this.target = best || this.target;
+    this.state = 'move';
+    this.path = null;
+    this.moveT = 0;
+    if (why) g.notes.log(why);
+  }
+
+  /** Open to the player once he is in: at his posts and on the move between them. */
+  vulnerable() {
+    return this.active && this.state !== 'enter';
+  }
+
+  /** A thug kicked into him knocks him off balance. */
+  bowled() {
+    for (const e of this.game.enemies.list) {
+      if (e.stunT <= 0) {
+        e.bowledBoss = false;
+        continue;
+      }
+      if (!e.alive || e.bowledBoss || e.cfg.fly || Math.hypot(e.vx, e.vz) < MARKSMAN.bowl) continue;
+      if (Math.hypot(e.x - this.x, e.z - this.z) > MARKSMAN.radius + e.radius + 0.15) continue;
+      e.bowledBoss = true;
+      e.vx *= 0.2;
+      e.vz *= 0.2;
+      this.game.audio.kick(true);
+      this.stagger('打手撞到長槍手身上');
+    }
+  }
+
+  /** He reels `MARKSMAN.stagger` s, his line down; then he moves on. */
+  stagger(how) {
+    if (!this.active || this.state === 'enter') return;
+    this.state = 'stagger';
+    this.timer = MARKSMAN.stagger;
+    this.flash = 1;
+    if (how) this.game.notes.log(how);
+  }
+
+  shotAt(x0, z0, x1, z1) {
+    if (!this.active || this.state === 'enter') return null; // on his way in the shot flies past
+    const t = segCircle(x0, z0, x1, z1, this.x, this.z, MARKSMAN.radius);
+    return t < 0 ? null : { t, part: 'body' };
+  }
+
+  shot(b) {
+    const g = this.game;
+    this.flash = 1;
+    g.fx.blood(b.x, GUN_Y, b.z, b.dx, b.dz, 8);
+    g.audio.flesh(g.panFor(b.x));
+    if (++this.hits >= MARKSMAN.perSegment) {
+      this.hits = 0;
+      this.hurt(this.state === 'move' ? '換位時中彈' : '中彈');
+    }
+    return true;
+  }
+
+  /** The player's kick or pan smash (player.js): he staggers, and moves on after; no segment. */
+  melee(inCone, reach, kind) {
+    if (!this.active || this.state === 'enter') return false;
+    const dir = inCone(this.x, this.z, reach + MARKSMAN.radius);
+    if (!dir) return false;
+    this.x += dir.x * 0.4;
+    this.z += dir.z * 0.4;
+    this.stagger(kind === 'smash' ? '鑊擊中長槍手' : '踢中長槍手');
+    return true;
+  }
+
+  rammed(x, z, r) {
+    return this.active && this.state !== 'enter' && Math.hypot(x - this.x, z - this.z) <= MARKSMAN.radius + r + 0.1;
+  }
+
+  /** A blast beside him takes a segment and staggers him. */
+  blast(x, z, opts = {}) {
+    if (!this.active || this.state === 'enter' || Math.hypot(x - this.x, z - this.z) > MARKSMAN.blast) return;
+    this.flash = 1;
+    this.hits = 0;
+    this.hurt(opts.rocket ? '被火箭油桶炸中' : '被炸到');
+    if (this.active) this.stagger();
+  }
+
+  /** The last segment: he goes down where he stands. */
+  goDown() {
+    const g = this.game;
+    this.state = 'down';
+    g.fx.blood(this.x, 1, this.z, 0, 0, 16);
+    g.notes.log('長槍手倒下');
+    g.hud.banner('BOSS DOWN', '長槍手倒下了', 'clear');
+    this.finish();
+    this.sync();
+  }
+
+  /** Where he is drawn, and his line: faint while it swings, bright and growing once it stops. */
+  sync() {
+    const g = this.game;
+    const r = this.rig;
+    const S = this.state;
+    r.root.position.set(this.x, g.level.groundY(this.x, this.z), this.z);
+    r.root.rotation.y = this.facing;
+    setFlash(r, this.flash * 2.5);
+    const up = (S === 'post' && this.lineT <= 0) || S === 'lock';
+    if (up) {
+      const n = this.lineLength();
+      const k = S === 'lock' ? clamp(1 - this.timer / MARKSMAN.line.warn, 0, 1) : 0;
+      this.laser.set(this.x, this.z, this.x + Math.sin(this.lineA) * n, this.z + Math.cos(this.lineA) * n, S === 'lock' ? 0.1 + 0.06 * k : 0.05, S === 'lock' ? 1.5 + 2.5 * k : 0.8, GUN_Y);
+    } else this.laser.hide();
+    r.ring.material.color.setRGB(S === 'lock' ? 2.2 : 1, 0.3, 0.1);
+    if (!g.style.poseDue(r, g.worldTime)) return;
+    const walking = S === 'enter' || S === 'move';
+    animateRig(r, this.phase, walking ? 1 : 0, this.facing);
+    r.inner.rotation.x = S === 'down' ? 1.45 : S === 'stagger' ? -0.25 : 0;
+    r.inner.position.y = S === 'down' ? 0.15 : 0;
+    finishRig(r, g.worldTime);
+  }
+}
+
 const MORTAR_SOURCE = { cfg: { label: '重炮' } }; // names the shells that hurt the player (weapons.js lob)
 
 class Road {
@@ -2996,6 +3356,7 @@ export const BOSSES = {
   truck: { make: (game) => new Truck(game), cfg: TRUCK },
   gunner: { make: (game) => new Gunner(game), cfg: GUNNER },
   convoy: { make: (game) => new Convoy(game), cfg: CONVOY },
+  marksman: { make: (game) => new Marksman(game), cfg: MARKSMAN },
   duo: { make: (game) => new Duo(game), cfg: DUO },
 };
 

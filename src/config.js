@@ -255,6 +255,7 @@ export const ENV = {
   flockBlind: 0.5, // world seconds before he can aim again (a kill meanwhile is a PIGEON STRIKE)
   flockScare: 1.5, // metres: a player bullet passing this close to a resting flock startles it
   flockAway: [14, 24], // world seconds a startled flock stays away
+  flockCloud: { time: 2.5, radius: 3 }, // for `time` s after it takes off, a flock is a cloud `radius` m round its spot that a marksman's line cannot cross (level.js flockBlocks)
   // fixtures (fixtures.js): street lamps and hanging signs
   lampHits: 2, // player bullets that put a street lamp out
   darkRadius: 4, // m: the dark pool under a lamp shot out…

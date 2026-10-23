@@ -12,7 +12,7 @@ import { propModel } from './models.js';
 import { buildFixtures } from './fixtures.js';
 import { NavGrid } from './nav.js';
 import { Race } from './race.js';
-import { clamp, rand, resolveCircleAABB, resolveCirclePoly, segAABB, segCircle, segPoly, TAU } from './utils.js';
+import { clamp, pointSegDist2, rand, resolveCircleAABB, resolveCirclePoly, segAABB, segCircle, segPoly, TAU } from './utils.js';
 import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenceTexture, floorTexture } from './textures.js';
 
 const _hit = { t: 0, nx: 0, nz: 0 };
@@ -1720,6 +1720,7 @@ export class Level {
     const g = this.game;
     const p = g.player;
     for (const f of this.flocks) {
+      f.upT = Math.max(0, f.upT - dt);
       if (f.away > 0) {
         f.away = Math.max(0, f.away - dt);
         continue;
@@ -1736,6 +1737,7 @@ export class Level {
   startle(f, x, z) {
     const g = this.game;
     f.away = g.rng.range(ENV.flockAway[0], ENV.flockAway[1]);
+    f.upT = ENV.flockCloud.time;
     f.gen++;
     f.fromX = x;
     f.fromZ = z;
@@ -1748,6 +1750,12 @@ export class Level {
       }
     }
     g.notes.log(n ? `白鴿驚起，打斷 ${n} 個敵人的瞄準` : '白鴿驚起');
+  }
+
+  /** A flock just taken off (ENV.flockCloud) across the line from (x0, z0) to (x1, z1): a marksman cannot see down it (boss.js). */
+  flockBlocks(x0, z0, x1, z1) {
+    const r = ENV.flockCloud.radius;
+    return this.flocks.some((f) => f.upT > 0 && pointSegDist2(f.x, f.z, x0, z0, x1, z1) < r * r);
   }
 
   resetProps() {

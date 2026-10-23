@@ -157,12 +157,14 @@ const laserGeo = (() => {
 })();
 
 export class Laser {
-  constructor(scene, color) {
+  /** `solid`: painted over the scene rather than added to it, so it still shows on a white floor (Senado's marksman, boss.js). */
+  constructor(scene, color, solid = false) {
     this.base = new THREE.Color(color);
+    this.solid = solid;
     this.mat = new THREE.MeshBasicMaterial({
       color: this.base.clone(),
       vertexColors: true,
-      blending: THREE.AdditiveBlending,
+      blending: solid ? THREE.NormalBlending : THREE.AdditiveBlending,
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
@@ -188,7 +190,8 @@ export class Laser {
     this.mesh.rotation.y = Math.atan2(dx, dz);
     this.mesh.rotation.x = Math.atan2(y - y1, len);
     this.mesh.scale.set(width, 1, Math.hypot(len, y - y1));
-    this.mat.color.copy(this.base).multiplyScalar(intensity);
+    if (this.solid) this.mat.opacity = Math.min(0.95, 0.3 + intensity * 0.16);
+    else this.mat.color.copy(this.base).multiplyScalar(intensity);
   }
 
   hide() {

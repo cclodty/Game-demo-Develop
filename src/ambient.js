@@ -35,6 +35,7 @@ export class Flock {
   reset() {
     [this.x, this.z] = this.home;
     this.away = 0; // world seconds until it lands again; 0 while it rests
+    this.upT = 0; // world seconds it is still a cloud of wings over its spot (ENV.flockCloud)
     this.gen = 0; // counts take-offs, so the look can tell a new one
     this.fromX = this.x; // where the scare came from
     this.fromZ = this.z;
