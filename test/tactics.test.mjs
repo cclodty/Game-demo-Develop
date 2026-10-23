@@ -59,7 +59,7 @@ after(async () => {
 
 test('the type table says who takes cover, who flanks and who just advances', async () => {
   const t = await page.evaluate(() => Object.fromEntries(Object.entries(window.game.enemyTypes).map(([k, v]) => [k, v.tactic || null])));
-  assert.deepEqual(t, { grunt: 'cover', shotgun: 'cover', rifle: 'cover', rusher: 'flank', brute: 'advance', shield: 'advance', bomber: 'flank', grenadier: null, sniper: null, drone: null });
+  assert.deepEqual(t, { grunt: 'cover', shotgun: 'cover', rifle: 'cover', rusher: 'flank', tumbler: 'advance', brute: 'advance', shield: 'advance', bomber: 'flank', grenadier: null, sniper: null, drone: null });
 });
 
 test('a rifleman with a box between him and the player goes behind it, ducks, and shoots only from a step out', { timeout: 120000 }, async () => {

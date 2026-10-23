@@ -1581,8 +1581,8 @@
 - 第 5 波起，每波最多 2 個；血量 4（照倍數）；方塊人換顏色和頭巾，不加模型檔
 - 涉及：`src/enemies.js`（`TYPES.tumbler`，用「敵人動作 ①」的翻滾）、`src/characters.js`、`src/waves.js`、`src/notes.js`、新測試
 - 驗收：
-  - [ ] 測試：連續翻滾接近，三次後停下喘氣；落地破綻時中槍會受傷；近身會踢
-  - [ ] 截圖；每日挑戰、重播照讀；`npm run lint && npm test`、`npm run test:game` 通過
+  - [x] 測試：連續翻滾接近，三次後停下喘氣；落地破綻時中槍會受傷；近身會踢（2026-10-23，`test/tumbler.test.mjs`：另測翻滾中子彈穿過他；喘氣時踢倒、F 處決；第 5 波前沒有、之後每波最多 2 個）
+  - [x] 截圖；每日挑戰、重播照讀；`npm run lint && npm test`、`npm run test:game` 通過（2026-10-23：`docs/shots/phase-4b/tumbler.jpg`；`PLAY_REV` 5 → 6，舊重播寫「遊戲已改版」；npm test 397 個，396 個一次過，戰術表補上飛仔後重跑那個檔全過；test:game 3 個）
 - 這次不做：模型檔
 
 ### 新敵人 ②：帶頭大佬 CAPTAIN（估計：一天）

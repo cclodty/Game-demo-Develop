@@ -1810,9 +1810,9 @@ export const MAPS = [rooftop, club, docks, senado, felicidade, guia, ruins];
  * input play another run. 1: the weapon pads fill once a stage, fewer and emptier dropped guns (config.js FIREPOWER).
  * 2: thicker enemies, more each stage (ENEMY_HP). 3: quicker each stage, 正常 and 芭蕾 aim faster (RAMP, rules.js).
  * 4: gunmen and blades roll aside from the player's fire (AI.dodge). 5: riflemen and shotgunners strafe, men vault low
- * cover, the hurt fall back (AI.strafe, vault, retreat).
+ * cover, the hurt fall back (AI.strafe, vault, retreat). 6: the tumbler, from wave 5 (enemies.js TYPES, AI.tumble).
  */
-export const PLAY_REV = 5;
+export const PLAY_REV = 6;
 
 /**
  * The game's revision as one byte, for the input record (replay.js): the sum of every map's `rev` and PLAY_REV. A

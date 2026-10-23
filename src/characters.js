@@ -156,6 +156,12 @@ export const MODELS = {
       [0.04, 0.05, 0.04, 0, 0.11, 0.62, 'accent'],
     ],
   },
+  // bare taped fists (the tumbler's): a wrapped knuckle in the right hand, nothing to shoot with
+  fists: {
+    hold: 'right',
+    end: 0.6,
+    parts: [[0.1, 0.09, 0.1, 0, 0, 0.6, 'accent']],
+  },
   detonator: {
     hold: 'right',
     end: 0.7,

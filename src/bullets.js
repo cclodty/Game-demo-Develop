@@ -224,7 +224,7 @@ export class Bullets {
 
     if (b.owner === 'player') {
       for (const e of game.enemies.list) {
-        if (!e.alive || e.spawnLock > 0 || e.held || (b.hits.length && b.hits.includes(e))) continue; // the human shield is the player's own
+        if (!e.alive || e.spawnLock > 0 || e.held || e.untouchable || (b.hits.length && b.hits.includes(e))) continue; // the human shield is the player's own; a tumbler mid-roll lets it through
         const t = segCircle(x0, z0, x1, z1, e.x, e.z, e.radius + 0.16);
         if (t >= 0 && (!best || t < best.t)) best = { t, type: 'enemy', enemy: e };
       }

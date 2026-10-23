@@ -159,6 +159,10 @@ export const AI = {
   // a gunman (TYPES `retreat`) down to `at` of his health falls back to cover farther from the player, or `away` m off
   // when there is none; never the last man standing
   retreat: { at: 0.5, away: 6 },
+  // 飛仔 TUMBLER (試玩回饋 ④; TYPES `tumble`): rolls of `dist` m in `roll` s at the player, swung `angle`° one side then
+  // the other, bullets passing through him mid-roll; `land` s open after each; after `rolls` rolls `pant` s for breath;
+  // within `reach` m a kick, `windup` s to wind up, for `kick`
+  tumble: { roll: 0.4, dist: 3, angle: 25, land: 0.5, rolls: 3, pant: 2, reach: 1.8, windup: 0.3, kick: 20 },
 };
 
 /**

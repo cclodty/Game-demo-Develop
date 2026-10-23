@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import { AI, ENEMY_HP, ENV, FIREPOWER, GUN_Y, LOGIC_HZ, PLAYER, RAMP } from './config.js';
-import { animateRig, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, keyPose, setFlash } from './characters.js';
+import { animateRig, BODY, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, keyPose, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowards } from './utils.js';
 
@@ -82,6 +82,21 @@ export const TYPES = {
     tactic: 'flank', // a pair of them split up and come from two sides
     look: { body: 0x141418, pants: 0x101014, accent: 0xff2bd0, hair: 0x0a0a0a, weapon: 'blade' },
     spawn: { from: 3, weight: 2.2 },
+  },
+  tumbler: {
+    label: 'TUMBLER',
+    name: '飛仔',
+    tumble: true, // rolls in roll after roll, bullets passing through him mid-roll; pants after three; kicks (AI.tumble)
+    hp: 4,
+    speed: 5,
+    radius: 0.3,
+    weapon: 'fists',
+    score: 140,
+    turn: 12,
+    tactic: 'advance',
+    // the block rig in a yellow tracksuit and a red headband: no model of his own
+    look: { body: 0xe8b21c, pants: 0x18181c, accent: 0x2ee8a0, hair: 0x101010, weapon: 'fists', band: 0xff3b30 },
+    spawn: { from: 5, weight: 1.4, max: 2 },
   },
   brute: {
     label: 'BRUTE',
@@ -232,6 +247,9 @@ class Enemy {
     this.dashX = this.dashZ = 0;
     if (cfg.bomb) this.buildVest();
     if (cfg.lob) this.buildBag();
+    if (cfg.look.band) this.buildBand(cfg.look.band);
+    this.rolls = 0; // a tumbler's rolls since he last caught his breath (AI.tumble)
+    this.rollDist = 0;
     this.idleOffset = rand(0, 10);
     this.game.scene.add(this.rig.root);
     const lc = LASER_COLOR[cfg.weapon] || LASER_COLOR.pistol;
@@ -382,7 +400,12 @@ class Enemy {
 
   /** Those who run at the player instead of keeping a range: blades and bombers. */
   get rushes() {
-    return this.cfg.weapon === 'blade' || !!this.cfg.bomb;
+    return this.cfg.weapon === 'blade' || !!this.cfg.bomb || !!this.cfg.tumble;
+  }
+
+  /** Bullets pass through him: a tumbler mid-roll (AI.tumble). */
+  get untouchable() {
+    return this.state === 'tumble';
   }
 
   /** The bomber's vest: a dark harness, a row of red charges and a lamp that blinks faster once he is lit. */
@@ -423,6 +446,23 @@ class Enemy {
     this.rig.inner.add(g);
     this.game.style.dress(g);
     this.bag = g;
+  }
+
+  /** A headband (the tumbler's): round the head, its two ends trailing behind. */
+  buildBand(color) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(BODY.headW + 0.04, 0.05, BODY.headD + 0.04), mat));
+    for (const x of [-0.035, 0.035]) {
+      const tail = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.035, 0.16), mat);
+      tail.position.set(x, -0.03, -BODY.headD / 2 - 0.09);
+      tail.rotation.x = 0.5;
+      g.add(tail);
+    }
+    g.position.y = 0.04;
+    this.rig.head.add(g);
+    this.game.style.dress(g);
+    this.band = g;
   }
 
   get shieldUp() {
@@ -617,6 +657,42 @@ class Enemy {
       if (i >= 0) this.retreatTo = { x: g.level.nav.centerX(i), z: g.level.nav.centerZ(i) };
     }
     g.notes.log(`${this.cfg.label} 受傷後撤`);
+  }
+
+  /**
+   * A tumbler in the chase (AI.tumble): within reach, the kick's wind-up; else his next roll at the player, swung to one
+   * side then the other, short of him; true when he does either (else he walks, as a blade would).
+   */
+  tumbleOn(distP, dxp, dzp) {
+    const T = AI.tumble;
+    const g = this.game;
+    if (distP <= T.reach) {
+      if (!this.mgr.requestToken(this)) return false;
+      this.state = 'windup';
+      this.timer = T.windup;
+      this.aimAngle = Math.atan2(dxp, dzp);
+      g.audio.aimWarn(g.panFor(this.x));
+      return true;
+    }
+    const dist = Math.min(T.dist, distP - 1);
+    if (dist < 0.8) return false;
+    const at = Math.atan2(dxp, dzp);
+    const side = this.rolls % 2 ? -1 : 1;
+    const nav = g.level.nav;
+    for (const a of [at + (side * T.angle * Math.PI) / 180, at]) {
+      const lx = this.x + Math.sin(a) * dist;
+      const lz = this.z + Math.cos(a) * dist;
+      if (!nav.isWalkable(lx, lz) || !nav.lineWalkable(this.x, this.z, lx, lz) || !g.level.sameLevel(this.x, this.z, lx, lz)) continue;
+      this.rollX = Math.sin(a);
+      this.rollZ = Math.cos(a);
+      this.rollDist = dist;
+      this.rolls++;
+      this.state = 'tumble';
+      this.timer = T.roll;
+      this.endAim();
+      return true;
+    }
+    return false;
   }
 
   /** Pigeons in the face: the aim breaks off and cannot start again for `t` seconds. */
@@ -1377,6 +1453,7 @@ class Enemy {
           }
           break;
         case 'chase': {
+          if (cfg.tumble && this.tumbleOn(distP, dxp, dzp)) break;
           this.repath -= dt;
           const bomb = cfg.bomb;
           if (bomb && this.fuseT >= 0) {
@@ -1428,6 +1505,42 @@ class Enemy {
           }
           break;
         }
+        case 'tumble': {
+          // a tumbler's roll (AI.tumble): bullets pass through him (untouchable); a blast still finds him
+          this.timer -= dt;
+          const v = this.rollDist / AI.tumble.roll;
+          this.vx = this.rollX * v;
+          this.vz = this.rollZ * v;
+          want = null;
+          face = Math.atan2(this.rollX, this.rollZ);
+          if (this.timer <= 0) {
+            this.vx = this.vz = 0;
+            this.state = 'land';
+            this.timer = AI.tumble.land;
+          }
+          break;
+        }
+        case 'land':
+          // down from a roll: open to anything for AI.tumble.land s
+          this.timer -= dt;
+          want = [0, 0];
+          face = angleTo(this.x, this.z, p.x, p.z);
+          if (this.timer <= 0) {
+            if (this.rolls >= AI.tumble.rolls) {
+              this.rolls = 0;
+              this.state = 'pant';
+              this.timer = AI.tumble.pant;
+              g.notes.log('飛仔喘氣');
+            } else this.state = 'chase';
+          }
+          break;
+        case 'pant':
+          // out of breath (AI.tumble.pant s): a kick puts him down, and F executes him
+          this.timer -= dt;
+          want = [0, 0];
+          face = angleTo(this.x, this.z, p.x, p.z);
+          if (this.timer <= 0) this.state = 'chase';
+          break;
         case 'vault': {
           // over low cover (AI.vault): in the air, no shot, no roll: the moment to get him
           this.timer -= dt;
@@ -1492,7 +1605,8 @@ class Enemy {
           want = null;
           if (!this.struck && distP < 1.55 + this.radius) {
             this.struck = true;
-            if (p.hurt(30, dxp / distP, dzp / distP, false, `${this.cfg.label} 近身`)) g.shake(0.4);
+            const kick = !!cfg.tumble; // a tumbler's flying kick (AI.tumble), else a blade's cut
+            if (p.hurt(kick ? AI.tumble.kick : 30, dxp / distP, dzp / distP, false, kick ? '飛仔飛踢' : `${this.cfg.label} 近身`)) g.shake(0.4);
             else if (p.spinning) g.score.style('DODGE', 40, true);
           }
           if (this.timer <= 0) {
@@ -1621,7 +1735,11 @@ class Enemy {
     if (!this.game.style.poseDue(r, this.game.worldTime + this.idleOffset)) return; // the pose holds between the style's steps
     animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
     // crouched for the roll, rolling, or rocked back by a shot (fading)
-    if (this.state === 'tell') keyPose(r, 'crouch');
+    if (this.state === 'tumble') keyPose(r, 'roll');
+    else if (this.state === 'land') keyPose(r, 'crouch', 0.7);
+    else if (this.state === 'pant') keyPose(r, 'crouch', 0.45);
+    else if (this.cfg.tumble && (this.state === 'windup' || this.state === 'strike')) keyPose(r, 'kick');
+    else if (this.state === 'tell') keyPose(r, 'crouch');
     else if (this.state === 'vault') keyPose(r, 'vault');
     else if (this.state === 'roll') keyPose(r, 'roll');
     else keyPose(r, this.flinchT > 0 ? 'flinch' : null, this.flinchT / AI.flinch);
