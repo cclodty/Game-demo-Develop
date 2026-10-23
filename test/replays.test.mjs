@@ -137,7 +137,7 @@ test('a run is kept when it ends, and playing it back gives the same score and e
     g.render();
     return { during };
   });
-  assert.deepEqual(back.during, { err: null, badge: true, aim: 0.7, mode: 'arcade' }, 'the record brought its rules');
+  assert.deepEqual(back.during, { err: null, badge: true, aim: 0.6, mode: 'arcade' }, 'the record brought its rules (芭蕾: ×0.6)');
   await page.screenshot({ path: new URL('replay-playing.png', OUT).pathname });
   const end = await page.evaluate(() => {
     window.playToEnd(60 * 600, true);

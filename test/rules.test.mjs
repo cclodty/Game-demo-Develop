@@ -31,11 +31,11 @@ test('every rule is one number or one switch of BASE, and only rules.js names th
     const r = rulesFor(d, v);
     return [r.aimMul, r.styleMul];
   };
-  assert.deepEqual(pick('ballet'), [0.7, 1.5]);
+  assert.deepEqual(pick('ballet'), [0.6, 1.5]);
   assert.deepEqual(pick('street'), [1.4, 1]);
-  assert.deepEqual(pick('normal'), [1, 1]);
-  assert.deepEqual(pick('normal', ['noSlowmo']), [1, 2]);
-  assert.deepEqual(pick('ballet', ['noSlowmo']), [0.7, 3], 'multipliers multiply');
+  assert.deepEqual(pick('normal'), [0.85, 1]);
+  assert.deepEqual(pick('normal', ['noSlowmo']), [0.85, 2]);
+  assert.deepEqual(pick('ballet', ['noSlowmo']), [0.6, 3], 'multipliers multiply');
   assert.deepEqual(rulesFor('normal', ['glassCity', 'dualist']).variants, ['dualist', 'glassCity'], 'a fixed order');
   assert.equal(rulesFor('ballet', ['glassCity']).label, '芭蕾 · 玻璃之城');
   assert.equal(rulesFor().label, '');
@@ -309,7 +309,7 @@ test('無槍: hidden until 赤手空拳; then empty hands: the left button and R
   assert.deepEqual(problems(logs), []);
 });
 
-test('芭蕾 aims in 0.7× the time and scores ×1.5; 街頭 aims in 1.4× and scores ×1', async () => {
+test('正常 aims in 0.85× the time, 芭蕾 in 0.6× and scores ×1.5; 街頭 aims in 1.4× and scores ×1', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     const out = {};
@@ -334,8 +334,8 @@ test('芭蕾 aims in 0.7× the time and scores ×1.5; 街頭 aims in 1.4× and s
     return out;
   });
   const near = (a, b) => Math.abs(a - b) < 0.02;
-  assert.ok(near(r.normal.aim, r.normal.base), `normal aims ${r.normal.aim}`);
-  assert.ok(near(r.ballet.aim, r.normal.base * 0.7), `ballet aims ${r.ballet.aim}`);
+  assert.ok(near(r.normal.aim, r.normal.base * 0.85), `normal aims ${r.normal.aim}`);
+  assert.ok(near(r.ballet.aim, r.normal.base * 0.6), `ballet aims ${r.ballet.aim}`);
   assert.ok(near(r.street.aim, r.normal.base * 1.4), `street aims ${r.street.aim}`);
   assert.equal(r.ballet.state, 'fire');
   assert.deepEqual([r.street.pts, r.normal.pts, r.ballet.pts], [100, 100, 150]);
@@ -382,7 +382,7 @@ test('the title screen offers the picks, remembers them, and a run records them'
     assert.deepEqual(run.kept, { difficulty: ['ballet'], variants: ['glassCity'] }, 'remembered after a reload');
     assert.deepEqual(run.recorded, { difficulty: 'ballet', variants: ['glassCity'] }, 'in the input record');
     assert.match(run.sub, /芭蕾 · 玻璃之城/, 'the HUD says which rules');
-    assert.equal(run.aimMul, 0.7);
+    assert.equal(run.aimMul, 0.6); // 芭蕾
     await snap(p2, 'rules-glass-city.png');
     await p2.evaluate(() => window.game.setRules('normal', []));
     assert.deepEqual(problems(l2), []);

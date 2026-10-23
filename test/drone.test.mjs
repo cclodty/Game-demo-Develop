@@ -111,7 +111,7 @@ test('it flies 2.5 m up, its shadow and ring on the floor below, outlined like a
   assert.equal(r.hulls, 3, 'each with the style’s outline');
 });
 
-test('a burst of four every 2 s, over low cover', async () => {
+test('a burst of four every 2 s at an aim of ×1 (sooner as the difficulty aims faster), over low cover', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     let found = null;
@@ -136,7 +136,7 @@ test('a burst of four every 2 s, over low cover', async () => {
       for (const b of g.bullets.list) if (b.alive && b.source === e && !before.has(b)) shots.push(Math.round(t * 120));
       if (lowLOS === null) lowLOS = g.level.hasLOS(e.x, e.z, g.player.x, g.player.z);
     }
-    return { shots, lowLOS, hp: g.player.hp, map: g.level.map.id };
+    return { shots, lowLOS, hp: g.player.hp, map: g.level.map.id, aim: e.aimTime, cd: e.cfg.cooldown };
   });
   assert.equal(r.lowLOS, false, `on ${r.map}, from the ground the cover is in the way`);
   // group the shots into bursts: a gap of more than 0.2 s starts a new one
@@ -150,9 +150,14 @@ test('a burst of four every 2 s, over low cover', async () => {
     assert.equal(b.length, 4, `four shots a burst (${b})`);
     for (let i = 1; i < b.length; i++) assert.ok(Math.abs(b[i] - b[i - 1] - 0.09 * 120) <= 1, `0.09 s apart (${b})`);
   }
+  // its aim (0.45 s × the difficulty's, rules.js: 正常 ×0.85), the four shots 0.09 s apart and its cooldown: 2 s at ×1;
+  // each of the three timers ends on the step it runs out in, up to a step late
+  assert.equal(r.cd[0], r.cd[1], 'a fixed cooldown');
+  const want = r.aim + 4 * 0.09 + r.cd[0];
+  assert.ok(Math.abs(0.45 + 4 * 0.09 + r.cd[0] - 2) < 1e-9, 'at an aim of ×1: 2 s');
   for (let i = 1; i < bursts.length; i++) {
     const gap = (bursts[i][0] - bursts[i - 1][0]) / 120;
-    assert.ok(Math.abs(gap - 2) <= 1 / 60, `a burst every 2 s (${gap})`);
+    assert.ok(gap >= want - 1e-9 && gap <= want + 3 / 120 + 1e-9, `a burst every ${want.toFixed(3)} s (${gap})`);
   }
 });
 

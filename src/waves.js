@@ -4,7 +4,7 @@
 // one spot, quiet, then the next; endless trickles them in.
 
 import { BOSSES } from './boss.js';
-import { BEATS, FIREPOWER } from './config.js';
+import { BEATS, FIREPOWER, RAMP } from './config.js';
 import { TYPES } from './enemies.js';
 import { clamp } from './utils.js';
 
@@ -146,7 +146,7 @@ export class Waves {
     const count = {};
     for (const t of this.queue) count[t] = (count[t] || 0) + 1;
     g.notes.log(`第 ${this.wave} 波開始：${Object.entries(count).map(([t, n]) => `${TYPES[t] ? TYPES[t].label : t}×${n}`).join(' ')}`);
-    this.maxAlive = this.isFinal ? this.rules.finale.maxAlive : Math.min(3 + Math.floor(this.wave * 0.7), 9);
+    this.maxAlive = this.isFinal ? this.rules.finale.maxAlive : Math.min(3 + Math.floor(this.wave * 0.7), RAMP.maxAlive);
     this.state = 'active';
     this.spawnCd = 0.3;
     this.hurt = false;

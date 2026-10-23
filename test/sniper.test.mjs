@@ -70,7 +70,7 @@ after(async () => {
   await h.close();
 });
 
-test('2.4 s on the red line, one shot for 40, then 2 s with the rifle down in which he can be shot', async () => {
+test('2.4 s on the red line (×0.85 at 正常), one shot for 40, then 2 s with the rifle down in which he can be shot', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     const e = window.setup(0);
@@ -95,9 +95,11 @@ test('2.4 s on the red line, one shot for 40, then 2 s with the rifle down in wh
       if (e.state === 'recover') rec++;
       shots = Math.max(shots, g.bullets.list.filter((b) => b.alive && b.source === e).length);
     }
-    return { aim: aim / 120, shots, dmg: hp0 - g.player.hp, window: rec / 120, states: [...states], lit };
+    return { aim: aim / 120, want: e.aimTime, shots, dmg: hp0 - g.player.hp, window: rec / 120, states: [...states], lit };
   });
-  assert.ok(Math.abs(r.aim - 2.4) <= 1 / 120 + 1e-9, `2.4 s aiming (${r.aim})`);
+  // his 2.4 s, times the difficulty's (正常 ×0.85, rules.js) and the stage's (config.js RAMP: stage 1, ×1)
+  assert.ok(Math.abs(r.want - 2.4 * 0.85) < 1e-9, `his aim ${r.want}`);
+  assert.ok(Math.abs(r.aim - r.want) <= 1 / 120 + 1e-9, `${r.want} s aiming (${r.aim})`);
   assert.deepEqual(r.lit, [true], 'the red line is on while he aims');
   assert.equal(r.shots, 1, 'then one shot');
   assert.equal(r.dmg, 40, '40 damage');

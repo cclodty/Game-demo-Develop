@@ -195,6 +195,16 @@ export const ENEMY_HP = {
   perStage: 0.25, // + per stage after the first: the second ×1.25, the third ×1.5
 };
 
+/**
+ * The run gets harder as it goes (試玩回饋 ④, DECISIONS 2026-10-23): each stage (waves.js stageIndex) the enemies'
+ * aim (on top of the difficulty's, rules.js aimMul) and the gap before they fire again take `perStage` less again,
+ * so late in a run bullet time is for seeing who fires first; and more may stand at once in a trickle.
+ */
+export const RAMP = {
+  perStage: 0.1, // × (1 − this) a stage: the second ×0.9, the third ×0.81
+  maxAlive: 11, // most standing at once while a wave trickles in (endless; arcade comes in beats, BEATS): was 9
+};
+
 export const LEVELS = {
   tol: 0.6,
 };

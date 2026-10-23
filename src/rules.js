@@ -19,8 +19,8 @@ export const BASE = {
 
 export const DIFFICULTIES = {
   street: { name: '街頭', en: 'STREET', desc: '敵人瞄準慢（×1.4）', color: '#4cd6a0', set: { aimMul: 1.4 } },
-  normal: { name: '正常', en: 'NORMAL', desc: '原本的節奏', color: '#9aa0c8', set: {} },
-  ballet: { name: '芭蕾', en: 'BALLET', desc: '敵人瞄準快（×0.7），Style 分 ×1.5', color: '#ff4fd8', set: { aimMul: 0.7, styleMul: 1.5 } },
+  normal: { name: '正常', en: 'NORMAL', desc: '敵人瞄準 ×0.85，每關再快一點', color: '#9aa0c8', set: { aimMul: 0.85 } },
+  ballet: { name: '芭蕾', en: 'BALLET', desc: '敵人瞄準快（×0.6），Style 分 ×1.5', color: '#ff4fd8', set: { aimMul: 0.6, styleMul: 1.5 } },
 };
 export const DIFFICULTY_IDS = Object.keys(DIFFICULTIES);
 

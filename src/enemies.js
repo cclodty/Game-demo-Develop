@@ -2,7 +2,7 @@
 // brightens while they aim, so a quick read (or bullet time) lets you dodge.
 
 import * as THREE from 'three';
-import { AI, ENEMY_HP, ENV, FIREPOWER, GUN_Y, LOGIC_HZ, PLAYER } from './config.js';
+import { AI, ENEMY_HP, ENV, FIREPOWER, GUN_Y, LOGIC_HZ, PLAYER, RAMP } from './config.js';
 import { animateRig, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, keyPose, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowards } from './utils.js';
@@ -226,6 +226,8 @@ class Enemy {
     // thicker each stage of the run (config.js ENEMY_HP); what is not a bullet is made as much stronger (harm)
     this.hp = Math.round(cfg.hp * ENEMY_HP.base * (1 + ENEMY_HP.perStage * this.game.waves.stageIndex));
     this.tough = this.hp / cfg.hp;
+    // and quicker each stage: his aim and the gap before he fires again (config.js RAMP)
+    this.pace = (1 - RAMP.perStage) ** this.game.waves.stageIndex;
     this.flinchT = 0; // s left of being rocked back by a shot (AI.flinch)
     this.alive = true;
     this.dead = false;
@@ -348,9 +350,9 @@ class Enemy {
     this.shieldMesh = g;
   }
 
-  /** Seconds from the laser coming on to the shot: the type's, times the difficulty's (rules.js aimMul). */
+  /** Seconds from the laser coming on to the shot: the type's, times the difficulty's (rules.js aimMul) and the stage's (`pace`). */
   get aimTime() {
-    return this.cfg.aimTime * this.game.ruleset.aimMul;
+    return this.cfg.aimTime * this.game.ruleset.aimMul * this.pace;
   }
 
   /** Those who run at the player instead of keeping a range: blades and bombers. */
@@ -826,7 +828,7 @@ class Enemy {
     this.endAim();
     this.state = 'recover';
     this.timer = 0.5;
-    this.fireCd = g.rng.range(this.cfg.cooldown[0], this.cfg.cooldown[1]);
+    this.fireCd = g.rng.range(this.cfg.cooldown[0], this.cfg.cooldown[1]) * this.pace;
   }
 
   /** For a man on a balcony: his gun's height, and how far a shot drops a metre to come to the player's chest. {} on the street. */
@@ -1178,7 +1180,7 @@ class Enemy {
             this.endAim();
             this.state = 'recover';
             this.timer = cfg.reload || (this.cover ? AI.peek : 0.35); // a sniper's reload: rifle down, the window to get him; a cover gunner's moment out
-            this.fireCd = g.rng.range(cfg.cooldown[0], cfg.cooldown[1]);
+            this.fireCd = g.rng.range(cfg.cooldown[0], cfg.cooldown[1]) * this.pace;
           }
           break;
         }
