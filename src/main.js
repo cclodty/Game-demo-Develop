@@ -11,6 +11,7 @@ import { HUD } from './hud.js';
 import { ACTIONS, Input, keyName, padButtonName, padLabel, StepInput } from './input.js';
 import { Level } from './level.js';
 import { MAPS, MAPS_REV } from './maps.js';
+import { ROOMS } from './rooms.js';
 import { nightRoute, NightStore } from './night.js';
 import { loadedCharacters, loadModels } from './models.js';
 import { Notes } from './notes.js';
@@ -105,6 +106,7 @@ class Game {
     this.fx = new FX(this);
     this.style = new Style(this); // the look; before the level, whose materials it converts as they load
     this.maps = MAPS;
+    this.rooms = ROOMS; // where 彈幕試驗 is played (rooms.js)
     this.enemyTypes = ENEMY_TYPES; // for the tests and the stats panel
     this.startMap = 0;
     try {
@@ -572,6 +574,11 @@ class Game {
       $('maps-note').textContent = `${resume ? `上次到 ${m.hour} ${m.name}，由這裏繼續` : `由 ${m.hour} ${m.name} 開始`} · 每 ${r.perStage} 波一個鐘頭，到 ${end.hour} ${end.name}`;
       return;
     }
+    if (r.room) {
+      // 彈幕試驗: one room, whatever card is picked
+      $('maps-note').textContent = `${r.waves} 波都在${ROOMS[r.room].name}裏打，場景不用揀`;
+      return;
+    }
     $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結：${this.routeText(start, this.mode)}` : `每 ${r.perStage} 波換一個場景`;
   }
 
@@ -735,7 +742,8 @@ class Game {
     this.ruleset = rulesFor(pick.difficulty, pick.variants);
     const rules = packRules(this.ruleset.difficulty, this.ruleset.variants);
     this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, rules, hz: LOGIC_HZ, mapsRev: MAPS_REV });
-    this.resetWorld(MAPS[mapIndex]);
+    const first = this.firstMap(this.mode, mapIndex);
+    this.resetWorld(first);
     this.score.useBest(this.mode, this.ruleset);
     this.score.reset();
     this.waves.reset();
@@ -743,7 +751,7 @@ class Game {
     this.routeAt = MODES[this.mode].night ? Math.max(0, NIGHT.indexOf(mapIndex)) : 0;
     this.waves.wave = this.routeAt * MODES[this.mode].perStage;
     this.hud.reset();
-    this.notes.reset(MAPS[mapIndex]);
+    this.notes.reset(first);
     if (MODES[this.mode].night) this.nightLine(MAPS[mapIndex]);
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
     // the music: the first stage's song from its start, on its base (audio.js)
@@ -752,7 +760,7 @@ class Game {
     this.notes.log(`音樂：${this.audio.song.name}`);
     this.telemetry.confirm(); // the switch was on the title screen: playing is leaving it as it is
     $('telemetry-switch').classList.add('hidden');
-    if (!this.replay) this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup, input: this.padOn ? 'pad' : 'keyboard', daily: !!this.dailyRun });
+    if (!this.replay) this.telemetry.start({ map: first.name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup, input: this.padOn ? 'pad' : 'keyboard', daily: !!this.dailyRun });
     $('replay-badge').classList.toggle('hidden', !this.replay);
     document.body.classList.toggle('replaying', !!this.replay);
     this.deathCause = '';
@@ -1012,8 +1020,8 @@ class Game {
     return this.replays.add(
       {
         at: new Date().toISOString(), // when it was played, for the list (not the game)
-        map: MAPS[this.record.map].name,
-        mapId: MAPS[this.record.map].id,
+        map: this.firstMap(this.mode, this.record.map).name,
+        mapId: this.firstMap(this.mode, this.record.map).id,
         mode: MODES[this.mode].name,
         rules: this.ruleset.label,
         result,
@@ -1249,6 +1257,7 @@ class Game {
   routeText(start, mode) {
     const r = MODES[mode];
     if (!Number.isFinite(r.waves)) return '';
+    if (r.room) return ROOMS[r.room].name; // one room, no boss
     // 澳門一夜 from where it starts to its end, each map at its hour; any other the maps after the one picked
     const maps = r.night ? NIGHT.slice(Math.max(0, NIGHT.indexOf(start))).map((i) => MAPS[i]) : Array.from({ length: Math.ceil(r.waves / r.perStage) }, (_, i) => MAPS[(start + i) % MAPS.length]);
     const stages = maps.length;
@@ -1268,8 +1277,15 @@ class Game {
     return this.mapAt(this.stage);
   }
 
+  /** A run's first map: in a mode played in a room (彈幕試驗) the room, whatever map was picked; else MAPS[mapIndex]. */
+  firstMap(mode, mapIndex) {
+    const room = MODES[mode].room;
+    return room ? ROOMS[room] : MAPS[mapIndex];
+  }
+
   /** The run's map at `stage`: in 澳門一夜 the night's, from where it started; in any other mode the next in MAPS. */
   mapAt(stage) {
+    if (MODES[this.mode].room) return ROOMS[MODES[this.mode].room];
     if (MODES[this.mode].night) return MAPS[NIGHT[Math.min(this.routeAt + stage, NIGHT.length - 1)]];
     return MAPS[(this.startMap + stage) % MAPS.length];
   }
@@ -2035,6 +2051,16 @@ class Game {
     } else if (this.state === 'title') {
       tz -= 1.5;
       zoom = 0.82 + Math.sin(this.time * 0.25) * 0.03;
+    }
+    // a room (rooms.js): the camera holds its middle, set back `back` m towards itself (in the 45° views a corner is
+    // near it), and leans only part of the way to the player; nothing zooms in (bullet time, a kill) while the room is
+    // played: all of it stays on the screen
+    const held = this.level.map.camera?.room;
+    if (held && this.state === 'playing') {
+      const yaw = (VIEWS[this.view].yaw ?? 0) * (Math.PI / 180);
+      tx = lerp(held.at[0], tx, held.lean) + Math.sin(yaw) * held.back;
+      tz = lerp(held.at[1], tz, held.lean) + Math.cos(yaw) * held.back;
+      zoom = 1;
     }
     this.zoom = snap ? zoom : damp(this.zoom, zoom, 4, realDt);
     // up a flight of steps (大三巴) the camera rises with the player

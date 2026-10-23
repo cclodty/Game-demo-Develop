@@ -23,6 +23,9 @@ export const MODES = {
   // 澳門一夜 (night.js): the maps by the hour of the night each is set at (maps.js `hour`), three waves a stage, the
   // third the map's boss where it has one; it goes on from the first stage not yet cleared (main.js route, routeAt)
   night: { name: '澳門一夜', en: 'A NIGHT IN MACAU', color: '#b48cff', desc: '晚上八點到凌晨三點 · 打完一關存進度', waves: 21, perStage: 3, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, night: true, beats: true },
+  // 彈幕試驗 (DECISIONS 2026-10-23: the bullet-hell trial): six waves in one room (rooms.js `room`), whatever map card is
+  // picked; last in the list, so a record's mode number keeps its meaning
+  danmaku: { name: '彈幕試驗', en: 'BULLET HELL', color: '#ff6a3d', desc: '試驗：茶樓裏的六波彈幕', waves: 6, perStage: 6, graded: true, room: 'teahouse' },
 };
 export const MODE_IDS = Object.keys(MODES);
 

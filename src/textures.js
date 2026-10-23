@@ -197,6 +197,30 @@ export function clubFloorTexture() {
   return finish(c, { repeat: [5, 3.5] });
 }
 
+/** A teahouse's floor (rooms.js): dark grey-green terrazzo in large tiles, flecked; dark, so bullets stand out on it. */
+export function teahouseFloorTexture() {
+  const [c, g] = canvas(512, 512);
+  g.fillStyle = '#1b2321';
+  g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 2600; i++) {
+    const v = rand(0, 1);
+    g.fillStyle = v < 0.7 ? 'rgba(70,84,80,0.35)' : v < 0.95 ? 'rgba(12,16,15,0.5)' : 'rgba(150,130,100,0.35)';
+    const s = rand(1, 3.5);
+    g.fillRect(rand(0, 512), rand(0, 512), s, s);
+  }
+  g.strokeStyle = 'rgba(0,0,0,0.55)';
+  g.lineWidth = 3;
+  for (let i = 0; i <= 4; i++) {
+    g.beginPath();
+    g.moveTo(i * 128, 0);
+    g.lineTo(i * 128, 512);
+    g.moveTo(0, i * 128);
+    g.lineTo(512, i * 128);
+    g.stroke();
+  }
+  return finish(c, { repeat: [4, 3] });
+}
+
 export function asphaltTexture() {
   const [c, g] = canvas(512, 512);
   g.fillStyle = '#2b2d31';
