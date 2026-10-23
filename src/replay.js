@@ -5,8 +5,8 @@
 //
 // Layout: a 16-byte header ("BB", version, logic Hz, seed u32, map index,
 // step count u32, mode index with bit 7 set when the run opened with the
-// warm-up, the run rules as rules.js packRules makes them, the maps' revision
-// as maps.js MAPS_REV gives it; little-endian; version 4 had no revision and a
+// warm-up, the run rules as rules.js packRules makes them, the game's revision
+// (the maps' and the play rules') as maps.js MAPS_REV gives it; little-endian; version 4 had no revision and a
 // 15-byte header, and still reads),
 // then one entry per step whose input
 // differs from the step before. An entry starts with a varint holding

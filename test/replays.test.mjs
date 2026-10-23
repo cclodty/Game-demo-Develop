@@ -234,7 +234,7 @@ test('a replay of a run on maps since rebuilt (another maps’ revision) is mark
     const stale = bytes.slice();
     stale[15] = (MAPS_REV + 255) % 256;
     const err = g.playReplay(stale, old);
-    const out = { rows, err, stale: g.replay && g.replay.stale, said: g.notes.events.some((e) => e.text.includes('地圖已改版')) };
+    const out = { rows, err, stale: g.replay && g.replay.stale, said: g.notes.events.some((e) => e.text.includes('遊戲已改版')) };
     g.toTitle();
     const same = g.playReplay(bytes, entry);
     out.fresh = { err: same, stale: g.replay && g.replay.stale };
@@ -252,17 +252,17 @@ test('a replay of a run on maps since rebuilt (another maps’ revision) is mark
     g.replays.list.shift();
     g.notes.events.length = 0;
     const errV4 = g.playReplay(v4, before);
-    out.unknown = { err: errV4, stale: g.replay && g.replay.stale, said: g.notes.events.some((e) => e.text.includes('地圖版本未知')) };
+    out.unknown = { err: errV4, stale: g.replay && g.replay.stale, said: g.notes.events.some((e) => e.text.includes('遊戲版本未知')) };
     g.toTitle();
     return out;
   });
-  assert.match(r.rows[0], /地圖已改版/, 'the old run is marked');
-  assert.doesNotMatch(r.rows[1], /地圖已改版|地圖版本未知/, 'a run on these maps is not');
+  assert.match(r.rows[0], /遊戲已改版/, 'the old run is marked');
+  assert.doesNotMatch(r.rows[1], /遊戲已改版|遊戲版本未知/, 'a run on these maps is not');
   assert.equal(r.err, null, 'it still plays');
   assert.equal(r.stale, true);
   assert.equal(r.said, true, 'and the notes say it will not be the same');
   assert.deepEqual(r.fresh, { err: null, stale: false });
-  assert.match(r.unknownRow, /地圖版本未知/, 'a run from before the maps had revisions is marked as not known');
+  assert.match(r.unknownRow, /遊戲版本未知/, 'a run from before the maps had revisions is marked as not known');
   assert.deepEqual(r.unknown, { err: null, stale: 'unknown', said: true }, 'it plays, and the notes say it may not be the same');
   // the list with one of each on top
   await page.evaluate(async () => {

@@ -54,6 +54,10 @@ before(async () => {
       g.player.z = 2;
       g.waves.wave = wave - 1;
       g.waves.startWave();
+      // nothing held over from the bot's fight (the test before the combo's): the player stands and does not shoot
+      g.input.keys.clear();
+      g.input.pressed.clear();
+      g.input.mouse.left = g.input.mouse.right = false;
     };
     window.step = () => {
       g.killcamT = 0;

@@ -57,9 +57,10 @@ let logs;
 before(async () => {
   h = await gameHarness();
   ({ page, logs } = await h.open('?seed=31'));
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
     const g = window.game;
     g.frame = () => {};
+    window.FIREPOWER = (await import('./src/config.js')).FIREPOWER; // the game's own (one module): what enemies drop
     /** Start a run on `map` under the given picks; nobody about unless `waves`. */
     window.run = (map, difficulty, variants = [], waves = false) => {
       g.setRules(difficulty, variants);
@@ -162,6 +163,10 @@ test('玻璃之城: on every map each box of cover is glass, a bullet breaks it,
 test('雙槍主義: the weapon pads stay empty and enemies drop nothing', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
+    // a brute drops his minigun only some of the time (config.js FIREPOWER): here always, so a drop that is not there is the variant's doing
+    const { FIREPOWER } = window;
+    const brute = FIREPOWER.drops.brute;
+    FIREPOWER.drops.brute = [['minigun', 1]];
     const look = (variants) => {
       window.run(0, 'normal', variants, true);
       let n = 0;
@@ -171,10 +176,12 @@ test('雙槍主義: the weapon pads stay empty and enemies drop nothing', async 
       g.enemies.clear();
       g.pickups.clear();
       const e = g.enemies.spawn('brute', { x: g.player.x, z: g.player.z - 5, ex: g.player.x, ez: g.player.z - 4.9, stay: true });
-      e.die(0, -1, { cause: 'bullet' }); // a brute always drops his minigun
+      e.die(0, -1, { cause: 'bullet' });
       return { pads, of: g.level.pads.length, drops: g.pickups.list.length };
     };
-    return { normal: look([]), dualist: look(['dualist']) };
+    const out = { normal: look([]), dualist: look(['dualist']) };
+    FIREPOWER.drops.brute = brute;
+    return out;
   });
   assert.ok(r.normal.of > 0 && r.normal.pads === r.normal.of, `normally the pads fill (${r.normal.pads}/${r.normal.of})`);
   assert.equal(r.normal.drops, 1, 'and a brute drops his gun');
@@ -196,7 +203,10 @@ test('無槍: hidden until 赤手空拳; then empty hands: the left button and R
     g.achievements.wave(false, 0);
     g.toTitle();
     out.openCard = !!card() && !card().classList.contains('hidden');
-    // the run: the pads at wave 1, then a brute who always drops his minigun
+    // the run: the pads at wave 1, then a brute who would always drop his minigun (config.js FIREPOWER: here always)
+    const fp = window.FIREPOWER;
+    const keep = fp.drops.brute;
+    fp.drops.brute = [['minigun', 1]];
     window.run(0, 'normal', ['noGuns'], true);
     let n = 0;
     while (g.waves.wave < 1 && n++ < 600) window.play(1);
@@ -208,6 +218,7 @@ test('無槍: hidden until 赤手空拳; then empty hands: the left button and R
     const brute = g.enemies.spawn('brute', { x: p.x, z: p.z - 5, ex: p.x, ez: p.z - 4.9, stay: true });
     brute.die(0, -1, { cause: 'kick' });
     out.drops = g.pickups.list.length;
+    fp.drops.brute = keep;
     out.label = g.ruleset.label;
     // the left button held, R pressed: nothing
     const shots = g.waves.shots;

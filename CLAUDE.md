@@ -38,6 +38,7 @@ npm run test:game                 # slow: every weapon fires, E-swap, a long loo
 npm run build                     # single-file dist/bullet-ballet.html for sharing (must stay < 16 MB)
 npm run itch                      # that file as index.html in dist/bullet-ballet-itch.zip, for itch.io (docs/itch/README.md)
 npm run music:preview             # each song in src/music.js rendered to dist/music/<id>.wav (+ <id>-slow.wav as bullet time hears it), to listen to without playing
+npm run measure -- --god --loot   # 5 bot runs (seeds 101–105), wave by wave: time, damage taken, enemy health, firepower handed out; before/after a feel change
 npm run assets                    # masters in assets/source/<id>/ → web models in assets/models/
 npm run assets:docs               # regenerate assets/PROMPTS.md, asset-list.*, maps/*.json
 ```
@@ -57,9 +58,9 @@ performance and "does it feel good" are the developer's calls; ask for them.
 index.html, style.css        HUD / menu DOM and styles; importmap → vendor/three
 src/main.js                  Game: fixed 120 Hz logic steps + per-frame present, time scale (bullet time, hit-stop, kill-cam), camera views, screens
 src/input.js  replay.js      live keyboard/mouse/gamepad (standard layout mapped onto BUTTONS)/touch on a phone (a stick under each thumb, bullet time held: the same bits and aim) → one StepInput per logic step; the run's input record (changes only), the last ten kept as replays (.bbr)
-src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, VIEWS
+src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, VIEWS, FIREPOWER (pads, drops)
 src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS and the AI state machine
-src/weapons.js bullets.js    player weapon stats, drops, grenades (the launcher's, and the grenadier's lobbed ones: ring, fuse, kick back, AIRBURST); projectile stepping and ricochet
+src/weapons.js bullets.js    player weapon stats, grenades (the launcher's, and the grenadier's lobbed ones: ring, fuse, kick back, AIRBURST); projectile stepping and ricochet
 src/waves.js  pickups.js     MODES (arcade: 12 waves, then RUN CLEAR; endless; daily; night), wave composition and spawn pacing; floor weapons and pads
 src/night.js                 澳門一夜: the maps in order of the hour each is set at (maps.js `hour`, `line`), how far the night has got (kept in this browser)
 src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 7 maps as data (福隆新街's walls built from its `shops`, 東望洋跑道's barriers from `guiaBarriers`, 大三巴's steps from its `ground`: everything is drawn at its height over the ground there, `groundY`)
@@ -85,7 +86,7 @@ src/notes.js                 playtest notes: event log, stats/tuning panel (`), 
 src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions
 src/senado/                  Largo do Senado data and model code extracted from the senado/ sub-project
 backend/                     the leaderboard Cloudflare Worker (worker.js), its D1 schema and a wrangler.toml template; deployed by the developer (docs/BACKEND.md)
-scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, itch.mjs (+ itch-cover.mjs), serve.mjs, senado-extract.mjs
+scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, itch.mjs (+ itch-cover.mjs), serve.mjs, senado-extract.mjs, measure.mjs (bot runs, wave by wave)
 test/                        node:test + playwright; helpers.mjs has the bot; fixtures/ holds a short recorded clip
 assets/                      SPEC.md, PROMPTS.md, START_HERE.md, asset-list.*, maps/*.json, source/ (masters), models/ (web)
 docs/                        ROADMAP.md, TASKS.md, DECISIONS.md, BACKEND.md (deploying the back end); shots/ holds the screenshots PR descriptions show; itch/ the itch.io page

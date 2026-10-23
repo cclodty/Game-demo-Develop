@@ -126,17 +126,8 @@ export const PLAYER_WEAPONS = {
   },
 };
 
-/** Weapons that appear on the map's weapon pads at the start of each wave. */
+/** Weapons that appear on the map's weapon pads (once a stage: config.js FIREPOWER). What enemies drop is FIREPOWER.drops. */
 export const PAD_POOL = ['smg', 'shotgun', 'rifle', 'sniper', 'launcher'];
-
-/** What each enemy type may drop on death: [weapon, chance]. */
-export const DROPS = {
-  grunt: [['smg', 0.12]],
-  shotgun: [['shotgun', 0.5]],
-  rifle: [['rifle', 0.5]],
-  brute: [['minigun', 1]],
-  rusher: [],
-};
 
 const _hit = { t: 0, nx: 0, nz: 0 };
 

@@ -15,6 +15,7 @@
     "music:preview": "node scripts/music-preview.mjs",
     "assets": "node scripts/assets.mjs",
     "assets:docs": "node scripts/asset-docs.mjs",
+    "measure": "node scripts/measure.mjs",
     "massing:fetch": "node scripts/massing/fetch.mjs",
     "massing:build": "node scripts/massing/build.mjs",
     "massing:plan": "node scripts/massing/plan.mjs",

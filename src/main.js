@@ -1056,15 +1056,15 @@ class Game {
     this.feed = (game) => rd.next(game.player.x, game.player.z);
     this.setReplaySpeed(1);
     this.notes.log(`重播 ${meta.name || ''}`.trim());
-    // recorded on maps since rebuilt (maps.js rev): it plays, but not as it was played, and the player is told; one
+    // recorded on maps since rebuilt or under rules since changed (maps.js rev, PLAY_REV): it plays, but not as it was played, and the player is told; one
     // from before the maps had revisions (a version 4 record) may or may not be the same: 'unknown'
     this.replay.stale = rd.mapsRev === MAPS_REV ? false : rd.mapsRev == null ? 'unknown' : true;
     if (this.replay.stale === true) {
-      this.notes.log('地圖已改版：重播會同錄的時候不一樣');
-      this.hud.banner('REPLAY', '地圖已改版：這局會同錄的時候不一樣', 'stage');
+      this.notes.log('遊戲已改版：重播會同錄的時候不一樣');
+      this.hud.banner('REPLAY', '遊戲已改版：這局會同錄的時候不一樣', 'stage');
     } else if (this.replay.stale) {
-      this.notes.log('地圖版本未知：重播可能同錄的時候不一樣');
-      this.hud.banner('REPLAY', '地圖版本未知：這局可能同錄的時候不一樣', 'stage');
+      this.notes.log('遊戲版本未知：重播可能同錄的時候不一樣');
+      this.hud.banner('REPLAY', '遊戲版本未知：這局可能同錄的時候不一樣', 'stage');
     }
     return null;
   }
@@ -1121,7 +1121,7 @@ class Game {
       const d = new Date(r.at);
       row.append(
         cell('replay-when', `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`),
-        cell('replay-what', [r.map, r.mode, r.rules, r.mapsRev == null ? '地圖版本未知' : r.mapsRev === MAPS_REV ? '' : '地圖已改版'].filter(Boolean).join(' · ')),
+        cell('replay-what', [r.map, r.mode, r.rules, r.mapsRev == null ? '遊戲版本未知' : r.mapsRev === MAPS_REV ? '' : '遊戲已改版'].filter(Boolean).join(' · ')),
         cell('replay-how', `${result[r.result] || ''} · 第 ${r.wave} 波 · ${clock(r.seconds)}`),
         cell('replay-score', `${Number(r.score).toLocaleString('en-US')}${r.grade ? ` ${r.grade}` : ''}`),
       );

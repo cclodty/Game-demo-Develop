@@ -8,7 +8,7 @@
 /** How a run plays when nothing is picked; difficulties and variants change these. */
 export const BASE = {
   slowmo: true, // Shift / Q enter bullet time (main.js toggleFocus)
-  pads: true, // the weapon pads fill at every wave (waves.js startWave)
+  pads: true, // the weapon pads fill, once a stage (config.js FIREPOWER, waves.js startWave)
   drops: true, // enemies drop their guns (enemies.js dropWeapon)
   glassUpTo: 0, // cover up to this height (m) is glass instead; 0 for none (level.js load)
   aimMul: 1, // enemies' aim time × (enemies.js aimTime)

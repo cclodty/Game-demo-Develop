@@ -4,7 +4,7 @@
 // one spot, quiet, then the next; endless trickles them in.
 
 import { BOSSES } from './boss.js';
-import { BEATS } from './config.js';
+import { BEATS, FIREPOWER } from './config.js';
 import { TYPES } from './enemies.js';
 import { clamp } from './utils.js';
 
@@ -174,7 +174,7 @@ export class Waves {
       '按 G 拿起平底鑊或油桶擲向敵人；空中的平底鑊被子彈打中會散射：SCATTER',
       '特殊武器打空後按 G 把空槍丟向敵人，打暈他',
       '按住右鍵：左手槍鎖定另一個目標',
-      '金色武器台每波都會刷出新武器',
+      '金色武器台每關只刷一次：重火力要省着用',
       '把敵人踢向同伴，可以打保齡球',
       '狙擊槍的子彈會穿透敵人和玻璃',
       '站在另一把武器上按 E 交換；1 / 2 或滾輪切換',
@@ -185,7 +185,11 @@ export class Waves {
     } else if (this.isFinal) g.hud.banner('FINAL WAVE', `最後一波 · 撐過去就通關`, 'stage');
     else g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
     g.audio.waveStart();
-    if (g.ruleset.pads) g.pickups.refillPads(wr);
+    // the weapon pads: once a stage, at its first wave (config.js FIREPOWER); what is left on them stays till the next map
+    if (g.ruleset.pads && (FIREPOWER.pads === 'wave' || (this.wave - 1) % this.rules.perStage === 0)) {
+      g.pickups.refillPads(wr);
+      g.notes.log('武器台刷新');
+    }
   }
 
   /** The roster cut into beats of BEATS.size (the finale's bigger), as even as that allows, in roster order. */

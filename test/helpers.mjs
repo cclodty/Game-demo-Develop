@@ -59,10 +59,13 @@ export const problems = (logs) => logs.filter((l) => !/GPU stall|SwiftShader|swi
  * without one they are random, so each test run explores a little differently.
  * `mode` picks arcade or endless first. When the run ends the bot starts
  * another, unless `restart` is false: then simStep stops on the end screen.
+ * For measuring (scripts/measure.mjs): with `god` the player is hurt as usual
+ * but never goes down, so every wave is played; with `loot` the bot walks to
+ * the nearest weapon lying about whenever slot 2 holds nothing of use.
  */
-export async function installBot(page, { map = 0, view = 2, seed = null, mode = null, restart = true } = {}) {
+export async function installBot(page, { map = 0, view = 2, seed = null, mode = null, restart = true, god = false, loot = false } = {}) {
   await page.evaluate(
-    ([map, view, seed, mode, restart]) => {
+    ([map, view, seed, mode, restart, god, loot]) => {
       const g = window.game;
       g.frame = () => {};
       g.view = view; // before startRun, so the camera starts in this view instead of easing into it
@@ -95,6 +98,7 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
       };
       const hurt0 = g.player.hurt.bind(g.player);
       g.player.hurt = (d, x, z, e) => {
+        if (god) g.player.hp = Math.max(g.player.hp, d + 1);
         const r = hurt0(d, x, z, e);
         if (r) {
           stats.hits++;
@@ -107,6 +111,8 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
       let wanderT = 0;
       let chase = null; // a point on the way to a target the guns cannot reach from here, and when to look again
       let chaseT = 0;
+      let lootT = 0;
+      let lootTo = null; // with `loot`: the next corner on the way to a weapon on the floor
       let i = 0;
       window.simStep = (n) => {
         const dt = 1 / 60;
@@ -116,6 +122,7 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
           inp.keys.clear();
           inp.mouse.leftPressed = inp.mouse.rightPressed = inp.mouse.rightReleased = false;
           const p = g.player;
+          if (god) p.hp = 100;
           let target = null;
           let best = 1e9;
           for (const e of g.enemies.list) {
@@ -223,6 +230,17 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
               if (path) chase = path.find((q) => Math.hypot(q.x - p.x, q.z - p.z) > 0.75) || null;
             }
           }
+          lootT -= dt;
+          if (!loot || goal || door || heli || (p.special && !p.special.empty)) lootTo = null;
+          else if (lootT <= 0) {
+            lootT = 0.25;
+            lootTo = null;
+            let near = null;
+            for (const q of g.pickups.list) if (!near || Math.hypot(q.x - p.x, q.z - p.z) < Math.hypot(near.x - p.x, near.z - p.z)) near = q;
+            const path = near && g.level.nav.findPath(p.x, p.z, near.x, near.z);
+            if (path && path.length) lootTo = path.find((q) => Math.hypot(q.x - p.x, q.z - p.z) > 0.5) || path[path.length - 1];
+          }
+          if (lootTo) chase = lootTo;
           let kx = wanderX;
           let kz = wanderZ;
           if (chase && !goal) {
@@ -283,7 +301,7 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
         return true;
       };
     },
-    [map, view, seed, mode, restart],
+    [map, view, seed, mode, restart, god, loot],
   );
 }
 

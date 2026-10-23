@@ -2,10 +2,9 @@
 // brightens while they aim, so a quick read (or bullet time) lets you dodge.
 
 import * as THREE from 'three';
-import { AI, ENV, GUN_Y, LOGIC_HZ, PLAYER } from './config.js';
+import { AI, ENV, FIREPOWER, GUN_Y, LOGIC_HZ, PLAYER } from './config.js';
 import { animateRig, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, setFlash } from './characters.js';
 import { Laser } from './fx.js';
-import { DROPS } from './weapons.js';
 import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowards } from './utils.js';
 
 export const TYPES = {
@@ -632,10 +631,10 @@ class Enemy {
 
   dropWeapon() {
     if (!this.game.ruleset.drops) return; // a variant: only the pistols
-    for (const [kind, chance] of DROPS[this.type] || []) {
+    for (const [kind, chance] of FIREPOWER.drops[this.type] || []) {
       if (this.game.rng.next() >= chance) continue;
       for (const m of this.rig.weaponParts) m.visible = false;
-      this.game.pickups.drop(kind, this.x, this.z, this.type === 'brute' ? 1 : 0.6);
+      this.game.pickups.drop(kind, this.x, this.z, FIREPOWER.dropAmmo);
       return;
     }
   }

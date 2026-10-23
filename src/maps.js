@@ -1806,7 +1806,14 @@ function ruinsDecorate(L) {
 export const MAPS = [rooftop, club, docks, senado, felicidade, guia, ruins];
 
 /**
- * The maps' revision as one byte, for the input record (replay.js): the sum of every map's `rev`. A replay of a run on
- * maps since rebuilt (another MAPS_REV) still plays, but no longer as it was played; the game says so.
+ * How a run plays apart from the maps, as a revision: up one whenever a change to the game's own rules makes the same
+ * input play another run. 1: the weapon pads fill once a stage, fewer and emptier dropped guns (config.js FIREPOWER).
  */
-export const MAPS_REV = MAPS.reduce((s, m) => s + m.rev, 0) % 256;
+export const PLAY_REV = 1;
+
+/**
+ * The game's revision as one byte, for the input record (replay.js): the sum of every map's `rev` and PLAY_REV. A
+ * replay of a run on maps since rebuilt, or under rules since changed (another MAPS_REV), still plays, but no longer
+ * as it was played; the game says so.
+ */
+export const MAPS_REV = (MAPS.reduce((s, m) => s + m.rev, 0) + PLAY_REV) % 256;

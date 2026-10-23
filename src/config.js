@@ -171,6 +171,18 @@ export const BEATS = {
  * with the square). Across more, an enemy neither aims nor fires nor throws but walks to the player's level, and a
  * bullet stops where the ground under it has risen or fallen more than `tol` from where it was fired (a step's edge).
  */
+/**
+ * The firepower the player is handed (試玩回饋 ④, DECISIONS 2026-10-23): a heavy gun is something to save, not a
+ * new one every wave, so the waves between are got through with kicks, throws, the map and bullet time. The weapon
+ * pads (maps.js `pads`) fill once a stage, at its first wave; what each enemy type may drop, and how much of the
+ * gun's ammo comes with it. The pistols stay unlimited.
+ */
+export const FIREPOWER = {
+  pads: 'stage', // when the pads fill: 'stage' (a stage's first wave) or 'wave' (every wave, as before 2026-10-23)
+  drops: { grunt: [['smg', 0.12]], shotgun: [['shotgun', 0.5]], rifle: [['rifle', 0.5]], brute: [['minigun', 0.35]] }, // [weapon, chance], tried in order (the brute's was 1)
+  dropAmmo: 0.4, // of the gun's ammo, in any dropped gun (was 0.6, and a brute's minigun came full)
+};
+
 export const LEVELS = {
   tol: 0.6,
 };

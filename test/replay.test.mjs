@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AIM_Q, BUTTONS, StepInput, YAW_Q } from '../src/input.js';
-import { MAPS, MAPS_REV } from '../src/maps.js';
+import { MAPS, MAPS_REV, PLAY_REV } from '../src/maps.js';
 import { InputRecord, RecordReader } from '../src/replay.js';
 import { Rng } from '../src/rng.js';
 
@@ -76,7 +76,7 @@ test('controls: held and pressed read by name; an unknown one throws', () => {
   assert.ok(BUTTONS.length <= 31, 'the bits fit a 32-bit integer');
 });
 
-test('the header keeps the maps’ revision (maps.js MAPS_REV); a version 4 record, from before it, still reads, step for step, its revision unknown', () => {
+test('the header keeps the game’s revision (maps.js MAPS_REV: the maps’ and the play rules’); a version 4 record, from before it, still reads, step for step, its revision unknown', () => {
   const steps = script(3000, 9);
   const rec = new InputRecord({ seed: 7, map: 6, mode: 0, rules: 0, hz: 120, mapsRev: MAPS_REV });
   for (const s of steps) rec.push(Object.assign(new StepInput(), s));
@@ -84,7 +84,7 @@ test('the header keeps the maps’ revision (maps.js MAPS_REV); a version 4 reco
   const rd = new RecordReader(bytes);
   assert.equal(rd.version, 5);
   assert.equal(rd.mapsRev, MAPS_REV);
-  assert.equal(MAPS_REV, MAPS.reduce((s, m) => s + m.rev, 0) % 256, 'the sum of every map’s rev');
+  assert.equal(MAPS_REV, (MAPS.reduce((s, m) => s + m.rev, 0) + PLAY_REV) % 256, 'the sum of every map’s rev and the play revision');
   assert.ok(MAPS.every((m) => Number.isInteger(m.rev) && m.rev >= 1), 'every map has a revision');
   // the same record as version 4 wrote it: no revision byte
   const v4 = new Uint8Array(bytes.length - 1);
