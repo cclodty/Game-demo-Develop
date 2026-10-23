@@ -183,18 +183,39 @@
 <circle cx="36.37" cy="-29.66" r="0.4" fill="#7a6a5a" fill-opacity="1"/>
 <circle cx="4.52" cy="58.62" r="0.4" fill="#7a6a5a" fill-opacity="1"/>
 </g><g id="heights" font-size="1.6" fill="#2a241e" text-anchor="middle">
+<text x="-33.43" y="97.14">24.4</text>
+<text x="21.21" y="95.96">35.5</text>
 <text x="41.5" y="38.47">26.8</text>
 <text x="37.37" y="30.44">17.3?</text>
 <text x="0.22" y="-21.06">26.2</text>
+<text x="-6.09" y="-71.3">30.3</text>
+<text x="13.04" y="60.79">26.3</text>
+<text x="-17.54" y="-50.88">17.3?</text>
+<text x="-39.8" y="65.54">20.4</text>
+<text x="-25" y="-55.44">29.2</text>
+<text x="-2.09" y="90.73">26.1</text>
+<text x="-0.49" y="81.82">27.7</text>
+<text x="-36.65" y="74.01">28.8</text>
+<text x="-40.02" y="-1.06">28.9</text>
 <text x="-29.16" y="-11.02">29.2</text>
 <text x="-28.31" y="6.18">33.4</text>
 <text x="-27.5" y="16.33">31.8</text>
 <text x="-24.65" y="24.94">32.4</text>
 <text x="-22.17" y="32.85">29.2</text>
 <text x="-18.33" y="41.13">28.8</text>
+<text x="-19.95" y="52.8">31.7</text>
 <text x="-29.93" y="45.84">25.5</text>
 <text x="-34.71" y="38.68">25.5</text>
 <text x="-39.23" y="31.7">25.5</text>
+<text x="-33.38" y="-62.13">32.8</text>
+<text x="-38.08" y="-69.78">31.6</text>
+<text x="-36.24" y="-44.63">23.3?</text>
+<text x="-33.61" y="80.81">20.6</text>
+<text x="-31.91" y="86.29">31.3</text>
+<text x="-31.43" y="90.74">26.7</text>
+<text x="35.87" y="45.35">25.5</text>
+<text x="38.67" y="59.99">26.2</text>
+<text x="39.07" y="73.02">25.2</text>
 </g><g id="names" font-size="2.4" fill="#8a3c0c" text-anchor="middle" font-weight="bold">
 <text x="65.15" y="-69.21">高園街大坑遺跡保護展示區</text>
 <text x="-0.23" y="-45.37">聖保祿學院天主之母教堂遺址</text>
@@ -207,49 +228,79 @@
 <text x="-24.99" y="-55.99">大三巴哪咤展館</text>
 </g>
 <g id="game" fill="#e6283c" fill-opacity="0.16" stroke="#e6283c" stroke-width="0.3">
-<rect x="-20" y="9" width="3" height="6"/>
-<rect x="-20" y="18" width="3" height="12"/>
-<rect x="17" y="9" width="3" height="12"/>
-<rect x="17" y="24" width="3" height="6"/>
-<rect x="-20" y="1" width="8" height="8"/>
-<rect x="-20" y="-7" width="8" height="8"/>
-<rect x="-20" y="-12" width="8" height="5"/>
-<rect x="12" y="1" width="8" height="8"/>
-<rect x="12" y="-7" width="8" height="8"/>
-<rect x="12" y="-12" width="8" height="5"/>
-<rect x="-20" y="-13" width="5" height="1"/>
-<rect x="-20" y="-22.2" width="5" height="6.7"/>
-<rect x="15" y="-13" width="5" height="1"/>
-<rect x="15" y="-22.2" width="5" height="6.7"/>
-<rect x="-20" y="-22.2" width="12.8" height="1.2"/>
-<rect x="-4.8" y="-22.2" width="3.2" height="1.2"/>
-<rect x="1.6" y="-22.2" width="3.2" height="1.2"/>
-<rect x="7.2" y="-22.2" width="12.8" height="1.2"/>
-<rect x="-20" y="-30" width="11" height="7.8"/>
-<rect x="9" y="-30" width="11" height="7.8"/>
-<rect x="-9" y="-30" width="18" height="1.5"/>
-<rect x="-10.3" y="18.9" width="2.6" height="1.2"/>
-<rect x="6.9" y="20.7" width="1.2" height="2.6"/>
-<rect x="1.2" y="12.9" width="2.6" height="1.2"/>
-<rect x="-13.9" y="25.3" width="2.8" height="1.4"/>
-<rect x="11.8" y="11.1" width="1.4" height="2.8"/>
-<rect x="-6.6" y="1.9" width="1.2" height="1.2"/>
-<rect x="6.4" y="1.9" width="1.2" height="1.2"/>
-<rect x="-2.8" y="-6" width="2.6" height="1"/>
-<rect x="-8.5" y="-18.85" width="4" height="0.7"/>
-<rect x="7.3" y="-16.7" width="1.4" height="1.4"/>
+<rect x="-24" y="25.7" width="11.6" height="12.4"/>
+<rect x="15.8" y="25.7" width="8.2" height="12.4"/>
+<rect x="4.5" y="35" width="5.4" height="3.1"/>
+<rect x="4.5" y="31.9" width="5.4" height="3.1"/>
+<rect x="4.5" y="28.8" width="5.4" height="3.1"/>
+<rect x="4.5" y="25.7" width="5.4" height="3.1"/>
+<rect x="-24" y="22.7" width="11.6" height="3"/>
+<rect x="15.8" y="22.7" width="8.2" height="3"/>
+<rect x="4.5" y="22.7" width="5.4" height="3"/>
+<rect x="-24" y="10.3" width="11.6" height="12.4"/>
+<rect x="15.8" y="10.3" width="8.2" height="12.4"/>
+<rect x="4.5" y="19.6" width="5.4" height="3.1"/>
+<rect x="4.5" y="16.5" width="5.4" height="3.1"/>
+<rect x="4.5" y="13.4" width="5.4" height="3.1"/>
+<rect x="4.5" y="10.3" width="5.4" height="3.1"/>
+<rect x="-24" y="7.3" width="11.6" height="3"/>
+<rect x="15.8" y="7.3" width="8.2" height="3"/>
+<rect x="4.5" y="7.3" width="5.4" height="3"/>
+<rect x="-24" y="-4.6" width="11.6" height="11.9"/>
+<rect x="15.8" y="-4.6" width="8.2" height="11.9"/>
+<rect x="4.5" y="4.33" width="5.4" height="2.97"/>
+<rect x="4.5" y="1.35" width="5.4" height="2.97"/>
+<rect x="4.5" y="-1.62" width="5.4" height="2.97"/>
+<rect x="4.5" y="-4.6" width="5.4" height="2.97"/>
+<rect x="-24" y="-11.5" width="8.3" height="6.9"/>
+<rect x="-24" y="-22.55" width="8.3" height="8.55"/>
+<rect x="16.1" y="-11.5" width="7.9" height="6.9"/>
+<rect x="16.1" y="-22.55" width="7.9" height="8.55"/>
+<rect x="-10.3" y="-22.55" width="3.1" height="1.9"/>
+<rect x="-4.6" y="-22.55" width="3.1" height="1.9"/>
+<rect x="2.1" y="-22.55" width="3.1" height="1.9"/>
+<rect x="7.8" y="-22.55" width="3.1" height="1.9"/>
+<rect x="-15.7" y="-22.55" width="5.4" height="1.9"/>
+<rect x="10.9" y="-22.55" width="5.2" height="1.9"/>
+<rect x="-24" y="-28.5" width="14" height="5.95"/>
+<rect x="9.6" y="-28.5" width="14.4" height="5.95"/>
+<rect x="-24" y="-80" width="48" height="51.5"/>
+<rect x="-24" y="38.1" width="11.6" height="5.9"/>
+<rect x="-24" y="44" width="12.1" height="18.6"/>
+<rect x="-24" y="62.6" width="7.6" height="9.4"/>
+<rect x="4.5" y="42.2" width="19.5" height="31.1"/>
+<rect x="15.8" y="38.1" width="8.2" height="4.1"/>
+<rect x="-24" y="77.3" width="15" height="2.7"/>
+<rect x="-4" y="77.3" width="28" height="2.7"/>
+<rect x="-9.3" y="45.9" width="2.6" height="1.2"/>
+<rect x="-2.6" y="51.7" width="1.2" height="2.6"/>
+<rect x="-10.3" y="60.4" width="2.6" height="1.2"/>
+<rect x="-2.4" y="67.3" width="2.8" height="1.4"/>
+<rect x="3.5" y="43.7" width="0.6" height="0.6"/>
+<rect x="3.5" y="47.7" width="0.6" height="0.6"/>
+<rect x="3.5" y="51.7" width="0.6" height="0.6"/>
+<rect x="3.5" y="55.7" width="0.6" height="0.6"/>
+<rect x="3.5" y="59.7" width="0.6" height="0.6"/>
+<rect x="3.5" y="63.7" width="0.6" height="0.6"/>
+<rect x="3.5" y="67.7" width="0.6" height="0.6"/>
+<rect x="3.5" y="71.7" width="0.6" height="0.6"/>
+<rect x="-9.6" y="23.6" width="1.2" height="1.2"/>
+<rect x="0.9" y="23.6" width="1.2" height="1.2"/>
+<rect x="-6.3" y="8.3" width="2.6" height="1"/>
+<rect x="-9" y="-18.85" width="4" height="0.7"/>
+<rect x="8.3" y="-15.7" width="1.4" height="1.4"/>
 <rect x="-5.55" y="-25.75" width="1.1" height="1.1"/>
 <rect x="4.45" y="-25.75" width="1.1" height="1.1"/>
-<rect x="-2.2" y="-27.6" width="4.4" height="1.4"/>
+<rect x="-2.2" y="-27.7" width="4.4" height="1.4"/>
 </g>
-<rect x="-20" y="-30" width="40" height="60" fill="none" stroke="#0090c0" stroke-width="0.45" stroke-dasharray="1.6 0.8"/>
-<line x1="-20" y1="9" x2="20" y2="9" stroke="#b0309a" stroke-width="0.2" stroke-dasharray="0.8 0.5"/><text x="20.6" y="9.6" font-size="1.6" fill="#b0309a">0 m</text>
-<line x1="-20" y1="4" x2="20" y2="4" stroke="#b0309a" stroke-width="0.2" stroke-dasharray="0.8 0.5"/><text x="20.6" y="4.6" font-size="1.6" fill="#b0309a">1.6 m</text>
-<line x1="-20" y1="1" x2="20" y2="1" stroke="#b0309a" stroke-width="0.2" stroke-dasharray="0.8 0.5"/><text x="20.6" y="1.6" font-size="1.6" fill="#b0309a">1.6 m</text>
-<line x1="-20" y1="-4" x2="20" y2="-4" stroke="#b0309a" stroke-width="0.2" stroke-dasharray="0.8 0.5"/><text x="20.6" y="-3.4" font-size="1.6" fill="#b0309a">3.2 m</text>
-<line x1="-20" y1="-7" x2="20" y2="-7" stroke="#b0309a" stroke-width="0.2" stroke-dasharray="0.8 0.5"/><text x="20.6" y="-6.4" font-size="1.6" fill="#b0309a">3.2 m</text>
-<line x1="-20" y1="-12" x2="20" y2="-12" stroke="#b0309a" stroke-width="0.2" stroke-dasharray="0.8 0.5"/><text x="20.6" y="-11.4" font-size="1.6" fill="#b0309a">4.8 m</text>
-<circle cx="-3" cy="21" r="0.7" fill="#0090c0"/>
+<rect x="-24" y="-80" width="48" height="160" fill="none" stroke="#0090c0" stroke-width="0.45" stroke-dasharray="1.6 0.8"/>
+<line x1="-24" y1="38.1" x2="24" y2="38.1" stroke="#b0309a" stroke-width="0.2" stroke-dasharray="0.8 0.5"/><text x="24.6" y="38.7" font-size="1.6" fill="#b0309a">0 m</text>
+<line x1="-24" y1="25.7" x2="24" y2="25.7" stroke="#b0309a" stroke-width="0.2" stroke-dasharray="0.8 0.5"/><text x="24.6" y="26.3" font-size="1.6" fill="#b0309a">3.45 m</text>
+<line x1="-24" y1="22.7" x2="24" y2="22.7" stroke="#b0309a" stroke-width="0.2" stroke-dasharray="0.8 0.5"/><text x="24.6" y="23.3" font-size="1.6" fill="#b0309a">3.45 m</text>
+<line x1="-24" y1="10.3" x2="24" y2="10.3" stroke="#b0309a" stroke-width="0.2" stroke-dasharray="0.8 0.5"/><text x="24.6" y="10.9" font-size="1.6" fill="#b0309a">6.9 m</text>
+<line x1="-24" y1="7.3" x2="24" y2="7.3" stroke="#b0309a" stroke-width="0.2" stroke-dasharray="0.8 0.5"/><text x="24.6" y="7.9" font-size="1.6" fill="#b0309a">6.9 m</text>
+<line x1="-24" y1="-4.6" x2="24" y2="-4.6" stroke="#b0309a" stroke-width="0.2" stroke-dasharray="0.8 0.5"/><text x="24.6" y="-4" font-size="1.6" fill="#b0309a">10.2 m</text>
+<circle cx="-4" cy="56" r="0.7" fill="#0090c0"/>
 </g>
 <g id="north" stroke="#2a241e" stroke-width="0.35" fill="#2a241e"><circle cx="62" cy="-71" r="5" fill="#fff" fill-opacity="0.8"/><line x1="61.94" y1="-67" x2="62.06" y2="-75"/><text x="62.09" y="-76.1" font-size="2.6" text-anchor="middle" stroke="none">N</text></g>
 <g id="scale" font-size="1.8" fill="#2a241e"><rect x="-67" y="97" width="10" height="0.8" fill="#2a241e"/><rect x="-57" y="97" width="40" height="0.8" fill="#fff" stroke="#2a241e" stroke-width="0.15"/><text x="-67" y="100">0</text><text x="-58" y="100">10</text><text x="-19" y="100">50 m</text></g>

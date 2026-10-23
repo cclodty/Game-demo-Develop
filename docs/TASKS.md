@@ -1248,12 +1248,13 @@
 - 漂亮的解法：地圖會說話——低角度開場望上 68 級石階；油桶由平台踢落，滾 42.7 米到前地（ROLLING）
 - 涉及：`src/maps.js`（ruins：`RUINS.profile`、solids、spawns、`zones`（平台 y 約 10）、`rev` 1 → 2）、`test/ruins.test.mjs`、`test/levels.test.mjs`（步級的截圖）、`assets/maps/ruins.json`
 - 驗收：
-  - [ ] `massing/ruins/checks.json` 的石階腳、平台高、68 級、石階闊、平台闊、立面闊與頂七項過（前地闊、舊教堂遺址、住宅高是 ②）
-  - [ ] 油桶由平台滾到前地（測試）；戰區驗證、瞄準誠實（`test/aim.test.mjs` 的石階段）照過；平台高 10 米時鏡頭照樣看得見平台邊
-  - [ ] 開局繪製 ≤ 600、在 `budget` 內
-  - [ ] 截圖：同 `reference/photos/largo.jpg` 差不多的角度
-  - [ ] npm run lint && npm test && npm run test:game 通過
+  - [x] `massing/ruins/checks.json` 的石階腳、平台高、68 級、石階闊、平台闊、立面闊與頂七項過（前地闊、舊教堂遺址、住宅高是 ②）（2026-10-23，`test/ruins.test.mjs` 新的一項：石階腳 0、平台 10.2、68 級、石階 16.9、平台 31.8、立面 21.2、頂 35.7；前地闊 16.4 也過）
+  - [x] 油桶由平台滾到前地（測試）；戰區驗證、瞄準誠實（`test/aim.test.mjs` 的石階段）照過；平台高 10 米時鏡頭照樣看得見平台邊（`test/ruins-roll.test.mjs`：平台邊踢落的油桶滾三段 42.7 米停在前地；`test/levels.test.mjs`、`test/aim.test.mjs` 照過（座標跟新地圖）；三個鏡頭都看得見離 4.4 米的平台邊、在平台邊看得見最後一段石階頂）
+  - [x] 開局繪製 ≤ 600、在 `budget` 內（126 次、121,801 個三角形；重建前 342 次：石階兩旁的牆、花槽、山合併成兩個網格）
+  - [x] 截圖：同 `reference/photos/largo.jpg` 差不多的角度（`docs/shots/phase-4b/ruins-largo.jpg`：左相片、右遊戲，相機在相片的位置：立面以南 84 米、1.5 米高；`ruins-steps.jpg`；平面圖 `massing-ruins-rebuilt.jpg`）
+  - [x] npm run lint && npm test && npm run test:game 通過（2026-10-23：npm test 417 個一次過；之後只改了照相片角度的截圖相機，`ruins.test.mjs` 整個檔重跑 9 個全過；test:game 3 個）
 - 這次不做：舊教堂遺址與兩旁的樓（②）、頭目
+- 做了：兩旁的樓暫時是 8 米高的方塊（面向前地的牆照 OSM 的位置）；立面後面只有 7 米，再後面填滿山（地圖驗證要九成五的空地走得到）；舊大三巴的測試跟新座標改（DECISIONS）
 
 ### 大三巴：重建 ②：舊教堂遺址與兩旁的樓（估計：一天）
 - 目標：立面後面照研究加深到舊教堂遺址的後牆（19.6 × 37.4 米，同平台一個戰區）；前地兩旁按 OSM 輪廓和高度畫住宅（西面六至八層）和東面的黃色騎樓建築（照片的約 15 米；名字不放）；斜巷只畫到巷口；`checks.json` 10 項全過，地圖標 `massing: 'ruins'`

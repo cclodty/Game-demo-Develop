@@ -161,7 +161,7 @@ for (const id of ['rooftop', 'club', 'docks', 'senado', 'felicidade', 'guia', 'r
 
 test('大三巴’s steps and landings, the way between its two zones: a man beside the player on them is hit where he is drawn', { timeout: 240000 }, async () => {
   // on the lower flight, on each landing and on the top flight (the ground there rises with z only: one level across)
-  const spots = [6.5, 2.5, -1.5, -5.5, -9.5].map((pz) => ({ zone: `steps z ${pz}`, px: 0, pz, at: [-8, -4, 4, 8].map((dx) => [dx, pz]) }));
+  const spots = [33, 24.2, 16, 8.8, 1].map((pz) => ({ zone: `steps z ${pz}`, px: -4, pz, at: [-6, -3, 3, 6].map((dx) => [-4 + dx, pz]) }));
   const rs = {};
   for (const type of ['grunt', 'drone']) rs[type] = await sweep('ruins', type, spots);
   const off = (r) => `${r.missed.length} of ${r.tried} aimed off him, ${r.shotMissed.length} of ${r.shots} shots missed`;
@@ -198,7 +198,7 @@ async function aimAndShow(setup) {
 test('screenshots: the mouse on a drone over 大三巴’s terrace, and on a man on its steps', async () => {
   await aimAndShow({ type: 'drone', view: 2, x: 4, z: -18, px: -2, pz: -16 });
   await page.screenshot({ path: new URL('aim-drone.png', OUT).pathname });
-  await aimAndShow({ type: 'grunt', view: 0, x: 5, z: 2.5, px: -1, pz: 2.5 });
+  await aimAndShow({ type: 'grunt', view: 0, x: 1, z: 24.2, px: -5, pz: 24.2 });
   await page.screenshot({ path: new URL('aim-steps.png', OUT).pathname });
   assert.deepEqual(problems(logs), []);
 });

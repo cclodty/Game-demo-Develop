@@ -103,24 +103,24 @@ after(async () => {
 test('大三巴: a man on the forecourt neither aims at nor fires on the player up on the terrace, and comes up the steps; on one level he fires', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    window.begin('ruins', 0, -16);
-    const e = window.post('grunt', 2, 20);
+    window.begin('ruins', -4, -12);
+    const e = window.post('grunt', -2, 46);
     let aimed = 0;
     let shots = 0;
     let nearest = e.z;
     for (let i = 0; i < 120 * 6; i++) {
-      window.play(1, 0, -20);
+      window.play(1, -4, -16);
       if (e.aiming) aimed++;
       shots = Math.max(shots, window.enemyShots());
       nearest = Math.min(nearest, e.z);
     }
-    const apart = { aimed, shots, los: e.los, nearest, same: g.level.sameLevel(e.x, e.z, 0, -16) };
+    const apart = { aimed, shots, los: e.los, nearest, same: g.level.sameLevel(e.x, e.z, -4, -12) };
     // the same man on the forecourt with the player: he fires
-    window.begin('ruins', 0, 24);
-    const f = window.post('grunt', 2, 14);
+    window.begin('ruins', -4, 56);
+    const f = window.post('grunt', -2, 46);
     let fired = 0;
     for (let i = 0; i < 120 * 4 && !fired; i++) {
-      window.play(1, 0, 20);
+      window.play(1, -4, 52);
       fired = window.enemyShots();
     }
     return { apart, fired, losTogether: f.los };
@@ -129,7 +129,7 @@ test('大三巴: a man on the forecourt neither aims at nor fires on the player 
   assert.equal(r.apart.los, false, 'he does not see the player up there');
   assert.equal(r.apart.aimed, 0, 'no laser on the player');
   assert.equal(r.apart.shots, 0, 'no shot');
-  assert.ok(r.apart.nearest < 9, `he comes up the steps (z ${r.apart.nearest.toFixed(1)})`);
+  assert.ok(r.apart.nearest < 38, `he comes up the steps (z ${r.apart.nearest.toFixed(1)})`);
   assert.ok(r.fired > 0, 'on the forecourt together, he fires');
   assert.deepEqual(problems(logs), []);
 });
@@ -144,18 +144,18 @@ test('大三巴: the player’s shot from the forecourt stops at the edge of the
       while (b.alive && n++ < 240) g.bullets.update(1 / 120);
       return { alive: b.alive, z: b.z, ground: L.groundY(b.x, b.z) };
     };
-    window.begin('ruins', -3, 24);
-    const up = fly(0, 15, 0, -1); // north, at the steps
-    window.begin('ruins', -3, -16);
-    const down = fly(0, -13, 0, 1); // south, off the terrace
-    window.begin('ruins', -3, 24);
-    const across = fly(-14, 12, 1, 0); // east, along the forecourt
+    window.begin('ruins', -4, 50);
+    const up = fly(-4, 42, 0, -1); // north, at the steps
+    window.begin('ruins', -4, -12);
+    const down = fly(-4, -8, 0, 1); // south, off the terrace
+    window.begin('ruins', -4, 50);
+    const across = fly(-11, 40, 1, 0); // east, along the forecourt
     return { up, down, across, tol: window.game.level.tol };
   });
   assert.equal(r.up.alive, false);
-  assert.ok(r.up.z > 4 && r.up.z < 9, `up the steps it stopped at the first flight (z ${r.up.z.toFixed(2)}, ${r.up.ground.toFixed(2)} m up)`);
+  assert.ok(r.up.z > 34 && r.up.z < 38.1, `up the steps it stopped at the first flight (z ${r.up.z.toFixed(2)}, ${r.up.ground.toFixed(2)} m up)`);
   assert.equal(r.down.alive, false);
-  assert.ok(r.down.z < -4, `off the terrace it stopped at the top flight (z ${r.down.z.toFixed(2)})`);
+  assert.ok(r.down.z > -4.6 && r.down.z < 0, `off the terrace it stopped at the top flight (z ${r.down.z.toFixed(2)})`);
   assert.ok(r.across.alive === false && Math.abs(r.across.ground) < 0.01, 'along the forecourt it flies until it meets something on that level');
   assert.deepEqual(problems(logs), []);
 });
@@ -185,7 +185,7 @@ test('a beat plays out on the player’s level: on the terrace of 大三巴 its 
     const L = g.level;
     const seen = [];
     // on the terrace, on the forecourt, and on the steps (at the top flight, nearest the terrace; at the foot, the forecourt)
-    for (const [x, z] of [[0, -16], [-3, 24], [0, -9], [0, 7]]) {
+    for (const [x, z] of [[-4, -12], [-4, 50], [-4, -2], [-4, 34]]) {
       window.begin('ruins', x, z);
       g.waves.wave = 1;
       g.waves.startWave(); // wave 2: beats, no boss
@@ -202,7 +202,7 @@ test('a beat plays out on the player’s level: on the terrace of 大三巴 its 
     }
     return seen;
   });
-  assert.ok(r.some((s) => s.player === 'terrace' && s.at[1] === -9) && r.some((s) => s.player === 'forecourt' && s.at[1] === 7), 'on the steps, the nearest zone');
+  assert.ok(r.some((s) => s.player === 'terrace' && s.at[1] === -2) && r.some((s) => s.player === 'forecourt' && s.at[1] === 34), 'on the steps, the nearest zone');
   for (const s of r) {
     assert.equal(s.stage, s.player, `the stage is on the player's level (${JSON.stringify(s)})`);
     assert.deepEqual(s.doors, [s.player, s.player], `and so are its doors (${JSON.stringify(s)})`);
@@ -263,16 +263,16 @@ test('a boss’s perches are places to stand: on the walkable grid, which leaves
 test('screenshot: the player’s burst from 大三巴’s forecourt stops in a puff of stone at the foot of the steps', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    window.begin('ruins', 1, 17);
+    window.begin('ruins', -4, 44);
     g.view = 0;
     let stopped = 0;
     let fired = 0;
     let flying = new Set();
     for (let i = 0; i < 120 && stopped < 2; i++) {
-      window.play(1, 1, 2, true); // north, up the steps
+      window.play(1, -4, 30, true); // north, up the steps
       const now = new Set(g.bullets.list.filter((b) => b.owner === 'player' && b.alive));
       for (const b of now) if (!flying.has(b)) fired++;
-      for (const b of flying) if (!b.alive && b.z > 4 && b.z < 10) stopped++;
+      for (const b of flying) if (!b.alive && b.z > 33 && b.z < 39) stopped++;
       flying = now;
     }
     g.present(1 / 60);
