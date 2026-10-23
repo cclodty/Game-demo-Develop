@@ -109,11 +109,15 @@ test('a hit that does not kill shows: he rocks back from it and flashes white', 
     const g = window.game;
     const e = window.man('grunt', 1);
     e.state = 'move';
+    // the world at full speed: the last test's last kill left its kill-cam slowing time (main.js killcamT), and a pose
+    // changes only on the style's 12 fps steps (style.js poseDue), so 0.25 s of world time holds two or three of them
+    g.killcamT = g.hitstopT = 0;
+    if (g.focusActive) g.setFocus(false);
     const still = e.rig.inner.rotation.x;
     e.hit({ owner: 'player', dx: 0, dz: 1, x: e.x, z: e.z - 1, damage: 1 }); // from in front of him (he faces the player)
     const flash = e.flash;
     let lean = 0;
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 30; i++) {
       g.updatePlay(1 / 120);
       lean = Math.min(lean, e.rig.inner.rotation.x);
     }
