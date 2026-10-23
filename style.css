@@ -1238,6 +1238,17 @@ body:not(.pad) .pad-only {
   color: #c9cae6;
 }
 
+/* four modes in a row (彈幕試驗 the fourth): each line of words on one line, whatever the font, so the title keeps its
+   height (1280 × 720 without scrolling); a line too long ends in an ellipsis, the whole of it in the card's title */
+.modes.four .mode-desc {
+  flex: 1 1 100%;
+  min-width: 0;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* the first visit: the local records switch (telemetry.js) */
 .telemetry-switch {
   display: flex;
