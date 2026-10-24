@@ -26,16 +26,18 @@ export const MODES = {
   // 彈幕試驗 (DECISIONS 2026-10-23: the bullet-hell trial): six waves in one room (rooms.js `room`), whatever map card is
   // picked; last in the list, so a record's mode number keeps its meaning
   // its waves: `total` men in wave n, of `types` { type: [from wave, weight, most a wave] } (the three pattern men, a
-  // few thugs); a wave of thugs alone takes a `fill` for its first. `graze`: bullets passing close count (config.js GRAZE)
+  // few thugs); a wave of thugs alone takes a `fill` for its first. `graze`: bullets passing close count (config.js GRAZE).
+  // `floor`: played in rooms (rooms.js), not on the maps: a floor of `rooms`, `first` then the rest drawn from `pool`
+  // (rooms.js drawFloor), `perStage` waves in each; a cleared room's exit opens and the player walks out of it to the next
   danmaku: {
     name: '彈幕試驗',
     en: 'BULLET HELL',
     color: '#ff6a3d',
-    desc: '試驗：茶樓裏的六波彈幕',
+    desc: '試驗：茶樓裏一層三間房的彈幕',
     waves: 6,
-    perStage: 6,
+    perStage: 2,
     graded: true,
-    room: 'teahouse',
+    floor: { first: 'teahouse', pool: ['banquet', 'sidehall'], rooms: 3 },
     graze: true,
     roster: { total: [3, 4, 5, 6, 7, 8], types: { fanner: [1, 4], ringer: [1, 3], spiraler: [2, 2, 2], grunt: [1, 1] }, fill: 'fanner' },
   },
@@ -53,7 +55,7 @@ export class Waves {
     this.queue = [];
     this.pending = [];
     this.bossWave = false;
-    this.state = 'intermission'; // then 'active', 'transition', and 'done' once an arcade run is cleared; 'warmup' before wave 1 of a first run
+    this.state = 'intermission'; // then 'active', 'transition', and 'done' once an arcade run is cleared; 'warmup' before wave 1 of a first run; 'exit' while a cleared room waits for the player to walk out (彈幕試驗)
     this.timer = 2.4;
     this.maxAlive = 3;
     this.spawnCd = 0;
@@ -86,9 +88,15 @@ export class Waves {
     return MODES[this.game.mode];
   }
 
-  /** The stage of the run the wave is in, from 0: one every `perStage` waves (澳門一夜 counts the night's waves before it). ENEMY_HP climbs with it. */
+  /** The stage of the run the wave is in, from 0: one every `stageWaves` waves (澳門一夜 counts the night's waves before it). ENEMY_HP climbs with it. */
   get stageIndex() {
-    return Math.max(0, Math.floor((this.wave - 1) / this.rules.perStage));
+    return Math.max(0, Math.floor((this.wave - 1) / this.stageWaves));
+  }
+
+  /** The waves a stage of the run lasts, for how hard it is and its music: `perStage` (a map's), or a whole floor of rooms (彈幕試驗: its rooms are one stage). */
+  get stageWaves() {
+    const f = this.rules.floor;
+    return f ? f.rooms * this.rules.perStage : this.rules.perStage;
   }
 
   get isFinal() {
@@ -152,7 +160,7 @@ export class Waves {
     const stageEnd = this.wave % this.rules.perStage === 0;
     this.bossWave = !!boss && !!BOSSES[boss.kind] && (this.isFinal || (stageEnd && !!this.rules.midBoss));
     // the music (audio.js): a stage's first two waves on the base of its song, its later layers after, its boss section for a boss and the last wave
-    g.audio.setLevel(this.isFinal || this.bossWave ? 2 : (this.wave - 1) % this.rules.perStage >= 2 ? 1 : 0);
+    g.audio.setLevel(this.isFinal || this.bossWave ? 2 : (this.wave - 1) % this.stageWaves >= 2 ? 1 : 0);
     if (this.bossWave) {
       this.queue = [];
       g.level.restock(); // what the boss is fought with (the barrels the helicopter fears) is back where it began
@@ -407,6 +415,15 @@ export class Waves {
       }
       return;
     }
+    if (this.state === 'exit') {
+      // a cleared room's exit is open (彈幕試驗): the player walking into it goes on to the floor's next room
+      const p = this.game.player;
+      if (p.alive && this.game.level.exit.reached(p.x, p.z)) {
+        this.state = 'transition';
+        this.game.beginStageTransition();
+      }
+      return;
+    }
     if (this.state !== 'active') return;
     const enemies = this.game.enemies;
 
@@ -444,9 +461,15 @@ export class Waves {
       }
       this.state = 'intermission';
       this.timer = 3.8;
-      // every few waves the fight moves to the next map
+      // every few waves the fight moves to the next map; in a room (彈幕試驗) when the player walks out of its exit
       this.stageNext = this.wave % this.rules.perStage === 0;
-      this.game.onWaveClear(this.wave, this.stageNext);
+      const exit = this.stageNext && this.rules.floor && this.game.level.exit;
+      if (exit) {
+        this.stageNext = false;
+        this.state = 'exit';
+        exit.unlock();
+      }
+      this.game.onWaveClear(this.wave, this.stageNext || !!exit);
     }
   }
 }

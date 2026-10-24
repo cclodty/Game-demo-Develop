@@ -7,6 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AIM_Q, BUTTONS, StepInput, YAW_Q } from '../src/input.js';
 import { MAPS, MAPS_REV, PLAY_REV } from '../src/maps.js';
+import { ROOMS } from '../src/rooms.js';
 import { InputRecord, RecordReader } from '../src/replay.js';
 import { Rng } from '../src/rng.js';
 
@@ -84,7 +85,7 @@ test('the header keeps the game’s revision (maps.js MAPS_REV: the maps’ and 
   const rd = new RecordReader(bytes);
   assert.equal(rd.version, 5);
   assert.equal(rd.mapsRev, MAPS_REV);
-  assert.equal(MAPS_REV, (MAPS.reduce((s, m) => s + m.rev, 0) + PLAY_REV) % 256, 'the sum of every map’s rev and the play revision');
+  assert.equal(MAPS_REV, (MAPS.reduce((s, m) => s + m.rev, 0) + Object.values(ROOMS).reduce((s, m) => s + m.rev, 0) + PLAY_REV) % 256, 'the sum of every map’s (and room’s: rooms.js) rev and the play revision');
   assert.ok(MAPS.every((m) => Number.isInteger(m.rev) && m.rev >= 1), 'every map has a revision');
   // the same record as version 4 wrote it: no revision byte
   const v4 = new Uint8Array(bytes.length - 1);

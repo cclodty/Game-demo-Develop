@@ -9,6 +9,7 @@ import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { FIREPOWER } from '../src/config.js';
 import { MAPS, MAPS_REV, PLAY_REV } from '../src/maps.js';
+import { ROOMS } from '../src/rooms.js';
 import { gameHarness, problems } from './helpers.mjs';
 
 let h;
@@ -122,5 +123,5 @@ test('a brute drops his minigun with FIREPOWER’s chance; every dropped gun com
 
 test('a replay recorded before the change still plays, marked as from another version: the play revision is part of the record’s revision byte (test/replays.test.mjs plays one)', () => {
   assert.ok(PLAY_REV >= 1, 'up one for the pads and the drops (2026-10-23)');
-  assert.equal(MAPS_REV, (MAPS.reduce((s, m) => s + m.rev, 0) + PLAY_REV) % 256, 'the byte holds the maps’ revisions and the play revision');
+  assert.equal(MAPS_REV, (MAPS.reduce((s, m) => s + m.rev, 0) + Object.values(ROOMS).reduce((s, m) => s + m.rev, 0) + PLAY_REV) % 256, 'the byte holds the maps’ (and the rooms’) revisions and the play revision');
 });

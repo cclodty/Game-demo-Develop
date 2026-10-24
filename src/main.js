@@ -11,7 +11,7 @@ import { HUD } from './hud.js';
 import { ACTIONS, Input, keyName, padButtonName, padLabel, StepInput } from './input.js';
 import { Level } from './level.js';
 import { MAPS, MAPS_REV } from './maps.js';
-import { ROOMS } from './rooms.js';
+import { drawFloor, ROOMS } from './rooms.js';
 import { nightRoute, NightStore } from './night.js';
 import { loadedCharacters, loadModels } from './models.js';
 import { Notes } from './notes.js';
@@ -46,6 +46,7 @@ const STEP = 1 / LOGIC_HZ;
 
 const $ = (id) => document.getElementById(id);
 const clock = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+const CN_COUNT = ['零', '一', '兩', '三', '四', '五', '六', '七', '八', '九']; // how many, in words (一層三間房)
 const TOGGLES = new Set(['checkbox', 'radio', 'range', 'button']);
 const isTyping = (t) => !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !TOGGLES.has(t.type)) || t.isContentEditable);
 
@@ -107,6 +108,7 @@ class Game {
     this.style = new Style(this); // the look; before the level, whose materials it converts as they load
     this.maps = MAPS;
     this.rooms = ROOMS; // where 彈幕試驗 is played (rooms.js)
+    this.floor = null; // a 彈幕試驗 run's rooms, in order (room ids: startRun draws them)
     this.enemyTypes = ENEMY_TYPES; // for the tests and the stats panel
     this.startMap = 0;
     try {
@@ -589,9 +591,9 @@ class Game {
       $('maps-note').textContent = `${resume ? `上次到 ${m.hour} ${m.name}，由這裏繼續` : `由 ${m.hour} ${m.name} 開始`} · 每 ${r.perStage} 波一個鐘頭，到 ${end.hour} ${end.name}`;
       return;
     }
-    if (r.room) {
-      // 彈幕試驗: one room, whatever card is picked
-      $('maps-note').textContent = `${r.waves} 波都在${ROOMS[r.room].name}裏打，場景不用揀`;
+    if (r.floor) {
+      // 彈幕試驗: a floor of rooms, whatever card is picked
+      $('maps-note').textContent = `一層${CN_COUNT[r.floor.rooms]}間房，每間 ${r.perStage} 波，打完開門去下一間：${this.routeText(start, this.mode)} · 場景不用揀`;
       return;
     }
     $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結：${this.routeText(start, this.mode)}` : `每 ${r.perStage} 波換一個場景`;
@@ -750,6 +752,9 @@ class Game {
       /* storage unavailable */
     }
     this.rng.reset(this.fixedSeed ?? randomSeed());
+    // 彈幕試驗: the run's floor of rooms, drawn from its seed (the same seed, the same floor)
+    const spec = MODES[this.mode].floor;
+    this.floor = spec ? drawFloor(spec, this.rng.fork('floor')) : null;
     // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
     const warmup = this.fixedWarmup ?? wantWarmup();
     // the rules hold for the whole run (a replay brings its own: fixedRules)
@@ -770,6 +775,7 @@ class Game {
     this.hud.reset();
     this.notes.reset(first);
     if (MODES[this.mode].night) this.nightLine(MAPS[mapIndex]);
+    if (this.floor) this.notes.log(`這一層：${this.floor.map((id) => ROOMS[id].name).join(' → ')}`);
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
     // the music: the first stage's song from its start, on its base (audio.js)
     this.audio.setStage(0, true);
@@ -1274,7 +1280,11 @@ class Game {
   routeText(start, mode) {
     const r = MODES[mode];
     if (!Number.isFinite(r.waves)) return '';
-    if (r.room) return ROOMS[r.room].name; // one room, no boss
+    if (r.floor) {
+      // a floor of rooms: its first, then the others in an order each run's seed draws; no boss
+      const k = r.floor.rooms - 1;
+      return `${ROOMS[r.floor.first].name} → ${r.floor.pool.map((id) => ROOMS[id].name).join('、')}${r.floor.pool.length > k ? `中抽${CN_COUNT[k]}間` : ''}（次序每局不同）`;
+    }
     // 澳門一夜 from where it starts to its end, each map at its hour; any other the maps after the one picked
     const maps = r.night ? NIGHT.slice(Math.max(0, NIGHT.indexOf(start))).map((i) => MAPS[i]) : Array.from({ length: Math.ceil(r.waves / r.perStage) }, (_, i) => MAPS[(start + i) % MAPS.length]);
     const stages = maps.length;
@@ -1294,15 +1304,19 @@ class Game {
     return this.mapAt(this.stage);
   }
 
-  /** A run's first map: in a mode played in a room (彈幕試驗) the room, whatever map was picked; else MAPS[mapIndex]. */
+  /** A run's first map: in a mode played in rooms (彈幕試驗) its floor's first room, whatever map was picked; else MAPS[mapIndex]. */
   firstMap(mode, mapIndex) {
-    const room = MODES[mode].room;
-    return room ? ROOMS[room] : MAPS[mapIndex];
+    const floor = MODES[mode].floor;
+    return floor ? ROOMS[floor.first] : MAPS[mapIndex];
   }
 
-  /** The run's map at `stage`: in 澳門一夜 the night's, from where it started; in any other mode the next in MAPS. */
+  /** The run's map at `stage`: in 彈幕試驗 its floor's room; in 澳門一夜 the night's, from where it started; in any other mode the next in MAPS. */
   mapAt(stage) {
-    if (MODES[this.mode].room) return ROOMS[MODES[this.mode].room];
+    const floor = MODES[this.mode].floor;
+    if (floor) {
+      const rooms = this.floor || [floor.first];
+      return ROOMS[rooms[Math.min(stage, rooms.length - 1)]];
+    }
     if (MODES[this.mode].night) return MAPS[NIGHT[Math.min(this.routeAt + stage, NIGHT.length - 1)]];
     return MAPS[(this.startMap + stage) % MAPS.length];
   }
@@ -1332,10 +1346,17 @@ class Game {
       this.thrown.clear();
       this.fx.clear();
       this.level.load(this.stageMap, this.layoutFor(this.stage));
-      this.notes.log(`轉場 → ${this.stageMap.name}`);
-      this.audio.setStage(this.stage); // the next song comes in on the bar line
-      this.audio.setLevel(0);
-      this.notes.log(`音樂：${this.audio.upcoming.name}`);
+      const floor = MODES[this.mode].floor;
+      if (floor) {
+        // the floor's next room: its doors shut behind the player; one song for the floor
+        this.notes.log(`第 ${this.stage + 1} 間房：${this.stageMap.name}（入房鎖門，打完 ${MODES[this.mode].perStage} 波開門）`);
+        this.audio.setLevel(0);
+      } else {
+        this.notes.log(`轉場 → ${this.stageMap.name}`);
+        this.audio.setStage(this.stage); // the next song comes in on the bar line
+        this.audio.setLevel(0);
+        this.notes.log(`音樂：${this.audio.upcoming.name}`);
+      }
       this.applyMapView();
       this.player.placeAtStart();
       this.updateCamera(1, true);
@@ -1345,7 +1366,7 @@ class Game {
     if (tr.t >= 1.3) {
       this.transition = null;
       const m = this.stageMap;
-      this.hud.banner(MODES[this.mode].night ? m.hour : `STAGE ${this.stage + 1}`, `${m.name} · ${m.en}`, 'stage');
+      this.hud.banner(MODES[this.mode].night ? m.hour : this.floor && MODES[this.mode].floor ? `ROOM ${this.stage + 1} / ${this.floor.length}` : `STAGE ${this.stage + 1}`, `${m.name} · ${m.en}`, 'stage');
       if (MODES[this.mode].night) this.nightLine(m);
       this.waves.state = 'intermission';
       this.waves.timer = 2.6;
@@ -1665,16 +1686,17 @@ class Game {
   onWaveClear(n, stageEnd = false) {
     if (!this.player.alive) return;
     const bonus = 250 * n;
-    this.notes.log(`第 ${n} 波清空${stageEnd ? '，準備轉場' : ''}`);
+    const room = MODES[this.mode].floor; // 彈幕試驗: a room's last wave opens its exit (waves.js 'exit')
+    this.notes.log(`第 ${n} 波清空${stageEnd ? (room ? '，門開了：行出門口去下一間' : '，準備轉場') : ''}`);
     this.achievements.wave(!this.waves.hurt, this.waves.shots);
     this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt, shots: this.waves.shots });
     this.score.bonus('WAVE CLEAR', bonus);
     this.level.waveEnd(); // shutters roll back up
     this.addFocus(0.35);
     this.player.hp = PLAYER.hp;
-    const next = stageEnd ? ` · 下一站：${this.mapAt(this.stage + 1).name}` : '';
+    const next = stageEnd ? (room ? ` · 門開了：下一間 ${this.mapAt(this.stage + 1).name}` : ` · 下一站：${this.mapAt(this.stage + 1).name}`) : '';
     if (stageEnd && MODES[this.mode].night && !this.replay) this.night.cleared(this.routeAt + this.stage, NIGHT.length); // kept: the next night starts after it
-    this.hud.banner(stageEnd ? 'STAGE CLEAR' : 'WAVE CLEAR', `+${bonus.toLocaleString('en-US')} · 生命值回滿${next}`, 'clear');
+    this.hud.banner(stageEnd ? (room ? 'ROOM CLEAR' : 'STAGE CLEAR') : 'WAVE CLEAR', `+${bonus.toLocaleString('en-US')} · 生命值回滿${next}`, 'clear');
     this.audio.waveClear();
   }
 

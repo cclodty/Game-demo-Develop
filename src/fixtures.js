@@ -20,9 +20,16 @@
 //                                  bodies, shots and sight pass over it; the player's kick (or a pan) flips it
 //                                  onto its side, its top a wall across the kick's way (ENV.table: FLIP), which
 //                                  stops shots and sight until ENV.table.hp shots, anyone's, break it
+//   exit  [x, z, 'exit', facing, w, h]  a room's way on (彈幕試驗 ⑤): a double door w × h in its wall at (x, z),
+//                                  facing into the room, its sign over it; locked (shut, the sign dull red) while
+//                                  the room is fought, unlock() opens it (the leaves swing in, the sign green, an
+//                                  arrow on the floor); the player walking into it (reached, ENV.exit.reach m of
+//                                  the wall) goes on to the floor's next room (waves.js 'exit')
 
 import * as THREE from 'three';
 import { ENV, GUN_Y } from './config.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { exitSignTexture } from './textures.js';
 import { rand } from './utils.js';
 
 const _q = new THREE.Quaternion();
@@ -49,12 +56,13 @@ export class Fixture {
     this.facing = facing;
     this.w = w;
     this.h = h;
-    this.r = kind === 'sign' ? 0.28 : kind === 'door' || kind === 'table' ? 0 : kind === 'shutter' ? 0.25 : 0.3; // a door or a table has no post to shoot: what stops shots is a solid
+    this.r = kind === 'sign' ? 0.28 : kind === 'door' || kind === 'table' || kind === 'exit' ? 0 : kind === 'shutter' ? 0.25 : 0.3; // a door, a table or an exit has no post to shoot: what stops shots is a solid (the exit's, the wall it is in)
     this.mesh = new THREE.Group();
     if (kind === 'lamp') this.buildLamp();
     else if (kind === 'sign') this.buildSign();
     else if (kind === 'door') this.buildDoor();
     else if (kind === 'table') this.buildTable();
+    else if (kind === 'exit') this.buildExit();
     else this.buildShutter();
     level.add(this.mesh);
     this.reset();
@@ -172,6 +180,84 @@ export class Fixture {
     this.wall = null;
   }
 
+  /** A room's exit: the frame, a dark doorway behind two leaves on hinges at its posts, the sign over it, the arrow on the floor before it (shown when open). */
+  buildExit() {
+    const L = this.level;
+    const { w, h } = this;
+    this.mesh.position.set(this.x, 0, this.z);
+    this.mesh.rotation.y = (this.facing * Math.PI) / 180; // its +z into the room, +x along the wall
+    const std = (o) => L.own(new THREE.MeshStandardMaterial({ roughness: 0.5, ...o }));
+    const frame = std({ color: 0xc9a24a, roughness: 0.4, metalness: 0.6 });
+    const lacquer = std({ color: 0xa8261a, roughness: 0.4 }); // brighter than the wall it is in: the way on stands out
+    for (const s of [-1, 1]) this.deco(0.14, h + 0.08, 0.18, frame, s * (w / 2 + 0.07), 0, 0.09);
+    this.deco(w + 0.28, 0.16, 0.18, frame, 0, h, 0.09);
+    const dark = new THREE.Mesh(L.geo.door, L.mat.door);
+    dark.scale.set(w, h, 1);
+    dark.position.set(0, h / 2, 0.02);
+    this.mesh.add(dark);
+    // the leaves, each on a hinge at its post; open, they swing into the room (out through the wall they would show over its top)
+    this.leaves = [-1, 1].map((s) => {
+      const hinge = new THREE.Group();
+      hinge.position.set((s * w) / 2, 0, 0.06);
+      const leaf = new THREE.Mesh(L.geo.unit, lacquer);
+      leaf.scale.set(w / 2 - 0.03, h - 0.04, 0.07);
+      leaf.position.set((-s * w) / 4, h / 2, 0);
+      leaf.castShadow = true;
+      hinge.add(leaf);
+      hinge.userData.side = s;
+      this.mesh.add(hinge);
+      return hinge;
+    });
+    // the sign: 出口 EXIT, unlit (its colour says locked or open)
+    this.signMat = L.own(new THREE.MeshBasicMaterial({ map: L.own(exitSignTexture()) }));
+    const sign = new THREE.Mesh(L.geo.door, this.signMat);
+    sign.scale.set(w, 0.42, 1);
+    sign.position.set(0, h + 0.36, 0.1);
+    this.mesh.add(sign);
+    // two chevrons on the floor pointing at it, pulsing while it is open
+    const chevron = (y) =>
+      new THREE.ShapeGeometry(
+        new THREE.Shape([
+          new THREE.Vector2(-0.5, y - 0.25),
+          new THREE.Vector2(0, y + 0.25),
+          new THREE.Vector2(0.5, y - 0.25),
+          new THREE.Vector2(0.5, y - 0.47),
+          new THREE.Vector2(0, y + 0.03),
+          new THREE.Vector2(-0.5, y - 0.47),
+        ]),
+      );
+    const arrow = L.own(mergeGeometries([chevron(0), chevron(0.6)]));
+    arrow.rotateX(-Math.PI / 2); // flat on the floor, pointing at the door (its +y to the room's −z)
+    this.arrowMat = L.own(new THREE.MeshBasicMaterial({ color: 0x5dff8a, transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending }));
+    this.arrow = new THREE.Mesh(arrow, this.arrowMat);
+    this.arrow.position.set(0, 0.04, 1.7);
+    this.mesh.add(this.arrow);
+  }
+
+  /** Where the player stands to go on: just inside the doorway. */
+  get at() {
+    const { x: dx, z: dz } = this.dir;
+    return { x: this.x + dx * 0.6, z: this.z + dz * 0.6 };
+  }
+
+  /** The room is cleared: the exit opens (the sign green, the arrow on). */
+  unlock() {
+    if (!this.locked) return;
+    this.locked = false;
+    this.signMat.color.setHex(0x7dffa8);
+    this.arrow.visible = true;
+    this.game.audio.padSpawn();
+  }
+
+  /** (x, z) is in the open doorway's mouth: across it, and within ENV.exit.reach m of the wall. */
+  reached(x, z) {
+    if (this.locked) return false;
+    const { x: dx, z: dz, ax, az } = this.dir;
+    const u = (x - this.x) * ax + (z - this.z) * az;
+    const v = (x - this.x) * dx + (z - this.z) * dz;
+    return Math.abs(u) < this.w / 2 && v < ENV.exit.reach;
+  }
+
   /** Upright: the low octagon that stops bodies (shots and sight pass over it: level.js `low`). */
   setUpright() {
     const L = this.level;
@@ -276,6 +362,14 @@ export class Fixture {
     this.alive = true;
     if (this.kind === 'table') {
       this.setUpright();
+      return;
+    }
+    if (this.kind === 'exit') {
+      this.locked = true;
+      this.openK = 0;
+      for (const hinge of this.leaves) hinge.rotation.y = 0;
+      this.signMat.color.setHex(0x8a2a22);
+      this.arrow.visible = false;
       return;
     }
     if (this.kind === 'door') {
@@ -524,6 +618,15 @@ export class Fixture {
       this.slab.quaternion.copy(_q);
       const out = ENV.table.out * k;
       this.slab.position.set(dx * out, ENV.table.low + (this.w + 0.05 - ENV.table.low) * k, dz * out);
+      return;
+    }
+    if (this.kind === 'exit') {
+      // looks only: the leaves swing out in ENV.exit.open s, the arrow pulses
+      if (this.locked) return;
+      this.openK = Math.min(1, this.openK + dt / ENV.exit.open);
+      const k = 1 - (1 - this.openK) ** 2;
+      for (const hinge of this.leaves) hinge.rotation.y = hinge.userData.side * 1.35 * k;
+      this.arrowMat.opacity = 0.45 + 0.35 * Math.sin(this.game.worldTime * 5);
       return;
     }
     if (this.kind === 'door') {

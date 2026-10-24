@@ -73,7 +73,7 @@ test('the menu has 彈幕試驗; its run is in the teahouse whatever map card is
   assert.ok(r.card && r.card.includes('彈幕試驗') && r.card.includes('BULLET HELL'), `the card: ${r.card}`);
   assert.deepEqual(r.runs, ['teahouse', 'teahouse', 'teahouse']);
   assert.equal(r.room, '茶樓');
-  assert.equal(r.route, '茶樓');
+  assert.match(r.route, /^茶樓 → /, 'the floor’s first room the teahouse (彈幕試驗 ⑤: test/floor.test.mjs)');
   assert.match(r.note, /茶樓/, `the maps note: ${r.note}`);
   assert.deepEqual(r.modes, ['arcade', 'endless', 'daily', 'night', 'danmaku'], 'the new mode last: a record’s mode number means what it did');
   assert.deepEqual(r.maps, ['rooftop', 'club', 'docks', 'senado', 'felicidade', 'guia', 'ruins'], 'MAPS as it was: the room is not one of them');
@@ -190,7 +190,7 @@ test('a dim-sum trolley: kicked, it rolls across the room and bowls over a man i
   assert.ok(r.notes.some((t) => t.includes('點心車')), r.notes.join(' / '));
 });
 
-test('a wave in 彈幕試驗: the men come in at the teahouse’s doors; six waves, then the run is cleared', async () => {
+test('a wave in 彈幕試驗: the men come in at the teahouse’s doors; two waves in it, six in the run', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom();
@@ -207,7 +207,7 @@ test('a wave in 彈幕試驗: the men come in at the teahouse’s doors; six wav
   });
   assert.ok(r.n >= 1, 'men come in');
   assert.equal(r.fromDoor, true, 'at the doors');
-  assert.deepEqual([r.waves, r.perStage, r.map], [6, 6, 'teahouse'], 'six waves, one stage: the room throughout');
+  assert.deepEqual([r.waves, r.perStage, r.map], [6, 2, 'teahouse'], 'six waves, two in each room of the floor (test/floor.test.mjs), the teahouse first');
 });
 
 test('screenshot: the teahouse in 彈幕試驗', async () => {

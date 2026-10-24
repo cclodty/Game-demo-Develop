@@ -49,6 +49,8 @@ function validate(i, seed = null) {
       if (!sp.climb && !L.nav.findPath(sp.x, sp.z, sp.ex, sp.ez)) issues.push(`spawn ${sp.x},${sp.z} cannot walk to its entry`);
       if (!L.nav.findPath(st.x, st.z, sp.ex, sp.ez)) issues.push(`no path from the start to the spawn at ${sp.ex},${sp.ez}`);
     }
+    // a room's way on (彈幕試驗: fixtures.js 'exit')
+    if (L.exit && !L.nav.findPath(st.x, st.z, L.exit.at.x, L.exit.at.z)) issues.push(`no path from the start to the exit at ${L.exit.x},${L.exit.z}`);
     for (const p of L.props) {
       const s = overlapsSolid(p.x, p.z, p.r, p);
       if (s) issues.push(`${p.kind} at ${p.x},${p.z} overlaps ${s.kind} at ${s.minX.toFixed(1)},${s.minZ.toFixed(1)}`);

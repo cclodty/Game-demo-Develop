@@ -172,6 +172,22 @@ export function neonSignTexture(lines, w = 1024, h = 256) {
   return finish(c);
 }
 
+/** A room's exit sign (fixtures.js 'exit'): 出口 EXIT in white on near black, so the material's colour tints the letters (dull red locked, green open). */
+export function exitSignTexture() {
+  const [c, g] = canvas(256, 64);
+  g.fillStyle = '#0a0a0a';
+  g.fillRect(0, 0, 256, 64);
+  g.strokeStyle = '#fff';
+  g.lineWidth = 3;
+  g.strokeRect(4, 4, 248, 56);
+  g.fillStyle = '#fff';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.font = 'bold 34px sans-serif';
+  g.fillText('出口 EXIT', 128, 34);
+  return finish(c);
+}
+
 export function clubFloorTexture() {
   const [c, g] = canvas(512, 512);
   for (let y = 0; y < 8; y++) {

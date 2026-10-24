@@ -195,7 +195,9 @@ export class HUD {
           ? `剩餘敵人 ${wv.remaining}${wv.beats.length ? ` · 第 ${wv.beatNo}/${wv.beats.length} 拍${wv.stage ? ` · ${wv.stage.name} ${wv.stage.en}` : ''}` : ''} · ${where}`
           : wv.state === 'done'
             ? `全部 ${wv.wave} 波清空 · ${where}`
-            : wv.wave > 0
+            : wv.state === 'exit'
+              ? `門開了：行出門口去下一間 · ${where}`
+              : wv.wave > 0
               ? `下一波準備中… · ${where}`
               : `準備… · ${where}`;
     this.set('waveSub', sub, (v) => (e.waveSub.textContent = v));
