@@ -16,10 +16,17 @@
 //                                  the lock post at (x, z) along `facing`: a bullet or a kick on the post drops
 //                                  it, whoever is under it is crushed (SHUTTER), and the opening stays shut
 //                                  until the wave is cleared
+//   table [x, z, 'table', 0, r]    a round table of radius r (彈幕試驗 ④): upright it is low cover that stops
+//                                  bodies, shots and sight pass over it; the player's kick (or a pan) flips it
+//                                  onto its side, its top a wall across the kick's way (ENV.table: FLIP), which
+//                                  stops shots and sight until ENV.table.hp shots, anyone's, break it
 
 import * as THREE from 'three';
 import { ENV, GUN_Y } from './config.js';
 import { rand } from './utils.js';
+
+const _q = new THREE.Quaternion();
+const _axis = new THREE.Vector3();
 
 const SIGN_W = 2.0;
 const SIGN_H = 0.9;
@@ -42,11 +49,12 @@ export class Fixture {
     this.facing = facing;
     this.w = w;
     this.h = h;
-    this.r = kind === 'sign' ? 0.28 : kind === 'door' ? 0 : kind === 'shutter' ? 0.25 : 0.3; // a door has no post to shoot: its panel is a solid
+    this.r = kind === 'sign' ? 0.28 : kind === 'door' || kind === 'table' ? 0 : kind === 'shutter' ? 0.25 : 0.3; // a door or a table has no post to shoot: what stops shots is a solid
     this.mesh = new THREE.Group();
     if (kind === 'lamp') this.buildLamp();
     else if (kind === 'sign') this.buildSign();
     else if (kind === 'door') this.buildDoor();
+    else if (kind === 'table') this.buildTable();
     else this.buildShutter();
     level.add(this.mesh);
     this.reset();
@@ -142,6 +150,104 @@ export class Fixture {
     this.solid.door = this;
   }
 
+  /** A round table: its top (the cloth, the turntable) on a pedestal; it turns over as one, about its middle. */
+  buildTable() {
+    const L = this.level;
+    const M = L.mat;
+    const T = ENV.table;
+    const r = this.w;
+    this.mesh.position.set(this.x, 0, this.z);
+    // the top's own middle is its origin: upright it sits `low` up, flipped it stands on its edge
+    this.slab = new THREE.Group();
+    const cloth = new THREE.Mesh(L.own(new THREE.CylinderGeometry(r + 0.05, r + 0.12, 0.1, 20)), M.teaCloth);
+    cloth.castShadow = true;
+    const turn = new THREE.Mesh(L.own(new THREE.CylinderGeometry(r * 0.45, r * 0.45, 0.04, 16)), M.teaWood);
+    turn.position.y = 0.07;
+    const leg = new THREE.Mesh(L.own(new THREE.CylinderGeometry(0.12, 0.3, T.low - 0.1, 8)), M.teaWood);
+    leg.position.y = -(T.low - 0.1) / 2 - 0.05;
+    leg.castShadow = true;
+    this.slab.add(cloth, turn, leg);
+    this.mesh.add(this.slab);
+    this.upright = null; // its octagon (setUpright), and the wall it is on its side (flip)
+    this.wall = null;
+  }
+
+  /** Upright: the low octagon that stops bodies (shots and sight pass over it: level.js `low`). */
+  setUpright() {
+    const L = this.level;
+    const r = this.w;
+    const pts = Array.from({ length: 8 }, (_, i) => {
+      const a = ((i + 0.5) / 8) * Math.PI * 2;
+      return [this.x + Math.cos(a) * r, this.z + Math.sin(a) * r];
+    });
+    if (this.wall) this.dropSolid(this.wall);
+    this.wall = null;
+    if (!this.upright || !L.solids.includes(this.upright)) {
+      this.upright = L.addPoly(pts, ENV.table.low, 'wall');
+      this.upright.low = true;
+      this.upright.of = this; // its own (test/maps.test.mjs: a prop is not in the way of itself)
+      // stood up again (a new run): its cells shut once more (while the map loads, the grid is built after)
+      if (L.nav) L.nav.buildRect(L.solids, 0.5, this.x - r - 1, this.z - r - 1, this.x + r + 1, this.z + r + 1);
+    }
+    this.upright.alive = true;
+    this.flipped = false;
+    this.broken = false;
+    this.flipK = 0;
+    this.hp = ENV.table.hp;
+    this.mesh.visible = true;
+    this.slab.position.set(0, ENV.table.low, 0);
+    this.slab.quaternion.identity();
+  }
+
+  /** Take solid `s` away and open the nav grid round it. */
+  dropSolid(s) {
+    const L = this.level;
+    s.alive = false;
+    L.solids = L.solids.filter((o) => o !== s);
+    if (L.nav) L.nav.buildRect(L.solids, 0.5, s.minX - 1, s.minZ - 1, s.maxX + 1, s.maxZ + 1);
+  }
+
+  /** Kicked from (px, pz): over onto its side, away from the kicker; its top a wall across the way. True if it went. */
+  flip(px, pz) {
+    if (this.flipped || this.broken || !this.alive) return false;
+    const g = this.game;
+    const L = this.level;
+    const T = ENV.table;
+    let dx = this.x - px;
+    let dz = this.z - pz;
+    const d = Math.hypot(dx, dz) || 1;
+    dx /= d;
+    dz /= d;
+    this.flipDir = { x: dx, z: dz };
+    this.flipped = true;
+    this.flipK = 0;
+    this.dropSolid(this.upright);
+    // the wall: a box turned to the kick's way, `out` m beyond the middle, as wide as the table
+    const cx = this.x + dx * T.out;
+    const cz = this.z + dz * T.out;
+    const ax = dz;
+    const az = -dx;
+    const hw = this.w;
+    const ht = T.thick / 2;
+    const pts = [
+      [cx + ax * hw + dx * ht, cz + az * hw + dz * ht],
+      [cx - ax * hw + dx * ht, cz - az * hw + dz * ht],
+      [cx - ax * hw - dx * ht, cz - az * hw - dz * ht],
+      [cx + ax * hw - dx * ht, cz + az * hw - dz * ht],
+    ];
+    this.wall = L.addPoly(pts, T.height, 'wall');
+    this.wall.table = this; // shots on it wear it (bullets.js)
+    this.wall.of = this;
+    L.nav.buildRect(L.solids, 0.5, this.x - this.w - 1, this.z - this.w - 1, this.x + this.w + 1, this.z + this.w + 1);
+    g.score.style('FLIP', T.pts);
+    g.audio.kick(true);
+    g.shake(0.2);
+    g.fx.debris(this.x, 0.6, this.z, dx, dz, 8, [0.48, 0.29, 0.26], 0.06);
+    g.level.noise(this.x, this.z, 6);
+    g.notes.log('翻枱：圓枱翻起擋子彈');
+    return true;
+  }
+
   buildShutter() {
     const L = this.level;
     const M = L.mat;
@@ -168,6 +274,10 @@ export class Fixture {
 
   reset() {
     this.alive = true;
+    if (this.kind === 'table') {
+      this.setUpright();
+      return;
+    }
     if (this.kind === 'door') {
       this.open = false;
       this.openT = 0;
@@ -327,6 +437,20 @@ export class Fixture {
   /** A player bullet lands on it. */
   shot(b) {
     const g = this.game;
+    if (this.kind === 'table') {
+      // on its side (its wall is what the shot met): each shot, anyone's, wears it; then it breaks
+      if (!this.flipped || this.broken) return;
+      g.fx.debris(b.x, GUN_Y, b.z, -b.dx, -b.dz, 2, [0.48, 0.29, 0.26], 0.05);
+      if (--this.hp > 0) return;
+      this.broken = true;
+      this.mesh.visible = false;
+      this.dropSolid(this.wall);
+      this.wall = null;
+      g.fx.debris(this.x, 0.8, this.z, b.dx, b.dz, 16, [0.48, 0.29, 0.26], 0.1);
+      g.audio.impact(g.panFor(this.x));
+      g.notes.log('圓枱被打爛');
+      return;
+    }
     if (this.kind === 'shutter') {
       this.drop('shot');
       g.fx.sparks(this.x, 1.1, this.z, -b.dx, -b.dz, 8, [7, 5, 2], 7);
@@ -389,6 +513,19 @@ export class Fixture {
   }
 
   update(dt) {
+    if (this.kind === 'table') {
+      // over it goes (looks only: the wall stood the moment it was kicked)
+      if (!this.flipped || this.broken || this.flipK >= 1) return;
+      this.flipK = Math.min(1, this.flipK + dt / ENV.table.flipTime);
+      const k = this.flipK;
+      const { x: dx, z: dz } = this.flipDir;
+      _axis.set(dz, 0, -dx); // across the kick: turning about it by a quarter turn takes the top's up to the kick's way
+      _q.setFromAxisAngle(_axis, (Math.PI / 2) * k);
+      this.slab.quaternion.copy(_q);
+      const out = ENV.table.out * k;
+      this.slab.position.set(dx * out, ENV.table.low + (this.w + 0.05 - ENV.table.low) * k, dz * out);
+      return;
+    }
     if (this.kind === 'door') {
       if (this.open) {
         this.openT -= dt;

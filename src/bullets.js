@@ -326,6 +326,7 @@ export class Bullets {
       case 'solid': {
         const s = hit.solid;
         if (b.owner === 'player') game.boss.shotSolid(s, b); // one of the boss's (the DJ's speakers)
+        if (s.table) s.table.shot(b); // a flipped table wears (fixtures.js), whoever's the shot
         if (s.kind === 'glass') {
           game.level.breakGlass(s, b.dx, b.dz);
           return;

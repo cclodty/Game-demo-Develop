@@ -27,9 +27,9 @@ function validate(i, seed = null) {
     g.applyMapView();
     const L = g.level;
     const issues = [];
-    const overlapsSolid = (x, z, r) => {
+    const overlapsSolid = (x, z, r, prop = null) => {
       for (const s of L.solids) {
-        if (!s.alive) continue;
+        if (!s.alive || (prop && s.of === prop)) continue; // a fixture's own solid (a round table's: fixtures.js) is no obstacle to it
         let hit;
         if (s.poly) hit = L.collideCircle.call({ solids: [s] }, { x, z }, r);
         else {
@@ -50,7 +50,7 @@ function validate(i, seed = null) {
       if (!L.nav.findPath(st.x, st.z, sp.ex, sp.ez)) issues.push(`no path from the start to the spawn at ${sp.ex},${sp.ez}`);
     }
     for (const p of L.props) {
-      const s = overlapsSolid(p.x, p.z, p.r);
+      const s = overlapsSolid(p.x, p.z, p.r, p);
       if (s) issues.push(`${p.kind} at ${p.x},${p.z} overlaps ${s.kind} at ${s.minX.toFixed(1)},${s.minZ.toFixed(1)}`);
     }
     for (let a = 0; a < L.props.length; a++) {

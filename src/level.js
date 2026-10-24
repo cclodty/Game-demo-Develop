@@ -983,6 +983,9 @@ export class Level {
       teaWall: std({ color: 0x5a221b, roughness: 0.75 }),
       teaTrim: std({ color: 0xc9a24a, roughness: 0.4, metalness: 0.6 }),
       bamboo: std({ color: 0xc8a466, roughness: 0.8 }),
+      // its round tables (fixtures.js 'table'): a dusty red cloth, not white (a bullet over a table still stands out)
+      teaCloth: std({ color: 0x7a4a44, roughness: 0.95 }),
+      teaWood: std({ color: 0x3a2016, roughness: 0.6 }),
       bar: std({ color: 0x3a2418, roughness: 0.5 }),
       dj: std({ color: 0x111116, roughness: 0.4, metalness: 0.3 }),
       speaker: std({ color: 0x0d0d10, roughness: 0.7 }),
@@ -1642,7 +1645,7 @@ export class Level {
     let best = null;
     let bt = Infinity;
     for (const s of this.solids) {
-      if (!s.alive || s.h <= over || s === pass) continue; // `over`: from that high up, lower cover is no obstacle; `pass`: a solid this ray flies over (a boss's: boss.js)
+      if (!s.alive || s.h <= over || s === pass || s.low) continue; // `over`: from that high up, lower cover is no obstacle; `pass`: a solid this ray flies over (a boss's: boss.js); `low`: an upright round table (fixtures.js)
       if (!edges && s.edge) continue;
       if (ignoreGlass && s.kind === 'glass') continue;
       if (this.segSolid(x0, z0, x1, z1, s, _hit) && _hit.t < bt) {
@@ -1655,7 +1658,7 @@ export class Level {
 
   hasLOS(x0, z0, x1, z1, over = 0) {
     for (const s of this.solids) {
-      if (!s.alive || s.kind === 'glass' || s.h <= over) continue;
+      if (!s.alive || s.kind === 'glass' || s.h <= over || s.low) continue;
       if (this.segSolid(x0, z0, x1, z1, s, _hit)) return false;
     }
     return true;

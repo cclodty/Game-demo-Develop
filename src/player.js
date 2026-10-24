@@ -784,6 +784,7 @@ export class Player {
     for (const f of this.game.level.fixtures) {
       if (f.kind === 'door' && !f.open && inCone(f.x, f.z, reach + f.w / 2)) hit = f.kick(this.x, this.z) || hit;
       else if (f.kind === 'shutter' && inCone(f.x, f.z, reach + f.r)) hit = f.drop('kick') || hit;
+      else if (f.kind === 'table' && inCone(f.x, f.z, reach + f.w)) hit = f.flip(this.x, this.z) || hit; // over onto its side (彈幕試驗 ④)
     }
     return hit;
   }

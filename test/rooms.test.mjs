@@ -3,8 +3,8 @@
 // it). The whole room is on the screen whatever the view and wherever the
 // player is (a bullet hell is unfair when the shots come from off the
 // screen), one flat floor, dark and grey so the bullets stand out; round
-// tables are low cover (they stop bullets; flipping them is a later card)
-// and the dim-sum trolleys (the hand trolley's kind, a steamer stack on its
+// tables are low (they stop bodies; shots and sight pass over until one is
+// kicked over: 彈幕試驗 ④, test/flip.test.mjs) and the dim-sum trolleys (the hand trolley's kind, a steamer stack on its
 // deck) roll and bowl men over when kicked. The room is data in the room
 // template format (src/rooms.js), so a later card can chain rooms. The other
 // modes, the maps and the replays are as they were.
@@ -117,7 +117,7 @@ test('one screen: in every view, with the player anywhere in the room, in bullet
   for (const o of r) assert.ok(o.worst <= 0.97, `view ${o.view}, the player at ${o.at.map((v) => v.toFixed(1))}${o.focus ? ', bullet time' : ''}: a corner at ${o.worst.toFixed(2)} of the screen’s half`);
 });
 
-test('the teahouse: one flat floor, dark and grey (its mean luminance under 0.2); four point lights; the round tables stop bullets and sight; its doors are where the men come in', async () => {
+test('the teahouse: one flat floor, dark and grey (its mean luminance under 0.2); four point lights; the round tables stop bodies, shots and sight pass over them upright; its doors are where the men come in', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom();
@@ -131,20 +131,22 @@ test('the teahouse: one flat floor, dark and grey (its mean luminance under 0.2)
     for (let i = 0; i < px.length; i += 4) sum += 0.2126 * lin(px[i] / 255) + 0.7152 * lin(px[i + 1] / 255) + 0.0722 * lin(px[i + 2] / 255);
     const c = mat.color;
     const lum = (sum / (px.length / 4)) * (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b);
-    // a table: an enemy bullet fired at it from 3 m stops at its edge; no sight through it
+    // a table, upright: an enemy bullet fired at it from 3 m flies over it; sight passes; a body does not
     const t = L.map.room.tables[0];
     const [tx, tz, tr] = t;
     const b = g.bullets.spawn({ x: tx - tr - 3, z: tz, dx: 1, dz: 0, speed: 30, owner: 'enemy', damage: 0 });
     for (let i = 0; i < 60 && b.alive; i++) g.bullets.update(1 / 120);
-    const stopped = !b.alive && b.x < tx - tr + 0.2;
+    const over = b.alive || b.x > tx + tr;
     const sight = L.hasLOS(tx - tr - 2, tz, tx + tr + 2, tz);
+    const body = !L.nav.isWalkable(tx, tz);
     return {
       zones: L.zones.length,
       flat: [[-5, -4], [5, 4], [0, 0]].every(([x, z]) => L.groundY(x, z) === 0),
       lum,
       lights: L.map.theme.points.length,
       tables: L.map.room.tables.length,
-      stopped,
+      over,
+      body,
       at: b.x,
       sight,
       doors: L.spawns.map((s) => s.kind),
@@ -155,8 +157,9 @@ test('the teahouse: one flat floor, dark and grey (its mean luminance under 0.2)
   assert.ok(r.lum < 0.2, `the floor’s luminance ${r.lum.toFixed(3)}`);
   assert.equal(r.lights, 4, 'four map point lights, as every map (no shader recompiles)');
   assert.ok(r.tables >= 4, `${r.tables} round tables`);
-  assert.equal(r.stopped, true, `a bullet stops at a table (at x ${r.at})`);
-  assert.equal(r.sight, false, 'no sight through one');
+  assert.equal(r.over, true, `a bullet flies over an upright table (at x ${r.at})`);
+  assert.equal(r.sight, true, 'so does sight');
+  assert.equal(r.body, true, 'a body does not');
   assert.ok(r.doors.length >= 3 && r.doors.every((k) => k === 'door'), `doors: ${r.doors}`);
 });
 
