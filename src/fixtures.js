@@ -16,7 +16,8 @@
 //                                  the lock post at (x, z) along `facing`: a bullet or a kick on the post drops
 //                                  it, whoever is under it is crushed (SHUTTER), and the opening stays shut
 //                                  until the wave is cleared
-//   table [x, z, 'table', 0, r]    a round table of radius r (彈幕試驗 ④): upright it is low cover that stops
+//   table [x, z, 'table', 0, r, look]  a round table of radius r (彈幕試驗 ④), `look` 'cloth' (the teahouse's, a cloth
+//                                  over a wooden top) or 'folding' (the dai pai dong's: a laminate top on metal legs): upright it is low cover that stops
 //                                  bodies, shots and sight pass over it; the player's kick (or a pan) flips it
 //                                  onto its side, its top a wall across the kick's way (ENV.table: FLIP), which
 //                                  stops shots and sight until ENV.table.hp shots, anyone's, break it
@@ -56,6 +57,7 @@ export class Fixture {
     this.facing = facing;
     this.w = w;
     this.h = h;
+    this.look = kind === 'table' ? (typeof h === 'string' ? h : 'cloth') : null; // a table's 6th field is its look
     this.r = kind === 'sign' ? 0.28 : kind === 'door' || kind === 'table' || kind === 'exit' ? 0 : kind === 'shutter' ? 0.25 : 0.3; // a door, a table or an exit has no post to shoot: what stops shots is a solid (the exit's, the wall it is in)
     this.mesh = new THREE.Group();
     if (kind === 'lamp') this.buildLamp();
@@ -167,14 +169,33 @@ export class Fixture {
     this.mesh.position.set(this.x, 0, this.z);
     // the top's own middle is its origin: upright it sits `low` up, flipped it stands on its edge
     this.slab = new THREE.Group();
-    const cloth = new THREE.Mesh(L.own(new THREE.CylinderGeometry(r + 0.05, r + 0.12, 0.1, 20)), M.teaCloth);
-    cloth.castShadow = true;
-    const turn = new THREE.Mesh(L.own(new THREE.CylinderGeometry(r * 0.45, r * 0.45, 0.04, 16)), M.teaWood);
-    turn.position.y = 0.07;
-    const leg = new THREE.Mesh(L.own(new THREE.CylinderGeometry(0.12, 0.3, T.low - 0.1, 8)), M.teaWood);
-    leg.position.y = -(T.low - 0.1) / 2 - 0.05;
-    leg.castShadow = true;
-    this.slab.add(cloth, turn, leg);
+    if (this.look === 'folding') {
+      // a laminate top on four thin metal legs, splayed a little
+      const top = new THREE.Mesh(L.own(new THREE.CylinderGeometry(r, r, 0.05, 20)), M.foldTop);
+      top.castShadow = true;
+      const legLen = T.low - 0.03;
+      const legs = [0, 1, 2, 3].map((i) => {
+        const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+        const lean = 0.12;
+        return new THREE.CylinderGeometry(0.025, 0.025, legLen, 6)
+          .translate(0, -legLen / 2, 0)
+          .rotateZ(-Math.cos(a) * lean)
+          .rotateX(Math.sin(a) * lean)
+          .translate(Math.cos(a) * r * 0.55, -0.02, Math.sin(a) * r * 0.55);
+      });
+      const leg = new THREE.Mesh(L.own(mergeGeometries(legs)), M.darkMetal);
+      leg.castShadow = true;
+      this.slab.add(top, leg);
+    } else {
+      const cloth = new THREE.Mesh(L.own(new THREE.CylinderGeometry(r + 0.05, r + 0.12, 0.1, 20)), M.teaCloth);
+      cloth.castShadow = true;
+      const turn = new THREE.Mesh(L.own(new THREE.CylinderGeometry(r * 0.45, r * 0.45, 0.04, 16)), M.teaWood);
+      turn.position.y = 0.07;
+      const leg = new THREE.Mesh(L.own(new THREE.CylinderGeometry(0.12, 0.3, T.low - 0.1, 8)), M.teaWood);
+      leg.position.y = -(T.low - 0.1) / 2 - 0.05;
+      leg.castShadow = true;
+      this.slab.add(cloth, turn, leg);
+    }
     this.mesh.add(this.slab);
     this.upright = null; // its octagon (setUpright), and the wall it is on its side (flip)
     this.wall = null;

@@ -210,6 +210,115 @@ test('a wave in 彈幕試驗: the men come in at the teahouse’s doors; two wav
   assert.deepEqual([r.waves, r.perStage, r.map], [6, 2, 'teahouse'], 'six waves, two in each room of the floor (test/floor.test.mjs), the teahouse first');
 });
 
+test('彈幕試驗 ⑥: the dai pai dong (大排檔) is in the floor’s draw: some floors have it, some do not, never first', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { MODES } = await import('./src/waves.js');
+    const seed0 = g.fixedSeed;
+    const floors = [];
+    for (let seed = 1; seed <= 16; seed++) {
+      g.fixedSeed = seed;
+      window.toRoom();
+      floors.push(g.floor.slice());
+    }
+    g.fixedSeed = seed0;
+    return { floors, pool: MODES.danmaku.floor.pool, route: g.routeText(0, 'danmaku'), room: g.rooms.daipaidong && { name: g.rooms.daipaidong.name, en: g.rooms.daipaidong.en } };
+  });
+  assert.deepEqual(r.room, { name: '大排檔', en: 'DAI PAI DONG' });
+  assert.ok(r.pool.includes('daipaidong'), `the pool: ${r.pool}`);
+  const withIt = r.floors.filter((f) => f.includes('daipaidong')).length;
+  assert.ok(withIt > 0 && withIt < r.floors.length, `${withIt} of ${r.floors.length} floors have it: ${r.floors.map((f) => f.join('>')).join(' | ')}`);
+  assert.ok(r.floors.every((f) => f[0] === 'teahouse' && f.length === 3), 'the teahouse first, three rooms');
+  assert.match(r.route, /大排檔/, r.route);
+});
+
+test('彈幕試驗 ⑥: the dai pai dong: a street floor, dark (its mean luminance under 0.2); folding tables that flip as the teahouse’s do, plastic stools round them; LPG cylinders that jet off when kicked; the stall’s counter, solid, under an iron roof; four point lights', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    window.toRoom();
+    g.level.load(g.rooms.daipaidong);
+    g.applyMapView();
+    g.player.placeAtStart();
+    const L = g.level;
+    const mat = L.floorMesh.material;
+    // the floor's texture copied to a canvas of the test's own (the asphalt's own canvas has been read once already,
+    // when its grain was drawn: a second read of it makes Chrome warn)
+    const img = mat.map.image;
+    const copy = document.createElement('canvas');
+    copy.width = img.width;
+    copy.height = img.height;
+    const cx = copy.getContext('2d', { willReadFrequently: true });
+    cx.drawImage(img, 0, 0);
+    const px = cx.getImageData(0, 0, img.width, img.height).data;
+    const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    let sum = 0;
+    for (let i = 0; i < px.length; i += 4) sum += 0.2126 * lin(px[i] / 255) + 0.7152 * lin(px[i + 1] / 255) + 0.0722 * lin(px[i + 2] / 255);
+    const c = mat.color;
+    const lum = (sum / (px.length / 4)) * (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b);
+    const tables = L.fixtures.filter((f) => f.kind === 'table');
+    // a folding table, kicked over: a wall, as the teahouse's
+    const t = tables[0];
+    const flipped = t.flip(t.x, t.z + 2);
+    const wall = L.solids.some((s) => s.table === t && s.alive);
+    // an LPG cylinder, kicked by the player: it jets off
+    const can = L.barrels.find((b) => b.variant === 'lpg' && b.alive);
+    const p = g.player;
+    p.x = can.x;
+    p.z = can.z + can.r + 0.5;
+    p.facing = Math.PI; // north, at it
+    p.kickCd = 0;
+    p.kick();
+    const jet = can.rocketT > 0;
+    const counter = L.solids.find((s) => s.matKey === 'counter' && !s.low);
+    return {
+      id: L.map.id,
+      floor: L.map.floor,
+      lum,
+      looks: tables.map((f) => f.look),
+      flipped,
+      wall,
+      lpg: L.barrels.filter((b) => b.variant === 'lpg').length,
+      jet,
+      counter: counter ? { h: counter.h, w: counter.maxX - counter.minX } : null,
+      roof: !!L.root.getObjectByName('stall-roof'),
+      stools: !!L.root.getObjectByName('plastic-stools'),
+      lights: L.map.theme.points.length,
+      zones: L.zones.length,
+    };
+  });
+  assert.equal(r.id, 'daipaidong');
+  assert.equal(r.zones, 1, 'one flat floor');
+  assert.ok(r.lum < 0.2, `the floor’s luminance ${r.lum.toFixed(3)}`);
+  assert.ok(r.looks.length >= 4 && r.looks.every((l) => l === 'folding'), `folding tables: ${r.looks}`);
+  assert.equal(r.flipped, true, 'kicked over');
+  assert.equal(r.wall, true, 'a wall where it fell');
+  assert.ok(r.lpg >= 2, `${r.lpg} LPG cylinders`);
+  assert.equal(r.jet, true, 'kicked, one jets off');
+  assert.ok(r.counter && r.counter.w >= 4, `the stall’s counter: ${JSON.stringify(r.counter)}`);
+  assert.equal(r.roof, true, 'its iron roof');
+  assert.equal(r.stools, true, 'plastic stools');
+  assert.equal(r.lights, 4, 'four map point lights, as every map');
+});
+
+test('screenshot: the dai pai dong in a wave', async () => {
+  await page.evaluate(() => {
+    const g = window.game;
+    g.view = 2;
+    window.toRoom();
+    g.level.load(g.rooms.daipaidong);
+    g.applyMapView();
+    g.player.placeAtStart();
+    g.waves.wave = 3;
+    g.waves.startWave();
+    for (let i = 0; i < 120 * 4; i++) window.step();
+    g.updateCamera(1, true);
+    g.hud.update(1 / 60);
+    g.render();
+  });
+  await page.screenshot({ path: new URL('room-daipaidong.png', OUT).pathname });
+  assert.deepEqual(problems(logs), []);
+});
+
 test('screenshot: the teahouse in 彈幕試驗', async () => {
   await page.evaluate(() => {
     const g = window.game;

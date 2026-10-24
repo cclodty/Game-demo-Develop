@@ -986,6 +986,10 @@ export class Level {
       // its round tables (fixtures.js 'table'): a dusty red cloth, not white (a bullet over a table still stands out)
       teaCloth: std({ color: 0x7a4a44, roughness: 0.95 }),
       teaWood: std({ color: 0x3a2016, roughness: 0.6 }),
+      // a dai pai dong's folding tables (rooms.js, fixtures.js 'table' look 'folding'): a faded teal laminate, mid-dark under the bullets
+      foldTop: std({ color: 0x4f6f6a, roughness: 0.55 }),
+      // its stall's cooking counter: stainless steel (no model: the market stall's, with its striped awning, is another kind)
+      counter: std({ color: 0x8e959e, roughness: 0.35, metalness: 0.7 }),
       bar: std({ color: 0x3a2418, roughness: 0.5 }),
       dj: std({ color: 0x111116, roughness: 0.4, metalness: 0.3 }),
       speaker: std({ color: 0x0d0d10, roughness: 0.7 }),
