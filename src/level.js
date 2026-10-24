@@ -13,7 +13,7 @@ import { buildFixtures } from './fixtures.js';
 import { NavGrid } from './nav.js';
 import { Race } from './race.js';
 import { clamp, pointSegDist2, rand, resolveCircleAABB, resolveCirclePoly, segAABB, segCircle, segPoly, TAU } from './utils.js';
-import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenceTexture, floorTexture } from './textures.js';
+import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenceTexture, floorTexture, teahouseFloorTexture } from './textures.js';
 
 const _hit = { t: 0, nx: 0, nz: 0 };
 
@@ -658,10 +658,12 @@ class Net {
  * through each; ENV.trolley.bowling of them in one roll is BOWLING.
  */
 class Trolley {
-  constructor(level, x, z, angle = 0) {
+  /** `variant` 'dimsum': a teahouse's dim-sum trolley (rooms.js), a stack of steamers on its deck; it plays the same. */
+  constructor(level, x, z, angle = 0, variant = 'trolley') {
     this.level = level;
     this.kind = 'trolley';
-    this.variant = 'trolley';
+    this.variant = variant;
+    this.name = variant === 'dimsum' ? '點心車' : '手推車';
     this.home = [x, z, angle];
     this.r = 0.55;
     this.pick = false;
@@ -671,6 +673,11 @@ class Trolley {
     this.tilt = body;
     this.mesh = new THREE.Group();
     this.mesh.add(body);
+    if (variant === 'dimsum') {
+      const steamers = new THREE.Mesh(level.geo.steamers, level.mat.bamboo);
+      steamers.castShadow = true;
+      body.add(steamers);
+    }
     level.add(this.mesh);
     this.reset();
   }
@@ -694,7 +701,7 @@ class Trolley {
     this.vx = dx * ENV.trolley.speed;
     this.vz = dz * ENV.trolley.speed;
     this.knocked = 0;
-    this.level.game.notes.log('踢走手推車');
+    this.level.game.notes.log(`踢走${this.name}`);
   }
 
   /** Rolling into enemy `e` (enemies.js pushProps): it bowls him over and rolls on. True: what it does is all that happens. */
@@ -708,7 +715,7 @@ class Trolley {
     g.shake(0.2);
     if (++this.knocked === ENV.trolley.bowling) {
       g.score.style('BOWLING', ENV.trolley.pts);
-      g.notes.log(`手推車撞倒 ${this.knocked} 人：BOWLING +${ENV.trolley.pts}`);
+      g.notes.log(`${this.name}撞倒 ${this.knocked} 人：BOWLING +${ENV.trolley.pts}`);
     }
     return true;
   }
@@ -917,6 +924,8 @@ export class Level {
         new THREE.BoxGeometry(0.05, 0.05, 0.66).translate(-0.53, 1.03, 0),
         ...[-0.4, 0.4].flatMap((x) => [-0.3, 0.3].map((z) => new THREE.CylinderGeometry(0.11, 0.11, 0.06, 10).rotateX(Math.PI / 2).translate(x, 0.11, z))),
       ]),
+      // a dim-sum trolley's steamers (Trolley 'dimsum'): two stacks of three on its deck
+      steamers: mergeGeometries([-0.25, 0.25].flatMap((x) => [0, 1, 2].map((k) => new THREE.CylinderGeometry(0.2, 0.2, 0.12, 14).translate(x, 0.37 + k * 0.13, 0)))),
       extHead: new THREE.CylinderGeometry(0.05, 0.08, 0.14, 8),
       cloud: new THREE.CircleGeometry(ENV.smokeRadius, 36).rotateX(-Math.PI / 2),
       canopy: new THREE.ConeGeometry(0.6, 0.28, 10, 1, true),
@@ -970,6 +979,17 @@ export class Level {
       padBase: std({ color: 0x1c1d24, roughness: 0.4, metalness: 0.6 }),
       // nightclub
       clubWall: std({ color: 0x221a2e, roughness: 0.85 }),
+      // a teahouse (rooms.js): red-brown panelled walls with a gold trim; a dim-sum trolley's steamers
+      teaWall: std({ color: 0x5a221b, roughness: 0.75 }),
+      teaTrim: std({ color: 0xc9a24a, roughness: 0.4, metalness: 0.6 }),
+      bamboo: std({ color: 0xc8a466, roughness: 0.8 }),
+      // its round tables (fixtures.js 'table'): a dusty red cloth, not white (a bullet over a table still stands out)
+      teaCloth: std({ color: 0x7a4a44, roughness: 0.95 }),
+      teaWood: std({ color: 0x3a2016, roughness: 0.6 }),
+      // a dai pai dong's folding tables (rooms.js, fixtures.js 'table' look 'folding'): a faded teal laminate, mid-dark under the bullets
+      foldTop: std({ color: 0x4f6f6a, roughness: 0.55 }),
+      // its stall's cooking counter: stainless steel (no model: the market stall's, with its striped awning, is another kind)
+      counter: std({ color: 0x8e959e, roughness: 0.35, metalness: 0.7 }),
       bar: std({ color: 0x3a2418, roughness: 0.5 }),
       dj: std({ color: 0x111116, roughness: 0.4, metalness: 0.3 }),
       speaker: std({ color: 0x0d0d10, roughness: 0.7 }),
@@ -1112,17 +1132,18 @@ export class Level {
     }
     this.flocks = (map.flocks || []).map(([x, z]) => new Flock(x, z));
     this.water = (map.water || []).map((w) => ({ ...w }));
-    for (const [x, z, kind, angle = 0] of map.tools || []) {
+    for (const [x, z, kind, angle = 0, variant] of map.tools || []) {
       // things to pick up and use (more kinds come with their cards)
       if (kind === 'extinguisher') this.tools.push(new Extinguisher(this, x, z));
       else if (kind === 'umbrella') this.tools.push(new Umbrella(this, x, z));
       else if (kind === 'net') this.tools.push(new Net(this, x, z));
-      else if (kind === 'trolley') this.tools.push(new Trolley(this, x, z, angle));
+      else if (kind === 'trolley') this.tools.push(new Trolley(this, x, z, angle, variant));
     }
     groups.tools.push(...this.tools);
     if (layout) dealProps(groups, map.spots, layout.rng);
     this.layoutKey = layout ? layout.key : ''; // which layout stands (main.js resetWorld builds afresh when another is wanted)
     this.fixtures = buildFixtures(this, map.fixtures); // lamps and signs: fixed props that play along (fixtures.js)
+    this.exit = this.fixtures.find((f) => f.kind === 'exit') || null; // a room's way on (彈幕試驗 ⑤: waves.js 'exit')
     this.props = [...this.barrels, ...this.pans, ...this.tools, ...this.fixtures];
     for (const [x, z] of map.pads || []) this.addPad(x, z);
     this.buildSpawns(map.spawns);
@@ -1384,12 +1405,12 @@ export class Level {
 
   buildFloor(kind) {
     const { halfW, halfD } = this.bounds;
-    const tex = this.own(kind === 'club' ? clubFloorTexture() : kind === 'asphalt' ? asphaltTexture() : floorTexture());
+    const tex = this.own(kind === 'club' ? clubFloorTexture() : kind === 'asphalt' ? asphaltTexture() : kind === 'teahouse' ? teahouseFloorTexture() : floorTexture());
     tex.repeat.set((halfW * 2) / 8, (halfD * 2) / 8);
     const mat = this.own(
       new THREE.MeshStandardMaterial({
         map: tex,
-        roughness: kind === 'club' ? 0.28 : kind === 'asphalt' ? 0.9 : 0.82,
+        roughness: kind === 'club' ? 0.28 : kind === 'asphalt' ? 0.9 : kind === 'teahouse' ? 0.6 : 0.82,
         metalness: kind === 'club' ? 0.25 : 0.05,
       }),
     );
@@ -1397,7 +1418,7 @@ export class Level {
     const floor = new THREE.Mesh(geo, mat);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
-    this.add(floor);
+    this.floorMesh = this.add(floor); // (test/rooms.test.mjs: how dark a room's floor is)
   }
 
   buildEdges(edges) {
@@ -1629,7 +1650,7 @@ export class Level {
     let best = null;
     let bt = Infinity;
     for (const s of this.solids) {
-      if (!s.alive || s.h <= over || s === pass) continue; // `over`: from that high up, lower cover is no obstacle; `pass`: a solid this ray flies over (a boss's: boss.js)
+      if (!s.alive || s.h <= over || s === pass || s.low) continue; // `over`: from that high up, lower cover is no obstacle; `pass`: a solid this ray flies over (a boss's: boss.js); `low`: an upright round table (fixtures.js)
       if (!edges && s.edge) continue;
       if (ignoreGlass && s.kind === 'glass') continue;
       if (this.segSolid(x0, z0, x1, z1, s, _hit) && _hit.t < bt) {
@@ -1642,7 +1663,7 @@ export class Level {
 
   hasLOS(x0, z0, x1, z1, over = 0) {
     for (const s of this.solids) {
-      if (!s.alive || s.kind === 'glass' || s.h <= over) continue;
+      if (!s.alive || s.kind === 'glass' || s.h <= over || s.low) continue;
       if (this.segSolid(x0, z0, x1, z1, s, _hit)) return false;
     }
     return true;

@@ -172,6 +172,22 @@ export function neonSignTexture(lines, w = 1024, h = 256) {
   return finish(c);
 }
 
+/** A room's exit sign (fixtures.js 'exit'): 出口 EXIT in white on near black, so the material's colour tints the letters (dull red locked, green open). */
+export function exitSignTexture() {
+  const [c, g] = canvas(256, 64);
+  g.fillStyle = '#0a0a0a';
+  g.fillRect(0, 0, 256, 64);
+  g.strokeStyle = '#fff';
+  g.lineWidth = 3;
+  g.strokeRect(4, 4, 248, 56);
+  g.fillStyle = '#fff';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.font = 'bold 34px sans-serif';
+  g.fillText('出口 EXIT', 128, 34);
+  return finish(c);
+}
+
 export function clubFloorTexture() {
   const [c, g] = canvas(512, 512);
   for (let y = 0; y < 8; y++) {
@@ -195,6 +211,30 @@ export function clubFloorTexture() {
     g.fillRect(rand(0, 512), rand(0, 512), rand(20, 90), rand(1, 3));
   }
   return finish(c, { repeat: [5, 3.5] });
+}
+
+/** A teahouse's floor (rooms.js): dark grey-green terrazzo in large tiles, flecked; dark, so bullets stand out on it. */
+export function teahouseFloorTexture() {
+  const [c, g] = canvas(512, 512);
+  g.fillStyle = '#1b2321';
+  g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 2600; i++) {
+    const v = rand(0, 1);
+    g.fillStyle = v < 0.7 ? 'rgba(70,84,80,0.35)' : v < 0.95 ? 'rgba(12,16,15,0.5)' : 'rgba(150,130,100,0.35)';
+    const s = rand(1, 3.5);
+    g.fillRect(rand(0, 512), rand(0, 512), s, s);
+  }
+  g.strokeStyle = 'rgba(0,0,0,0.55)';
+  g.lineWidth = 3;
+  for (let i = 0; i <= 4; i++) {
+    g.beginPath();
+    g.moveTo(i * 128, 0);
+    g.lineTo(i * 128, 512);
+    g.moveTo(0, i * 128);
+    g.lineTo(512, i * 128);
+    g.stroke();
+  }
+  return finish(c, { repeat: [4, 3] });
 }
 
 export function asphaltTexture() {

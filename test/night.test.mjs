@@ -81,7 +81,7 @@ test('the night in order of the hour: 20:00 the rooftop … 03:00 大三巴, eve
       without: g.maps.filter((m) => !m.hour).map((m) => m.id),
     };
   });
-  assert.deepEqual(r.ids, ['arcade', 'endless', 'daily', 'night'], 'appended: an old replay’s mode is still the same mode');
+  assert.deepEqual(r.ids, ['arcade', 'endless', 'daily', 'night', 'danmaku'], 'appended: an old replay’s mode is still the same mode (彈幕試驗 after it)');
   assert.deepEqual(r.route, [
     ['20:00', 'rooftop'],
     ['21:00', 'club'],
@@ -110,7 +110,7 @@ test('on the title 澳門一夜 is a mode; picked, it starts on the rooftop at 2
     scroll: document.getElementById('title').scrollHeight > document.getElementById('title').clientHeight + 1,
   }));
   await page.screenshot({ path: new URL('night-title.png', OUT).pathname });
-  assert.deepEqual(title.modes, ['arcade', 'endless', 'night']);
+  assert.deepEqual(title.modes, ['arcade', 'endless', 'night', 'danmaku']);
   assert.match(title.note, /20:00/);
   assert.equal(title.over, false, 'nothing to start over yet');
   assert.equal(title.scroll, false, `the title does not scroll at 1280 × 720: ${title.note}`);

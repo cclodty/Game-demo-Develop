@@ -18,18 +18,18 @@ after(async () => {
 
 const mapCount = () => page.evaluate(() => window.game.maps.length);
 
-/** Check map `i` as it is built; with `seed`, as a daily with that seed lays its props out (level.js dealProps). */
+/** Check map `i` (or the room of that id: rooms.js) as it is built; with `seed`, as a daily with that seed lays its props out (level.js dealProps). */
 function validate(i, seed = null) {
   return page.evaluate(([i, seed]) => {
     const g = window.game;
     g.frame = () => {};
-    g.level.load(g.maps[i], seed === null ? null : { key: `test/${seed}`, rng: g.rng.fork('test-layout', seed) });
+    g.level.load(typeof i === 'string' ? g.rooms[i] : g.maps[i], seed === null ? null : { key: `test/${seed}`, rng: g.rng.fork('test-layout', seed) });
     g.applyMapView();
     const L = g.level;
     const issues = [];
-    const overlapsSolid = (x, z, r) => {
+    const overlapsSolid = (x, z, r, prop = null) => {
       for (const s of L.solids) {
-        if (!s.alive) continue;
+        if (!s.alive || (prop && s.of === prop)) continue; // a fixture's own solid (a round table's: fixtures.js) is no obstacle to it
         let hit;
         if (s.poly) hit = L.collideCircle.call({ solids: [s] }, { x, z }, r);
         else {
@@ -49,8 +49,10 @@ function validate(i, seed = null) {
       if (!sp.climb && !L.nav.findPath(sp.x, sp.z, sp.ex, sp.ez)) issues.push(`spawn ${sp.x},${sp.z} cannot walk to its entry`);
       if (!L.nav.findPath(st.x, st.z, sp.ex, sp.ez)) issues.push(`no path from the start to the spawn at ${sp.ex},${sp.ez}`);
     }
+    // a room's way on (彈幕試驗: fixtures.js 'exit')
+    if (L.exit && !L.nav.findPath(st.x, st.z, L.exit.at.x, L.exit.at.z)) issues.push(`no path from the start to the exit at ${L.exit.x},${L.exit.z}`);
     for (const p of L.props) {
-      const s = overlapsSolid(p.x, p.z, p.r);
+      const s = overlapsSolid(p.x, p.z, p.r, p);
       if (s) issues.push(`${p.kind} at ${p.x},${p.z} overlaps ${s.kind} at ${s.minX.toFixed(1)},${s.minZ.toFixed(1)}`);
     }
     for (let a = 0; a < L.props.length; a++) {
@@ -124,6 +126,22 @@ test('every map validates', async () => {
     // the render budget in the map data: what one frame costs, all passes included
     console.log(`# ${r.map}: ${r.rendered.tris.toLocaleString('en-US')} triangles, ${r.rendered.calls} draw calls per frame (budget ${r.budget && r.budget.tris.toLocaleString('en-US')} / ${r.budget && r.budget.calls})`);
     assert.ok(r.budget && r.budget.tris > 0 && r.budget.calls > 0, `${r.map} has no render budget in maps.js`);
+    assert.ok(r.rendered.tris <= r.budget.tris, `${r.map}: ${r.rendered.tris} rendered triangles per frame, budget ${r.budget.tris}`);
+    assert.ok(r.rendered.calls <= r.budget.calls, `${r.map}: ${r.rendered.calls} draw calls per frame, budget ${r.budget.calls}`);
+  }
+  assert.deepEqual(problems(logs), []);
+});
+
+test('every room validates as a map does (彈幕試驗: rooms.js), inside the indoor budget of 400 draw calls', async () => {
+  const ids = await page.evaluate(() => Object.keys(window.game.rooms));
+  assert.ok(ids.length >= 1);
+  for (const id of ids) {
+    const r = await validate(id);
+    await snap(page, `room-${r.map}.png`);
+    assert.deepEqual(r.issues, [], `${r.map}: ${r.issues.join('; ')}`);
+    assert.ok(r.reach / r.open >= 0.95, `${r.map}: only ${r.reach}/${r.open} open cells reachable from the start`);
+    console.log(`# ${r.map}: ${r.rendered.tris.toLocaleString('en-US')} triangles, ${r.rendered.calls} draw calls per frame (budget ${r.budget.tris.toLocaleString('en-US')} / ${r.budget.calls})`);
+    assert.ok(r.budget.calls <= 400, `${r.map}: a room is indoors, 400 draw calls at most (${r.budget.calls})`);
     assert.ok(r.rendered.tris <= r.budget.tris, `${r.map}: ${r.rendered.tris} rendered triangles per frame, budget ${r.budget.tris}`);
     assert.ok(r.rendered.calls <= r.budget.calls, `${r.map}: ${r.rendered.calls} draw calls per frame, budget ${r.budget.calls}`);
   }

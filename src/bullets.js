@@ -1,8 +1,10 @@
 // Every bullet is a real projectile with a glowing trail, so in bullet time
-// you can read, dodge, deflect and ricochet them.
+// you can read, dodge, deflect and ricochet them. They are drawn instanced
+// (彈幕試驗 ①): each look of bullet is two instanced meshes, its trails and its
+// heads, however many bullets there are (draw, from main.js render).
 
 import * as THREE from 'three';
-import { BULLET, GUN_Y, LEVELS, PAN, PLAYER } from './config.js';
+import { BULLET, GRAZE, GUN_Y, LEVELS, PAN, PLAYER } from './config.js';
 import { pointSegDist2, segCircle } from './utils.js';
 
 function trailGeometry(headW, tailW) {
@@ -14,6 +16,12 @@ function trailGeometry(headW, tailW) {
   g.setIndex([0, 1, 2, 1, 3, 2]);
   return g;
 }
+
+const _m = new THREE.Matrix4();
+const _s = new THREE.Vector3();
+
+/** A bullet hell's bullets (彈幕試驗 ③): solid colour, not added light, so a dense pattern still shows every one. */
+const solid = (r, g, b) => new THREE.MeshBasicMaterial({ color: new THREE.Color(r, g, b) });
 
 const additive = (r, g, b, vertexColors = false) =>
   new THREE.MeshBasicMaterial({
@@ -35,6 +43,7 @@ export class Bullets {
       enemyTrail: trailGeometry(0.26, 0.02),
       sniperTrail: trailGeometry(0.2, 0.03),
       head: new THREE.SphereGeometry(1, 8, 6),
+      rim: new THREE.CircleGeometry(1, 18).rotateX(-Math.PI / 2), // a pattern bullet's dark rim, flat round its head
     };
     this.looks = {
       player: { trail: additive(3.5, 2.4, 0.9, true), head: additive(7, 5.5, 3), headSize: 0.07, geo: this.geo.playerTrail },
@@ -42,32 +51,72 @@ export class Bullets {
       enemy: { trail: additive(5, 0.7, 0.35, true), head: additive(9, 2.6, 1.2), headSize: 0.13, geo: this.geo.enemyTrail },
       pellet: { trail: additive(3.5, 2, 0.7, true), head: additive(7, 4.5, 2), headSize: 0.05, geo: this.geo.playerTrail },
       sniper: { trail: additive(2.2, 3.6, 4.5, true), head: additive(8, 9, 10), headSize: 0.1, geo: this.geo.sniperTrail },
+      // a pattern's (enemies.js WEAPONS `pattern`): a solid pink-red head on a dark rim `rim` times its size, no trail
+      danmaku: { trail: solid(0.1, 0, 0.03), head: solid(1, 0.32, 0.52), headSize: 0.15, geo: this.geo.rim, rim: 1.5 },
     };
+    this.batches = {}; // look -> { trail, head, cap }: its instanced meshes (meshesOf)
   }
 
+  /** A bullet of the pool, or a new one: `group` is where it is drawn (a transform only, not in the scene: draw). */
   acquire(look) {
-    let b = this.pool.pop();
-    if (!b) {
-      const group = new THREE.Group();
-      const trail = new THREE.Mesh(this.geo.playerTrail, this.looks.player.trail);
-      const head = new THREE.Mesh(this.geo.head, this.looks.player.head);
-      trail.frustumCulled = false;
-      group.add(trail, head);
-      b = { group, trail, head };
-    }
+    const b = this.pool.pop() || { group: new THREE.Object3D() };
     this.setLook(b, look);
-    b.group.visible = true;
-    this.game.scene.add(b.group);
     return b;
   }
 
   setLook(b, look) {
-    const L = this.looks[look];
-    b.trail.geometry = L.geo;
-    b.trail.material = L.trail;
-    b.head.material = L.head;
-    b.head.scale.setScalar(L.headSize);
     b.look = look;
+  }
+
+  /** The instanced meshes that draw look `look`, room for `n` bullets at least (made, or made again bigger, on demand). */
+  meshesOf(look, n = 1) {
+    let bt = this.batches[look];
+    if (bt && bt.cap >= n) return bt;
+    const scene = this.game.scene;
+    if (bt) {
+      scene.remove(bt.trail, bt.head);
+      bt.trail.dispose();
+      bt.head.dispose();
+    }
+    const L = this.looks[look];
+    const cap = Math.max(256, 2 ** Math.ceil(Math.log2(n)));
+    const trail = new THREE.InstancedMesh(L.geo, L.trail, cap);
+    const head = new THREE.InstancedMesh(this.geo.head, L.head, cap);
+    for (const mesh of [trail, head]) {
+      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      mesh.frustumCulled = false; // the bullets are all over the map: the bounds of one instance say nothing
+      mesh.count = 0;
+      mesh.visible = false;
+      scene.add(mesh);
+    }
+    bt = this.batches[look] = { trail, head, cap };
+    return bt;
+  }
+
+  /** Every live bullet into its look's instanced meshes: its head at its place and its look's size, its trail its length behind it. */
+  draw() {
+    const counts = {};
+    for (const look in this.looks) counts[look] = 0;
+    for (const b of this.list) counts[b.look]++;
+    for (const look in counts) {
+      const bt = this.meshesOf(look, counts[look]);
+      bt.trail.count = bt.head.count = 0;
+    }
+    for (const b of this.list) {
+      const bt = this.batches[b.look];
+      const i = bt.head.count++;
+      bt.trail.count++;
+      b.group.updateMatrix();
+      const L = this.looks[b.look];
+      if (L.rim) bt.trail.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.setScalar(L.headSize * L.rim)));
+      else bt.trail.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.set(1, 1, Math.max(0.05, b.trailLen))));
+      bt.head.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.setScalar(L.headSize)));
+    }
+    for (const look in counts) {
+      const bt = this.batches[look];
+      bt.trail.visible = bt.head.visible = bt.head.count > 0;
+      bt.trail.instanceMatrix.needsUpdate = bt.head.instanceMatrix.needsUpdate = true;
+    }
   }
 
   /**
@@ -121,15 +170,13 @@ export class Bullets {
 
   release(b) {
     b.alive = false;
-    b.group.visible = false;
-    this.game.scene.remove(b.group);
     this.pool.push(b);
   }
 
+  /** Where it is drawn (draw), after a step: over the ground below it (steps: 大三巴), turned along its way. */
   updateVisual(b) {
-    b.group.position.set(b.x, Math.max(0.05, b.y0 - b.drop * b.traveled) + this.game.level.groundY(b.x, b.z), b.z); // over the ground below it (steps: 大三巴)
+    b.group.position.set(b.x, Math.max(0.05, b.y0 - b.drop * b.traveled) + this.game.level.groundY(b.x, b.z), b.z);
     b.group.rotation.y = Math.atan2(b.dx, b.dz);
-    b.trail.scale.set(1, 1, Math.max(0.05, b.trailLen));
   }
 
   update(dt) {
@@ -279,6 +326,7 @@ export class Bullets {
       case 'solid': {
         const s = hit.solid;
         if (b.owner === 'player') game.boss.shotSolid(s, b); // one of the boss's (the DJ's speakers)
+        if (s.table) s.table.shot(b); // a flipped table wears (fixtures.js), whoever's the shot
         if (s.kind === 'glass') {
           game.level.breakGlass(s, b.dx, b.dz);
           return;
@@ -472,11 +520,14 @@ export class Bullets {
     game.hitstop(0.04);
   }
 
+  /** An enemy bullet that passed the player close without hitting: a CLOSE CALL, or in a mode with `graze` a GRAZE (GRAZE). */
   checkCloseCall(b, sx, sz) {
     const p = this.game.player;
     if (!p.alive) return;
+    const graze = !!this.game.waves.rules.graze;
+    const near = graze ? GRAZE.radius : 1.1;
     const d2 = pointSegDist2(p.x, p.z, sx, sz, b.x, b.z);
-    if (d2 < 1.1 * 1.1) {
+    if (d2 < near * near) {
       b.near = true;
       if ((p.spinning || p.sliding) && d2 < 0.5 * 0.5) b.dodgedSpin = true;
       return;
@@ -486,7 +537,8 @@ export class Bullets {
       const dot = (b.x - p.x) * b.dx + (b.z - p.z) * b.dz;
       if (dot > 0) {
         b.awarded = true;
-        this.game.onCloseCall(b.dodgedSpin);
+        if (graze) this.game.onGraze();
+        else this.game.onCloseCall(b.dodgedSpin);
       }
     }
   }

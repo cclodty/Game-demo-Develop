@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Pigeons } from './ambient.js';
+import { ROOMS } from './rooms.js';
 import { CALCADA, FACADE, GLAZING, LOUVRE } from './senado/assets.js';
 import SENADO_DATA from './senado/data.js';
 import { buildSenado, FOUNTAIN } from './senado/model.js';
@@ -1933,8 +1934,8 @@ export const MAPS = [rooftop, club, docks, senado, felicidade, guia, ruins];
 export const PLAY_REV = 7;
 
 /**
- * The game's revision as one byte, for the input record (replay.js): the sum of every map's `rev` and PLAY_REV. A
- * replay of a run on maps since rebuilt, or under rules since changed (another MAPS_REV), still plays, but no longer
- * as it was played; the game says so.
+ * The game's revision as one byte, for the input record (replay.js): the sum of every map's `rev`, every room's
+ * (rooms.js, 彈幕試驗) and PLAY_REV. A replay of a run on maps since rebuilt, or under rules since changed (another
+ * MAPS_REV), still plays, but no longer as it was played; the game says so.
  */
-export const MAPS_REV = (MAPS.reduce((s, m) => s + m.rev, 0) + PLAY_REV) % 256;
+export const MAPS_REV = (MAPS.reduce((s, m) => s + m.rev, 0) + Object.values(ROOMS).reduce((s, m) => s + m.rev, 0) + PLAY_REV) % 256;
