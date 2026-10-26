@@ -432,11 +432,11 @@ export const BACKHALL = room({
   walls: [3.2, 'teaWall', 'teaTrim'],
   low: [0.9, ['s', 'w']],
   doors: [['n', -5], ['n', 5], ['e', -3], ['e', 3]],
-  tables: [[0, 0, 1.4], [-7.5, -3.5, 0.8], [7.5, -3.5, 0.8]],
+  tables: [[0, 0, 1.4], [-6.5, -3.5, 0.8], [6.5, -3.5, 0.8]], // the small ones clear of the east doors' way in (8.2, -3)
   entry: ['s', 0],
   exit: ['n', 0],
   // the far side: behind the north pair of small tables, and the north ends of the side aisles
-  posts: [[-7.5, -5.5, -7.5, -3.5], [7.5, -5.5, 7.5, -3.5], [-9.5, -1], [9.5, -1]],
+  posts: [[-6.5, -5.5, -6.5, -3.5], [6.5, -5.5, 6.5, -3.5], [-9.5, -1], [9.5, -1]],
   // the heavy gunner (boss.js GUNNER) with his slow wall (`danmaku`): in through the exit's wall from beyond it
   boss: { kind: 'gunner', danmaku: true, from: [0, -9.5], at: [0, -5] },
   floor: 'teahouse',

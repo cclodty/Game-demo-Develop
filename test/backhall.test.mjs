@@ -167,12 +167,21 @@ test('the bot beats him in the back hall in god mode within four minutes; then t
       frames += 60;
     }
     const downed = g.boss.downed;
-    for (let i = 0; i < 60 && g.waves.state !== 'exit'; i++) window.simStep(1);
+    // the cards come (the bot picks one), the exit opens, and the bot may be out of it within the second: catch the moment it is open
+    let open = false;
+    let held = 0;
+    for (let i = 0; i < 120 && !open; i++) {
+      window.simStep(1);
+      if (g.waves.state === 'exit') {
+        open = !g.level.exit.locked;
+        held = g.cards.held.length;
+      }
+    }
     const notes = g.notes.events.map((e) => e.text);
     delete g.player.hurt;
-    return { downed, s: frames / 60, offered: notes.some((t) => t.startsWith('風格卡三選一')), held: g.cards.held.length, state: g.waves.state, open: !g.level.exit.locked, bonus: notes.some((t) => t.includes('BOSS +1500')) };
+    return { downed, s: frames / 60, offered: notes.some((t) => t.startsWith('風格卡三選一')), held, open, bonus: notes.some((t) => t.includes('BOSS +1500')) };
   });
   assert.equal(r.downed, true, `down (${r.s} s)`);
-  assert.ok(r.bonus && r.offered && r.held === 1 && r.state === 'exit' && r.open, `BOSS +1,500, the cards, one picked, the exit open: ${JSON.stringify(r)}`);
+  assert.ok(r.bonus && r.offered && r.held === 1 && r.open, `BOSS +1,500, the cards, one picked, the exit open: ${JSON.stringify(r)}`);
   assert.deepEqual(problems(logs), []);
 });

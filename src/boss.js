@@ -2285,6 +2285,7 @@ class Gunner extends Boss {
       this.wallTimer = W.warn;
       this.state = 'plant';
       this.lock = { x: p.x, z: p.z };
+      this.plateFlash = 1; // the plate alight from the first step of the warning
       g.audio.aimWarn(g.panFor(this.x));
       g.fx.ring(this.x, this.z, 1.6, W.warn, 0xff8a2a, 3);
       if (this.firstWall) {
