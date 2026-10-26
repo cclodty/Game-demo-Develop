@@ -2,7 +2,7 @@
 // the men come in thicker and quicker a floor at a time (config.js ENEMY_HP, RAMP), a floor has its own song, the
 // floor's number opens it on the HUD. A floor's last room ends on a bigger wave (MODES.danmaku `floorEnd`) in place
 // of the floor boss until D. The grade counts rooms cleared without a hit, of the run's rooms. The music's layers
-// count the waves within the floor.
+// count the waves within the floor. Each floor ends in the arena, whose boss is fought on its last wave (D①).
 // Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -36,11 +36,12 @@ before(async () => {
         g.updatePlay(1 / 120);
       }
     };
-    /** Every man of the wave down, none to come, then a step for the wave to end. */
+    /** Every man of the wave down, none to come (the arena's boss too, D①), then a step for the wave to end. */
     window.clearWave = () => {
       g.waves.queue = [];
       g.waves.pending = [];
       g.enemies.clear();
+      while (g.boss.active) g.boss.hurt('測試');
       window.step();
     };
     /** Through a cleared room's exit (and the fade) into the next room, its first wave about to begin. */
@@ -63,7 +64,7 @@ after(async () => {
   await h.close();
 });
 
-test('the floors are the run’s stages: a thug of the second floor has more health and aims quicker than one of the first, the third more so (ENEMY_HP, RAMP a floor); the first floor’s last wave of its last room is bigger, with a brute; the run’s last wave bigger still', async () => {
+test('the floors are the run’s stages: a thug of the second floor has more health and aims quicker than one of the first, the third more so (ENEMY_HP, RAMP a floor); each floor ends in the arena, its boss on its last wave (D①)', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     window.toFloor();
@@ -88,19 +89,18 @@ test('the floors are the run’s stages: a thug of the second floor has more hea
       g.enemies.clear();
     }
     g.waves.wave = 0;
-    // the floor-end wave of the first floor, a wave before it, and the run's last
+    // the first floor's last wave is its arena's boss (D①), not a bigger wave; the floor is done with it (floorLast: the cards)
     const endOfFirst = F[0].length * per;
-    const sizes = { before: g.waves.compose(endOfFirst - 1).length, floorEnd: g.waves.compose(endOfFirst).length, brutes: g.waves.compose(endOfFirst).filter((t) => t === 'brute').length, brutesBefore: g.waves.compose(endOfFirst - 1).filter((t) => t === 'brute').length, last: g.waves.compose(total).length, isEnd: g.waves.isFloorEnd(endOfFirst), notEnd: g.waves.isFloorEnd(endOfFirst - 1), lastIsEnd: g.waves.isFloorEnd(total) };
+    const sizes = { lastRoom: F[0][F[0].length - 1], boss: g.mapAt(F[0].length - 1).boss && g.mapAt(F[0].length - 1).boss.kind, isEnd: g.waves.isFloorEnd(endOfFirst), floorLast: g.waves.floorLast(endOfFirst), notLast: g.waves.floorLast(endOfFirst - 1), runLast: g.waves.floorLast(total) };
     return { floors: F.map((x) => x.length), floorOf, stats, want, sizes, total };
   });
   const [a, b, c] = r.floors;
   assert.deepEqual(r.floorOf, [...Array(a * 2).fill(0), ...Array(b * 2).fill(1), ...Array(c * 2).fill(2)], 'each wave on its floor');
   assert.deepEqual(r.stats.map((s) => s.hp), r.want.map((s) => s.hp), `a thug's health a floor (ENEMY_HP): ${r.stats.map((s) => s.hp)}`);
   assert.ok(r.stats.every((s, f) => Math.abs(s.pace - r.want[f].pace) < 1e-9), `the pace: ${r.stats.map((s) => s.pace)}`);
-  assert.ok(r.sizes.isEnd && !r.sizes.notEnd && !r.sizes.lastIsEnd, 'the floor-end wave is the last of the floor’s last room, not the run’s last');
-  assert.ok(r.sizes.floorEnd > r.sizes.before, `the floor’s last wave is bigger (${r.sizes.before} → ${r.sizes.floorEnd})`);
-  assert.ok(r.sizes.brutes > r.sizes.brutesBefore, `with a brute more (${r.sizes.brutesBefore} → ${r.sizes.brutes})`);
-  assert.ok(r.sizes.last >= r.sizes.floorEnd, `the run’s last wave: ${r.sizes.last}`);
+  assert.deepEqual([r.sizes.lastRoom, r.sizes.boss], ['arena', 'blade'], 'the floor ends in the arena, the blade queen’s');
+  assert.ok(!r.sizes.isEnd, 'no bigger wave in place of a boss there is');
+  assert.ok(r.sizes.floorLast && !r.sizes.notLast && !r.sizes.runLast, 'the floor is done with the arena’s last wave; not a wave before, not the run’s last');
 });
 
 test('the HUD opens each floor with its number and names the room’s place on it; the floor’s song changes; a room cleared unhurt is a clean room and the grade counts rooms', { timeout: 5 * 60 * 1000 }, async () => {

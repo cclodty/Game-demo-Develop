@@ -59,6 +59,49 @@ test('the title fits 1280×720 without scrolling; on a first visit the records s
   }
 });
 
+test('a new player’s title (彈幕 ② C③): one mode card, the game’s own; no daily card, no map cards; it fits 1280×720; ?modes=all brings the older four back', async () => {
+  const { page, logs } = await h.open('?seed=1&mode=danmaku'); // nothing remembered: the harness stores no mode when one is named
+  try {
+    await page.click('#telemetry-ok');
+    const r = await look(page);
+    const t = await page.evaluate(() => ({
+      mode: window.game.mode,
+      cards: [...document.querySelectorAll('#mode-cards .mode-card')].filter((c) => c.offsetParent !== null).map((c) => c.dataset.mode),
+      hiddenCards: [...document.querySelectorAll('#mode-cards .mode-card')].filter((c) => c.offsetParent === null).map((c) => c.dataset.mode),
+      daily: document.getElementById('daily-start').offsetParent !== null,
+      maps: document.getElementById('map-cards').offsetParent !== null,
+      head: document.querySelector('.maps-title').textContent,
+    }));
+    assert.equal(t.mode, 'danmaku');
+    assert.deepEqual(t.cards, ['danmaku'], `one card: ${t.cards}`);
+    assert.deepEqual(t.hiddenCards, ['arcade', 'endless', 'night'], 'the older ones still on the page, off it');
+    assert.ok(!t.daily && !t.maps, 'no daily card, no map cards');
+    assert.ok(!t.head.includes('選擇起點場景') && t.head.includes('茶樓'), `the maps line says the rooms: ${t.head}`);
+    assert.equal(r.scrolls, false, 'the title does not scroll');
+    assert.deepEqual(Object.entries(r.inView).filter(([k, v]) => !v && !['#daily-start', '#map-cards'].includes(k)), [], 'everything else is on the first screen');
+    await page.screenshot({ path: new URL('title-new.png', OUT).pathname });
+    assert.deepEqual(problems(logs), []);
+  } finally {
+    await page.close();
+  }
+  const all = await h.open('?seed=1&modes=all');
+  try {
+    const t = await all.page.evaluate(() => ({
+      mode: window.game.mode,
+      cards: [...document.querySelectorAll('#mode-cards .mode-card')].filter((c) => c.offsetParent !== null).map((c) => c.dataset.mode),
+      daily: document.getElementById('daily-start').offsetParent !== null,
+      maps: document.getElementById('map-cards').offsetParent !== null,
+    }));
+    assert.deepEqual(t, { mode: 'danmaku', cards: ['arcade', 'endless', 'night', 'danmaku'], daily: true, maps: true });
+    const asked = await h.open('?seed=1&mode=night');
+    const n = await asked.page.evaluate(() => ({ mode: window.game.mode, cards: [...document.querySelectorAll('#mode-cards .mode-card')].filter((c) => c.offsetParent !== null).length }));
+    assert.deepEqual(n, { mode: 'night', cards: 4 }, '?mode= picks an older mode and shows them');
+    await asked.page.close();
+  } finally {
+    await all.page.close();
+  }
+});
+
 test('the rules line opens and folds the picks, says what is picked, and starts nothing', async () => {
   const { page, logs } = await h.open('?seed=1');
   try {

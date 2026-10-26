@@ -118,13 +118,21 @@ class Game {
     } catch {
       this.startMap = 0;
     }
-    this.mode = 'arcade'; // see MODES in waves.js; the title screen switches it
+    // the mode (MODES in waves.js): the game's own is the default (彈幕 ② C③); the four older ones are `legacy`, kept
+    // off the title (with the daily card and the map cards, theirs) unless asked for: ?modes=all, ?mode=<a legacy one>
+    // (which also picks it), or one picked before and remembered
+    const params = new URLSearchParams(location.search);
+    this.mode = MODE_IDS.find((id) => !MODES[id].legacy) || 'arcade';
+    let saved = null;
     try {
-      const saved = localStorage.getItem(MODE_KEY);
-      if (MODE_IDS.includes(saved)) this.mode = saved;
+      saved = localStorage.getItem(MODE_KEY);
     } catch {
       /* storage unavailable */
     }
+    const asked = MODE_IDS.includes(params.get('mode')) ? params.get('mode') : null;
+    this.legacyModes = params.get('modes') === 'all' || !!(asked && MODES[asked].legacy) || !!(MODE_IDS.includes(saved) && MODES[saved].legacy);
+    if (asked) this.mode = asked;
+    else if (MODE_IDS.includes(saved) && (!MODES[saved].legacy || this.legacyModes)) this.mode = saved;
     // achievements and what they open (achievements.js); a locked rule pick is not on offer
     this.achievements = new Achievements(localStorage, (a) => this.onAchievement(a));
     // the run rules picked on the title screen (rules.js); a run fixes them as ruleset
@@ -262,7 +270,7 @@ class Game {
       const m = MODES[id];
       if (m.daily) continue; // it has its own card
       const b = document.createElement('button');
-      b.className = 'mode-card';
+      b.className = `mode-card${m.legacy && !this.legacyModes ? ' hidden' : ''}`; // an older mode: off the title unless asked for (legacyModes)
       b.type = 'button';
       b.dataset.mode = id;
       b.style.setProperty('--mode', m.color);
@@ -274,6 +282,11 @@ class Game {
       });
       $('mode-cards').appendChild(b);
     }
+    // the older modes off the title (C③): one card, the daily card and the map cards away, the maps line says the rooms
+    const shown = [...$('mode-cards').children].filter((c) => !c.classList.contains('hidden')).length;
+    $('mode-cards').classList.toggle('four', shown > 1);
+    $('mode-cards').classList.toggle('one', shown <= 1);
+    $('title').classList.toggle('no-legacy', !this.legacyModes);
     this.markMode();
     const ruleCard = (id, r, row, onClick) => {
       const b = document.createElement('button');
@@ -1292,8 +1305,10 @@ class Game {
     const r = MODES[mode];
     if (!Number.isFinite(r.waves)) return '';
     if (r.floor) {
-      // floors of rooms (C①): the first floor opens in `first`, the rest draw from all the rooms in an order each run's seed draws; no boss yet
-      return `${ROOMS[r.floor.first].name}起，${[r.floor.first, ...r.floor.pool].map((id) => ROOMS[id].name).join('、')}輪流（每層抽，次序每局不同）`;
+      // floors of rooms (C①): the first floor opens in `first`, the rest draw from all the rooms in an order each run's seed draws; each floor ends in the boss room (D①)
+      const arena = r.floor.boss && ROOMS[r.floor.boss];
+      const boss = arena && arena.boss && BOSSES[arena.boss.kind] ? `，層尾${arena.name}：${BOSSES[arena.boss.kind].cfg.short}` : '';
+      return `${ROOMS[r.floor.first].name}起，${[r.floor.first, ...r.floor.pool].map((id) => ROOMS[id].name).join('、')}輪流（每層抽，次序每局不同）${boss}`;
     }
     // 澳門一夜 from where it starts to its end, each map at its hour; any other the maps after the one picked
     const maps = r.night ? NIGHT.slice(Math.max(0, NIGHT.indexOf(start))).map((i) => MAPS[i]) : Array.from({ length: Math.ceil(r.waves / r.perStage) }, (_, i) => MAPS[(start + i) % MAPS.length]);

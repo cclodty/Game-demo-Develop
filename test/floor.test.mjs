@@ -54,6 +54,7 @@ before(async () => {
       g.waves.queue = [];
       g.waves.pending = [];
       g.enemies.clear();
+      while (g.boss.active) g.boss.hurt('測試'); // the arena's boss (D①)
       window.step();
     };
     /** The intermission over: the next wave begins. */
@@ -107,7 +108,8 @@ test('a run is three floors of three or four rooms (彈幕 ② C①): the first 
   for (const f of r.floors) {
     assert.equal(f.floors.length, r.spec.floors, `seed ${f.seed}: ${r.spec.floors} floors (${f.floors.map((x) => x.join('>')).join(' | ')})`);
     for (const [i, ids] of f.floors.entries()) {
-      assert.ok(ids.length >= r.spec.rooms[0] && ids.length <= r.spec.rooms[1], `seed ${f.seed}, floor ${i + 1}: ${ids.length} rooms`);
+      assert.equal(ids[ids.length - 1], r.spec.boss, `seed ${f.seed}, floor ${i + 1}: ends in the boss room (D①)`);
+      assert.ok(ids.length - 1 >= r.spec.rooms[0] && ids.length - 1 <= r.spec.rooms[1], `seed ${f.seed}, floor ${i + 1}: ${ids.length - 1} fight rooms before it`);
       assert.equal(new Set(ids).size, ids.length, `seed ${f.seed}, floor ${i + 1}: no room twice (${ids})`);
       assert.ok(ids.every((id) => r.rooms.includes(id)), `seed ${f.seed}: ${ids}`);
     }

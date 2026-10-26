@@ -49,7 +49,7 @@ after(async () => {
   await h.close();
 });
 
-test('the menu has 彈幕試驗; its run is in the teahouse whatever map card is picked; its route says so; the other modes keep their places', async () => {
+test('the menu has the game’s own mode (子彈芭蕾, once 彈幕試驗); its run is in the teahouse whatever map card is picked; its route says so; the other modes keep their places', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { MODE_IDS } = await import('./src/waves.js');
@@ -70,7 +70,7 @@ test('the menu has 彈幕試驗; its run is in the teahouse whatever map card is
       note,
     };
   });
-  assert.ok(r.card && r.card.includes('彈幕試驗') && r.card.includes('BULLET HELL'), `the card: ${r.card}`);
+  assert.ok(r.card && r.card.includes('子彈芭蕾') && r.card.includes('BULLET BALLET'), `the card (C③: the game's own name): ${r.card}`);
   assert.deepEqual(r.runs, ['teahouse', 'teahouse', 'teahouse']);
   assert.equal(r.room, '茶樓');
   assert.match(r.route, /^茶樓起/, 'the first floor’s first room the teahouse (彈幕試驗 ⑤, C①: test/floor.test.mjs)');

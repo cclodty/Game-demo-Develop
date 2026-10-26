@@ -172,6 +172,12 @@ export const BLADE = {
   smash: 2, // segments a pan smash (or a batted-back bullet: HOME RUN) in the window takes
   kick: { back: 7, extend: 0.5 }, // a kick in the window: shoved back at this m/s and the window stays open `extend` s longer
   blast: 2.6, // m: a blast this close takes a segment (not while she dashes)
+  // her bullet-hell moves (彈幕 ② D①), on where the map's def says `danmaku` (rooms.js ARENA): from her perch, before a
+  // dash, a red line on the player for `tell` s and then `volleys` fans of `count` knives ± `spread` rad, fast, the
+  // arcade's look, `between` s apart (the second fan between the first's knives); and as she lands on a perch, a ring
+  // of `count` slow blades (the pattern men's look) with `gap` of them missing: the way through
+  knives: { tell: 0.4, volleys: 2, between: 0.25, count: 3, spread: 0.45, speed: 24, dmg: 12, range: 30 },
+  wall: { count: 16, gap: 3, speed: 6.5, dmg: 10, range: 24 },
 };
 
 export const TRUCK = {
@@ -1087,6 +1093,9 @@ class Blade extends Boss {
   constructor(game) {
     super(game, BLADE);
     this.rig = null;
+    this.laser = new Laser(game.scene, 0xff2bd0); // the knives' red line (danmaku)
+    this.knife = { cfg: { label: '刀后的飛刀' } }; // what her knives and her rings say hit the player (bullets.js: `source.cfg.label`)
+    this.wallSrc = { cfg: { label: '刀后的刀氣' } };
     this.reset();
   }
 
@@ -1098,6 +1107,7 @@ class Blade extends Boss {
       this.rig = null;
     }
     super.reset();
+    this.laser.hide();
     this.state = 'idle';
     this.perches = [];
   }
@@ -1137,6 +1147,10 @@ class Blade extends Boss {
     this.deflectLogT = 0;
     this.rage = 0;
     this.comboLag = 0; // a duo's combo: s on her perch before she goes (Duo)
+    this.danmaku = !!def.danmaku; // her knives and rings (BLADE.knives, BLADE.wall)
+    this.volleys = 0; // fans thrown in this throw
+    this.firstKnives = true;
+    this.firstWall = true;
     this.build();
   }
 
@@ -1216,7 +1230,22 @@ class Blade extends Boss {
           // a combo: she goes when her partner's part is under way (DUO.combo.lag)
           this.comboLag -= dt;
           if (this.comboLag <= 0) this.dashTo(p.x, p.z, 'dash');
-        } else if (this.timer <= 0 && this.mayTell()) this.dashTo(p.x, p.z, 'dash');
+        } else if (this.timer <= 0 && this.mayTell()) {
+          if (this.danmaku && p.alive) this.throwTell();
+          else this.dashTo(p.x, p.z, 'dash');
+        }
+        break;
+      case 'throw':
+        // the knives (danmaku): the line on the player through the tell, then the fans, then the dash
+        this.faceTo(p.x, p.z, BLADE.tell.turn * dt);
+        if (this.timer <= 0) {
+          this.throwKnives();
+          if (this.volleys < BLADE.knives.volleys) this.timer = BLADE.knives.between;
+          else {
+            this.laser.hide();
+            this.dashTo(p.x, p.z, 'dash');
+          }
+        }
         break;
       case 'dash':
       case 'feint':
@@ -1254,9 +1283,68 @@ class Blade extends Boss {
     }
     // up on a raised perch (the booth) while she waits there, and as she lands back on one
     const perch = this.perches[this.perchI];
-    const wantY = this.state === 'perch' || (this.state === 'retreat' && Math.hypot(perch.x - this.x, perch.z - this.z) < 1) ? perch.y : 0;
+    const wantY = this.state === 'perch' || this.state === 'throw' || (this.state === 'retreat' && Math.hypot(perch.x - this.x, perch.z - this.z) < 1) ? perch.y : 0;
     this.y = damp(this.y, wantY, 14, dt);
+    if (this.state === 'throw' && p.alive) this.laser.set(this.x, this.z, p.x, p.z, 0.06, 1.5 + 2 * clamp(1 - this.timer / BLADE.knives.tell, 0, 1), GUN_Y);
     this.sync();
+  }
+
+  /** The knives' tell (danmaku): at her perch, the blades lit and a red line on the player for BLADE.knives.tell s. */
+  throwTell() {
+    const g = this.game;
+    this.state = 'throw';
+    this.timer = BLADE.knives.tell;
+    this.volleys = 0;
+    this.glow = 1;
+    g.audio.aimWarn(g.panFor(this.x));
+    if (this.firstKnives) {
+      this.firstKnives = false;
+      g.notes.log('刀后擲飛刀：紅線預告，快彈');
+      g.hud.banner('KNIVES', '紅線對住你：飛刀快，側身或慢鏡', 'clear');
+    }
+  }
+
+  /** One fan of knives at the player (BLADE.knives): fast rounds in the arcade's look; the second fan between the first's. */
+  throwKnives() {
+    const g = this.game;
+    const K = BLADE.knives;
+    const p = g.player;
+    const a0 = angleTo(this.x, this.z, p.x, p.z);
+    const step = (K.spread * 2) / (K.count - 1);
+    const shift = this.volleys % 2 ? step / 2 : 0;
+    for (let i = 0; i < K.count; i++) {
+      const a = a0 - K.spread + i * step + shift;
+      if (a > a0 + K.spread + 1e-6) continue; // the shifted fan's last would fall outside the spread
+      const dx = Math.sin(a);
+      const dz = Math.cos(a);
+      g.bullets.spawn({ x: this.x + dx * 0.5, z: this.z + dz * 0.5, dx, dz, speed: K.speed, owner: 'enemy', damage: K.dmg, range: K.range, source: this.knife, look: 'enemy' });
+    }
+    this.volleys++;
+    this.flash = 0.4;
+    g.audio.shot('pistol', g.panFor(this.x));
+  }
+
+  /** As she lands on a perch (danmaku): a ring of slow blades out from her, BLADE.wall.gap of them missing at a random place. */
+  wallRing() {
+    const g = this.game;
+    const W = BLADE.wall;
+    const step = (Math.PI * 2) / W.count;
+    const gapAt = g.rng.int(0, W.count - 1);
+    const base = g.rng.range(0, step);
+    for (let i = 0; i < W.count; i++) {
+      if ((i - gapAt + W.count) % W.count < W.gap) continue;
+      const a = base + i * step;
+      const dx = Math.sin(a);
+      const dz = Math.cos(a);
+      g.bullets.spawn({ x: this.x + dx * 0.5, z: this.z + dz * 0.5, dx, dz, speed: W.speed, owner: 'enemy', damage: W.dmg, range: W.range, source: this.wallSrc, look: 'danmaku' });
+    }
+    g.fx.ring(this.x, this.z, 1.2, 0.4, 0xff2bd0, 3);
+    g.audio.shot('pistol', g.panFor(this.x));
+    if (this.firstWall) {
+      this.firstWall = false;
+      g.notes.log('刀后放出刀氣環：慢，有缺口');
+      g.hud.banner('RING', '刀氣環慢：找缺口走出去', 'clear');
+    }
   }
 
   /** Off towards (x, z): `state` is 'dash' (at the player), 'feint' (a hop to his other side) or 'retreat' (to a perch). */
@@ -1342,6 +1430,7 @@ class Blade extends Boss {
       this.state = 'perch';
       const W = BLADE.perch;
       this.timer = g.rng.range(W.wait[0], W.wait[1]) * (1 - W.faster * this.lost);
+      if (this.danmaku && p.alive) this.wallRing();
       return;
     }
     if (this.feints > 0 && g.rng.next() < BLADE.feint.chance) {
@@ -1413,7 +1502,7 @@ class Blade extends Boss {
   shotAt(x0, z0, x1, z1) {
     if (!this.active || this.dashing) return null; // a dash: the shot flies through where she was
     const t = segCircle(x0, z0, x1, z1, this.x, this.z, BLADE.radius);
-    return t >= 0 ? { t, part: this.state === 'tell' ? 'open' : this.state === 'perch' ? 'guard' : 'body' } : null;
+    return t >= 0 ? { t, part: this.state === 'tell' ? 'open' : this.state === 'perch' || this.state === 'throw' ? 'guard' : 'body' } : null;
   }
 
   shot(b, part) {
@@ -1484,6 +1573,7 @@ class Blade extends Boss {
     const g = this.game;
     this.state = 'down';
     this.vx = this.vz = 0;
+    this.laser.hide();
     g.fx.flash(this.x, 1.2, this.z, 0xff2bd0, 40, 0.4, 10);
     g.fx.blood(this.x, 1, this.z, 0, 0, 20);
     g.notes.log('刀后倒下');
@@ -1505,12 +1595,12 @@ class Blade extends Boss {
     r.ring.material.color.setRGB(S === 'tell' ? 2.6 : 1.2, S === 'tell' ? 0.3 : 0.12, S === 'tell' ? 1.4 : 0.75);
     if (!g.style.poseDue(r, g.worldTime)) return;
     animateRig(r, this.phase, this.dashing ? 1 : 0, this.facing);
-    const arm = S === 'tell' ? -2.4 : S === 'cut' ? 0.7 : S === 'reel' ? -0.9 : this.dashing ? 1.2 : 0.55;
+    const arm = S === 'tell' ? -2.4 : S === 'throw' ? -1.5 : S === 'cut' ? 0.7 : S === 'reel' ? -0.9 : this.dashing ? 1.2 : 0.55;
     r.armL.rotation.x = r.armR.rotation.x = arm;
     r.armL.rotation.z = S === 'tell' ? -0.5 : 0;
     r.armR.rotation.z = S === 'tell' ? 0.5 : 0;
-    r.inner.rotation.x = S === 'down' ? 1.45 : S === 'perch' ? 0.45 : this.dashing ? 0.3 : S === 'reel' ? -0.3 : 0;
-    r.inner.position.y = S === 'down' ? 0.15 : S === 'perch' ? -0.2 : 0;
+    r.inner.rotation.x = S === 'down' ? 1.45 : S === 'perch' ? 0.45 : S === 'throw' ? 0.2 : this.dashing ? 0.3 : S === 'reel' ? -0.3 : 0;
+    r.inner.position.y = S === 'down' ? 0.15 : S === 'perch' ? -0.2 : S === 'throw' ? -0.1 : 0;
     finishRig(r, g.worldTime);
   }
 }

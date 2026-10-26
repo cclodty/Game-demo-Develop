@@ -61,7 +61,7 @@ src/input.js  replay.js      live keyboard/mouse/gamepad (standard layout mapped
 src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, VIEWS, FIREPOWER (pads, drops)
 src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS and the AI state machine
 src/weapons.js bullets.js    player weapon stats, grenades (the launcher's, and the grenadier's lobbed ones: ring, fuse, kick back, AIRBURST); projectile stepping and ricochet
-src/waves.js  pickups.js     MODES (arcade: 12 waves, then RUN CLEAR; endless; daily; night), wave composition and spawn pacing; floor weapons and pads
+src/waves.js  pickups.js     MODES (danmaku, the game's own: three floors of rooms, the default; arcade, endless, daily and night are `legacy`, off the title unless ?modes=all), wave composition and spawn pacing; floor weapons and pads
 src/night.js                 澳門一夜: the maps in order of the hour each is set at (maps.js `hour`, `line`), how far the night has got (kept in this browser)
 src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 7 maps as data (福隆新街's walls built from its `shops`, 東望洋跑道's barriers from `guiaBarriers`, 大三巴's steps from its `ground`: everything is drawn at its height over the ground there, `groundY`)
 src/nav.js                   grid A* on 0.5 m cells
@@ -75,7 +75,7 @@ src/music.js                 the songs as data (tempo, chords, step patterns, la
 src/race.js                  the Guia circuit's racing cars: a pack sweeps the track on the map's timetable (maps.js `race`), warned by red lights; GRAND PRIX
 src/boss.js                  each map's boss, the last wave of every arcade stage there (maps.js `boss.kind`; waves 4 and 8 shorter, waves.js `midBoss`): helicopter (rooftop), blade queen (club), heavy gunner (docks), taxi convoy (Senado), with the DJ and the armoured truck as spare kinds; what they share (health bar, banners, BOSS bonus, clip) is Boss
 src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
-src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
+src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time against the laser, a human shield, a flipped table)
 src/leaderboard.js           boards: local always, the back end's when config.js BACKEND.url is set (never waited on); nickname rule shared with backend/
 src/daily.js                 the daily challenge: UTC date → seed, map and rules from a rotation table; one try a day; share codes
 src/achievements.js          achievements as data, counted from the game's events (never feeding back into play); unlocks: rules.js variants with `unlock`, coat colours

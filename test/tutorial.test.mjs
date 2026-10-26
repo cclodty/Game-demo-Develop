@@ -1,4 +1,4 @@
-// The 60-second warm-up (60 秒新手熱身). On a first run (nothing stored) three
+// The 60-second warm-up (60 秒新手熱身, 彈幕 ② C③: bullet time, the human shield, the table). On a first run (nothing stored) three
 // enemies come one at a time: the first one's aim brings up the Shift hint,
 // the second stands behind a pan, the third beside a barrel. Clearing them
 // goes straight to wave 1; Esc skips; after 60 s it ends anyway; a second run
@@ -43,8 +43,9 @@ const begin = (page) =>
         shown: document.getElementById('tutorial').textContent,
         enemy: e ? { type: e.type, alive: e.alive, state: e.state } : null,
         alive: g.enemies.list.filter((x) => x.alive).length,
-        toPan: near(g.level.pans),
-        toBarrel: near(g.level.barrels),
+        toTable: near(g.level.fixtures.filter((f) => f.kind === 'table' && !f.flipped)),
+        toPlayer: e ? Math.hypot(e.x - g.player.x, e.z - g.player.z) : Infinity,
+        holdable: !!(e && e.holdable),
         wave: g.waves.wave,
         waves: g.waves.state,
         paused: g.state === 'paused',
@@ -59,7 +60,7 @@ const begin = (page) =>
   });
 
 test('a first run plays the three warm-up steps, then wave 1 starts at once', { timeout: 180000 }, async () => {
-  const { page, logs } = await h.open('?tutorial=0&seed=17'); // nothing stored: a first visit
+  const { page, logs } = await h.open('?tutorial=0&seed=17&mode=danmaku'); // nothing stored: a first visit, the game's own mode (the teahouse)
   await begin(page);
   await page.evaluate(() => window.play(1));
   let s = await page.evaluate(() => window.look());
@@ -90,7 +91,7 @@ test('a first run plays the three warm-up steps, then wave 1 starts at once', { 
   assert.match(s.shown, /Shift/);
   await snap(page, 'warmup-1.png');
 
-  // step 2: behind a pan
+  // step 2: close in front, to be held up as a human shield
   await page.evaluate(() => {
     window.killStep();
     window.play(2);
@@ -98,11 +99,13 @@ test('a first run plays the three warm-up steps, then wave 1 starts at once', { 
   });
   s = await page.evaluate(() => window.look());
   assert.equal(s.step, 1);
-  assert.ok(s.toPan < 4.5, `the second enemy stands ${s.toPan.toFixed(1)} m from a pan`);
-  assert.match(s.shown, /平底鑊/);
+  assert.ok(s.toPlayer < 3.5, `the second enemy stands ${s.toPlayer.toFixed(1)} m from the player`);
+  assert.ok(s.holdable, 'and can be held');
+  assert.match(s.shown, /人盾/);
+  assert.match(s.shown, /E/);
   await snap(page, 'warmup-2.png');
 
-  // step 3: beside a barrel
+  // step 3: behind a table
   await page.evaluate(() => {
     window.killStep();
     window.play(2);
@@ -110,8 +113,9 @@ test('a first run plays the three warm-up steps, then wave 1 starts at once', { 
   });
   s = await page.evaluate(() => window.look());
   assert.equal(s.step, 2);
-  assert.ok(s.toBarrel < 2.5, `the third enemy stands ${s.toBarrel.toFixed(1)} m from a barrel`);
-  assert.match(s.shown, /油桶/);
+  assert.ok(s.toTable < 3.5, `the third enemy stands ${s.toTable.toFixed(1)} m from a table`);
+  assert.match(s.shown, /翻枱/);
+  assert.match(s.shown, /F/);
   await snap(page, 'warmup-3.png');
 
   // done: wave 1 straight away, and it is remembered
@@ -125,7 +129,7 @@ test('a first run plays the three warm-up steps, then wave 1 starts at once', { 
   await page.evaluate(() => window.play(150));
   s = await page.evaluate(() => window.look());
   assert.equal(s.wave, 1, 'wave 1 follows within a few seconds');
-  assert.deepEqual(s.log, ['熱身開始', '熱身 1／3：子彈時間', '熱身 2／3：平底鑊', '熱身 3／3：油桶', '熱身完成']);
+  assert.deepEqual(s.log, ['熱身開始', '熱身 1／3：快彈與紅線', '熱身 2／3：人盾', '熱身 3／3：翻枱', '熱身完成']);
 
   // the next run starts at wave 1 without the warm-up
   await page.evaluate(() => {
@@ -139,7 +143,7 @@ test('a first run plays the three warm-up steps, then wave 1 starts at once', { 
 });
 
 test('Esc skips the warm-up without pausing; ?tutorial=1 plays it again', { timeout: 120000 }, async () => {
-  const { page, logs } = await h.open('?tutorial=1'); // forced, although the harness marked it seen
+  const { page, logs } = await h.open('?tutorial=1&mode=danmaku'); // forced, although the harness marked it seen
   await begin(page);
   await page.evaluate(() => window.play(30));
   let s = await page.evaluate(() => window.look());
@@ -163,7 +167,7 @@ test('Esc skips the warm-up without pausing; ?tutorial=1 plays it again', { time
 });
 
 test('after 60 seconds the warm-up ends anyway and wave 1 starts', { timeout: 180000 }, async () => {
-  const { page, logs } = await h.open('?tutorial=1');
+  const { page, logs } = await h.open('?tutorial=1&mode=danmaku');
   await begin(page);
   await page.evaluate(() => window.play(59 * 60));
   let s = await page.evaluate(() => window.look());

@@ -32,6 +32,8 @@
 //   go to stand and fire from, at least four, all in the half of the room away from the entry, each walkable and
 //   seeing most of the room (test/hell.test.mjs); with the middle of the table a post stands behind, when it does:
 //   that table gone (flipped and shot to bits), the post is given up,
+//   boss: the room's boss (maps.js `boss`, boss.js BOSSES: { kind, perches… }), fought on the room's last wave (waves.js);
+//   with `danmaku: true` the kind's bullet-hell moves are on (彈幕 ② D①),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
 //   towards the player }, dist } }
 
@@ -90,6 +92,7 @@ export function room(t) {
     fixtures: [...t.tables.map(([x, z, r]) => [x, z, 'table', 0, r, t.tableLook || 'cloth']), [ex, ez, 'exit', ef, ...EXIT_DOOR]],
     spawns: t.doors.map(([side, at]) => doorSpawn(side, at, halfW, halfD)),
     posts: t.posts || [],
+    boss: t.boss || null, // its boss, on its last wave (D①)
     camera: t.camera,
     budget: t.budget,
     room: t, // the template itself (tests)
@@ -379,10 +382,44 @@ export const DAIPAIDONG = room({
 });
 
 /** Every room, by id. */
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG };
+/**
+ * The arena (大廳, 彈幕 ② D①): a floor's last room, the floor boss's. The blade queen's for now: four perches in its
+ * corners she crouches on between dashes, four small tables for cover from her knives and her rings, the room's men
+ * on its first wave as anywhere. 22 × 15 m, in at the south, out at the north.
+ */
+export const ARENA = room({
+  id: 'arena',
+  rev: 1,
+  name: '大廳',
+  en: 'GRAND HALL',
+  desc: '層尾的大廳：頭目在四角的高台之間穿梭，四張小枱擋刀氣。',
+  color: '#ff2bd0',
+  size: [22, 15],
+  walls: [3.2, 'teaWall', 'teaTrim'],
+  low: [0.9, ['s', 'w']],
+  doors: [['n', -5], ['n', 5], ['e', -3], ['e', 3]],
+  tables: [[-7, -3, 0.8], [7, -3, 0.8], [-7, 3, 0.8], [7, 3, 0.8]],
+  entry: ['s', 0],
+  exit: ['n', 0],
+  // the far side: behind the north pair of tables, and the north ends of the side aisles
+  posts: [[-7, -5.2, -7, -3], [7, -5.2, 7, -3], [-9.5, -1], [9.5, -1]],
+  // the blade queen (boss.js BLADE) with her bullet-hell moves (`danmaku`): knives from a perch, a ring of slow blades as she lands on one
+  boss: { kind: 'blade', danmaku: true, perches: [[-8.5, -5.5], [8.5, -5.5], [-8.5, 5], [8.5, 5]] },
+  floor: 'teahouse',
+  theme: teaTheme([
+    [-4, -3],
+    [4, -3],
+    [-4, 3],
+    [4, 3],
+  ]),
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, arena: ARENA };
 
 /**
- * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most] }, 彈幕 ② C①): `floors` of
+ * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss }, 彈幕 ② C①): `floors` of
  * them, each `rooms` rooms (how many, the rng's), none twice on a floor; the first floor opens with `first`, the others
  * draw from `first` and `pool` alike, in an order drawn from `rng` (the run's own stream: the same seed, the same
  * floors). Arrays of room ids, one an floor.
@@ -401,7 +438,9 @@ export function drawFloors(spec, rng) {
   const floors = [];
   for (let f = 0; f < spec.floors; f++) {
     const n = Math.min(all.length, rng.int(least, most));
-    floors.push(f === 0 ? [spec.first, ...shuffled(spec.pool).slice(0, n - 1)] : shuffled(all).slice(0, n));
+    const rooms = f === 0 ? [spec.first, ...shuffled(spec.pool).slice(0, n - 1)] : shuffled(all).slice(0, n);
+    if (spec.boss) rooms.push(spec.boss); // the floor ends in the boss's room (D①)
+    floors.push(rooms);
   }
   return floors;
 }

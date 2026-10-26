@@ -2714,3 +2714,28 @@ body.playing #debug {
     font-size: 12px;
   }
 }
+
+/* the title with the older modes off it (main.js legacyModes, 彈幕 ② C③): one mode card, no daily card, no map cards */
+.modes.one {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.modes.one .mode-card {
+  padding: 16px 22px;
+}
+
+.modes.one .mode-zh {
+  font-size: 26px;
+}
+
+.modes.one .mode-desc {
+  white-space: normal;
+  overflow: visible;
+  font-size: 14px;
+}
+
+#title.no-legacy .daily-card,
+#title.no-legacy #map-cards,
+#title.no-legacy .legacy-only {
+  display: none;
+}

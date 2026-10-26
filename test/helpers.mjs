@@ -33,6 +33,9 @@ export async function gameHarness() {
       page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}\n${e.stack}`));
       // every test starts at wave 1 as if the warm-up had been seen, unless it asks about the warm-up (?tutorial=…)
       if (!query.includes('tutorial')) await page.addInitScript(() => localStorage.setItem('bullet-ballet.tutorial', 'done'));
+      // the title opens on the game's own mode with the older four off it (彈幕 ② C③): a test written for the arcade
+      // (and the maps, the daily, the night) starts as a player who picked it before, unless it names a mode (?mode=…)
+      if (!query.includes('mode')) await page.addInitScript(() => localStorage.setItem('bullet-ballet.mode', 'arcade'));
       await page.goto(`${server.url}/index.html${query}`);
       // index.html has <div id="game">, so window.game is that element until main.js
       // assigns the real Game (after the optional models load) — wait for the object.

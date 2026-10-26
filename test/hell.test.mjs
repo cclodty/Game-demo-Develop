@@ -146,7 +146,7 @@ test('a wave in the room is the arcade’s men with the arcade’s bullets (no s
     const hell = window.measure(25);
     const hellSpeeds = [...new Set(g.bullets.list.filter((b) => b.owner === 'enemy').map((b) => Math.round(b.speed)))];
     const look = [...new Set(g.bullets.list.filter((b) => b.owner === 'enemy').map((b) => b.look))];
-    const roster = Array.from({ length: 6 }, (_, i) => g.waves.compose(i + 1));
+    const roster = Array.from({ length: g.waves.totalWaves }, (_, i) => g.waves.compose(i + 1)); // the run's (the brutes come from the second floor, C①)
     window.toArcade();
     const arcade = window.measure(25);
     return { hell, hellSpeeds, look, roster, arcade };

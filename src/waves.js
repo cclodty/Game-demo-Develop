@@ -16,13 +16,13 @@ import { clamp } from './utils.js';
  * records store a mode's place in this list, so only ever append.
  */
 export const MODES = {
-  arcade: { name: '街機', en: 'ARCADE', color: '#ffc861', desc: '12 波一局，約十分鐘 · 打完有結算', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, beats: true },
-  endless: { name: '無盡', en: 'ENDLESS', color: '#2ee8ff', desc: '打到倒下為止', waves: Infinity, perStage: 3 },
+  arcade: { name: '街機', en: 'ARCADE', color: '#ffc861', desc: '12 波一局，約十分鐘 · 打完有結算', legacy: true, waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, beats: true },
+  endless: { name: '無盡', en: 'ENDLESS', color: '#2ee8ff', desc: '打到倒下為止', legacy: true, waves: Infinity, perStage: 3 },
   // the daily challenge (daily.js): an arcade run on the day's seed, map and rules; started from its own title card
-  daily: { name: '每日挑戰', en: 'DAILY', color: '#ff4fa3', desc: '全世界同一局，每天一次', waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, daily: true, beats: true },
+  daily: { name: '每日挑戰', en: 'DAILY', color: '#ff4fa3', desc: '全世界同一局，每天一次', legacy: true, waves: 12, perStage: 4, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, daily: true, beats: true },
   // 澳門一夜 (night.js): the maps by the hour of the night each is set at (maps.js `hour`), three waves a stage, the
   // third the map's boss where it has one; it goes on from the first stage not yet cleared (main.js route, routeAt)
-  night: { name: '澳門一夜', en: 'A NIGHT IN MACAU', color: '#b48cff', desc: '晚上八點到凌晨三點 · 打完一關存進度', waves: 21, perStage: 3, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, night: true, beats: true },
+  night: { name: '澳門一夜', en: 'A NIGHT IN MACAU', color: '#b48cff', desc: '晚上八點到凌晨三點 · 打完一關存進度', legacy: true, waves: 21, perStage: 3, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, night: true, beats: true },
   // 彈幕試驗 (DECISIONS 2026-10-23: the bullet-hell trial): six waves in rooms (rooms.js `room`), whatever map card is
   // picked; last in the list, so a record's mode number keeps its meaning
   // its waves: `total` men in wave n; of `types` { type: [from wave, weight, most a wave] }, or with `arcade` the
@@ -32,18 +32,21 @@ export const MODES = {
   // `floor`: played in rooms (rooms.js), not on the maps: `floors` floors of `rooms` [least, most] rooms each (C①), the
   // first opening with `first`, the rest drawn from `pool` and `first` (rooms.js drawFloors), `perStage` waves in each
   // room; a cleared room's exit opens and the player walks out of it to the next. `waves` is what a run without floors
-  // would have: a floor run has rooms × `perStage` (Waves totalWaves). A floor's last room ends on a bigger wave
-  // (`floorEnd`, in place of the floor boss until D), and a floor counts as a stage for how hard the men are
+  // would have: a floor run has rooms × `perStage` (Waves totalWaves). Each floor ends in the room `floor.boss` (D①),
+  // whose boss is fought on its last wave (`floorBoss` sizes the fight but the run's last, in full); a floor without
+  // one ends on a bigger wave instead (`floorEnd`); a floor counts as a stage for how hard the men are
   danmaku: {
-    name: '彈幕試驗',
-    en: 'BULLET HELL',
+    // the game now (彈幕 ② C③): the default, the only card on the title; the four above are `legacy`, hidden from
+    // the title unless ?modes=all, ?mode=<one of them> or one was picked before (their code and tests stay)
+    name: '子彈芭蕾',
+    en: 'BULLET BALLET',
     color: '#ff6a3d',
-    desc: '試驗：三層，每層三四間房，滿屏快彈',
+    desc: '三層，每層三四間房 · 滿屏快彈，在子彈時間起舞 · 約十分鐘',
     waves: 6,
     perStage: 2,
     graded: true,
-    floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong'], floors: 3, rooms: [3, 4] },
-    floorEnd: { size: 1.5, brutes: 1 },
+    floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong'], floors: 3, rooms: [3, 4], boss: 'arena' },
+    floorBoss: { segments: 4, bonus: 1500 }, // a floor's boss fight but the last floor's, in full (boss.js cfg)
     finale: { size: 1.5, brutes: 1, maxAlive: 12 }, // the run's last wave, bigger like a floor's end (C①)
     graze: true,
     // 彈幕 ② A①: the arcade's men; five in a room's first wave (four fired 1.96× the arcade's first wave, short of the 2×
@@ -136,10 +139,10 @@ export class Waves {
     return this.game.floor ? this.game.floor.length * this.rules.perStage : this.rules.waves;
   }
 
-  /** The run's last wave of a floor's last room, and not the run's last (C①): a bigger wave in place of the floor boss (MODES `floorEnd`). */
-  isFloorEnd(n) {
+  /** The last wave of a floor's last room, and not the run's last (C①): the floor is done with it (the style cards, C②). */
+  floorLast(n) {
     const F = this.game.floors;
-    if (!F || !this.rules.floorEnd || n === this.totalWaves) return false;
+    if (!F || n === this.totalWaves) return false;
     const stage = Math.floor((n - 1) / this.rules.perStage);
     const last = n % this.rules.perStage === 0;
     let end = -1;
@@ -148,6 +151,13 @@ export class Waves {
       if (end === stage) return last;
     }
     return false;
+  }
+
+  /** A floor's last wave on a floor without a boss room (MODES `floorEnd`): a bigger wave in place of the floor boss. */
+  isFloorEnd(n) {
+    if (!this.rules.floorEnd || !this.floorLast(n)) return false;
+    const room = this.game.mapAt(Math.floor((n - 1) / this.rules.perStage));
+    return !(room.boss && BOSSES[room.boss.kind]);
   }
 
   get isFinal() {
@@ -219,7 +229,8 @@ export class Waves {
     // stage bosses (`midBoss`), and the run's last wave in any: the boss instead of the wave
     const boss = g.stageMap.boss;
     const stageEnd = this.wave % this.rules.perStage === 0;
-    this.bossWave = !!boss && !!BOSSES[boss.kind] && (this.isFinal || (stageEnd && !!this.rules.midBoss));
+    // in a room (D①) the room's boss, on its last wave
+    this.bossWave = !!boss && !!BOSSES[boss.kind] && (this.isFinal || (stageEnd && (!!this.rules.midBoss || !!this.rules.floor)));
     // the music (audio.js): a stage's first two waves on the base of its song, its later layers after, its boss section for a boss and the last wave
     g.audio.setLevel(this.isFinal || this.bossWave ? 2 : this.waveInStage >= 2 ? 1 : 0);
     if (this.bossWave) {
@@ -275,8 +286,8 @@ export class Waves {
       '站在另一把武器上按 E 交換；1 / 2 或滾輪切換',
     ];
     if (this.bossWave) {
-      g.bosses.start(boss, this.isFinal ? null : this.rules.midBoss); // the last in full, a stage's shorter
-      g.hud.banner('BOSS', `${g.boss.cfg.name} · ${this.isFinal ? '最後一波' : '打倒就轉場'}`, 'stage');
+      g.bosses.start(boss, this.isFinal ? null : this.rules.floor ? this.rules.floorBoss || null : this.rules.midBoss); // the last in full, a stage's (or a floor's) shorter
+      g.hud.banner('BOSS', `${g.boss.cfg.name} · ${this.isFinal ? '最後一波' : this.rules.floor ? '打倒門就開' : '打倒就轉場'}`, 'stage');
     } else if (this.isFinal) g.hud.banner('FINAL WAVE', `最後一波 · 撐過去就通關`, 'stage');
     else g.hud.banner(`WAVE ${this.wave}`, tips[(this.wave - 1) % tips.length]);
     g.audio.waveStart();
@@ -541,7 +552,7 @@ export class Waves {
       const exit = this.stageNext && this.rules.floor && this.game.level.exit;
       if (exit) {
         this.stageNext = false;
-        if (this.isFloorEnd(this.wave)) {
+        if (this.floorLast(this.wave)) {
           // the floor is done (C②): the style cards first, the exit opens on the pick
           this.state = 'cards';
           this.game.cards.show(this.stageIndex);

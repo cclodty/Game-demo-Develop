@@ -373,8 +373,8 @@ export const ENV = {
 export const WARMUP = {
   limit: 60, // real seconds before it ends anyway and wave 1 starts
   front: 8, // metres in front of the player for the first enemy
-  behindPan: 3.5, // metres beyond the nearest pan, seen from the player, for the second
-  besideBarrel: 1.6, // metres beyond the nearest barrel for the third: inside its blast
+  near: 2.5, // metres in front for the second: a step and he is in the arms (the human shield)
+  behindTable: 2.5, // metres beyond the nearest table, seen from the player, for the third (the table flipped between)
 };
 
 /**
