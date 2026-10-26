@@ -310,11 +310,15 @@ test('the bot clears 彈幕試驗’s three floors in god mode, every room in or
       return log0(text);
     };
     let frames = 0;
-    const rooms = [g.level.map.id]; // the rooms it fought in, in order (彈幕試驗 ⑤: the bot walks out of each cleared room's exit)
+    const rooms = [g.level.map.id]; // the rooms it fought in, in order (彈幕試驗 ⑤: the bot walks out of each cleared room's exit); by stage: a room can follow itself on the next floor (C①)
+    let stage = g.stage;
     while (g.state === 'playing' && g.waves.state !== 'done' && frames < 60 * 60 * 22) {
       window.simStep(60);
       frames += 60;
-      if (g.level.map.id !== rooms[rooms.length - 1]) rooms.push(g.level.map.id);
+      if (g.stage !== stage) {
+        stage = g.stage;
+        rooms.push(g.level.map.id);
+      }
     }
     g.notes.log = log0;
     return { wave: g.waves.wave, total: g.waves.totalWaves, done: g.waves.state === 'done', s: frames / 60, grazes: g.grazes, notes: said, errors: window.stats.errors, rooms, floor: g.floor };
