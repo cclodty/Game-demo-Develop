@@ -252,7 +252,7 @@ test('the hitbox: in 彈幕試驗 in bullet time a dot at the player shows where
   assert.equal(r.arcade.visible, false);
 });
 
-test('彈幕試驗’s waves are the three (and a few thugs); no other mode sends them', async () => {
+test('the pattern men are in no mode’s waves now: 彈幕試驗 sends the heavy guns instead (彈幕試驗 ⑦: test/heavy.test.mjs), the arcade and endless never did', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom();
@@ -267,9 +267,8 @@ test('彈幕試驗’s waves are the three (and a few thugs); no other mode send
   });
   const pattern = ['ringer', 'spiraler', 'fanner'];
   const all = r.danmaku.flat();
-  assert.ok(pattern.every((t) => all.includes(t)), `all three come (${[...new Set(all)]})`);
-  assert.ok(all.every((t) => pattern.includes(t) || t === 'grunt'), `and only they and thugs (${[...new Set(all)]})`);
-  assert.ok(r.danmaku.every((w) => w.some((t) => pattern.includes(t))), 'every wave has some');
+  assert.ok(!all.some((t) => pattern.includes(t)), `none in 彈幕試驗 (${[...new Set(all)]})`);
+  assert.ok(all.length > 0, 'which still sends men');
   assert.ok(!r.arcade.flat().some((t) => pattern.includes(t)) && !r.endless.flat().some((t) => pattern.includes(t)), 'none in the arcade or endless');
 });
 
@@ -300,7 +299,7 @@ test('screenshot: the three firing in the teahouse, the player in bullet time, h
   assert.deepEqual(problems(logs), []);
 });
 
-test('the bot clears 彈幕試驗’s floor in god mode, six waves in its three rooms; the notes say in Chinese what the patterns are and how the grazes go', { timeout: 15 * 60 * 1000 }, async () => {
+test('the bot clears 彈幕試驗’s floor in god mode, six waves in its three rooms; the notes say in Chinese what the heavy guns are and how the grazes go', { timeout: 15 * 60 * 1000 }, async () => {
   await installBot(page, { map: 0, view: 2, seed: 11, mode: 'danmaku', restart: false, god: true });
   const r = await page.evaluate(() => {
     const g = window.game;
@@ -324,7 +323,7 @@ test('the bot clears 彈幕試驗’s floor in god mode, six waves in its three 
   assert.equal(r.done, true, `cleared (wave ${r.wave}, ${r.s} s, in ${r.rooms.join(' → ')})`);
   assert.equal(r.wave, 6, 'after six waves');
   assert.deepEqual(r.rooms, r.floor, 'through the floor’s three rooms, in its order');
-  for (const name of ['環形手', '螺旋手', '扇形手']) assert.ok(r.notes.some((t) => t.includes(name)), `${name} in the notes`);
+  for (const name of ['機槍手', '排槍手', '霰彈手']) assert.ok(r.notes.some((t) => t.includes(name)), `${name} in the notes (the heavy guns: 彈幕試驗 ⑦)`);
   assert.ok(r.notes.some((t) => t.includes('擦彈')), r.notes.slice(-12).join(' / '));
   assert.deepEqual(problems(logs), []);
 });

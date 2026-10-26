@@ -286,6 +286,67 @@ export const TYPES = {
     model: 'shotgun',
     look: { body: 0xffc27a, pants: 0x5a3416, accent: 0xff7a1a, hair: 0x3a2210, weapon: 'shotgun' },
   },
+  // 彈幕試驗 ⑦ (DECISIONS 2026-10-26): heavy fire. The bullet hell is the volume of their fire at the player, not
+  // patterns round them. The pattern men's tell (he stands and glows) and slow solid bullets, a WEAPONS `pattern` of
+  // their own; `heavy`: they need no aim token (the whole room opens up at once) and the notes say 重火力. Only
+  // 彈幕試驗 sends them (waves.js MODES.danmaku `roster`). Light coats, as the pattern men.
+  hoser: {
+    label: 'MG',
+    name: '機槍手',
+    patternNote: '轉起槍管就一條長火線掃過嚟，轉得慢：橫跑甩開佢，或者翻枱擋住',
+    heavy: true,
+    vault: true,
+    hp: 8,
+    speed: 1.8,
+    radius: 0.36,
+    aimTime: 1.0, // the barrels spinning up
+    cooldown: [2.2, 3.0],
+    range: [7, 13],
+    weapon: 'hose',
+    score: 250,
+    lead: [0, 0],
+    turn: 3,
+    model: 'brute',
+    look: { body: 0x9fd7ff, pants: 0x203a52, accent: 0x2f9bff, hair: 0x15293b, weapon: 'minigun' },
+  },
+  volleyer: {
+    label: 'VOLLEY',
+    name: '排槍手',
+    patternNote: '同一間房的排槍手同一拍一齊開槍：喺兩排之間衝前',
+    heavy: true,
+    vault: true,
+    hp: 4,
+    speed: 2.4,
+    radius: 0.32,
+    aimTime: 0.7, // the least he glows before a row: the row itself waits for the squad's beat (WEAPONS.salvo `beat`)
+    cooldown: [0.8, 1.1], // ready again before the next beat but one
+    range: [6, 12],
+    weapon: 'salvo',
+    score: 150,
+    lead: [0, 0],
+    turn: 5,
+    model: 'rifle',
+    look: { body: 0xd8f08a, pants: 0x3a4a1a, accent: 0x9acd32, hair: 0x2a3510, weapon: 'rifle' },
+  },
+  blaster: {
+    label: 'BLAST',
+    name: '霰彈手',
+    patternNote: '行近你兩下大扇，射程短：退開，或者開慢鏡閃出扇外',
+    heavy: true,
+    vault: true,
+    hp: 5,
+    speed: 3.4,
+    radius: 0.34,
+    aimTime: 0.7,
+    cooldown: [2.0, 2.6],
+    range: [3.5, 6.5],
+    weapon: 'blast',
+    score: 150,
+    lead: [0, 0],
+    turn: 6,
+    model: 'shotgun',
+    look: { body: 0xffa8c8, pants: 0x5a1a33, accent: 0xff4f8a, hair: 0x3a1022, weapon: 'shotgun' },
+  },
 };
 
 const WEAPONS = {
@@ -303,11 +364,18 @@ const WEAPONS = {
   spiral: { pattern: 'spiral', shots: 28, interval: 0.075, speed: 6, dmg: 8, arms: 4, turn: 0.21, range: 24, sound: 'smg' },
   // fan: `count` bullets across ± `spread` rad at the player, bunched to the middle (|u| ** `bunch` for u in -1…1)
   fan: { pattern: 'fan', shots: 3, interval: 0.32, speed: 8, dmg: 10, count: 9, spread: 0.6, bunch: 1.7, range: 26, sound: 'shotgun' },
+  // heavy fire (彈幕試驗 ⑦): aimed at the player, the same slow solid bullets, a great many
+  // hose: `shots` rounds `interval` s apart (a stream two seconds long), his aim turning after the player at most `track` rad/s, each round ± `jitter` rad
+  hose: { pattern: 'hose', shots: 30, interval: 0.07, speed: 9, dmg: 7, jitter: 0.05, track: 0.55, range: 26, sound: 'minigun' },
+  // salvo: his aim ends on the squad's beat (every `beat` s of world time: all of them in the room on the same step), then `shots` rounds `interval` s apart where the player was
+  salvo: { pattern: 'salvo', shots: 3, interval: 0.09, speed: 11, dmg: 10, jitter: 0.04, beat: 2, range: 26, sound: 'rifle' },
+  // blast: `shots` blasts `interval` s apart, `count` pellets evenly across ± `spread` rad at the player (each ± `jitter`, its speed ± `spreadV` of it), gone at `range` m
+  blast: { pattern: 'blast', shots: 2, interval: 0.35, speed: 9.5, spreadV: 0.15, dmg: 8, count: 14, spread: 0.32, jitter: 0.02, range: 11, sound: 'shotgun' },
 };
 
 const _aim = { x: 0, z: 0 };
 
-const LASER_COLOR = { ring: [0.6, 0.4, 1], spiral: [0.3, 1, 0.9], fan: [1, 0.6, 0.2], pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05], sniper: [1, 0.02, 0.02], drone: [1, 0.15, 0.6], dual: [1, 0.72, 0.12] };
+const LASER_COLOR = { ring: [0.6, 0.4, 1], spiral: [0.3, 1, 0.9], fan: [1, 0.6, 0.2], hose: [0.3, 0.6, 1], salvo: [0.6, 0.85, 0.2], blast: [1, 0.3, 0.55], pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05], sniper: [1, 0.02, 0.02], drone: [1, 0.15, 0.6], dual: [1, 0.72, 0.12] };
 
 class Enemy {
   constructor(mgr, type, sp) {
@@ -395,6 +463,8 @@ class Enemy {
     this.stunCause = 'kick';
     this.flash = 0;
     this.glow = 0; // a pattern man's tell, 0 to 1 (彈幕試驗 ③)
+    this.salvoAt = -1; // a salvo's beat, the world time his aim ends (彈幕試驗 ⑦; -1: none)
+    this.aimFrom = 0;
     this.volleyN = 0;
     this.patternA = 0;
     this.gapAt = 0;
@@ -1219,6 +1289,11 @@ class Enemy {
     }
     const a = this.aimPoint();
     this.aimAngle = turnTowards(this.facing, angleTo(this.x, this.z, a.x, a.z), 0.6);
+    // a salvo (彈幕試驗 ⑦) fires on the squad's beat: the first beat of world time at least his tell from now
+    const w = WEAPONS[this.cfg.weapon];
+    const now = this.game.worldTime;
+    this.aimFrom = now;
+    this.salvoAt = w && w.pattern === 'salvo' ? Math.ceil((now + this.aimTime) / w.beat) * w.beat : -1;
     this.game.audio.aimWarn(this.game.panFor(this.x));
   }
 
@@ -1300,6 +1375,12 @@ class Enemy {
       for (let i = 0; i < w.count; i++) if ((i - this.gapAt + w.count) % w.count >= w.gap) angles.push(base + i * step);
     } else if (w.pattern === 'spiral') {
       for (let j = 0; j < w.arms; j++) angles.push(this.patternA + k * w.turn + (j * Math.PI * 2) / w.arms);
+    } else if (w.pattern === 'hose' || w.pattern === 'salvo') {
+      // a round along his aim (a hose's turns after the player while it fires: the fire state's `track`)
+      angles.push(this.aimAngle + g.rng.range(-w.jitter, w.jitter));
+    } else if (w.pattern === 'blast') {
+      const a0 = angleTo(this.x, this.z, g.player.x, g.player.z);
+      for (let i = 0; i < w.count; i++) angles.push(a0 + ((i / (w.count - 1)) * 2 - 1) * w.spread + g.rng.range(-w.jitter, w.jitter));
     } else {
       const a0 = angleTo(this.x, this.z, g.player.x, g.player.z);
       for (let i = 0; i < w.count; i++) {
@@ -1310,13 +1391,20 @@ class Enemy {
     for (const a of angles) {
       const dx = Math.sin(a);
       const dz = Math.cos(a);
-      g.bullets.spawn({ x: this.x + dx * 0.45, z: this.z + dz * 0.45, dx, dz, speed: w.speed, owner: 'enemy', damage: w.dmg, range: w.range, source: this, look: 'danmaku' });
+      const speed = w.spreadV ? w.speed * g.rng.range(1 - w.spreadV, 1 + w.spreadV) : w.speed;
+      g.bullets.spawn({ x: this.x + dx * 0.45, z: this.z + dz * 0.45, dx, dz, speed, owner: 'enemy', damage: w.dmg, range: w.range, source: this, look: 'danmaku' });
+    }
+    if (this.cfg.heavy) {
+      // a gun's flash at the muzzle (looks only)
+      const m = this.muzzle();
+      g.fx.muzzle(m.x, GUN_Y, m.z, Math.sin(this.aimAngle), Math.cos(this.aimAngle), [8, 2.2, 0.8]);
     }
     if (!this.mgr.patternsSeen.has(this.type)) {
       this.mgr.patternsSeen.add(this.type);
-      g.notes.log(`彈幕：${this.cfg.name}（${this.cfg.patternNote}）`);
+      g.notes.log(`${this.cfg.heavy ? '重火力' : '彈幕'}：${this.cfg.name}（${this.cfg.patternNote}）`);
     }
-    if (k === 0 || w.pattern !== 'spiral' || k % 4 === 0) g.audio.shot(w.sound, g.panFor(this.x));
+    const stream = w.pattern === 'spiral' ? 4 : w.pattern === 'hose' ? 3 : 1; // a stream's sound every few rounds
+    if (k % stream === 0) g.audio.shot(w.sound, g.panFor(this.x));
   }
 
   update(dt) {
@@ -1599,10 +1687,13 @@ class Enemy {
           this.aimAngle = turnTowards(this.aimAngle, angleTo(this.x, this.z, a.x, a.z), cfg.turn * dt);
           face = this.aimAngle;
           if (WEAPONS[cfg.weapon]?.pattern) {
-            // the tell: he stands and glows (sync), then the pattern (a grenadier's throw has no WEAPONS entry)
+            // the tell: he stands and glows (sync), then the pattern (a grenadier's throw has no WEAPONS entry); a salvo's
+            // ends on the squad's beat (startAim: salvoAt), the same step for every one of them
             want = [0, 0];
-            this.glow = clamp(this.aimT / this.aimTime, 0, 1);
-            if (this.aimT >= this.aimTime) {
+            const salvo = this.salvoAt >= 0;
+            this.glow = salvo ? clamp(this.aimT / Math.max(1e-6, this.salvoAt - this.aimFrom), 0, 1) : clamp(this.aimT / this.aimTime, 0, 1);
+            if (salvo ? g.worldTime >= this.salvoAt - 1e-9 : this.aimT >= this.aimTime) {
+              this.salvoAt = -1;
               const w = WEAPONS[cfg.weapon];
               this.state = 'fire';
               this.burst = w.shots;
@@ -2138,6 +2229,7 @@ export class Enemies {
 
   requestToken(e) {
     if (e.hasToken) return true;
+    if (e.cfg.heavy) return true; // heavy fire (彈幕試驗 ⑦): the whole room opens up at once, no token to wait for
     if (this.tokens >= this.maxTokens()) return false;
     e.hasToken = true;
     this.tokens++;

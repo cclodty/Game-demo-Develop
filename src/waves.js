@@ -25,7 +25,7 @@ export const MODES = {
   night: { name: '澳門一夜', en: 'A NIGHT IN MACAU', color: '#b48cff', desc: '晚上八點到凌晨三點 · 打完一關存進度', waves: 21, perStage: 3, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, night: true, beats: true },
   // 彈幕試驗 (DECISIONS 2026-10-23: the bullet-hell trial): six waves in one room (rooms.js `room`), whatever map card is
   // picked; last in the list, so a record's mode number keeps its meaning
-  // its waves: `total` men in wave n, of `types` { type: [from wave, weight, most a wave] } (the three pattern men, a
+  // its waves: `total` men in wave n, of `types` { type: [from wave, weight, most a wave] } (the three heavy guns, a
   // few thugs); a wave of thugs alone takes a `fill` for its first. `graze`: bullets passing close count (config.js GRAZE).
   // `floor`: played in rooms (rooms.js), not on the maps: a floor of `rooms`, `first` then the rest drawn from `pool`
   // (rooms.js drawFloor), `perStage` waves in each; a cleared room's exit opens and the player walks out of it to the next
@@ -39,7 +39,7 @@ export const MODES = {
     graded: true,
     floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong'], rooms: 3 },
     graze: true,
-    roster: { total: [3, 4, 5, 6, 7, 8], types: { fanner: [1, 4], ringer: [1, 3], spiraler: [2, 2, 2], grunt: [1, 1] }, fill: 'fanner' },
+    roster: { total: [3, 4, 5, 6, 7, 8], types: { volleyer: [1, 4], blaster: [1, 3], hoser: [2, 2, 2], grunt: [1, 1] }, fill: 'volleyer' }, // 彈幕試驗 ⑦: the heavy three (the pattern men no longer)
   },
 };
 export const MODE_IDS = Object.keys(MODES);
