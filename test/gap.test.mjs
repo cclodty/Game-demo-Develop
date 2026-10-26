@@ -44,6 +44,14 @@ before(async () => {
       g.aimFresh = true;
       g.updatePlay(1 / 120);
     };
+    /** One of `type` at (x, z), standing where he is (no posts, no cover), ready to fire after `wait` s. */
+    window.put = (type, x, z, wait = 0) => {
+      const e = g.enemies.spawn(type, { x, z, ex: x, ez: z + 0.1, stay: true });
+      e.spawnLock = 0;
+      e.state = 'move';
+      e.fireCd = wait;
+      return e;
+    };
     /** The clear spot by the player now, from the rounds in the air (what the guarantee promises), or null. */
     window.spotNow = () => {
       const p = g.player;
@@ -56,7 +64,7 @@ before(async () => {
      * without one, the steps someone held his aim for the gap (and whether his laser showed and he fired none that
      * step), the shots as [step, who] (the same seed should give the same), and the most lines of fire at once.
      */
-    window.runWave = (seconds) => {
+    window.runWave = (seconds, wave = true) => {
       const shots = [];
       const spawn0 = g.bullets.spawn.bind(g.bullets);
       let firing = null;
@@ -64,8 +72,10 @@ before(async () => {
         firing = o.source;
         return spawn0(o);
       };
-      g.waves.state = 'intermission';
-      g.waves.timer = 0;
+      if (wave) {
+        g.waves.state = 'intermission';
+        g.waves.timer = 0;
+      }
       let none = 0;
       let waits = 0;
       let waitLaserOff = 0;
@@ -98,7 +108,7 @@ after(async () => {
   await h.close();
 });
 
-test('the geometry: no fire, the spot is where the player stands; a line through him, the spot is beside it; lines a step apart all over, no spot; a round gone by is no line of fire', async () => {
+test('the geometry: no fire, the spot is where the player stands; a line through him, the spot is beside it; lines a step apart all over, no spot; a round long gone is no line of fire, one just past still is', async () => {
   const r = await page.evaluate(() => {
     const { fireLines, safeSpot } = window.gaps;
     const open = () => true;
@@ -111,7 +121,8 @@ test('the geometry: no fire, the spot is where the player stands; a line through
     const lines = fireLines(
       [
         { owner: 'enemy', x: 0, z: -3, dx: 0, dz: 1 }, // coming
-        { owner: 'enemy', x: 0, z: 3, dx: 0, dz: 1 }, // gone by (south of him, going south)
+        { owner: 'enemy', x: 0, z: 3, dx: 0, dz: 1 }, // just gone by: still on its way through the ground by him
+        { owner: 'enemy', x: 0, z: 7, dx: 0, dz: 1 }, // long gone
         { owner: 'enemy', x: 20, z: 0, dx: 0, dz: 1 }, // far off to the side
         { owner: 'player', x: 0, z: -3, dx: 0, dz: 1 }, // his own
       ],
@@ -124,10 +135,10 @@ test('the geometry: no fire, the spot is where the player stands; a line through
   assert.deepEqual(r.none, { x: 0, z: 0 });
   assert.ok(r.through && Math.abs(r.through.x) >= 0.6 && Math.abs(r.through.x) <= 1, `beside the line: ${JSON.stringify(r.through)}`);
   assert.equal(r.noSpot, null);
-  assert.deepEqual(r.lines, [[0, -3, 0, 1]]);
+  assert.deepEqual(r.lines, [[0, -3, 0, 1], [0, 3, 0, 1]]);
 });
 
-test('a wave in the room, the player standing still: at every step there is a clear spot by him; someone held his aim for it, laser on, firing nothing while he waited; the same seed, the same fire', { timeout: 10 * 60 * 1000 }, async () => {
+test('a wave in the room, the player standing still: at every step there is a clear spot by him; the same seed, the same fire', { timeout: 10 * 60 * 1000 }, async () => {
   const r = await page.evaluate(() => {
     window.toRoom(0, 5);
     const a = window.runWave(30);
@@ -137,40 +148,48 @@ test('a wave in the room, the player standing still: at every step there is a cl
   });
   assert.equal(r.a.wave, 1, 'the first wave');
   assert.equal(r.a.none, 0, `steps with no clear spot by the player: ${r.a.none} of ${30 * 120}`);
-  assert.ok(r.a.waits > 0, 'someone held his aim for the gap at some step');
-  assert.equal(r.a.waitLaserOff, 0, 'his laser stayed on while he waited');
-  assert.equal(r.a.waitFired, 0, 'and he fired nothing while he waited');
+  assert.equal(r.a.waitFired, 0, 'nobody fired while he waited');
   assert.deepEqual(r.a.shots, r.b.shots, 'the same seed, the same shots at the same steps');
-  console.log(`# wave 1 for 30 s: ${r.a.shots.length} shots, ${r.a.waits} man-steps held for the gap, ${r.a.mostLines} lines of fire at most (step ${r.a.busiest})`);
+  console.log(`# wave 1 for 30 s: ${r.a.shots.length} shots, ${r.a.waits} man-steps held for the gap (the far side fires from one way: a sidestep is always there), ${r.a.mostLines} lines of fire at most (step ${r.a.busiest})`);
 });
 
-test('the guarantee is the gate: with HELL.gap 0 nobody waits', { timeout: 10 * 60 * 1000 }, async () => {
+test('six shotgunners round the player, their fans from every side: the gate makes some hold their aim, laser on, firing nothing while they wait, and a clear spot stays at every step; the gate off, no one waits and the spot is gone at times', { timeout: 10 * 60 * 1000 }, async () => {
   const r = await page.evaluate(() => {
     const { HELL } = window.gaps;
+    const ring = () => {
+      window.toRoom(0, 0);
+      for (let i = 0; i < 6; i++) window.put('shotgun', Math.sin((i / 6) * Math.PI * 2) * 5, Math.cos((i / 6) * Math.PI * 2) * 5, (i % 3) * 0.2);
+    };
+    ring();
+    const on = window.runWave(12, false);
     const gap = HELL.gap;
     HELL.gap = 0;
-    window.toRoom(0, 5);
-    const off = window.runWave(30);
+    ring();
+    const off = window.runWave(12, false);
     HELL.gap = gap;
-    return { off, gap: HELL.gap };
+    return { on, off, gap: HELL.gap };
   });
   assert.equal(r.gap, 1.2, 'put back');
-  assert.equal(r.off.waits, 0, 'nobody held his aim');
-  console.log(`# the same 30 s with the gate off: ${r.off.shots.length} shots, ${r.off.none} steps with no clear spot`);
+  assert.ok(r.on.waits > 0, 'someone held his aim for the gap');
+  assert.equal(r.on.waitLaserOff, 0, 'his laser stayed on while he waited');
+  assert.equal(r.on.waitFired, 0, 'and he fired nothing while he waited');
+  assert.equal(r.on.none, 0, `with the gate, steps with no clear spot: ${r.on.none}`);
+  assert.equal(r.off.waits, 0, 'the gate off: nobody waits');
+  assert.ok(r.off.none > 0, `and the spot is gone at times (${r.off.none} steps)`);
+  console.log(`# six shotgunners for 12 s: with the gate ${r.on.shots.length} shots, ${r.on.waits} man-steps held, no step without a spot; without it ${r.off.shots.length} shots, ${r.off.none} steps with no spot`);
 });
 
-test('screenshot: the first wave, a man holding his aim for the gap while the rounds fly, the player in bullet time', async () => {
+test('screenshot: six shotgunners round the player, some holding their aim for the gap while the others’ fans fly, the player in bullet time', async () => {
   await page.evaluate(() => {
     const g = window.game;
     g.view = 2;
-    window.toRoom(0, 5);
-    g.waves.state = 'intermission';
-    g.waves.timer = 0;
+    window.toRoom(0, 0);
+    for (let i = 0; i < 6; i++) window.put('shotgun', Math.sin((i / 6) * Math.PI * 2) * 5, Math.cos((i / 6) * Math.PI * 2) * 5, (i % 3) * 0.2);
     const hurt0 = g.player.hurt;
     g.player.hurt = () => false;
-    for (let i = 0; i < 120 * 30; i++) {
+    for (let i = 0; i < 120 * 12; i++) {
       window.step();
-      if (i > 120 * 5 && g.enemies.list.some((e) => e.alive && e.gapWait) && g.bullets.list.filter((b) => b.owner === 'enemy').length >= 6) break;
+      if (i > 60 && g.enemies.list.some((e) => e.alive && e.gapWait) && g.bullets.list.filter((b) => b.owner === 'enemy').length >= 10) break;
     }
     g.player.hurt = hurt0;
     g.hurtFx = 0;
