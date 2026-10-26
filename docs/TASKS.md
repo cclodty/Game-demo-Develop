@@ -1303,9 +1303,10 @@
 - 漂亮的解法：地圖會說話
 - 涉及：`src/rooms.js`、`src/level.js`／`fixtures.js`（互動件搬入房）、`test/rooms.test.mjs`、`test/floor.test.mjs`
 - 驗收（每間）：
-  - [ ] 過地圖驗證（走得到 ≥ 95%、開局繪製 ≤ 400、四盞點燈、由起點走得到出口）；一個畫面看得完；地面亮度 < 0.2
-  - [ ] 獨特互動一個測試；截圖
-  - [ ] npm run lint && npm test 通過
+  - [x] E① 過地圖驗證（走得到 ≥ 95%、開局繪製 ≤ 400、四盞點燈、由起點走得到出口）；一個畫面看得完；地面亮度 < 0.2（`test/maps.test.mjs`、`test/rooms.test.mjs`、`test/plaza.test.mjs`）
+  - [x] E① 獨特互動一個測試；截圖（`test/plaza.test.mjs` 三個：白鴿驚起打斷瞄準、踢人落水；`docs/shots/hell/plaza.jpg`）
+  - [ ] E① npm run lint && npm test 通過（lint 與直接相關的測試檔本機過；全套以 CI 為準）
+  - [ ] E②–E⑦ 各自的三個框
 - 這次不做：新模型、新音效、實景比例
 
 #### E①：廣場 ✅ 2026-10-26
