@@ -85,8 +85,8 @@ test('the façade: a wall with three open doorways, a shot flies through them an
     const L = g.level;
     const facade = L.solids.filter((s) => s.matKey === 'facade' && s.h > 20);
     // shots north along the terrace (from its height), through each doorway and into the wall between them
-    const doors = [-6, 0, 6].map((x) => L.raycast(x, -19.5, x, -24, false, 4.8, false));
-    const walls = [-10, -3.2, 3.2, 10].map((x) => L.raycast(x, -19.5, x, -24, false, 4.8, false));
+    const doors = [-5.9, 0.3, 6.5].map((x) => L.raycast(x, -19.5, x, -24, false, 10.2, false));
+    const walls = [-8.8, -3, 3.6, 9.4].map((x) => L.raycast(x, -19.5, x, -24, false, 10.2, false));
     // round behind: from the west end of the terrace to behind the façade's east end, and out again
     const behind = L.nav.findPath(-12, -18, 7.5, -24.5);
     const back = L.nav.findPath(7.5, -24.5, 12, -18);
@@ -120,7 +120,7 @@ test('the façade: a wall with three open doorways, a shot flies through them an
   assert.ok(r.behind !== null && r.behind < -23.5, 'the way round goes behind the façade');
   assert.equal(r.back, true, 'and out again by another door');
   assert.ok(r.walked.z < -23, `the player walks through the middle doorway (to z ${r.walked.z.toFixed(1)})`);
-  assert.ok(Math.abs(r.walked.y - 4.8) < 0.05, `behind it, on the terrace's height (${r.walked.y.toFixed(2)})`);
+  assert.ok(Math.abs(r.walked.y - 10.2) < 0.05, `behind it, on the terrace's height (${r.walked.y.toFixed(2)})`);
   assert.equal(r.shotThrough, true, 'a man in the doorway’s line is shot through it');
   assert.equal(r.shielded, true, 'one behind the wall is not');
   assert.deepEqual(problems(logs), []);
@@ -130,16 +130,16 @@ test('a barrel on the steps, shot once, falls over and rolls down them: faster a
   const r = await page.evaluate(() => {
     const g = window.game;
     const L = g.level;
-    window.begin(-9.5, 2.5); // on the first landing, above the barrel on the first flight
-    const barrel = L.barrels.find((b) => b.alive && L.slopeAt(b.x, b.z) && b.z > 4 && b.z < 9);
+    window.begin(-11, 29); // on the first flight, a little above the barrel on it (a shot stays on its level: 0.6 m)
+    const barrel = L.barrels.find((b) => b.alive && L.slopeAt(b.x, b.z) && b.z > 26 && b.z < 37);
     const home = [barrel.x, barrel.z];
-    const man = window.post('grunt', barrel.x, 13);
+    const man = window.post('grunt', barrel.x, 44);
     const styles = window.styles();
     let bowled = false;
     const track = [];
     const each = () => {
       if (man.stunT > 0) bowled = true;
-      else [man.x, man.z] = [barrel.x, 13]; // he waits in its road
+      else [man.x, man.z] = [barrel.x, 44]; // he waits in its road
       track.push([Math.round(barrel.z * 100) / 100, Math.hypot(barrel.vx, barrel.vz)]);
     };
     window.play(1, ['Mouse0'], [barrel.x, barrel.z]); // one shot
@@ -147,8 +147,8 @@ test('a barrel on the steps, shot once, falls over and rolls down them: faster a
     const shot = barrel.hp < barrel.maxHp;
     track.length = 0;
     // and on until it stops
-    for (let i = 0; i < 120 * 8 && (i < 10 || Math.hypot(barrel.vx, barrel.vz) > 0); i++) window.play(1, [], [barrel.x, 20], each);
-    const onFlight = track.filter(([z]) => z > 4.2 && z < 8.8);
+    for (let i = 0; i < 120 * 8 && (i < 10 || Math.hypot(barrel.vx, barrel.vz) > 0); i++) window.play(1, [], [barrel.x, 50], each);
+    const onFlight = track.filter(([z]) => z > 26 && z < 37.8);
     return {
       home,
       shot,
@@ -167,19 +167,19 @@ test('a barrel on the steps, shot once, falls over and rolls down them: faster a
   assert.equal(r.alive, true, `one shot does not burst it (${r.hp} left)`);
   assert.equal(r.faster, true, 'it rolls faster down the flight');
   assert.ok(r.top > 5, `up to ${r.top.toFixed(1)} m/s`);
-  assert.ok(r.end.z > 10 && r.end.ground === 0 && r.end.speed === 0, `it stops on the forecourt (z ${r.end.z.toFixed(1)}, ${r.end.speed.toFixed(2)} m/s)`);
+  assert.ok(r.end.z > 38.1 && r.end.ground === 0 && r.end.speed === 0, `it stops on the forecourt (z ${r.end.z.toFixed(1)}, ${r.end.speed.toFixed(2)} m/s)`);
   assert.equal(r.bowled, true, `the man in its way is bowled over (it stopped at z ${r.end.z.toFixed(2)}, top ${r.top.toFixed(1)} m/s)`);
   assert.deepEqual(r.styles.filter((s) => s.startsWith('ROLLING')), ['ROLLING:150'], `ROLLING +150 once (${r.styles.join(', ')})`);
   assert.ok(r.notes.some((t) => t.includes('ROLLING')), `the notes say so: ${r.notes.join(' / ')}`);
   assert.deepEqual(problems(logs), []);
 });
 
-test('kicked off the top of the steps, a barrel rolls down all three flights; one left alone stands where it is; a restart stands them all up at home', async () => {
+test('kicked off the top of the steps, a barrel rolls down all three flights, 42.7 m, to the forecourt; one left alone stands where it is; a restart stands them all up at home', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     const L = g.level;
-    window.begin(4.5, -14.2);
-    const top = L.barrels.find((b) => b.alive && b.z < -12 && b.z > -14);
+    const top = L.barrels.find((b) => b.alive && b.z < -4.6 && b.z > -8);
+    window.begin(top.x, top.z - 1.4);
     const still = L.barrels.filter((b) => b !== top && b.alive && L.slopeAt(b.x, b.z));
     const stillAt = still.map((b) => [b.x, b.z]);
     // face south and kick (F): the barrel at the terrace's edge goes over it
@@ -194,7 +194,7 @@ test('kicked off the top of the steps, a barrel rolls down all three flights; on
     return { kicked, moved, home };
   });
   assert.equal(r.kicked.lying, true, 'kicked, it lies on its side');
-  assert.ok(r.kicked.z > 9 && r.kicked.ground === 0, `it rolled down all three flights to the forecourt (z ${r.kicked.z.toFixed(1)})`);
+  assert.ok(r.kicked.z > 38.1 && r.kicked.ground === 0, `it rolled down all three flights to the forecourt (z ${r.kicked.z.toFixed(1)})`);
   assert.ok(r.moved.every((d) => d < 0.01), `the barrels nobody touched stand where they were (${r.moved.map((d) => d.toFixed(2))})`);
   assert.equal(r.home, true, 'a restart stands them all up at home');
   assert.deepEqual(problems(logs), []);
@@ -205,16 +205,16 @@ test('screenshots: a barrel rolling down the steps at the men below; behind the 
     const g = window.game;
     const L = g.level;
     g.view = 2;
-    window.begin(-9.5, 2.5);
-    const barrel = L.barrels.find((b) => b.alive && L.slopeAt(b.x, b.z) && b.z > 4 && b.z < 9);
+    window.begin(-11, 29);
+    const barrel = L.barrels.find((b) => b.alive && L.slopeAt(b.x, b.z) && b.z > 26 && b.z < 37);
     for (const [x, z] of [
-      [-9, 13.5],
-      [-7.5, 15],
-      [-4, 12.5],
+      [-8, 42],
+      [-6.5, 43.5],
+      [-3, 41],
     ])
       window.post('grunt', x, z);
     barrel.hit(1, 0, 1);
-    window.play(40, [], [-9, 13.5]);
+    window.play(60, [], [-8, 42]);
     g.updateCamera(1, true);
     g.hud.update(1 / 60);
     g.render();

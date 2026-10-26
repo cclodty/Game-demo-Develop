@@ -2,15 +2,17 @@
 // brightens while they aim, so a quick read (or bullet time) lets you dodge.
 
 import * as THREE from 'three';
-import { AI, ENV, GUN_Y, LOGIC_HZ, PLAYER } from './config.js';
-import { animateRig, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, setFlash } from './characters.js';
+import { AI, ENEMY_HP, ENV, FIREPOWER, GUN_Y, LOGIC_HZ, PLAYER, RAMP } from './config.js';
+import { animateRig, BODY, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, keyPose, setFlash } from './characters.js';
 import { Laser } from './fx.js';
-import { DROPS } from './weapons.js';
 import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowards } from './utils.js';
 
 export const TYPES = {
   grunt: {
     label: 'THUG',
+    dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
+    vault: true, // over low cover in his way (AI.vault)
+    retreat: true, // falls back to cover when hurt (AI.retreat)
     hp: 3,
     speed: 3.6,
     radius: 0.32,
@@ -28,6 +30,10 @@ export const TYPES = {
   },
   shotgun: {
     label: 'SHOTGUNNER',
+    dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
+    strafe: true, // sideways while he aims and fires (AI.strafe)
+    vault: true,
+    retreat: true,
     hp: 4,
     speed: 3.3,
     radius: 0.34,
@@ -44,6 +50,10 @@ export const TYPES = {
   },
   rifle: {
     label: 'RIFLEMAN',
+    dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
+    strafe: true,
+    vault: true,
+    retreat: true,
     hp: 3,
     speed: 3.2,
     radius: 0.32,
@@ -61,6 +71,8 @@ export const TYPES = {
   },
   rusher: {
     label: 'BLADE',
+    dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
+    vault: true,
     hp: 2,
     speed: 6.6,
     radius: 0.3,
@@ -70,6 +82,44 @@ export const TYPES = {
     tactic: 'flank', // a pair of them split up and come from two sides
     look: { body: 0x141418, pants: 0x101014, accent: 0xff2bd0, hair: 0x0a0a0a, weapon: 'blade' },
     spawn: { from: 3, weight: 2.2 },
+  },
+  tumbler: {
+    label: 'TUMBLER',
+    name: '飛仔',
+    tumble: true, // rolls in roll after roll, bullets passing through him mid-roll; pants after three; kicks (AI.tumble)
+    hp: 4,
+    speed: 5,
+    radius: 0.3,
+    weapon: 'fists',
+    score: 140,
+    turn: 12,
+    tactic: 'advance',
+    // the block rig in a yellow tracksuit and a red headband: no model of his own
+    look: { body: 0xe8b21c, pants: 0x18181c, accent: 0x2ee8a0, hair: 0x101010, weapon: 'fists', band: 0xff3b30 },
+    spawn: { from: 5, weight: 1.4, max: 2 },
+  },
+  captain: {
+    label: 'CAPTAIN',
+    name: '帶頭大佬',
+    // while he stands the others are bolder; when he falls they waver (AI.captain); he comes with `escort`
+    captain: true,
+    escort: { type: 'grunt', n: 2, side: 1.4 }, // two thugs who keep `side` m either side of him
+    dodge: true,
+    strafe: true,
+    hp: 10,
+    speed: 3.2,
+    radius: 0.36,
+    aimTime: 0.8,
+    cooldown: [1.2, 1.8],
+    range: [6, 13],
+    weapon: 'dual',
+    score: 400,
+    lead: [0.2, 0.6],
+    turn: 8,
+    tactic: 'cover',
+    // the block rig in a cream suit, gold and a black hat: no model of his own
+    look: { body: 0xece6d8, pants: 0xd8d0c0, accent: 0xffc861, hair: 0x101010, weapon: 'dualPistol', hat: 0x141414 },
+    spawn: { from: 7, weight: 0.8, max: 1 },
   },
   brute: {
     label: 'BRUTE',
@@ -144,6 +194,7 @@ export const TYPES = {
   },
   sniper: {
     label: 'SNIPER',
+    dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
     model: 'rifle', // the rifleman's model with a long rifle
     hp: 3,
     speed: 3.0,
@@ -187,11 +238,12 @@ const WEAPONS = {
   minigun: { shots: 14, interval: 0.09, speed: 18, dmg: 11, pellets: 1, spread: 0.07, sound: 'minigun', track: 1.1 },
   sniper: { shots: 1, interval: 0.1, speed: 72, dmg: 40, pellets: 1, spread: 0, sound: 'sniper' },
   drone: { shots: 4, interval: 0.09, speed: 24, dmg: 9, pellets: 1, spread: 0.05, sound: 'smg' },
+  dual: { shots: 2, interval: 0.12, speed: 21, dmg: 16, pellets: 1, spread: 0.03, sound: 'pistol' }, // the captain's pair: one from each hand
 };
 
 const _aim = { x: 0, z: 0 };
 
-const LASER_COLOR = { pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05], sniper: [1, 0.02, 0.02], drone: [1, 0.15, 0.6] };
+const LASER_COLOR = { pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05], sniper: [1, 0.02, 0.02], drone: [1, 0.15, 0.6], dual: [1, 0.72, 0.12] };
 
 class Enemy {
   constructor(mgr, type, sp) {
@@ -219,12 +271,34 @@ class Enemy {
     this.dashX = this.dashZ = 0;
     if (cfg.bomb) this.buildVest();
     if (cfg.lob) this.buildBag();
+    if (cfg.look.band) this.buildBand(cfg.look.band);
+    if (cfg.look.hat) this.buildHat(cfg.look.hat, cfg.look.accent);
+    this.escortOf = null; // the captain this man came in beside (TYPES `escort`), and keeps by while he stands
+    this.escortSide = 0; // how far to which side of him (escortSpot)
+    this.rolls = 0; // a tumbler's rolls since he last caught his breath (AI.tumble)
+    this.rollDist = 0;
     this.idleOffset = rand(0, 10);
     this.game.scene.add(this.rig.root);
     const lc = LASER_COLOR[cfg.weapon] || LASER_COLOR.pistol;
     this.laser = new Laser(this.game.scene, new THREE.Color(lc[0], lc[1], lc[2]));
     this.radius = cfg.radius;
-    this.hp = cfg.hp;
+    // thicker each stage of the run (config.js ENEMY_HP); what is not a bullet is made as much stronger (harm)
+    this.hp = Math.round(cfg.hp * ENEMY_HP.base * (1 + ENEMY_HP.perStage * this.game.waves.stageIndex));
+    this.tough = this.hp / cfg.hp;
+    // and quicker each stage: his aim and the gap before he fires again (config.js RAMP)
+    this.pace = (1 - RAMP.perStage) ** this.game.waves.stageIndex;
+    this.flinchT = 0; // s left of being rocked back by a shot (AI.flinch)
+    this.aimedT = 0; // s the player's aim has stayed on him while firing (AI.dodge)
+    this.dodgeCd = 0; // s until he may roll again
+    this.rollX = this.rollZ = 0; // the roll's direction
+    this.hpMax = this.hp;
+    this.strafeDir = 1; // AI.strafe: which way he steps while he fires, and for how long more
+    this.strafeT = 0;
+    this.vaultCheck = 0; // AI.vault: s to the next look for low cover in his way
+    this.vaultFrom = this.vaultTo = null;
+    this.vaulting = false;
+    this.retreated = false; // AI.retreat: he has fallen back once
+    this.retreatTo = null; // where to, with no cover farther back
     this.alive = true;
     this.dead = false;
     this.sp = sp;
@@ -314,16 +388,20 @@ class Enemy {
   shieldHit(b) {
     if (!this.alive) return;
     const g = this.game;
-    this.hp -= PLAYER.humanShield.hit;
+    this.harm(PLAYER.humanShield.hit);
     this.flash = 1;
     g.fx.blood(this.x, 1.3, this.z, b.dx, b.dz, 7);
     g.audio.flesh(g.panFor(this.x));
     if (this.hp <= 0) this.die(b.dx, b.dz, { cause: 'shield' });
   }
 
-  /** How high he sees and shoots from: lower cover is no obstacle to his sight or his bullets (up a flight of steps too). */
+  /**
+   * How high over the floor he sees and shoots from: lower cover is no obstacle to his sight or his bullets. A drone's
+   * flight, a balcony (a test's: no map has perches); 0 on his feet, wherever the ground is (同一水平: he fights only on
+   * the player's level, where the cover stands on the same floor as he does).
+   */
   get over() {
-    return this.cfg.fly ? this.cfg.fly.height : this.perch || Math.max(0, this.game.level.groundY(this.x, this.z));
+    return this.cfg.fly ? this.cfg.fly.height : this.perch;
   }
 
   /** The riot shield, held in front on the left: a dark clear panel with a yellow rim. */
@@ -342,14 +420,27 @@ class Enemy {
     this.shieldMesh = g;
   }
 
-  /** Seconds from the laser coming on to the shot: the type's, times the difficulty's (rules.js aimMul). */
+  /**
+   * Seconds from the laser coming on to the shot: the type's, times the difficulty's (rules.js aimMul) and the stage's
+   * (`pace`); longer while his captain's fall shakes him (AI.captain).
+   */
   get aimTime() {
-    return this.cfg.aimTime * this.game.ruleset.aimMul;
+    return this.cfg.aimTime * this.game.ruleset.aimMul * this.pace * (this.mgr.panicT > 0 ? AI.captain.panicAim : 1);
+  }
+
+  /** A captain stands (AI.captain): the others hide less and go round to the player's sides. */
+  get bold() {
+    return !this.cfg.captain && !!this.mgr.captain;
   }
 
   /** Those who run at the player instead of keeping a range: blades and bombers. */
   get rushes() {
-    return this.cfg.weapon === 'blade' || !!this.cfg.bomb;
+    return this.cfg.weapon === 'blade' || !!this.cfg.bomb || !!this.cfg.tumble;
+  }
+
+  /** Bullets pass through him: a tumbler mid-roll (AI.tumble). */
+  get untouchable() {
+    return this.state === 'tumble';
   }
 
   /** The bomber's vest: a dark harness, a row of red charges and a lamp that blinks faster once he is lit. */
@@ -392,6 +483,41 @@ class Enemy {
     this.bag = g;
   }
 
+  /** A headband (the tumbler's): round the head, its two ends trailing behind. */
+  buildBand(color) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(BODY.headW + 0.04, 0.05, BODY.headD + 0.04), mat));
+    for (const x of [-0.035, 0.035]) {
+      const tail = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.035, 0.16), mat);
+      tail.position.set(x, -0.03, -BODY.headD / 2 - 0.09);
+      tail.rotation.x = 0.5;
+      g.add(tail);
+    }
+    g.position.y = 0.04;
+    this.rig.head.add(g);
+    this.game.style.dress(g);
+    this.band = g;
+  }
+
+  /** A hat (the captain's): a brim and a crown over the hair, with a band in `trim`. */
+  buildHat(color, trim) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
+    const band = new THREE.MeshStandardMaterial({ color: trim, roughness: 0.5 });
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(BODY.headW + 0.16, 0.025, BODY.headD + 0.16), mat));
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(BODY.headW + 0.03, 0.1, BODY.headD + 0.03), mat);
+    crown.position.y = 0.06;
+    g.add(crown);
+    const ring = new THREE.Mesh(new THREE.BoxGeometry(BODY.headW + 0.04, 0.025, BODY.headD + 0.04), band);
+    ring.position.y = 0.025;
+    g.add(ring);
+    g.position.y = BODY.headH / 2 + 0.04;
+    this.rig.head.add(g);
+    this.game.style.dress(g);
+    this.hat = g;
+  }
+
   get shieldUp() {
     return !!this.cfg.shield && this.alive && this.shieldDownT <= 0;
   }
@@ -428,7 +554,8 @@ class Enemy {
       return 'blocked';
     }
     const fromPlayer = b.owner === 'player';
-    this.hp -= fromPlayer ? b.damage : 3;
+    if (fromPlayer && !b.homeRun) this.hp -= b.damage;
+    else this.harm(fromPlayer ? b.damage : 3); // a round the pan batted back (HOME RUN), a gunman's stray one: as many as they ever took
     this.flash = 1;
     const knock = b.knock || 1;
     const push = (this.cfg.heavy ? 0.6 : 2.5) * knock;
@@ -450,7 +577,218 @@ class Enemy {
       return;
     }
     g.hud.hitMarker(false);
+    this.flinchT = AI.flinch; // rocked back, so a shot that does not kill shows
+    this.wounded();
     if (!this.cfg.heavy && this.state === 'aim') this.aimT = Math.max(0, this.aimT - 0.22);
+  }
+
+  /**
+   * Damage that is not the player's bullet (a kick, a throw, a blast, a door, a stray round) made as strong as he is
+   * thick (`tough`, config.js ENEMY_HP): it takes as many to kill him as it always did.
+   */
+  harm(dmg) {
+    this.hp -= dmg * this.tough;
+    if (this.hp < 1e-6) this.hp = Math.min(0, this.hp); // no sliver left by the rounding of the multiple
+  }
+
+  /**
+   * 閃避翻滾 (AI.dodge): the player firing with his aim on this man (the step's game.cmd, so a replay sees the same)
+   * for long enough, and he rolls aside, if he is one who does (TYPES `dodge`), is free to and has the room.
+   */
+  watchAim(dt) {
+    const D = AI.dodge;
+    this.dodgeCd -= dt;
+    const c = this.game.cmd;
+    const free = this.cfg.dodge && this.stunT <= 0 && !this.perch && !this.aloft && ['move', 'idle', 'aim', 'chase', 'duck', 'peek', 'recover'].includes(this.state);
+    const on = free && this.game.player.alive && c.mouse.left && Math.hypot(c.aim.x - this.x, c.aim.z - this.z) <= this.radius + D.reach;
+    this.aimedT = on ? this.aimedT + dt : 0;
+    if (this.aimedT < D.watch || this.dodgeCd > 0) return;
+    this.aimedT = 0;
+    const g = this.game;
+    const p = g.player;
+    const d = Math.hypot(this.x - p.x, this.z - p.z) || 1;
+    // across the line from the player to him, to the side the run's stream picks, else the other; none with no room
+    const sides = g.rng.next() < 0.5 ? [1, -1] : [-1, 1];
+    const nav = g.level.nav;
+    for (const k of sides) {
+      const rx = (-(this.z - p.z) / d) * k;
+      const rz = ((this.x - p.x) / d) * k;
+      const lx = this.x + rx * D.dist;
+      const lz = this.z + rz * D.dist;
+      if (!nav.isWalkable(lx, lz) || !nav.lineWalkable(this.x, this.z, lx, lz) || !g.level.sameLevel(this.x, this.z, lx, lz)) continue;
+      this.rollX = rx;
+      this.rollZ = rz;
+      this.endAim();
+      this.state = 'tell';
+      this.timer = D.tell;
+      this.dodgeCd = D.cooldown;
+      return;
+    }
+    this.dodgeCd = D.watch; // no room either side: he looks again in a moment
+  }
+
+  /** Sideways while he aims and fires (AI.strafe; TYPES `strafe`), on top of `want`; back the other way every `flip` s or at a wall. */
+  strafe(dt, want) {
+    const S = AI.strafe;
+    const p = this.game.player;
+    const nav = this.game.level.nav;
+    this.strafeT -= dt;
+    const d = Math.hypot(p.x - this.x, p.z - this.z) || 1;
+    let sx = (-(p.z - this.z) / d) * this.strafeDir;
+    let sz = ((p.x - this.x) / d) * this.strafeDir;
+    if (this.strafeT <= 0 || !nav.isWalkable(this.x + sx * 0.8, this.z + sz * 0.8)) {
+      this.strafeDir = -this.strafeDir;
+      this.strafeT = S.flip;
+      sx = -sx;
+      sz = -sz;
+      if (!nav.isWalkable(this.x + sx * 0.8, this.z + sz * 0.8)) return want; // no room either way
+    }
+    return [want[0] + sx * S.speed, want[1] + sz * S.speed];
+  }
+
+  /**
+   * Low cover in his straight way to `to` (AI.vault; TYPES `vault`): over it rather than round, when it is low and thin
+   * enough and there is floor on the far side. Looked for every AI.vault.every s; true when he goes.
+   */
+  tryVault(dt, to) {
+    const V = AI.vault;
+    if (!this.cfg.vault) return false;
+    this.vaultCheck -= dt;
+    if (this.vaultCheck > 0) return false;
+    this.vaultCheck = V.every;
+    const g = this.game;
+    const L = g.level;
+    const d = Math.hypot(to.x - this.x, to.z - this.z);
+    if (d < 1) return false;
+    const ux = (to.x - this.x) / d;
+    const uz = (to.z - this.z) / d;
+    const look = Math.min(V.look, d);
+    const hit = L.raycast(this.x, this.z, this.x + ux * look, this.z + uz * look, false, 0, false);
+    if (!hit) return false;
+    const s = hit.solid;
+    if (s.poly || s.kind === 'glass' || s.h > V.maxH) return false;
+    // where the line leaves the box, and the floor past it
+    const ex = ux > 0 ? (s.maxX - this.x) / ux : ux < 0 ? (s.minX - this.x) / ux : Infinity;
+    const ez = uz > 0 ? (s.maxZ - this.z) / uz : uz < 0 ? (s.minZ - this.z) / uz : Infinity;
+    const exit = Math.min(ex, ez);
+    if (exit - hit.t * look > V.depth) return false;
+    const land = exit + this.radius + 0.25;
+    const lx = this.x + ux * land;
+    const lz = this.z + uz * land;
+    if (!L.nav.isWalkable(lx, lz) || !L.sameLevel(this.x, this.z, lx, lz)) return false;
+    if (L.raycast(this.x + ux * (exit + 0.02), this.z + uz * (exit + 0.02), lx, lz, false, 0, false)) return false;
+    this.endAim();
+    this.state = 'vault';
+    this.timer = V.time;
+    this.vaultFrom = { x: this.x, z: this.z };
+    this.vaultTo = { x: lx, z: lz, h: s.h };
+    this.vaulting = true;
+    g.notes.log(`${this.cfg.label} 翻過矮掩體`);
+    return true;
+  }
+
+  /**
+   * Hurt and not dead (AI.retreat; TYPES `retreat`): down to half his health a gunman falls back once, to cover farther
+   * from the player, or straight away from him with none; never the last man standing, nor one holding a post.
+   */
+  wounded() {
+    const R = AI.retreat;
+    if (!this.cfg.retreat || this.retreated || !this.alive || this.hp > this.hpMax * R.at || this.sp.stay) return;
+    if (this.mgr.aliveCount <= 1) return;
+    const g = this.game;
+    const p = g.player;
+    this.retreated = true;
+    this.endAim();
+    if (this.state !== 'enter' && this.stunT <= 0) this.state = 'move';
+    this.path = null;
+    this.repath = 0;
+    this.coverRest = 0;
+    this.cover = this.findCover(true);
+    if (!this.cover) {
+      const d = Math.hypot(this.x - p.x, this.z - p.z) || 1;
+      const i = g.level.nav.nearestOpen(this.x + ((this.x - p.x) / d) * R.away, this.z + ((this.z - p.z) / d) * R.away);
+      if (i >= 0) this.retreatTo = { x: g.level.nav.centerX(i), z: g.level.nav.centerZ(i) };
+    }
+    g.notes.log(`${this.cfg.label} 受傷後撤`);
+  }
+
+  /** A guard's place (TYPES `escort`): `side` m to his own side of his captain, across the line from the captain to the player. */
+  escortSpot() {
+    const c = this.escortOf;
+    const p = this.game.player;
+    const d = Math.hypot(p.x - c.x, p.z - c.z) || 1;
+    const nav = this.game.level.nav;
+    const x = c.x + (-(p.z - c.z) / d) * this.escortSide;
+    const z = c.z + ((p.x - c.x) / d) * this.escortSide;
+    if (nav.isWalkable(x, z)) return { x, z };
+    return { x: c.x, z: c.z }; // a wall there: just behind him (the bodies push apart)
+  }
+
+  /**
+   * His captain down (AI.captain): a gunman on the street breaks off his aim and his cover and falls back AI.captain.back
+   * m from the player, straight away or as near that as the floor allows; his aim stays slow while the panic lasts.
+   */
+  waver() {
+    const C = AI.captain;
+    const g = this.game;
+    const p = g.player;
+    if (!this.alive || this.aloft || this.held || this.rushes || this.sp.stay || this.stunT > 0) return;
+    if (!['move', 'idle', 'duck', 'peek', 'aim', 'recover'].includes(this.state)) return;
+    const nav = g.level.nav;
+    const now = Math.hypot(this.x - p.x, this.z - p.z) || 1;
+    const away = Math.atan2(this.x - p.x, this.z - p.z);
+    for (const a of [0, 35, -35, 70, -70]) {
+      const b = away + (a * Math.PI) / 180;
+      const i = nav.nearestOpen(this.x + Math.sin(b) * C.back, this.z + Math.cos(b) * C.back);
+      if (i < 0) continue;
+      const x = nav.centerX(i);
+      const z = nav.centerZ(i);
+      if (Math.hypot(x - p.x, z - p.z) < now + C.back / 2 || !g.level.sameLevel(this.x, this.z, x, z)) continue;
+      this.endAim();
+      this.peekAim = false;
+      this.state = 'move';
+      this.cover = null;
+      this.path = null;
+      this.repath = 0;
+      this.retreatTo = { x, z };
+      return;
+    }
+  }
+
+  /**
+   * A tumbler in the chase (AI.tumble): within reach, the kick's wind-up; else his next roll at the player, swung to one
+   * side then the other, short of him; true when he does either (else he walks, as a blade would).
+   */
+  tumbleOn(distP, dxp, dzp) {
+    const T = AI.tumble;
+    const g = this.game;
+    if (distP <= T.reach) {
+      if (!this.mgr.requestToken(this)) return false;
+      this.state = 'windup';
+      this.timer = T.windup;
+      this.aimAngle = Math.atan2(dxp, dzp);
+      g.audio.aimWarn(g.panFor(this.x));
+      return true;
+    }
+    const dist = Math.min(T.dist, distP - 1);
+    if (dist < 0.8) return false;
+    const at = Math.atan2(dxp, dzp);
+    const side = this.rolls % 2 ? -1 : 1;
+    const nav = g.level.nav;
+    for (const a of [at + (side * T.angle * Math.PI) / 180, at]) {
+      const lx = this.x + Math.sin(a) * dist;
+      const lz = this.z + Math.cos(a) * dist;
+      if (!nav.isWalkable(lx, lz) || !nav.lineWalkable(this.x, this.z, lx, lz) || !g.level.sameLevel(this.x, this.z, lx, lz)) continue;
+      this.rollX = Math.sin(a);
+      this.rollZ = Math.cos(a);
+      this.rollDist = dist;
+      this.rolls++;
+      this.state = 'tumble';
+      this.timer = T.roll;
+      this.endAim();
+      return true;
+    }
+    return false;
   }
 
   /** Pigeons in the face: the aim breaks off and cannot start again for `t` seconds. */
@@ -490,10 +828,11 @@ class Enemy {
     this.endAim();
     if (this.state !== 'enter') this.state = this.rushes ? 'chase' : 'move';
     this.repath = 0;
-    this.hp -= dmg;
+    this.harm(dmg);
     this.flash = 1;
     if (dmg > 0) this.game.fx.blood(this.x, 1.2, this.z, dx, dz, 5); // a shove (the human shield let go) draws none
     if (this.hp <= 0) this.die(dx, dz, { cause });
+    else if (dmg > 0) this.wounded();
   }
 
   /** A mahjong tile hits him (thrown.js throwTiles): dazed for `t` s where he stands, no harm done. */
@@ -527,7 +866,7 @@ class Enemy {
       this.fallOff(dx, dz); // a blast shakes him off his balcony, however hard
       return;
     }
-    this.hp -= dmg;
+    this.harm(dmg);
     this.flash = 1;
     this.vx += dx * 10;
     this.vz += dz * 10;
@@ -535,6 +874,7 @@ class Enemy {
     else {
       this.stunT = 0.5;
       this.stunCause = 'blast';
+      this.wounded();
     }
   }
 
@@ -565,6 +905,7 @@ class Enemy {
     }
     this.dropWeapon();
     this.fuseT = -1;
+    if (this.cfg.captain) this.mgr.captainDown(this);
     if (info.cause === 'self') return; // his own fuse: no kill for anyone (goOff follows)
     if (this.cfg.bomb) this.bombT = this.cfg.bomb.delay; // killed: the charges go off a moment later
     g.onEnemyKilled(this, info);
@@ -628,10 +969,10 @@ class Enemy {
 
   dropWeapon() {
     if (!this.game.ruleset.drops) return; // a variant: only the pistols
-    for (const [kind, chance] of DROPS[this.type] || []) {
+    for (const [kind, chance] of FIREPOWER.drops[this.type] || []) {
       if (this.game.rng.next() >= chance) continue;
       for (const m of this.rig.weaponParts) m.visible = false;
-      this.game.pickups.drop(kind, this.x, this.z, this.type === 'brute' ? 1 : 0.6);
+      this.game.pickups.drop(kind, this.x, this.z, FIREPOWER.dropAmmo);
       return;
     }
   }
@@ -654,13 +995,15 @@ class Enemy {
    * the player, walkable, within AI.coverSearch m of him and at a sensible distance from the player,
    * with a place beside it to step out to that sees the player (peekFrom). Null when there is none.
    */
-  findCover() {
+  /** The best spot to hide from the player at; `away`: one farther from him than he is (AI.retreat), the farther the better. */
+  findCover(away = false) {
     const g = this.game;
     const p = g.player;
     const L = g.level;
     const [rmin, rmax] = this.cfg.range;
-    const dmin = Math.max(2, rmin * 0.6);
-    const dmax = rmax + 3;
+    const now = Math.hypot(this.x - p.x, this.z - p.z);
+    const dmin = away ? now + 2 : Math.max(2, rmin * 0.6);
+    const dmax = rmax + 3; // in reach of his gun still, or he would never come out of it (duck)
     const ideal = (rmin + rmax) / 2;
     const gap = AI.coverGap + this.radius;
     let best = null;
@@ -684,12 +1027,12 @@ class Enemy {
         if (w > 3) spots.push([cx - w / 4, z], [cx + w / 4, z]);
       }
       for (const [x, z] of spots) {
-        if (!L.nav.isWalkable(x, z) || L.hasLOS(x, z, p.x, p.z)) continue;
+        if (!L.nav.isWalkable(x, z) || L.hasLOS(x, z, p.x, p.z) || !L.sameLevel(x, z, p.x, p.z)) continue; // cover on the player's level
         const dp = Math.hypot(x - p.x, z - p.z);
         if (dp < dmin || dp > dmax) continue;
         const dm = Math.hypot(x - this.x, z - this.z);
         if (dm > AI.coverSearch) continue;
-        let score = -dm * 0.5 - Math.abs(dp - ideal) * 0.15;
+        let score = away ? dp - dm * 0.3 : -dm * 0.5 - Math.abs(dp - ideal) * 0.15;
         for (const o of this.mgr.list) if (o !== this && o.alive && o.cover && Math.hypot(o.cover.x - x, o.cover.z - z) < 1.5) score -= 4; // one man per spot
         if (score <= bestScore) continue;
         const peek = this.peekFrom(x, z, s, gap);
@@ -733,6 +1076,9 @@ class Enemy {
     const g = this.game;
     const p = g.player;
     const [rmin, rmax] = this.cfg.range;
+    const C = AI.captain;
+    const cap = this.bold ? this.mgr.captain : null;
+    const capA = cap ? Math.atan2(cap.x - p.x, cap.z - p.z) : 0;
     let best = null;
     let bestScore = -Infinity;
     for (let i = 0; i < 14; i++) {
@@ -743,8 +1089,14 @@ class Enemy {
       const B = g.level.bounds;
       if (Math.abs(x) > B.halfW - 1 || Math.abs(z) > B.halfD - 1) continue;
       if (!g.level.nav.isWalkable(x, z)) continue;
-      let score = g.level.hasLOS(x, z, p.x, p.z) ? 6 : 0;
+      // a place on the player's level that sees him; one on another level (大三巴's steps) is no place to fight from
+      let score = g.level.sameLevel(x, z, p.x, p.z) ? (g.level.hasLOS(x, z, p.x, p.z) ? 6 : 0) : -10;
       score -= Math.hypot(x - this.x, z - this.z) * 0.3;
+      if (cap) {
+        // a captain about (AI.captain): round to the player's side of the line from him to the captain
+        const off = ((Math.atan2(x - p.x, z - p.z) - capA + 3 * Math.PI) % TAU) - Math.PI;
+        if (Math.abs(off) >= (C.side[0] * Math.PI) / 180 && Math.abs(off) <= (C.side[1] * Math.PI) / 180) score += C.bonus;
+      }
       for (const o of this.mgr.list) {
         if (o === this || !o.alive) continue;
         if (Math.hypot(o.x - x, o.z - z) < 3) score -= 3;
@@ -793,6 +1145,10 @@ class Enemy {
     this.aimT = 0;
     this.losLost = 0;
     this.lead = this.game.rng.range(this.cfg.lead[0], this.cfg.lead[1]);
+    if (this.cfg.strafe) {
+      this.strafeDir = this.game.rng.next() < 0.5 ? 1 : -1; // which way he steps while he fires (AI.strafe)
+      this.strafeT = AI.strafe.flip;
+    }
     const a = this.aimPoint();
     this.aimAngle = turnTowards(this.facing, angleTo(this.x, this.z, a.x, a.z), 0.6);
     this.game.audio.aimWarn(this.game.panFor(this.x));
@@ -808,7 +1164,7 @@ class Enemy {
     this.endAim();
     this.state = 'recover';
     this.timer = 0.5;
-    this.fireCd = g.rng.range(this.cfg.cooldown[0], this.cfg.cooldown[1]);
+    this.fireCd = g.rng.range(this.cfg.cooldown[0], this.cfg.cooldown[1]) * this.pace;
   }
 
   /** For a man on a balcony: his gun's height, and how far a shot drops a metre to come to the player's chest. {} on the street. */
@@ -883,6 +1239,7 @@ class Enemy {
     const p = g.player;
     const cfg = this.cfg;
     this.flash = Math.max(0, this.flash - dt * 6);
+    this.flinchT = Math.max(0, this.flinchT - dt);
     if (this.held) {
       // a human shield: the player moves him (player.js holdHostage); he neither moves nor aims
       this.moveAmt = 0;
@@ -890,6 +1247,7 @@ class Enemy {
       this.updateLaser();
       return;
     }
+    this.watchAim(dt);
     this.fireCd -= dt;
     this.blindT = Math.max(0, this.blindT - dt);
     this.shieldDownT = Math.max(0, this.shieldDownT - dt);
@@ -897,7 +1255,8 @@ class Enemy {
     this.losT -= dt;
     if (this.losT <= 0) {
       this.losT = 0.12;
-      this.los = p.alive && g.level.hasLOS(this.x, this.z, p.x, p.z, this.over);
+      // 同一水平: the player on another level (up or down 大三巴's steps) is out of his reach, whatever is between
+      this.los = p.alive && g.level.sameLevel(this.x, this.z, p.x, p.z) && g.level.hasLOS(this.x, this.z, p.x, p.z, this.over);
     }
     // in the dark under a lamp shot out (fixtures.js) or in an extinguisher's cloud: no aiming from there
     if (g.level.darkAt(this.x, this.z) || g.level.smokeAt(this.x, this.z)) {
@@ -993,10 +1352,28 @@ class Enemy {
             face = angleTo(this.x, this.z, p.x, p.z);
             break;
           }
+          if (this.retreatTo) {
+            // fallen back with no cover farther off (AI.retreat): away from the player first
+            const t = this.retreatTo;
+            if (Math.hypot(t.x - this.x, t.z - this.z) < 0.6) this.retreatTo = null;
+            else {
+              this.repath -= dt;
+              if (this.repath <= 0 || !this.path || this.pathI >= this.path.length) {
+                this.repath = 0.6;
+                this.path = g.level.nav.findPath(this.x, this.z, t.x, t.z);
+                this.pathI = 0;
+              }
+              if (!this.path) this.retreatTo = null; // no way there: he fights from where he is
+              want = this.followPath(cfg.speed);
+              if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
+              this.tryVault(dt, t);
+              break;
+            }
+          }
           this.coverRest -= dt;
-          if (this.tactic === 'cover' && !this.sp.stay && this.blindT <= 0 && this.coverRest <= 0 && this.mgr.aliveCount > 1) {
+          if (this.tactic === 'cover' && !this.sp.stay && !this.bold && this.blindT <= 0 && this.coverRest <= 0 && this.mgr.aliveCount > 1) {
             // a gunner with cover near goes there first, ducks, and fights by stepping out (peek); one holding
-            // a post keeps it, and the last man standing comes on instead of hiding
+            // a post keeps it, the last man standing comes on instead of hiding, and so do all with a captain about
             this.coverCheck -= dt;
             if (this.coverCheck <= 0) {
               this.coverCheck = 0.5;
@@ -1032,28 +1409,33 @@ class Enemy {
                   this.pathI = 0;
                 }
                 want = this.followPath(cfg.speed);
+                if (this.tryVault(dt, c)) break;
               }
               if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
               break;
             }
           }
-          // a grenadier throws over cover: he needs the distance, not a line of sight; a man up on a balcony cannot
-          // come closer, so he fires at whatever distance he sees the player (東望洋跑道's grandstand over the infield)
-          const inReach = cfg.lob ? distP < cfg.range[1] + 3 && distP > cfg.lob.radius + 1 : this.los && (distP < cfg.range[1] + 3 || this.perch > 0);
+          // a grenadier throws over cover: he needs the distance and the player on his level, not a line of sight; a man
+          // up on a balcony (a test's) cannot come closer, so he fires at whatever distance he sees the player
+          const inReach = cfg.lob
+            ? distP < cfg.range[1] + 3 && distP > cfg.lob.radius + 1 && g.level.sameLevel(this.x, this.z, p.x, p.z)
+            : this.los && (distP < cfg.range[1] + 3 || this.perch > 0);
           if (inReach && this.fireCd <= 0 && this.mgr.requestToken(this)) {
             this.startAim();
             break;
           }
           this.repath -= dt;
           if (this.repath <= 0 || !this.path || this.pathI >= this.path.length) {
-            this.repath = g.rng.range(1.4, 2.6);
-            const goal = this.pickGoal();
+            const by = this.escortOf && this.escortOf.alive ? this.escortSpot() : null; // a guard keeps by his captain
+            this.repath = by ? 0.5 : g.rng.range(1.4, 2.6);
+            const goal = by || this.pickGoal();
             this.path = g.level.nav.findPath(this.x, this.z, goal.x, goal.z);
             this.pathI = 0;
           }
           want = this.followPath(cfg.speed);
           if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
           if (this.los && cfg.reload) want = [0, 0]; // a sniper who can see the player stands his ground
+          else if (this.path && this.path.length && this.tryVault(dt, this.path[this.path.length - 1])) break;
           break;
         }
         case 'duck': {
@@ -1061,13 +1443,14 @@ class Enemy {
           this.timer -= dt;
           want = [0, 0];
           face = angleTo(this.x, this.z, p.x, p.z);
-          if (!this.coverValid() || distP < AI.flankClose || this.mgr.aliveCount <= 1) {
+          if (!this.coverValid() || distP < AI.flankClose || distP > cfg.range[1] + 3 || this.mgr.aliveCount <= 1 || this.bold) {
+            // the cover shows him, the player is on top of him or out of his reach, he is the last, or a captain came: out of it
             this.cover = null;
             this.state = 'move';
             this.repath = 0;
             break;
           }
-          if (this.timer <= 0 && this.fireCd <= 0 && distP < cfg.range[1] + 3 && this.mgr.requestToken(this)) {
+          if (this.timer <= 0 && this.fireCd <= 0 && distP < cfg.range[1] + 3 && g.level.sameLevel(this.x, this.z, p.x, p.z) && this.mgr.requestToken(this)) {
             // the aim happens behind the cover (its laser shows on the box: the warning); he steps out to fire
             this.startAim();
             this.peekAim = true;
@@ -1121,6 +1504,7 @@ class Enemy {
             }
           } else this.losLost = 0;
           if (cfg.weapon === 'shotgun' && distP > 4) want = [(dxp / distP) * 1.2, (dzp / distP) * 1.2];
+          if (cfg.strafe && !this.cover) want = this.strafe(dt, want); // not standing still to fire (AI.strafe)
           if (this.aimT >= this.aimTime && cfg.lob) {
             this.throwGrenade();
             break;
@@ -1146,6 +1530,7 @@ class Enemy {
             this.aimAngle = turnTowards(this.aimAngle, angleTo(this.x, this.z, a.x, a.z), w.track * dt);
           }
           face = this.aimAngle;
+          if (cfg.strafe && !this.cover) want = this.strafe(dt, want);
           this.burstT -= dt;
           if (this.burstT <= 0 && this.burst > 0) {
             this.shoot();
@@ -1156,7 +1541,7 @@ class Enemy {
             this.endAim();
             this.state = 'recover';
             this.timer = cfg.reload || (this.cover ? AI.peek : 0.35); // a sniper's reload: rifle down, the window to get him; a cover gunner's moment out
-            this.fireCd = g.rng.range(cfg.cooldown[0], cfg.cooldown[1]);
+            this.fireCd = g.rng.range(cfg.cooldown[0], cfg.cooldown[1]) * this.pace;
           }
           break;
         }
@@ -1175,6 +1560,7 @@ class Enemy {
           }
           break;
         case 'chase': {
+          if (cfg.tumble && this.tumbleOn(distP, dxp, dzp)) break;
           this.repath -= dt;
           const bomb = cfg.bomb;
           if (bomb && this.fuseT >= 0) {
@@ -1217,11 +1603,92 @@ class Enemy {
             if (distP < bomb.reach) this.light();
             break;
           }
+          if (this.tryVault(dt, p)) break;
           if (distP < 1.7 && this.mgr.requestToken(this)) {
             this.state = 'windup';
             this.timer = 0.34;
             this.aimAngle = angleTo(this.x, this.z, p.x, p.z);
             g.audio.aimWarn(g.panFor(this.x));
+          }
+          break;
+        }
+        case 'tumble': {
+          // a tumbler's roll (AI.tumble): bullets pass through him (untouchable); a blast still finds him
+          this.timer -= dt;
+          const v = this.rollDist / AI.tumble.roll;
+          this.vx = this.rollX * v;
+          this.vz = this.rollZ * v;
+          want = null;
+          face = Math.atan2(this.rollX, this.rollZ);
+          if (this.timer <= 0) {
+            this.vx = this.vz = 0;
+            this.state = 'land';
+            this.timer = AI.tumble.land;
+          }
+          break;
+        }
+        case 'land':
+          // down from a roll: open to anything for AI.tumble.land s
+          this.timer -= dt;
+          want = [0, 0];
+          face = angleTo(this.x, this.z, p.x, p.z);
+          if (this.timer <= 0) {
+            if (this.rolls >= AI.tumble.rolls) {
+              this.rolls = 0;
+              this.state = 'pant';
+              this.timer = AI.tumble.pant;
+              g.notes.log('飛仔喘氣');
+            } else this.state = 'chase';
+          }
+          break;
+        case 'pant':
+          // out of breath (AI.tumble.pant s): a kick puts him down, and F executes him
+          this.timer -= dt;
+          want = [0, 0];
+          face = angleTo(this.x, this.z, p.x, p.z);
+          if (this.timer <= 0) this.state = 'chase';
+          break;
+        case 'vault': {
+          // over low cover (AI.vault): in the air, no shot, no roll: the moment to get him
+          this.timer -= dt;
+          const k = clamp(1 - this.timer / AI.vault.time, 0, 1);
+          this.x = lerp(this.vaultFrom.x, this.vaultTo.x, k);
+          this.z = lerp(this.vaultFrom.z, this.vaultTo.z, k);
+          this.y = Math.sin(k * Math.PI) * (this.vaultTo.h + 0.15);
+          this.vx = this.vz = 0;
+          want = null;
+          collide = false;
+          face = angleTo(this.vaultFrom.x, this.vaultFrom.z, this.vaultTo.x, this.vaultTo.z);
+          if (this.timer <= 0) {
+            this.state = this.rushes ? 'chase' : 'move';
+            this.repath = 0;
+            this.path = null;
+          }
+          break;
+        }
+        case 'tell':
+          // crouched, about to roll (AI.dodge): the moment to see it coming
+          this.timer -= dt;
+          face = angleTo(this.x, this.z, p.x, p.z);
+          want = [0, 0];
+          if (this.timer <= 0) {
+            this.state = 'roll';
+            this.timer = AI.dodge.roll;
+            g.notes.log(`${cfg.label} 翻滾閃避`);
+          }
+          break;
+        case 'roll': {
+          // across the line of fire, AI.dodge.dist m in AI.dodge.roll s; he is shot as he lands, or where he will land
+          this.timer -= dt;
+          const v = AI.dodge.dist / AI.dodge.roll;
+          this.vx = this.rollX * v;
+          this.vz = this.rollZ * v;
+          want = null;
+          face = angleTo(this.x, this.z, p.x, p.z);
+          if (this.timer <= 0) {
+            this.vx = this.vz = 0;
+            this.state = this.rushes ? 'chase' : 'move';
+            this.repath = 0;
           }
           break;
         }
@@ -1245,7 +1712,8 @@ class Enemy {
           want = null;
           if (!this.struck && distP < 1.55 + this.radius) {
             this.struck = true;
-            if (p.hurt(30, dxp / distP, dzp / distP, false, `${this.cfg.label} 近身`)) g.shake(0.4);
+            const kick = !!cfg.tumble; // a tumbler's flying kick (AI.tumble), else a blade's cut
+            if (p.hurt(kick ? AI.tumble.kick : 30, dxp / distP, dzp / distP, false, kick ? '飛仔飛踢' : `${this.cfg.label} 近身`)) g.shake(0.4);
             else if (p.spinning) g.score.style('DODGE', 40, true);
           }
           if (this.timer <= 0) {
@@ -1257,6 +1725,10 @@ class Enemy {
       }
     }
 
+    if (this.vaulting && this.state !== 'vault') {
+      this.vaulting = false; // down from a vault, however it ended (a kick knocks him out of it)
+      this.y = 0;
+    }
     if (this.perch) {
       // up on his balcony he never moves from it, and nothing on the street is in his way
       want = null;
@@ -1369,6 +1841,15 @@ class Enemy {
     }
     if (!this.game.style.poseDue(r, this.game.worldTime + this.idleOffset)) return; // the pose holds between the style's steps
     animateRig(r, this.phase, this.moveAmt, Math.atan2(this.vx, this.vz));
+    // crouched for the roll, rolling, or rocked back by a shot (fading)
+    if (this.state === 'tumble') keyPose(r, 'roll');
+    else if (this.state === 'land') keyPose(r, 'crouch', 0.7);
+    else if (this.state === 'pant') keyPose(r, 'crouch', 0.45);
+    else if (this.cfg.tumble && (this.state === 'windup' || this.state === 'strike')) keyPose(r, 'kick');
+    else if (this.state === 'tell') keyPose(r, 'crouch');
+    else if (this.state === 'vault') keyPose(r, 'vault');
+    else if (this.state === 'roll') keyPose(r, 'roll');
+    else keyPose(r, this.flinchT > 0 ? 'flinch' : null, this.flinchT / AI.flinch);
     if (this.shieldMesh) {
       // kicked aside: the shield swings down and out
       const down = this.shieldDownT > 0;
@@ -1453,6 +1934,8 @@ export class Enemies {
     this.corpses = [];
     this.tokens = 0;
     this.flankSeq = 0; // flankers spawned so far: they take the two sides in turn
+    this.captain = null; // the 帶頭大佬 on his feet, if one is (AI.captain)
+    this.panicT = 0; // s left of the others wavering after he fell
   }
 
   /** Another living flanker for `e` to split up with. */
@@ -1469,13 +1952,42 @@ export class Enemies {
   spawn(type, sp) {
     const e = new Enemy(this, type, sp);
     this.list.push(e);
+    const E = e.cfg.escort;
+    if (E) {
+      // a captain: in with his guards either side of him, across the way he comes in
+      this.captain = e;
+      const nav = this.game.level.nav;
+      const dx = sp.ex - sp.x;
+      const dz = sp.ez - sp.z;
+      const d = Math.hypot(dx, dz) || 1;
+      for (let i = 0; i < E.n; i++) {
+        const k = (i % 2 ? 1 : -1) * E.side * (1 + Math.floor(i / 2));
+        const ox = (-dz / d) * k;
+        const oz = (dx / d) * k;
+        const by = nav.isWalkable(sp.x + ox, sp.z + oz) && nav.isWalkable(sp.ex + ox, sp.ez + oz);
+        const m = new Enemy(this, E.type, by ? { ...sp, x: sp.x + ox, z: sp.z + oz, ex: sp.ex + ox, ez: sp.ez + oz } : sp);
+        m.escortOf = e;
+        m.escortSide = k;
+        this.list.push(m);
+      }
+      this.game.notes.log(`${e.cfg.name}帶${E.n}個手下入場`);
+    }
     return e;
+  }
+
+  /** The captain fell (AI.captain): the rest waver for a while, slower to aim and falling back. */
+  captainDown(c) {
+    if (this.captain === c) this.captain = null;
+    this.panicT = AI.captain.panic;
+    for (const e of this.list) if (e !== c) e.waver();
+    this.game.notes.log(`${c.cfg.name}倒下：手下亂了陣腳`);
   }
 
   /** Take a live enemy away without a death (the warm-up ending early). */
   remove(e) {
     e.endAim();
     e.alive = false;
+    if (this.captain === e) this.captain = null;
     this.list = this.list.filter((x) => x !== e);
     this.game.fx.ring(e.x, e.z, 1.2, 0.4, 0xff3355, 2);
     e.dispose();
@@ -1488,6 +2000,8 @@ export class Enemies {
     this.corpses = [];
     this.tokens = 0;
     this.flankSeq = 0;
+    this.captain = null;
+    this.panicT = 0;
   }
 
   maxTokens() {
@@ -1549,6 +2063,7 @@ export class Enemies {
   }
 
   update(dt) {
+    this.panicT = Math.max(0, this.panicT - dt);
     for (const e of this.list) e.update(dt);
     for (const e of this.corpses) e.update(dt);
 

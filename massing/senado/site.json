@@ -1,0 +1,14 @@
+{
+  "id": "senado",
+  "name": "議事亭前地",
+  "en": "Largo do Senado",
+  "origin": {
+    "lat": 22.1939523,
+    "lon": 113.5401128,
+    "note": "the game's origin: 38 m up the square from the fountain (senado/ data's origin, OSM node 5692359322, 22.1936819, 113.5398859), as src/senado/transform.js places the 52 x 148 m strip"
+  },
+  "rotDeg": 38,
+  "rotNote": "src/senado/transform.js: the model turned 38° anticlockwise so the square runs straight up the screen",
+  "half": 355,
+  "study": "senado/ (v1–v7, the developer's city model; read only)"
+}

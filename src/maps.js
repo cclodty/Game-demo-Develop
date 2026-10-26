@@ -82,6 +82,7 @@ function cityBackdrop(L, { facade = true, keepOut = [36, 28] } = {}) {
 
 const rooftop = {
   id: 'rooftop',
+  rev: 1, // the map's revision: up one whenever its data changes how a run plays (replay.js records them all)
   budget: { tris: 360000, calls: 500 }, // rendered per frame, all passes (test/maps.test.mjs: 242,174 and 205 at the start; 1,240 before made props were merged by material, models.js)
   name: '霓虹天台',
   en: 'NEON ROOFTOP',
@@ -90,6 +91,8 @@ const rooftop = {
   desc: '雨夜的天台：直升機坪、玻璃溫室和一排排油桶。',
   color: '#ff3fa4',
   size: [22, 15],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): one floor, one level
+  zones: [{ id: 'floor', name: '天台', en: 'ROOF', y: 0, box: [-22, -15, 22, 15] }],
   start: [0, 4],
   theme: {
     bg: 0x0a0816,
@@ -192,6 +195,7 @@ const rooftop = {
 
 const club = {
   id: 'club',
+  rev: 1,
   budget: { tris: 490000, calls: 400 }, // rendered per frame, all passes (test/maps.test.mjs)
   name: '脈衝夜店',
   en: 'CLUB PULSE',
@@ -200,6 +204,8 @@ const club = {
   desc: '跟著節拍閃爍的舞池、吧枱後的一整排酒瓶，和一顆鏡面球。',
   color: '#9b6bff',
   size: [20, 14],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): one floor, one level
+  zones: [{ id: 'floor', name: '舞池', en: 'FLOOR', y: 0, box: [-20, -14, 20, 14] }],
   start: [0, 6.5],
   theme: {
     bg: 0x07040c,
@@ -215,9 +221,10 @@ const club = {
     rain: false,
   },
   floor: 'club',
-  // the stage's last wave here (boss.js): the blade queen, dashing between her perches ([x, z] or [x, z, height]:
-  // the lounge between the sofas, the top of the DJ booth, the glass walk, the floor before the bar)
-  boss: { kind: 'blade', perches: [[15.5, 0], [6, -10, 1.3], [-13.5, 3], [-12, -8.5]] },
+  // the stage's last wave here (boss.js): the blade queen, dashing between her perches ([x, z], or [x, z, height] a
+  // map could give but none does: 同一水平): the lounge between the sofas, the front of the DJ booth, the glass walk,
+  // the floor before the bar
+  boss: { kind: 'blade', perches: [[15.5, 0], [6, -8.2], [-13.5, 3], [-12, -8.5]] },
   edges: { n: [3.2, 'clubWall', 'neonPink'], s: [0.9, 'clubWall', 'neonCyan'], w: [3.2, 'clubWall', 'neonCyan'], e: [3.2, 'clubWall', 'neonCyan'] },
   // Four stages: the long bar with its flap, the DJ booth, the lounge in the east, a glass walk in the west.
   solids: [
@@ -419,6 +426,7 @@ const club = {
 
 const docks = {
   id: 'docks',
+  rev: 1,
   budget: { tris: 410000, calls: 500 }, // rendered per frame, all passes (test/maps.test.mjs: 349,025 and 213 at the start; 1,693 before made props were merged by material, models.js)
   name: '七號碼頭',
   en: 'HARBOR 7',
@@ -427,6 +435,8 @@ const docks = {
   desc: '貨櫃迷宮、會大爆炸的氣罐，敵人還會從海裡爬上來。',
   color: '#ffa040',
   size: [24, 15],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): one floor, one level
+  zones: [{ id: 'floor', name: '碼頭', en: 'QUAY', y: 0, box: [-24, -15, 24, 15] }],
   start: [0, 2],
   theme: {
     bg: 0x050a10,
@@ -587,7 +597,8 @@ const SENADO_IMAGES =
 
 const senado = {
   id: 'senado',
-  budget: { tris: 290000, calls: 500 }, // rendered per frame, all passes (test/maps.test.mjs: 208,358 and 255 at the start; 1,218 before made props were merged by material, models.js; up the square, test/drawcalls.test.mjs, about 250)
+  rev: 3, // 2: the marksman instead of the taxi convoy; 3: and his partner, the shotgunner
+  budget: { tris: 340000, calls: 500 }, // rendered per frame, all passes (test/maps.test.mjs: 208,358 and 255 at the start; 1,218 before made props were merged by material, models.js; up the square, test/drawcalls.test.mjs, about 250; the marksman's fight, the camera pulled back, test/senado-boss.test.mjs: about 318,000 and 288)
   name: '議事亭前地',
   en: 'LARGO DO SENADO',
   hour: '22:00',
@@ -595,19 +606,28 @@ const senado = {
   desc: '按實景比例重建的澳門議事亭前地：新馬路、噴水池、窄段一直到板樟堂前地。',
   color: '#f2c94c',
   credit: '地圖資料 © OpenStreetMap contributors（ODbL）',
+  massing: 'senado', // rebuilt from its massing study (senado/; massing/senado/ lists the checks test/massing.test.mjs runs)
   size: [SENADO.halfW, SENADO.halfD],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): one level; the sunk ring round the fountain, 0.48 m down, is within it
+  zones: [{ id: 'square', name: '廣場', en: 'SQUARE', y: 0, box: [-SENADO.halfW, -SENADO.halfD, SENADO.halfW, SENADO.halfD] }],
   start: [2, 54],
   camera: { dist: 31, pitch: 72, fov: 30 },
   cutaway: true,
   // the buildings across the avenue, between the camera and the square: above 1.2 m, seen through;
   // and up the square, any building within 6 m of the line from the player to the camera, whole (level.js updateFade)
   fade: { above: 1.2, follow: 6 },
-  // the stage's last wave here (boss.js): the taxi convoy, in along the avenue from the east, then round
-  // the fountain on a loop that clears the buildings, the stalls and the lamps
+  // the stage's last wave here (boss.js): two at once, one far and one near (議事亭：頭目 ①②; the taxi convoy they replace
+  // stays a kind: test/convoy.test.mjs). The marksman, in on foot from the street east of the fountain to his first post,
+  // then from post to post down the strip: round the square and the fountain, the mouth of the narrows, along the narrows,
+  // the square before the post office. The shotgunner, in from the west end of the avenue, after the player. Their combo:
+  // the marksman's line stops on the player as the shotgunner rushes the spot; out of the line, the round is his
   boss: {
-    kind: 'convoy',
-    entry: [[31, 65.6], [3, 65.6], [-3.5, 46.7]],
-    loop: [[-8.9, 34.5], [-8.9, 41.5], [-3.5, 46.7], [4.5, 46.7], [11.7, 40.5], [11.7, 34.8], [8.6, 29.2], [-4, 29.2], [-7.6, 31]],
+    kind: 'duo',
+    pair: [
+      { kind: 'marksman', from: [24.5, 40], posts: [[14, 40], [-8, 44], [16, 30], [-10, 30], [-12, 56], [18, 62], [0, 28], [6, 10], [-4, 0], [4, -20], [-3, -36], [2, -52], [-14, -64], [0, -70]] },
+      { kind: 'buckshot', from: [-24.5, 68], at: [-17, 64] },
+    ],
+    combo: { name: '紅線衝鋒', en: 'RED LINE RUSH', hint: '閃出紅線：散彈手衝入去，長槍打中他', wait: 6 }, // up to 6 s for the marksman to reach a post
   },
   look: 'flat', // drawn like the characters (style.js), the trial of one look for maps and people
   theme: {
@@ -916,6 +936,7 @@ const FEL_WALLS = felicidadeWalls();
 
 const felicidade = {
   id: 'felicidade',
+  rev: 1,
   budget: { tris: 110000, calls: 1000 }, // rendered per frame, all passes (test/maps.test.mjs: 87,555 and 820 at the start)
   name: '福隆新街',
   en: 'RUA DA FELICIDADE',
@@ -924,6 +945,8 @@ const felicidade = {
   desc: '紅窗木門的兩層舊舖夾着一條窄街：踢門入舖、鐵閘落下，橫巷兩頭都有人殺到。',
   color: '#ff5a4a',
   size: [FEL.halfW, FEL.halfD],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): one floor, one level
+  zones: [{ id: 'floor', name: '街', en: 'STREET', y: 0, box: [-FEL.halfW, -FEL.halfD, FEL.halfW, FEL.halfD] }],
   start: [-2, 0.5],
   camera: { dist: 26, pitch: 66, fov: 34 },
   cutaway: true,
@@ -975,9 +998,10 @@ const felicidade = {
   // the mahjong tables, lamps and sign posts, turning in a teardrop just past each open end (the street is too narrow
   // to turn in); it lets its thugs out and charges only on the map (boss.js onMap)
   boss: { kind: 'truck', from: [-40, -0.9], loop: felicidadeTruckLoop() },
-  // balconies up the fronts of the solid blocks (level.js balconies, waves.js pickPerches): [x, z, height, facing], the
-  // man sent up stands at (x, z) that high, over the street, facing out; four on the north row, two on the south
-  perches: [
+  // balconies up the fronts of the solid blocks, [x, z, height, facing]: drawn only (level.js ledges; decorate). Nobody
+  // is sent up to them any more (同一水平, DECISIONS 2026-10-22: a man up there was a man the player could not tell how
+  // to hit); four on the north row, two on the south
+  balconies: [
     [-24, -2.55, 3.05, 0],
     [-8, -2.55, 3.05, 0],
     [13, -2.55, 3.05, 0],
@@ -1140,10 +1164,11 @@ const felicidade = {
       L.deco(x, h, z, w, ht, d, tank, true);
     }
     // the balconies: a slab and its railing, one piece each (numbered with the building behind, so it fades with it),
-    // and the window he comes out of, lit while he is coming (level.js present)
+    // and the window behind; if a man is sent out onto one (a test's perches, level.js balconies) it lights while he
+    // is coming (level.js present)
     const iron = std({ color: 0x2f7a62, roughness: 0.55, metalness: 0.3 }); // painted ironwork, green as the old ones are
     const slab = std({ color: 0x9a948a, roughness: 0.9 });
-    for (const b of L.balconies) {
+    for (const b of L.ledges) {
       const across = Math.abs(b.dirZ) > 0.5; // the balcony runs along x
       const piece = (w, ht, d, x, y, z) => new THREE.BoxGeometry(across ? w : d, ht, across ? d : w).translate(across ? x : z, y, across ? z : x);
       const out = 0.95; // its depth out from the wall
@@ -1173,7 +1198,8 @@ const felicidade = {
       window.position.set(b.ex, b.perch + 1.05, wallZ + b.dirZ * 0.06); // in front of the facade's own picture (decorate's `front`)
       window.rotation.y = b.dirZ > 0 ? 0 : Math.PI;
       L.add(window);
-      b.lamp = { mat: glow };
+      const live = L.balconies.find((o) => o.ex === b.ex && o.ez === b.ez);
+      if (live) live.lamp = { mat: glow };
     }
     // power lines and lanterns strung across the street
     const cable = std({ color: 0x141214, roughness: 0.6 });
@@ -1194,7 +1220,7 @@ const felicidade = {
 // A hairpin of the street circuit at night, built by hand to the ROADMAP's size (OSM cannot be reached from the
 // build): the track comes in along the north, turns round the west end and goes back out along the south. Inside
 // the hairpin a grass infield behind blue-and-white tyre walls with the timing tower; outside it guardrails with
-// marshals' gates, the grandstand to the north (its front row a line of perches), the spectators' side to the south
+// marshals' gates, the grandstand to the north (nobody on it: 同一水平), the spectators' side to the south
 // and a gravel run-off past the bend. The track goes on past the east edge. The teams, sponsors and lap times are
 // made up.
 const GUIA = {
@@ -1260,14 +1286,17 @@ function guiaRacingLine() {
 
 const guia = {
   id: 'guia',
+  rev: 1,
   budget: { tris: 190000, calls: 560 }, // rendered per frame, all passes (test/maps.test.mjs: 150,785 and 424 at the start)
   name: '東望洋跑道',
   en: 'GUIA CIRCUIT',
   hour: '02:00',
   line: ['他們沿着跑道逃。夜裏試車的賽車不會停下來。', 'They run down the circuit. The night\'s test laps won\'t stop for anyone.'],
-  desc: '格蘭披治的髮夾彎，晚上：藍白輪胎牆只夠蹲低，看台上的人望得到你；過賽道要快。',
+  desc: '格蘭披治的髮夾彎，晚上：藍白輪胎牆只夠蹲低；賽車掠過前，過賽道要快。',
   color: '#4fb4ff',
   size: [GUIA.halfW, GUIA.halfD],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): one floor, one level
+  zones: [{ id: 'floor', name: '賽道', en: 'TRACK', y: 0, box: [-GUIA.halfW, -GUIA.halfD, GUIA.halfW, GUIA.halfD] }],
   start: [-2, 1.5],
   cutaway: true,
   theme: {
@@ -1314,12 +1343,11 @@ const guia = {
     [22.8, -15.4, 'sign', 270],
   ],
   pads: [[2, 1], [-25, 0], [20, 16.5]],
-  // boxes on the grandstand's front (level.js balconies, waves.js pickPerches), over the north straight's edge: a tyre
-  // wall is no cover from up there (enemies.js over), and the infield's walls stop the player's shots back, so a man
-  // up there is answered from out on the track
+  // boxes on the grandstand's front, over the north straight's edge: drawn only (decorate). Nobody is sent up there
+  // any more (同一水平, DECISIONS 2026-10-22)
   // the race (src/race.js, 東望洋跑道 ②): the first pass `first` s into the stage, then one every `every` s, in world time
   race: { first: 16, every: 24, line: guiaRacingLine() },
-  perches: [
+  balconies: [
     [-7, -12.8, 2.2, 0],
     [-0.5, -12.8, 2.2, 0],
     [5.5, -12.8, 2.2, 0],
@@ -1451,9 +1479,9 @@ function guiaDecorate(L) {
   const roofPosts = [];
   for (let x = sx0 + 1; x <= sx1 - 1; x += 7) roofPosts.push([x, 0, sz0 + 0.4, 0.25, 6.4, 0.25]);
   boxes(roofPosts, L.mat.darkMetal, true);
-  // the boxes on the stand's front, over the walkway, where a beat sends a man up (the map's perches)
+  // the boxes on the stand's front, over the walkway (the map's balconies)
   const ledges = [];
-  for (const [x, z, y] of L.map.perches) {
+  for (const [x, z, y] of L.map.balconies) {
     ledges.push([x, y - 0.15, z - 0.05, 2.4, 0.15, 0.9], [x, y, z + 0.38, 2.4, 0.55, 0.06]);
   }
   boxes(ledges, std({ color: 0x3a404c, roughness: 0.7, metalness: 0.2 }), true);
@@ -1504,38 +1532,90 @@ function guiaDecorate(L) {
 }
 
 // ---------------------------------------------------------------- 大三巴 RUINS OF ST. PAUL'S
-// The forecourt and the great flight of steps up to the façade, stylised (a World Heritage site: no attempt at the
-// real stone), about 40 × 60 m, built to the ROADMAP's size. From the forecourt in the south 68 steps climb north in
-// three flights with two landings to the terrace under the façade; walls and slopes close the steps in at the sides.
-// The ground's height is the map's `ground` (level.js groundY): everything stands on it, and from up the steps a man
-// sees and shoots over cover lower than where he stands (enemies.js over), so the landings are the high ground to
-// take. The façade is only a façade: its three doorways are open to the old nave behind it, a way round the wall.
-// A barrel on the steps, shot or kicked, falls over and rolls down them (`slope`, level.js Barrel tip): ROLLING.
-// Shop names are made up.
-const RUINS = {
-  halfW: 20,
-  halfD: 30,
-  stairs: 12, // the steps run x -12 to 12
-  terrace: 15, // the terrace under the façade, x -15 to 15
-  // the ground's profile up the steps, south to north: [z, height] at each corner; flat beyond the ends
+// The forecourt (耶穌會紀念廣場), the great flight of steps and the terrace under the façade, at the real size of the
+// massing study (massing/ruins/, 大三巴：重建 ①; a World Heritage site, stylised: no attempt at the real stone). From the
+// forecourt in the south 68 steps climb north 42.7 m in three flights with two landings to the terrace, about 10 m up;
+// beside them to the east the zigzag planter and the walkway. The study's frame: x east, z south, the origin 21.6 m
+// south of the façade's middle; the steps and the forecourt lie west of the façade's middle, as they do.
+// The ground's height is the map's `ground` (level.js groundY): everything stands on it. Two levels (`zones`, 同一水平):
+// the forecourt and the terrace each fight on their own, the steps are the way between (a man below walks up to the
+// player above rather than shoot at him; a shot stops at the edge of a flight). The façade is only a façade: its three
+// doorways are open to the old nave behind it, a way round the wall.
+// A barrel on the steps, shot or kicked, falls over and rolls down them (`slope`, level.js Barrel tip): ROLLING; one
+// kicked off the terrace rolls the whole 42.7 m to the forecourt.
+// The buildings round the forecourt and the steps are their OSM outlines at their heights (大三巴：重建 ②); behind the
+// façade the old nave, its full 37.4 m. Shop names are made up.
+export const RUINS = {
+  halfW: 24,
+  halfD: 80,
+  steps: [-12.4, 4.5], // the main flight, west wall to the planter: 16.9 m (the study's #7)
+  planter: [4.5, 9.9], // the zigzag planter east of it (#13)
+  walk: [9.9, 15.8], // and the walkway beside that (#14)
+  terrace: [-15.7, 16.1], // the terrace under the façade: 31.8 m (#12)
+  // the ground's profile up the steps, south to north: [z, height] at each corner; flat beyond the ends. 68 steps of
+  // 0.15 m (#5, #8): 10.2 m; three flights, 23, 23 and 22 steps, with two landings 3 m deep (the study's change #2)
   profile: [
-    [9, 0],
-    [4, 1.6],
-    [1, 1.6],
-    [-4, 3.2],
-    [-7, 3.2],
-    [-12, 4.8],
+    [38.1, 0],
+    [25.7, 3.45],
+    [22.7, 3.45],
+    [10.3, 6.9],
+    [7.3, 6.9],
+    [-4.6, 10.2],
   ],
   flights: [23, 23, 22], // steps in each flight: 68 in all
-  facade: -21.6, // the façade's line (its middle), 1.2 m thick
+  facade: { z: -21.6, x: [-10.3, 10.9], depth: 1.9, height: 25.5 }, // its line (its middle), its ends, thickness, height over the terrace (#1–#3)
   doors: [
-    [-6, 2.4, 3.8],
-    [0, 3.2, 4.4],
-    [6, 2.4, 3.8],
+    [-5.9, 2.6, 5.5],
+    [0.3, 3.6, 7],
+    [6.5, 2.6, 5.5],
   ], // its doorways: [x, width, height]; 2.4 m at least, or the nav grid (0.5 m cells, grown by a body's width) shuts them
-  nave: [9, -28.5], // behind it the old nave, open to the sky: half its width, and its back (the hill beyond)
-  shops: 17, // the shop rows at the forecourt's sides start this far out
+  nave: { x: [-10, 9.6], back: -64.1, path: -40 }, // behind it the old nave, open to the sky (#15), a path east out of it up to the fort
+  yellow: 'w205784451', // the yellow arcaded building east of the forecourt (its columns: high cover)
+  rise: 3.4, // the side walls stand this high over the steps beside them
 };
+
+// OSM building outlines round the forecourt, the steps and the nave (massing/ruins/data/massing.json, © OpenStreetMap
+// contributors, ODbL): [OSM id, height over its ground, where the height comes from, on the upper level, outline]
+const RUINS_BUILDINGS = [
+  ['w1352894789', 35.5, 'osm:height', false, [[13.5, 81.6], [14.2, 97], [27.6, 110.8], [34.1, 105.3], [23.7, 94.5], [23.1, 81.2]]],
+  ['w1352894790', 26.8, 'osm:height', false, [[27.5, 33.7], [27.7, 40.7], [45.9, 40.0], [46.0, 40.9], [45.9, 42.0], [49.2, 41.1], [49.2, 35.7], [47.0, 32.6], [42.7, 32.9], [39.7, 33]]],
+  ['w205784451', 15, 'photo (the study #19, change #3)', false, [[5.4, 64.0], [5.8, 73.3], [8.0, 73.3], [14.4, 73.2], [19.1, 72.3], [20.8, 70.4], [22.3, 66.8], [22.2, 58.0], [21.9, 42.3], [15.3, 42.2], [8.1, 42.2], [4.5, 42.3]]],
+  ['w655138584', 17.3, 'estimate', true, [[-20.9, -44.9], [-15.4, -50.6], [-16.1, -51.3], [-15.2, -52.2], [-17.4, -54.3], [-18.3, -53.4], [-18.9, -54.1], [-24.5, -48.4]]],
+  ['w712328298', 29.2, 'osm:height', true, [[-29.1, -56.7], [-27.2, -56.7], [-28.0, -56.2], [-28.7, -54.9], [-28.4, -54.0], [-27.2, -52.8], [-25.3, -52.2], [-23.9, -52.5], [-23.0, -53.8], [-22.8, -55.4], [-23.7, -56.6], [-22.8, -56.7], [-22.9, -59.8], [-29.2, -59.9]]],
+  ['w724092421', 27.7, 'osm:height', false, [[9.5, 87], [9.2, 77.1], [6.2, 77.4], [-6, 78.0], [-7.1, 80.4], [-7.1, 87.7]]],
+  ['w724092435', 28.8, 'osm:height', false, [[-43.5, 73.1], [-42.9, 81.1], [-24.9, 74.1], [-30.7, 67.8]]],
+  ['w791076490', 29.2, 'osm:height', true, [[-35.4, 1.4], [-25.8, -6.7], [-25.4, -7.0], [-27.1, -9], [-26.1, -10.0], [-25.5, -11.7], [-23.6, -11.3], [-24.2, -18.2], [-27.1, -17.1], [-29.6, -17.5], [-29.6, -14.9], [-28.1, -14.8], [-28.0, -13.4], [-30.4, -12.1], [-31.8, -13.8], [-35.7, -10.2], [-34.8, -9.1], [-40.1, -4.3]]],
+  ['w791076492', 33.4, 'osm:height', false, [[-35.7, 17.8], [-33.7, 17.0], [-34.4, 15.4], [-19.8, 9.4], [-20.9, -4.3], [-21.8, -4.8], [-22.9, -5.4], [-26, -2.1], [-38.8, 11.7]]],
+  ['w791076493', 31.8, 'osm:height', false, [[-34.4, 15.4], [-33.7, 17.0], [-33.1, 18.2], [-34.7, 19.1], [-33.0, 23.8], [-18.0, 17.8], [-19.9, 12.8], [-18.7, 12.4], [-19.8, 9.4]]],
+  ['w791076494', 32.4, 'osm:height', false, [[-33.0, 23.8], [-29.9, 31.1], [-16.3, 26.4], [-18.0, 17.8]]],
+  ['w791076495', 29.2, 'osm:height', false, [[-29.9, 31.1], [-25.8, 38.6], [-14.7, 34.5], [-16.3, 26.4]]],
+  ['w791076496', 28.8, 'osm:height', false, [[-25.8, 38.6], [-21.1, 46.1], [-13.4, 43.0], [-13.5, 42.2], [-14.7, 34.5]]],
+  ['w791076497', 31.7, 'osm:height', false, [[-13.4, 43.0], [-21.1, 46.1], [-22.6, 47.0], [-30.7, 51.9], [-21.0, 62.6], [-15.9, 59.2], [-16.5, 57.4], [-11.9, 53.2]]],
+  ['w791076498', 25.5, 'osm:height', false, [[-22.6, 47.0], [-27.3, 39.3], [-36.2, 44.8], [-30.7, 51.9]]],
+  ['w791076499', 25.5, 'osm:height', false, [[-27.3, 39.3], [-31.5, 32.4], [-41.4, 38.2], [-36.2, 44.8]]],
+  ['w819165386', 20.6, 'osm:height', false, [[-42.9, 81.1], [-42.4, 86.8], [-19.2, 81.2], [-24.9, 74.1]]],
+  ['w819165387', 31.3, 'osm:height', false, [[-42.4, 86.8], [-41.9, 90.8], [-18.8, 86.2], [-19.2, 81.2]]],
+  ['w819165398', 25.5, 'osm:height', false, [[27.0, 41.8], [27.2, 45.3], [27.2, 48.1], [46.0, 47.3], [45.9, 42.0], [46.0, 40.9]]],
+  ['w819165399', 26.2, 'osm:height', false, [[27.2, 48.1], [27.8, 69.2], [49.2, 67.3], [47.6, 62.3], [46.0, 47.3]]],
+  ['w819165400', 25.2, 'osm:height', false, [[27.8, 69.2], [28.4, 74.8], [41.8, 73.8], [42.4, 72.3], [51.7, 73.8], [49.2, 67.3]]],
+];
+
+/** Where an outline's face nearest `x0` is along the line z (east of x0 when `east`, else west of it). */
+function ruinsFace(ring, z, x0, east = true) {
+  let best = null;
+  for (let i = 0; i < ring.length; i++) {
+    const [ax, az] = ring[i];
+    const [bx, bz] = ring[(i + 1) % ring.length];
+    if ((az > z) === (bz > z)) continue;
+    const x = ax + ((bx - ax) * (z - az)) / (bz - az);
+    if (east ? x > x0 && (best === null || x < best) : x < x0 && (best === null || x > best)) best = x;
+  }
+  return best;
+}
+
+const RUINS_YELLOW = RUINS_BUILDINGS.find((b) => b[0] === RUINS.yellow)[4];
+// the yellow building's arcade: a column 0.6 m out from its face every 4 m along the forecourt
+const RUINS_ARCADE = [44, 48, 52, 56, 60, 64, 68].map((z) => [Math.round((ruinsFace(RUINS_YELLOW, z, -4) - 0.6) * 100) / 100, z]);
 
 /** The height of the ground at (x, z): the forecourt 0, up the steps, the terrace at the top. */
 function ruinsGround(x, z) {
@@ -1560,36 +1640,54 @@ function ruinsSlope(x, z) {
   return null;
 }
 
-/** The walls: the shop rows round the forecourt (lanes left open), the slopes beside the steps, the façade. */
+/** The walls: the side walls of the steps and the terrace (lanes left open), the zigzag planter, the hill round the nave, the façade (the buildings are outlines: ruinsDecorate). */
 function ruinsWalls() {
-  const { halfW: W, halfD: D, stairs: S, terrace: T, facade: F, shops: X, doors, nave } = RUINS;
+  const { halfW: W, halfD: D, steps: S, planter: Q, walk: K, terrace: T, profile: P, facade: F, doors, nave: N, rise } = RUINS;
   const s = [];
-  // the shop rows, two storeys, with a lane into each side of the forecourt
-  s.push([-(X + W) / 2, (9 + 15) / 2, W - X, 6, 6.5, 'brick'], [-(X + W) / 2, (18 + D) / 2, W - X, D - 18, 6.5, 'brick']);
-  s.push([(X + W) / 2, (9 + 21) / 2, W - X, 12, 6.5, 'brick'], [(X + W) / 2, (24 + D) / 2, W - X, D - 24, 6.5, 'brick']);
-  // the slopes beside the steps, a wall a little over head height above the steps beside them, flight by flight
-  for (const sx of [-1, 1]) {
-    s.push([(sx * (S + W)) / 2, 5, W - S, 8, 3.4, 'slope']);
-    s.push([(sx * (S + W)) / 2, -3, W - S, 8, 5, 'slope']);
-    s.push([(sx * (T + W)) / 2, -16.8, W - T, 9.6, 6.6, 'slope']);
-    s.push([(sx * (S + W)) / 2, -9.5, W - S, 5, 6.6, 'slope']);
+  const box = (x0, x1, z0, z1, h, kind) => s.push([(x0 + x1) / 2, (z0 + z1) / 2, x1 - x0, z1 - z0, h, kind]);
+  const top = P[P.length - 1];
+  // beside the steps, segment by segment of the profile: the west wall, the east one beyond the walkway, and between
+  // the main flight and the walkway the zigzag planter, in short pieces a little over knee height above the steps
+  for (let i = 1; i < P.length; i++) {
+    const [z0, y0] = P[i - 1];
+    const [z1, y1] = P[i];
+    box(-W, S[0], z1, z0, Math.max(y0, y1) + rise, 'slope');
+    box(K[1], W, z1, z0, Math.max(y0, y1) + rise, 'slope');
+    const n = Math.max(1, Math.round((z0 - z1) / 3));
+    for (let k = 0; k < n; k++) {
+      const za = z0 - ((z0 - z1) * k) / n;
+      const zb = z0 - ((z0 - z1) * (k + 1)) / n;
+      box(Q[0], Q[1], zb, za, ruinsGround(0, zb) + 0.9, 'slope');
+    }
   }
-  // the terrace's sides are open to a lane each, between z -15.5 and -13 (the side streets climbing up)
-  for (const sx of [-1, 1]) {
-    s.splice(s.findIndex((w) => w[1] === -16.8 && Math.sign(w[0]) === sx), 1);
-    s.push([(sx * (T + W)) / 2, -12.5, W - T, 1, 6.6, 'slope']);
-    s.push([(sx * (T + W)) / 2, (-15.5 + F - 0.6) / 2, W - T, -15.5 - (F - 0.6), 6.6, 'slope']);
+  // the terrace's sides, each open to a lane between z -14 and -11.5 (戀愛巷 west, 大三巴斜巷 east)
+  const front = F.z + F.depth / 2; // the façade's south face
+  const back = F.z - F.depth / 2;
+  for (const [x0, x1] of [[-W, T[0]], [T[1], W]]) {
+    box(x0, x1, -11.5, top[0], top[1] + rise, 'slope');
+    box(x0, x1, back, -14, top[1] + rise, 'slope');
   }
-  // the façade: a wall across the top of the terrace in four pieces, its three doorways open between them
-  let x0 = -W;
-  for (const [x, w] of [...doors, [W, 0]]) {
-    s.push([(x0 + x - w / 2) / 2, F, x - w / 2 - x0, 1.2, 4.8 + 18, 'facade']);
+  // the façade: four pieces between its three doorways; the two in the middle rise its full height (its top tiers),
+  // the two at the ends two tiers
+  const pieces = [];
+  let x0 = F.x[0];
+  for (const [x, w] of [...doors, [F.x[1], 0]]) {
+    pieces.push([x0, x - w / 2]);
     x0 = x + w / 2;
   }
-  // behind it the old nave, the hill round it: at its sides and its back
-  const [N, back] = nave;
-  for (const sx of [-1, 1]) s.push([(sx * (N + W)) / 2, (F - 0.6 - D) / 2, W - N, D + F - 0.6, 7, 'slope']);
-  s.push([0, (back - D) / 2, 2 * N, D + back, 7, 'slope']);
+  pieces.forEach(([a, b], i) => box(a, b, back, front, top[1] + (i === 0 || i === pieces.length - 1 ? 12 : F.height), 'facade'));
+  // the hill beside the façade and round the nave behind it
+  box(T[0], F.x[0], back, front, top[1] + 4, 'slope');
+  box(F.x[1], T[1], back, front, top[1] + 4, 'slope');
+  box(-W, N.x[0], N.back, back, top[1] + 4, 'slope');
+  box(N.x[1], W, N.path + 1.25, back, top[1] + 4, 'slope');
+  box(N.x[1], W, N.back, N.path - 1.25, top[1] + 4, 'slope'); // between them the path up to the fort
+  box(-W, W, -D, N.back, top[1] + 4, 'slope'); // the hill north of it, to the map's edge (the fort's: 大炮台)
+  // the wall east of the walkway's foot, up to the yellow building, and the yellow building's back to the map's edge
+  const y0 = Math.min(...RUINS_YELLOW.map(([, z]) => z));
+  const y1 = Math.max(...RUINS_YELLOW.map(([, z]) => z));
+  box(K[1], W, P[0][0], y0, 8, 'brick');
+  box(Math.max(...RUINS_YELLOW.map(([x]) => x)) - 0.4, W, y0, y1, 8, 'brick');
   return s;
 }
 
@@ -1597,83 +1695,95 @@ const RUINS_WALLS = ruinsWalls();
 
 const ruins = {
   id: 'ruins',
-  budget: { tris: 180000, calls: 600 }, // rendered per frame, all passes (test/maps.test.mjs: 138,592 and 342 at the start; two drones there, test/drone.test.mjs: 160,212 and 449)
+  rev: 3, // 2: rebuilt to the massing study (大三巴：重建 ①); 3: its boss, the shield man (大三巴：頭目 ①)
+  budget: { tris: 180000, calls: 600 }, // rendered per frame, all passes (test/maps.test.mjs: 124,694 and 128 at the start, the OSM buildings drawn; before the rebuild, which merged the walls into two meshes, 138,592 and 342)
   name: '大三巴',
   en: "RUINS OF ST. PAUL'S",
   hour: '03:00',
   line: ['最後一段：六十八級石階。走到牌坊，這一夜就完。', 'The last of it: sixty-eight steps. Reach the facade and the night is over.'],
-  desc: '六十八級石階上落：站得高的望得到你，要搶高位；牌坊門洞繞得到後面，石階上的油桶一踢就滾落去。',
+  desc: '六十八級石階連住前地和牌坊下的平台：兩層各打各的，追上來的人迎面踢個油桶落去；牌坊門洞繞得到後面。',
   color: '#ffb35a',
   size: [RUINS.halfW, RUINS.halfD],
-  start: [-3, 21],
+  // 同一水平 (level.js zones, DECISIONS 2026-10-22): two levels, the forecourt at the foot of the steps and the terrace
+  // under the façade with the old nave behind it; the steps and their two narrow landings are the way between, where
+  // nobody fights (the landings are 3 m deep)
+  zones: [
+    { id: 'forecourt', name: '前地', en: 'FORECOURT', y: 0, box: [-RUINS.halfW, RUINS.profile[0][0], RUINS.halfW, RUINS.halfD] },
+    { id: 'terrace', name: '平台', en: 'TERRACE', y: RUINS.profile[5][1], box: [RUINS.terrace[0], RUINS.nave.back, RUINS.terrace[1], RUINS.profile[5][0]] },
+  ],
+  start: [-4, 56],
   ground: ruinsGround,
   slope: ruinsSlope, // a barrel knocked over on the steps rolls down them (level.js Barrel)
   steps: { profile: RUINS.profile, flights: RUINS.flights }, // the ground's profile and the steps in each flight (the map export)
+  massing: 'ruins', // rebuilt from its massing study (massing/ruins/; test/massing.test.mjs runs its checks)
+  // the buildings' outlines, for the map export: their tops over the forecourt (those on the hill stand on it)
+  buildings: RUINS_BUILDINGS.map(([id, h, , upper, ring]) => ({ id, height: Math.round(((upper ? RUINS.profile[5][1] : 0) + h) * 10) / 10, footprint: ring })),
   cutaway: true,
   theme: {
     bg: 0x0b0a10,
-    fog: [0x120e14, 0.011],
+    fog: [0x120e14, 0.009],
     hemi: [0x7a6c78, 0x14100e, 0.72],
     moon: [0xb8c0ff, 0.5],
     sunDir: [-14, 36, 20],
-    // warm floodlights on the façade and the steps, a cooler one over the forecourt
+    // warm floodlights over the old nave, on the façade and the steps, a cooler one over the forecourt
     points: [
-      [0xffc27a, -8, 9, -15, 70, 22],
-      [0xffc27a, 9, 9, -15, 70, 22],
-      [0xffb060, 0, 7, -1, 55, 18],
-      [0xc8d4ff, 2, 6.5, 19, 55, 22],
+      [0xffc27a, 0, 18, -44, 70, 30],
+      [0xffc27a, 2, 19, -14, 90, 30],
+      [0xffb060, -4, 11, 18, 70, 26],
+      [0xc8d4ff, -4, 6.5, 58, 60, 26],
     ],
     rain: false,
     bloom: { strength: 0.8, threshold: 0.82 },
   },
   floor: 'concrete',
-  edges: null, // the shop rows, the slopes and the façade close it in; the lanes and the forecourt's south side are open
+  edges: null, // the rows, the side walls, the hill and the façade close it in; the lanes are open
   solids: [
     ...RUINS_WALLS,
-    // the forecourt: stone planters, low cover (two long ones where the shop rows open: no stalls, whose model is a
-    // hundred meshes, two hundred draw calls with their shadows)
-    [-9, 19.5, 2.6, 1.2, 0.9, 'planter'],
-    [7.5, 22, 1.2, 2.6, 0.9, 'planter'],
-    [2.5, 13.5, 2.6, 1.2, 0.9, 'planter'],
-    [-12.5, 26, 2.8, 1.4, 1.1, 'planter'],
-    [12.5, 12.5, 1.4, 2.8, 1.1, 'planter'],
+    // the forecourt: stone planters, low cover, and the yellow building's arcade (its columns, high cover)
+    [-8, 46.5, 2.6, 1.2, 0.9, 'planter'],
+    [-2, 53, 1.2, 2.6, 0.9, 'planter'],
+    [-9, 61, 2.6, 1.2, 0.9, 'planter'],
+    [-1, 68, 2.8, 1.4, 1.1, 'planter'],
+    ...RUINS_ARCADE.map(([x, z]) => [x, z, 0.6, 0.6, 4.5, 'brick']),
     // up the steps: urns on the landings (their tops counted from the ground: a landing's height and a metre)
-    [-6, 2.5, 1.2, 1.2, 1.6 + 1, 'planter'],
-    [7, 2.5, 1.2, 1.2, 1.6 + 1, 'planter'],
-    [-1.5, -5.5, 2.6, 1.0, 3.2 + 1, 'planter'],
+    [-9, 24.2, 1.2, 1.2, 3.45 + 1, 'planter'],
+    [1.5, 24.2, 1.2, 1.2, 3.45 + 1, 'planter'],
+    [-5, 8.8, 2.6, 1.0, 6.9 + 1, 'planter'],
     // the terrace: low walls before the façade and a planter
-    [-6.5, -18.5, 4, 0.7, 4.8 + 0.9, 'facade'],
-    [8, -16, 1.4, 1.4, 4.8 + 1, 'planter'],
-    // the nave behind the façade: the stumps of two of its columns, the low wall round the crypt's stair
-    [-5, -25.2, 1.1, 1.1, 4.8 + 1.1, 'facade'],
-    [5, -25.2, 1.1, 1.1, 4.8 + 1.1, 'facade'],
-    [0, -26.9, 4.4, 1.4, 4.8 + 0.8, 'facade'],
+    [-7, -18.5, 4, 0.7, 10.2 + 0.9, 'facade'],
+    [9, -15, 1.4, 1.4, 10.2 + 1, 'planter'],
+    // the nave behind the façade: the stumps of its columns, the low wall round the crypt's stair at its far end
+    ...[-32, -44, -56].flatMap((z) => [[-5, z, 1.1, 1.1, 10.2 + 1.1, 'facade'], [5, z, 1.1, 1.1, 10.2 + 1.1, 'facade']]),
+    [0, -61, 4.4, 1.4, 10.2 + 0.8, 'facade'],
   ],
   // on the forecourt, and on the steps (shot or kicked, one there rolls down: ROLLING); one at the top of the steps to kick
-  barrels: [[-11, 23.5, 'lpg'], [14.5, 14.8, 'lpg'], [-4.5, 15, 'barrel'], [6.5, 25.5, 'barrel'], [-9, 6.5, 'barrel'], [9, -1.5, 'barrel'], [-4, -9.5, 'barrel'], [4.5, -12.8, 'barrel']],
-  pans: [[-14, 27.5], [-10.4, 25], [13.8, 11]],
-  tools: [[-14.5, 22, 'extinguisher']],
-  spots: { barrels: [[5.5, 18.5], [-1, 26.5], [-15, 11], [15, 19], [3.5, 6], [-9.5, -9]], pans: [[3.5, 27], [-6.5, 12], [9, 17], [-15.5, 17]], tools: [[2.2, 24], [14.5, 25.5], [-6, 26]] },
+  barrels: [[-9, 51.5, 'lpg'], [1.5, 60, 'lpg'], [-3.5, 47, 'barrel'], [-8, 66, 'barrel'], [-8, 31, 'barrel'], [1, 16, 'barrel'], [1.5, 4, 'barrel'], [-2, -6.5, 'barrel'], [10, -17, 'barrel'], [-7.5, -50, 'barrel'], [6.5, -38, 'lpg']],
+  pans: [[-10.4, 70], [-6, 64.5], [2.5, 50]],
+  tools: [[-10.6, 56, 'extinguisher']],
+  spots: { barrels: [[0, 71], [-10, 48.5], [2, 44.5], [-6, 58], [-1, 20], [-10, -15]], pans: [[2, 72.5], [-9.5, 44], [1, 56], [-10.5, 63]], tools: [[-10, 74.5], [2.5, 66], [-5, 73]] },
   fixtures: [
-    [-5.5, 11, 'lamp'],
-    [6, 17.5, 'lamp'],
-    [-16.6, 23, 'sign', 90],
-    [16.6, 18.5, 'sign', 270],
+    [-9.5, 50, 'lamp'],
+    [1.5, 64, 'lamp'],
+    [Math.round((ruinsFace(RUINS_BUILDINGS.find((b) => b[0] === 'w791076497')[4], 57.5, -4, false) + 0.5) * 100) / 100, 57.5, 'sign', 90], // off the west face
+    [Math.round((ruinsFace(RUINS_YELLOW, 62, -4) - 0.9) * 100) / 100, 62, 'sign', 270], // under the arcade, between its columns
   ],
-  pads: [[0, 20.5], [0, -15]],
+  pads: [[-4, 58], [0, -13]],
+  // the shield man (boss.js BULWARK): out of the old nave through the façade's middle doorway onto the terrace
+  boss: { kind: 'bulwark', from: [RUINS.doors[1][0], -26], at: [RUINS.doors[1][0], -18] },
   stages: [
-    { name: '前地', en: 'FORECOURT', at: [-2.5, 17.5], move: 'pan' },
-    { name: '花槽', en: 'PLANTERS', at: [-9, 21.4], move: 'boom' },
-    { name: '第一平台', en: 'FIRST LANDING', at: [0, 2.5], move: 'high' },
-    { name: '牌坊下', en: 'UNDER THE FAÇADE', at: [3, -19.8], move: 'slide' },
+    { name: '前地', en: 'FORECOURT', at: [-1, 63], move: 'pan' }, // between the doors: a beat here comes in from the west and the east
+    { name: '花槽', en: 'PLANTERS', at: [-6, 45], move: 'boom' },
+    { name: '平台', en: 'THE TERRACE', at: [-8, -12], move: 'boom' }, // on the terrace (同一水平: the landings are the way up, not a place to fight)
+    { name: '牌坊下', en: 'UNDER THE FAÇADE', at: [5, -18.5], move: 'slide' },
+    { name: '舊教堂遺址', en: 'THE OLD NAVE', at: [0, -46], move: 'slide' },
   ],
   spawns: [
-    { x: -8, z: 29.4, ex: -8, ez: 27, kind: 'gate' }, // the forecourt's south side
-    { x: 9, z: 29.4, ex: 9, ez: 27, kind: 'gate' },
-    { x: -19.4, z: 16.5, ex: -15.5, ez: 16.5, kind: 'gate' }, // the lanes into the forecourt
-    { x: 19.4, z: 22.5, ex: 15.5, ez: 22.5, kind: 'gate' },
-    { x: -19.4, z: -14.25, ex: -13.5, ez: -14.25, kind: 'gate' }, // the side streets up to the terrace
-    { x: 19.4, z: -14.25, ex: 13.5, ez: -14.25, kind: 'gate' },
+    { x: -13, z: 79.5, ex: -13, ez: 75, kind: 'gate' }, // the forecourt's south-west corner (大三巴街)
+    { x: 23.4, z: 75.2, ex: 7.5, ez: 75.2, kind: 'gate' }, // the lane south of the yellow building
+    { x: -23.4, z: 71, ex: -15, ez: 71, kind: 'gate' }, // where the forecourt widens to the west
+    { x: -22.6, z: -12.75, ex: -13.5, ez: -12.75, kind: 'gate' }, // the lanes up to the terrace (戀愛巷, 大三巴斜巷; the west one's corner building reaches x -23.4)
+    { x: 23.4, z: -12.75, ex: 14, ez: -12.75, kind: 'gate' },
+    { x: 23.4, z: -40, ex: 7.5, ez: -40, kind: 'gate' }, // the path down from the fort into the nave
   ],
   decorate(L) {
     ruinsDecorate(L);
@@ -1682,7 +1792,7 @@ const ruins = {
 
 /** The steps and the façade, stylised, in few meshes (merged boxes). */
 function ruinsDecorate(L) {
-  const { halfW: W, stairs: S, terrace: T, profile: P, flights, facade: F, doors, nave } = RUINS;
+  const { halfW: W, halfD: D, steps: S, walk: K, terrace: T, profile: P, flights, facade: F, doors, nave: N } = RUINS;
   const std = (o) => L.own(new THREE.MeshStandardMaterial({ roughness: 0.85, ...o }));
   const boxes = (list, mat, cast = false) => {
     if (!list.length) return null;
@@ -1692,67 +1802,105 @@ function ruinsDecorate(L) {
     return L.add(mesh);
   };
   const stone = std({ color: 0xb8a58a, roughness: 0.92 });
-  // the steps: each flight's treads stacked from the forecourt's level, the landings and the terrace flat between
+  // the steps across the main flight and the walkway: each flight's treads stacked from the forecourt's level, the
+  // landings and the terrace flat between
+  const x0 = S[0];
+  const x1 = K[1];
   const steps = [];
   let f = 0;
   for (let i = 1; i < P.length; i++) {
     const [z0, y0] = P[i - 1];
     const [z1, y1] = P[i];
     if (y1 === y0) {
-      steps.push([0, 0, (z0 + z1) / 2, 2 * S, y0, z0 - z1]); // a landing
+      steps.push([(x0 + x1) / 2, 0, (z0 + z1) / 2, x1 - x0, y0, z0 - z1]); // a landing
       continue;
     }
     const n = flights[f++];
     const run = (z0 - z1) / n;
-    for (let k = 0; k < n; k++) steps.push([0, 0, z0 - run * (k + 0.5), 2 * S, y0 + ((y1 - y0) * (k + 1)) / n, run]);
+    for (let k = 0; k < n; k++) steps.push([(x0 + x1) / 2, 0, z0 - run * (k + 0.5), x1 - x0, y0 + ((y1 - y0) * (k + 1)) / n, run]);
   }
   const top = P[P.length - 1];
-  steps.push([0, 0, (top[0] + F) / 2, 2 * T, top[1], top[0] - F]); // the terrace
-  steps.push([0, 0, (F + nave[1]) / 2, 2 * nave[0], top[1], F - nave[1]]); // the nave's floor behind the façade
+  const front = F.z + F.depth / 2;
+  const back = F.z - F.depth / 2;
+  steps.push([(T[0] + T[1]) / 2, 0, (top[0] + front) / 2, T[1] - T[0], top[1], top[0] - front]); // the terrace
+  steps.push([(N.x[0] + N.x[1]) / 2, 0, (back + N.back) / 2, N.x[1] - N.x[0], top[1], back - N.back]); // the nave's floor behind the façade
   boxes(steps, stone);
-  // the slopes beside the steps: rough stone walls with greenery along their tops
-  const slopeMat = std({ color: 0x6d6457, roughness: 0.95 });
+  // the side walls, the zigzag planter and the hill: rough stone in one mesh, greenery along their tops in another
+  const slope = [];
   const green = [];
   for (const sd of L.solids) {
     if (sd.matKey !== 'slope') continue;
-    sd.mesh.material = slopeMat;
-    green.push([(sd.minX + sd.maxX) / 2, sd.h, (sd.minZ + sd.maxZ) / 2, sd.maxX - sd.minX - 0.3, 0.5, sd.maxZ - sd.minZ - 0.3]);
+    sd.mesh.visible = false; // drawn merged below: dozens of pieces, two meshes
+    const w = sd.maxX - sd.minX;
+    const d = sd.maxZ - sd.minZ;
+    slope.push([(sd.minX + sd.maxX) / 2, 0, (sd.minZ + sd.maxZ) / 2, w, sd.h, d]);
+    green.push([(sd.minX + sd.maxX) / 2, sd.h, (sd.minZ + sd.maxZ) / 2, w - 0.3, 0.5, d - 0.3]);
   }
+  boxes(slope, std({ color: 0x6d6457, roughness: 0.95 }), true);
   boxes(green, std({ color: 0x2e4a2a, roughness: 1 }));
-  // the façade: four tiers of columns and cornices over three doorways, a pediment at the top, lit warm from below
+  // the façade: four tiers over three doorways, columns and cornices on its face, a pediment at the top, lit warm
+  // from below; the wall itself drawn tier by tier, narrower as it rises (its pieces' boxes are only for collision)
   const face = std({ color: 0xc9b392, roughness: 0.9 });
-  const front = F + 0.6; // its south face
+  const cx = (F.x[0] + F.x[1]) / 2;
   const y0 = top[1];
   const parts = [];
-  const tiers = [5.2, 4.4, 4, 3.2];
+  // the three lower tiers the full width, the fourth and the pediment narrower (the study's photographs)
+  const tiers = [
+    [6.5, F.x[1] - F.x[0]],
+    [6, F.x[1] - F.x[0] - 0.4],
+    [5.5, F.x[1] - F.x[0] - 0.8],
+    [4, 13],
+  ];
   let y = y0;
-  tiers.forEach((h, t) => {
-    const width = [26, 24, 18, 10][t];
+  tiers.forEach(([h, width], t) => {
+    if (t > 0) parts.push([cx, y, F.z, width, h, F.depth]); // the wall of the tier
     for (let c = 0; c <= 6; c++) {
-      const x = -width / 2 + (width * c) / 6;
+      const x = cx - width / 2 + (width * c) / 6;
       if (t === 0 && doors.some(([dx, dw]) => Math.abs(x - dx) < dw / 2 + 0.4)) continue; // none in a doorway
       parts.push([x, y, front + 0.25, 0.7, h, 0.5]); // a column
     }
-    parts.push([0, y + h - 0.35, front + 0.3, width + 1, 0.35, 0.6]); // the cornice over the tier
+    parts.push([cx, y + h - 0.35, front + 0.3, width + 1, 0.35, 0.6]); // the cornice over the tier
     y += h;
   });
-  parts.push([0, y, front + 0.2, 6, 1.6, 0.4], [0, y + 1.6, front + 0.2, 2.4, 1.2, 0.4]); // the pediment
-  // over each doorway the wall goes on up (the pieces of the wall stand between them), a frame round it
+  parts.push([cx, y, F.z, 7, 1.8, 1.2], [cx, y + 1.8, F.z, 3.6, 1.7, 1.2]); // the pediment
+  // the first tier: the wall between and over the doorways, a frame round each
+  for (const sd of L.solids) {
+    if (sd.matKey !== 'facade' || sd.h < y0 + 10) continue;
+    sd.mesh.visible = false;
+    parts.push([(sd.minX + sd.maxX) / 2, y0, F.z, sd.maxX - sd.minX, tiers[0][0], F.depth]);
+  }
   for (const [x, w, h] of doors) {
-    parts.push([x, y0 + h, F, w, 18 - h, 1.2]);
+    parts.push([x, y0 + h, F.z, w, tiers[0][0] - h, F.depth]);
     parts.push([x - w / 2 - 0.15, y0, front + 0.08, 0.3, h + 0.3, 0.16], [x + w / 2 + 0.15, y0, front + 0.08, 0.3, h + 0.3, 0.16], [x, y0 + h, front + 0.08, w + 0.6, 0.3, 0.16]);
   }
   boxes(parts, face, true);
-  for (const sd of L.solids) if (sd.matKey === 'facade') sd.mesh.material = face;
+  for (const sd of L.solids) if (sd.matKey === 'facade' && sd.mesh.visible) sd.mesh.material = face;
   // the steel that holds the façade up from behind, against its back
   const steel = [];
-  for (const x of [-15, -10.5, 10.5, 15]) steel.push([x, y0, F - 0.75, 0.3, 17, 0.3]); // its posts rise out of the hill
-  for (const ht of [6, 12]) steel.push([0, y0 + ht, F - 0.75, 2 * W - 2, 0.3, 0.3]);
+  for (const x of [cx - 9, cx - 4.5, cx + 4.5, cx + 9]) steel.push([x, y0, back - 0.4, 0.3, 22, 0.3]); // its posts rise out of the nave
+  for (const ht of [7, 15]) steel.push([cx, y0 + ht, back - 0.4, F.x[1] - F.x[0] - 1, 0.3, 0.3]);
   boxes(steel, std({ color: 0x3a3d42, roughness: 0.6, metalness: 0.5 }), true);
-  // the shop rows: brick, the names made up
+  // the buildings: each outline a solid (collision) and, extruded, one of two meshes, the yellow building its own colour;
+  // those on the hill stand on the terrace's level. Shops shuttered for the night, their names made up
+  const blocks = [];
+  const yellow = [];
+  for (const [id, h, , upper, ring] of RUINS_BUILDINGS) {
+    const tall = (upper ? top[1] : 0) + h;
+    L.addPoly(ring, tall, 'wall');
+    const shape = new THREE.Shape(ring.map(([x, z]) => new THREE.Vector2(x, -z)));
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: tall, bevelEnabled: false }).rotateX(-Math.PI / 2);
+    (id === RUINS.yellow ? yellow : blocks).push(geo);
+  }
+  const extruded = (list, mat) => {
+    const mesh = new THREE.Mesh(L.own(mergeGeometries(list)), mat);
+    mesh.castShadow = mesh.receiveShadow = true;
+    return L.add(mesh);
+  };
+  extruded(blocks, std({ color: 0x7b746c, roughness: 0.9 }));
+  extruded(yellow, std({ color: 0xd2a94a, roughness: 0.8 }));
   for (const [x, z, ry, name, en] of [
-    [-17, 12, Math.PI / 2, '雲記餅家', 'WAN KEE BAKERY'],
-    [17, 27, -Math.PI / 2, '利來肉乾', 'LEI LOI JERKY'],
+    [ruinsFace(RUINS_BUILDINGS.find((b) => b[0] === 'w791076497')[4], 52, -4, false), 52, Math.PI / 2, '雲記餅家', 'WAN KEE BAKERY'],
+    [ruinsFace(RUINS_YELLOW, 58, -4), 58, -Math.PI / 2, '利來肉乾', 'LEI LOI JERKY'],
   ]) {
     sign(
       L,
@@ -1763,13 +1911,30 @@ function ruinsDecorate(L) {
       4,
       1,
       x + Math.sign(-x) * 0.06,
-      3.4,
+      5,
       z,
       ry,
       1.6,
     );
   }
-  cityBackdrop(L, { facade: false, keepOut: [W + 8, RUINS.halfD + 8] });
+  cityBackdrop(L, { facade: false, keepOut: [W + 28, D + 32] }); // past the outlines drawn from OSM
 }
 
 export const MAPS = [rooftop, club, docks, senado, felicidade, guia, ruins];
+
+/**
+ * How a run plays apart from the maps, as a revision: up one whenever a change to the game's own rules makes the same
+ * input play another run. 1: the weapon pads fill once a stage, fewer and emptier dropped guns (config.js FIREPOWER).
+ * 2: thicker enemies, more each stage (ENEMY_HP). 3: quicker each stage, 正常 and 芭蕾 aim faster (RAMP, rules.js).
+ * 4: gunmen and blades roll aside from the player's fire (AI.dodge). 5: riflemen and shotgunners strafe, men vault low
+ * cover, the hurt fall back (AI.strafe, vault, retreat). 6: the tumbler, from wave 5 (enemies.js TYPES, AI.tumble).
+ * 7: the captain and his two guards, from wave 7 (AI.captain).
+ */
+export const PLAY_REV = 7;
+
+/**
+ * The game's revision as one byte, for the input record (replay.js): the sum of every map's `rev` and PLAY_REV. A
+ * replay of a run on maps since rebuilt, or under rules since changed (another MAPS_REV), still plays, but no longer
+ * as it was played; the game says so.
+ */
+export const MAPS_REV = (MAPS.reduce((s, m) => s + m.rev, 0) + PLAY_REV) % 256;

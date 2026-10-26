@@ -1,0 +1,22 @@
+{
+  "id": "club",
+  "name": "黑沙環的工業大廈（夜店）",
+  "en": "An industrial block in Areia Preta (the club)",
+  "origin": {
+    "lat": 22.2093893,
+    "lon": 113.5515544,
+    "note": "the middle of an industrial building's outline on Estrada Marginal do Hipódromo (OSM way 330769763); neither the game nor this study names the building"
+  },
+  "rotDeg": -71.1,
+  "rotNote": "the building's long sides run at a bearing of 18.9° (OSM way 330769763): turned 71.1° clockwise they lie along the game's x axis",
+  "half": 200,
+  "plan": {
+    "view": [
+      -55,
+      -45,
+      55,
+      45
+    ],
+    "note": "the building, the streets round it and the blocks across them"
+  }
+}

@@ -141,7 +141,8 @@ test('the swing: the thug in the arc flies dazed (then F executes him), the blad
     const thug = window.post('grunt', -0.7, 2.6);
     const blade = window.post('rusher', 0.8, 2.6);
     window.play(1, ['KeyF']);
-    const swing = { thug: { stun: thug.stunT > 0, cause: thug.stunCause, hp: thug.hp, alive: thug.alive }, blade: { dead: blade.dead }, swingT: g.player.swingT, pan: g.thrown.inHand && pan.carried };
+    // his health in the hits it was counted in before ENEMY_HP (a pan's smash takes as many as ever)
+    const swing = { thug: { stun: thug.stunT > 0, cause: thug.stunCause, hp: Math.round((thug.hp / thug.tough) * 1000) / 1000, alive: thug.alive }, blade: { dead: blade.dead }, swingT: g.player.swingT, pan: g.thrown.inHand && pan.carried };
     window.play(6);
     // the thug flew off dazed: F again, close enough, is an execution
     p.x = thug.x;

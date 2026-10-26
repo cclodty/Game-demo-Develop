@@ -59,10 +59,13 @@ export const problems = (logs) => logs.filter((l) => !/GPU stall|SwiftShader|swi
  * without one they are random, so each test run explores a little differently.
  * `mode` picks arcade or endless first. When the run ends the bot starts
  * another, unless `restart` is false: then simStep stops on the end screen.
+ * For measuring (scripts/measure.mjs): with `god` the player is hurt as usual
+ * but never goes down, so every wave is played; with `loot` the bot walks to
+ * the nearest weapon lying about whenever slot 2 holds nothing of use.
  */
-export async function installBot(page, { map = 0, view = 2, seed = null, mode = null, restart = true } = {}) {
+export async function installBot(page, { map = 0, view = 2, seed = null, mode = null, restart = true, god = false, loot = false } = {}) {
   await page.evaluate(
-    ([map, view, seed, mode, restart]) => {
+    ([map, view, seed, mode, restart, god, loot]) => {
       const g = window.game;
       g.frame = () => {};
       g.view = view; // before startRun, so the camera starts in this view instead of easing into it
@@ -95,6 +98,7 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
       };
       const hurt0 = g.player.hurt.bind(g.player);
       g.player.hurt = (d, x, z, e) => {
+        if (god) g.player.hp = Math.max(g.player.hp, d + 1);
         const r = hurt0(d, x, z, e);
         if (r) {
           stats.hits++;
@@ -107,6 +111,8 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
       let wanderT = 0;
       let chase = null; // a point on the way to a target the guns cannot reach from here, and when to look again
       let chaseT = 0;
+      let lootT = 0;
+      let lootTo = null; // with `loot`: the next corner on the way to a weapon on the floor
       let i = 0;
       window.simStep = (n) => {
         const dt = 1 / 60;
@@ -116,6 +122,7 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
           inp.keys.clear();
           inp.mouse.leftPressed = inp.mouse.rightPressed = inp.mouse.rightReleased = false;
           const p = g.player;
+          if (god) p.hp = 100;
           let target = null;
           let best = 1e9;
           for (const e of g.enemies.list) {
@@ -129,7 +136,9 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
           // a boss with a weak point the banner tells the player about (boss.js): the armoured truck's back
           // door while it unloads. Shots into it count only from behind, so the bot walks round to there and fires.
           // The others it meets in an arcade run from the rooftop (a boss each stage): below.
-          const boss = g.boss;
+          // two at once (boss.js duo): the one of the two nearest the player
+          const near = (list) => list.filter((m) => m.active).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
+          const boss = (g.boss.members && near(g.boss.members)) || g.boss;
           let door = null;
           let goal = null;
           let behind = false;
@@ -142,13 +151,18 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
             door = { x: boss.x + bx * (back + 0.1), z: boss.z + bz * (back + 0.1) };
             goal = { x: boss.x + bx * (back + 5), z: boss.z + bz * (back + 5) };
             behind = (p.x - boss.x) * bx + (p.z - boss.z) * bz > back + 0.5;
-          } else if (boss.active && boss.def && boss.def.kind === 'gunner' && boss.state !== 'enter') {
-            // the heavy gunner's steel plate: shots count only on his back, so the bot runs round behind him and fires
+          } else if (boss.active && boss.def && (boss.def.kind === 'gunner' || boss.def.kind === 'bulwark') && boss.state !== 'enter') {
+            // the heavy gunner's steel plate, the shield man's shield: shots count only on his back, so the bot runs
+            // round behind him and fires (the shield man's also while his shield is down)
             const bx = -Math.sin(boss.facing);
             const bz = -Math.cos(boss.facing);
             door = { x: boss.x, z: boss.z };
             goal = { x: boss.x + bx * 4, z: boss.z + bz * 4 };
-            behind = (p.x - boss.x) * bx + (p.z - boss.z) * bz > 1;
+            behind = (p.x - boss.x) * bx + (p.z - boss.z) * bz > 1 || (boss.def.kind === 'bulwark' && !boss.shieldUp);
+          } else if (boss.active && boss.def && (boss.def.kind === 'marksman' || boss.def.kind === 'buckshot') && boss.state !== 'enter') {
+            // Senado's two: shots on either count wherever they hit, so the bot fires at the nearer
+            door = { x: boss.x, z: boss.z };
+            behind = g.level.hasLOS(p.x, p.z, boss.x, boss.z);
           } else if (boss.active && boss.def && boss.def.kind === 'blade') {
             // the blade queen: a shot counts only in her window (blades up after a dash), so the bot fires at her then
             door = { x: boss.x, z: boss.z };
@@ -221,6 +235,17 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
               if (path) chase = path.find((q) => Math.hypot(q.x - p.x, q.z - p.z) > 0.75) || null;
             }
           }
+          lootT -= dt;
+          if (!loot || goal || door || heli || (p.special && !p.special.empty)) lootTo = null;
+          else if (lootT <= 0) {
+            lootT = 0.25;
+            lootTo = null;
+            let near = null;
+            for (const q of g.pickups.list) if (!near || Math.hypot(q.x - p.x, q.z - p.z) < Math.hypot(near.x - p.x, near.z - p.z)) near = q;
+            const path = near && g.level.nav.findPath(p.x, p.z, near.x, near.z);
+            if (path && path.length) lootTo = path.find((q) => Math.hypot(q.x - p.x, q.z - p.z) > 0.5) || path[path.length - 1];
+          }
+          if (lootTo) chase = lootTo;
           let kx = wanderX;
           let kz = wanderZ;
           if (chase && !goal) {
@@ -281,7 +306,7 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
         return true;
       };
     },
-    [map, view, seed, mode, restart],
+    [map, view, seed, mode, restart, god, loot],
   );
 }
 

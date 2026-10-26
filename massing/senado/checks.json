@@ -1,0 +1,12 @@
+[
+  { "id": "fountain-steps", "what": "噴水池下沉台階的外徑", "real": 7.1, "tol": 0.05, "source": "senado/README.md 噴水池（v3）：台階 7.1 → 6.1 m", "game": { "type": "value", "path": "fountain.stepsOuter" } },
+  { "id": "fountain-pool", "what": "粉紅花崗岩外池壁的外徑", "real": 4.5, "tol": 0.05, "source": "senado/README.md 噴水池（v3）", "game": { "type": "value", "path": "fountain.poolOuter" } },
+  { "id": "fountain-basin", "what": "深色內池的外徑", "real": 2.9, "tol": 0.05, "source": "senado/README.md 噴水池（v3）", "game": { "type": "value", "path": "fountain.basinOuter" } },
+  { "id": "narrow-south", "what": "廣場南段的窄處（牆到牆，遊戲 z −45）", "real": 9.71, "tol": 0.3, "source": "senado/data/senado_massing.json 的輪廓，經 src/senado/transform.js", "game": { "type": "gap", "at": [0, -45], "axis": "x" } },
+  { "id": "middle", "what": "廣場中段（牆到牆，遊戲 z −20）", "real": 12.1, "tol": 0.3, "source": "同上", "game": { "type": "gap", "at": [0, -20], "axis": "x" } },
+  { "id": "fountain-reach", "what": "近噴水池南面（牆到牆，遊戲 z 0）", "real": 15.47, "tol": 0.3, "source": "同上", "game": { "type": "gap", "at": [0, 0], "axis": "x" } },
+  { "id": "misericordia", "what": "東側的仁慈堂大樓", "real": 16.5, "tol": 0.3, "source": "senado/data/senado_massing.json（osm:height）", "game": { "type": "height", "at": [18.5, 17.5] } },
+  { "id": "tourism-office", "what": "西側的旅遊局大樓", "real": 18.7, "tol": 0.3, "source": "senado/data/senado_massing.json（osm:height）", "game": { "type": "height", "at": [-25.3, 20] } },
+  { "id": "east-south", "what": "東側南段的商業大廈", "real": 22.8, "tol": 0.3, "source": "senado/data/senado_massing.json（osm:height）", "game": { "type": "height", "at": [24.9, -22.4] } },
+  { "id": "west-middle", "what": "西側中段的住宅", "real": 17.4, "tol": 0.3, "source": "senado/data/senado_massing.json（osm:height）", "game": { "type": "height", "at": [-12.4, -17.3] } }
+]

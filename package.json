@@ -15,6 +15,10 @@
     "music:preview": "node scripts/music-preview.mjs",
     "assets": "node scripts/assets.mjs",
     "assets:docs": "node scripts/asset-docs.mjs",
+    "measure": "node scripts/measure.mjs",
+    "massing:fetch": "node scripts/massing/fetch.mjs",
+    "massing:build": "node scripts/massing/build.mjs",
+    "massing:plan": "node scripts/massing/plan.mjs",
     "senado:data": "python3 senado/scripts/build_data.py",
     "senado:glb": "node senado/scripts/export_glb.mjs",
     "senado:serve": "python3 -m http.server 8000 --directory senado"

@@ -2,7 +2,7 @@
 // you can read, dodge, deflect and ricochet them.
 
 import * as THREE from 'three';
-import { BULLET, GUN_Y, PAN, PLAYER } from './config.js';
+import { BULLET, GUN_Y, LEVELS, PAN, PLAYER } from './config.js';
 import { pointSegDist2, segCircle } from './utils.js';
 
 function trailGeometry(headW, tailW) {
@@ -78,6 +78,7 @@ export class Bullets {
     const b = this.acquire(o.look || (o.owner === 'player' ? 'player' : 'enemy'));
     b.x = o.x;
     b.z = o.z;
+    b.ground0 = this.game.level.groundY(o.x, o.z); // the level it was fired on (同一水平: it does not leave it)
     b.dx = o.dx;
     b.dz = o.dz;
     b.speed = o.speed;
@@ -176,6 +177,7 @@ export class Bullets {
       }
     }
     if (!b.alive) return;
+    if (this.offLevel(b, sx, sz)) return;
 
     if (b.owner === 'enemy') this.checkCloseCall(b, sx, sz);
     // off the map: 30 m past its edges (a fixed 60 m used to end every shot fired in Senado's south end, 74 m long)
@@ -184,6 +186,30 @@ export class Bullets {
       if (b.traveled > b.range && b.owner === 'enemy') this.game.fx.sparks(b.x, GUN_Y, b.z, b.dx, b.dz, 3, [3, 0.6, 0.3], 3);
       b.alive = false;
     }
+  }
+
+  /**
+   * 同一水平 (DECISIONS 2026-10-22): a shot does not leave the level it was fired on. Where the ground under it has
+   * risen or fallen more than LEVELS.tol from where it was fired (the edge of a flight of 大三巴's steps) it stops, in a
+   * puff of stone; found between where this step began (sx, sz) and where it is. True when it stopped.
+   */
+  offLevel(b, sx, sz) {
+    const L = this.game.level;
+    if (!L.groundFn) return false;
+    const off = (x, z) => Math.abs(L.groundY(x, z) - b.ground0) > LEVELS.tol;
+    if (!off(b.x, b.z)) return false;
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 10; i++) {
+      const m = (lo + hi) / 2;
+      if (off(sx + (b.x - sx) * m, sz + (b.z - sz) * m)) hi = m;
+      else lo = m;
+    }
+    b.x = sx + (b.x - sx) * lo;
+    b.z = sz + (b.z - sz) * lo;
+    this.game.fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 5, [2.2, 2, 1.7], 5); // drawn over the ground there (fx.js)
+    b.alive = false;
+    return true;
   }
 
   findHit(b, x0, z0, x1, z1) {
@@ -198,7 +224,7 @@ export class Bullets {
 
     if (b.owner === 'player') {
       for (const e of game.enemies.list) {
-        if (!e.alive || e.spawnLock > 0 || e.held || (b.hits.length && b.hits.includes(e))) continue; // the human shield is the player's own
+        if (!e.alive || e.spawnLock > 0 || e.held || e.untouchable || (b.hits.length && b.hits.includes(e))) continue; // the human shield is the player's own; a tumbler mid-roll lets it through
         const t = segCircle(x0, z0, x1, z1, e.x, e.z, e.radius + 0.16);
         if (t >= 0 && (!best || t < best.t)) best = { t, type: 'enemy', enemy: e };
       }
@@ -227,6 +253,11 @@ export class Bullets {
       if (hs && hs.alive) {
         const t = segCircle(x0, z0, x1, z1, hs.x, hs.z, hs.radius);
         if (t >= 0 && (!best || t < best.t)) best = { t, type: 'hostage' };
+      }
+      // one of a duo's bullets can meet the other of the two (CROSSFIRE, boss.js)
+      if (b.source && b.source.team && game.boss.members) {
+        const bh = game.boss.shotAt(x0, z0, x1, z1, b.source);
+        if (bh && (!best || bh.t <= best.t)) best = { t: bh.t, type: 'boss', part: bh.part };
       }
       // Enemy bullets can also hit other enemies (friendly fire after a ricochet).
       if (b.reflected) {

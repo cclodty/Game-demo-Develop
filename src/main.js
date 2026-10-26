@@ -10,7 +10,7 @@ import { FX } from './fx.js';
 import { HUD } from './hud.js';
 import { ACTIONS, Input, keyName, padButtonName, padLabel, StepInput } from './input.js';
 import { Level } from './level.js';
-import { MAPS } from './maps.js';
+import { MAPS, MAPS_REV } from './maps.js';
 import { nightRoute, NightStore } from './night.js';
 import { loadedCharacters, loadModels } from './models.js';
 import { Notes } from './notes.js';
@@ -88,7 +88,7 @@ class Game {
     this.feed = null;
     this.record = new InputRecord();
     this.replays = new ReplayStore(); // the last ten runs' records, for the replay list
-    this.replay = null; // while a record plays back: { rd, speed, meta, mode }
+    this.replay = null; // while a record plays back: { rd, speed, meta, mode, stale } (stale: recorded on other maps, maps.js rev)
     this.now = () => Date.now(); // the wall clock, read only to pick the daily challenge's day (tests set their own)
     this.daily = new DailyStore(); // this browser's daily results
     this.night = new NightStore(); // how far 澳門一夜 has got in this browser
@@ -734,7 +734,7 @@ class Game {
     const pick = this.fixedRules ?? { difficulty: this.difficulty, variants: this.variants };
     this.ruleset = rulesFor(pick.difficulty, pick.variants);
     const rules = packRules(this.ruleset.difficulty, this.ruleset.variants);
-    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, rules, hz: LOGIC_HZ });
+    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, rules, hz: LOGIC_HZ, mapsRev: MAPS_REV });
     this.resetWorld(MAPS[mapIndex]);
     this.score.useBest(this.mode, this.ruleset);
     this.score.reset();
@@ -1021,6 +1021,7 @@ class Game {
         score: Math.round(this.score.score),
         grade,
         seconds: Math.round(this.record.steps / LOGIC_HZ),
+        mapsRev: MAPS_REV,
       },
       this.record.encode(),
     );
@@ -1055,6 +1056,16 @@ class Game {
     this.feed = (game) => rd.next(game.player.x, game.player.z);
     this.setReplaySpeed(1);
     this.notes.log(`重播 ${meta.name || ''}`.trim());
+    // recorded on maps since rebuilt or under rules since changed (maps.js rev, PLAY_REV): it plays, but not as it was played, and the player is told; one
+    // from before the maps had revisions (a version 4 record) may or may not be the same: 'unknown'
+    this.replay.stale = rd.mapsRev === MAPS_REV ? false : rd.mapsRev == null ? 'unknown' : true;
+    if (this.replay.stale === true) {
+      this.notes.log('遊戲已改版：重播會同錄的時候不一樣');
+      this.hud.banner('REPLAY', '遊戲已改版：這局會同錄的時候不一樣', 'stage');
+    } else if (this.replay.stale) {
+      this.notes.log('遊戲版本未知：重播可能同錄的時候不一樣');
+      this.hud.banner('REPLAY', '遊戲版本未知：這局可能同錄的時候不一樣', 'stage');
+    }
     return null;
   }
 
@@ -1110,7 +1121,7 @@ class Game {
       const d = new Date(r.at);
       row.append(
         cell('replay-when', `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`),
-        cell('replay-what', [r.map, r.mode, r.rules].filter(Boolean).join(' · ')),
+        cell('replay-what', [r.map, r.mode, r.rules, r.mapsRev == null ? '遊戲版本未知' : r.mapsRev === MAPS_REV ? '' : '遊戲已改版'].filter(Boolean).join(' · ')),
         cell('replay-how', `${result[r.result] || ''} · 第 ${r.wave} 波 · ${clock(r.seconds)}`),
         cell('replay-score', `${Number(r.score).toLocaleString('en-US')}${r.grade ? ` ${r.grade}` : ''}`),
       );
@@ -1241,10 +1252,10 @@ class Game {
     // 澳門一夜 from where it starts to its end, each map at its hour; any other the maps after the one picked
     const maps = r.night ? NIGHT.slice(Math.max(0, NIGHT.indexOf(start))).map((i) => MAPS[i]) : Array.from({ length: Math.ceil(r.waves / r.perStage) }, (_, i) => MAPS[(start + i) % MAPS.length]);
     const stages = maps.length;
+    const named = (def) => (def.kind === 'duo' ? def.pair.map(named).join('與') : BOSSES[def.kind].cfg.route || BOSSES[def.kind].cfg.short); // two at once: 刀后與重炮
     const bosses = maps
-      .map((m, i) => (r.midBoss || i === stages - 1) && m.boss && BOSSES[m.boss.kind])
-      .filter(Boolean)
-      .map((b) => b.cfg.route || b.cfg.short);
+      .map((m, i) => (r.midBoss || i === stages - 1) && m.boss && BOSSES[m.boss.kind] && named(m.boss))
+      .filter(Boolean);
     return `${maps.map((m) => (r.night ? `${m.hour} ${m.name}` : m.name)).join(' → ')}${bosses.length ? `（頭目：${bosses.join('、')}）` : ''}`;
   }
 
@@ -1755,8 +1766,51 @@ class Game {
       // at gun height over the ground the player stands on (up a flight of steps: 大三巴)
       this.aimPlane.constant = -(GUN_Y + this.level.groundY(this.player.x, this.player.z));
       this.raycaster.ray.intersectPlane(this.aimPlane, this.aimPoint);
+      // what the player sees is what the aim hits (同一水平 ②): the cursor on an enemy's body as it is drawn, wherever
+      // that is (a drone 2.5 m up), aims at him, not at the floor behind or in front of him
+      const e = this.pickEnemy(m.x, m.y);
+      if (e) this.aimPoint.set(e.x, this.aimPoint.y, e.z);
     }
     this.aimFresh = true;
+  }
+
+  /**
+   * The enemy whose body as drawn the screen point (px, py) is on, or null: his body is the line on the screen from
+   * his feet to the top of his head (a drone's: its body up in the air), as wide as his radius and a shot's; of two,
+   * the one nearer the camera. Only what is shown: the aim point it gives is the step's recorded input.
+   */
+  pickEnemy(px, py) {
+    const cam = this.camera;
+    const v = this.pickV || (this.pickV = new THREE.Vector3());
+    const right = this.pickR || (this.pickR = new THREE.Vector3());
+    right.setFromMatrixColumn(cam.matrixWorld, 0); // the camera's right, in the world
+    const screen = (x, y, z) => {
+      v.set(x, y, z).project(cam);
+      return [((v.x + 1) / 2) * innerWidth, ((1 - v.y) / 2) * innerHeight, v.z];
+    };
+    let best = null;
+    let bestDepth = Infinity;
+    for (const e of this.enemies.list) {
+      if (!e.alive || !e.rig) continue;
+      const at = e.rig.root.position; // where he is drawn: his feet, or under a drone at its height
+      const [lo, hi] = e.cfg.fly ? [-0.3, 0.3] : [0.1, 1.8 * ((e.cfg.look && e.cfg.look.scale) || 1)];
+      const [ax, ay, depth] = screen(at.x, at.y + lo, at.z);
+      const [bx, by] = screen(at.x, at.y + hi, at.z);
+      const mid = (lo + hi) / 2;
+      const reach = e.radius + 0.16; // a shot meets him this close to his middle (bullets.js)
+      const [cx] = screen(at.x, at.y + mid, at.z);
+      const [rx] = screen(at.x + right.x * reach, at.y + mid + right.y * reach, at.z + right.z * reach);
+      const r = Math.max(4, Math.abs(rx - cx));
+      // the cursor's distance on the screen from the line feet to head
+      const sx = bx - ax;
+      const sy = by - ay;
+      const t = clamp(((px - ax) * sx + (py - ay) * sy) / (sx * sx + sy * sy || 1), 0, 1);
+      if (Math.hypot(px - ax - sx * t, py - ay - sy * t) <= r && depth < bestDepth) {
+        bestDepth = depth;
+        best = e;
+      }
+    }
+    return best;
   }
 
   /**
@@ -1962,11 +2016,14 @@ class Game {
       tx += lx;
       tz += lz;
       zoom *= lerp(1, CAMERA.focusZoom, this.focusAmt);
-      if (this.boss.active && this.boss.cfg.pull) {
-        // a boss in the air: pull back and lean towards it, so it is in the picture
-        tx = lerp(tx, this.boss.x, CAMERA.bossPull);
-        tz = lerp(tz, this.boss.z, CAMERA.bossPull);
-        zoom *= CAMERA.bossZoom;
+      // a boss in the air, or one who shoots from afar (one of a duo, too): pull back and lean towards it, so it is in the
+      // picture (CAMERA.bossPull and bossZoom, or the kind's own `pull`: boss.js)
+      const far = this.boss.active && (this.boss.members ? this.boss.members.find((m) => m.active && m.cfg.pull) : this.boss.cfg.pull && this.boss);
+      if (far) {
+        const pull = far.cfg.pull;
+        tx = lerp(tx, far.x, pull.lean ?? CAMERA.bossPull);
+        tz = lerp(tz, far.z, pull.lean ?? CAMERA.bossPull);
+        zoom *= pull.zoom ?? CAMERA.bossZoom;
       }
       if (this.killcamT > 0) {
         tx = lerp(tx, this.killcamPos.x, 0.6);
