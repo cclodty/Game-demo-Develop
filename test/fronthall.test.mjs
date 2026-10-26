@@ -76,8 +76,8 @@ after(async () => {
 test('the front hall is among the boss rooms a floor can end in; its last wave is the pair, two segments each on a floor, a bar each; the route names them; the budget holds', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    const rooms = g.waves.rules.floor.boss;
     window.toHall(0);
+    const rooms = g.waves.rules.floor.boss; // the run's rules, once one has begun
     const b = g.boss;
     for (let i = 0; i < 120 * 4; i++) window.step(); // in
     g.updateCamera(1, true);

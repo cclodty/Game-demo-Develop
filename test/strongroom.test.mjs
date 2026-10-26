@@ -76,8 +76,8 @@ after(async () => {
 test('the strongroom is among the boss rooms a floor can end in; its last wave is the bulwark in by the north, four segments; the route names him; the budget holds', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    const rooms = g.waves.rules.floor.boss;
     window.toRoom(0);
+    const rooms = g.waves.rules.floor.boss; // the run's rules, once one has begun
     const b = g.boss;
     for (let i = 0; i < 120 * 3; i++) window.step(); // in through the door
     g.updateCamera(1, true);
