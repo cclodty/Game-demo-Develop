@@ -1258,7 +1258,7 @@
 - 驗收：
   - [x] 測試：六張卡各一個效果測試；同種子同三張；重播帶回揀過的卡（`test/cards.test.mjs` 八個）
   - [x] 選卡畫面截圖（`docs/shots/hell/cards.jpg`）；結束畫面有揀過的卡
-  - [ ] npm run lint && npm test && npm run test:game 通過（lint 與直接相關的測試在本機過；全套由 CI 跑）
+  - [x] npm run lint && npm test && npm run test:game 通過（CI 在 4287227 全綠；test:game 本機 3 個通過）
 - 這次不做：成就解鎖新卡、第二批卡
 - 做了：層尾加大波清空後先出三選一（`waves.js` 狀態 `cards`），揀了才開門；揀卡是輸入記錄裡的 1／2／3（`input.js` `BUTTONS` 末尾加 `Digit3`），所以重播自然同一張；畫面的三張卡按下去、手掣（十字鍵或 LB／RB 揀、A 確定）都只是「按下那個數字」。滑鏟本來就在子彈底下穿過，所以「滑鏟反彈」改成：滑鏟時本來飛過頭頂的子彈彈回去；「人盾引爆」在推出去的人撞到人、落地或 `CARDS.boomFuse` 0.8 秒時爆（半徑 3.5）；三種反彈都是 `bullets.js` `turnBack`：變成你的子彈、瞄最近看得到的人、傷害 `CARDS.reflectDamage` 2。事件記錄與回饋匯出的一行都有揀過的卡
 
@@ -1269,7 +1269,7 @@
 - 驗收：
   - [x] 標題只有一張模式卡（加設定、排行榜、重播）；`?mode=arcade` 等仍進得去；1280 × 720 不用捲（`test/title.test.mjs` 新一個：一張卡、冇每日卡冇地圖卡、不用捲；`?modes=all`／`?mode=night` 帶回四張）
   - [x] 熱身三個敵人教三樣；截圖（`test/tutorial.test.mjs`：第二個站在手臂前、抓得到；第三個站在圓枱後；`test/.out/warmup-1..3.png`）
-  - [ ] npm run lint && npm test 通過（lint 與直接相關的測試在本機過；全套由 CI 跑）
+  - [x] npm run lint && npm test 通過（CI 在 4287227 三個 shard 全綠）
 - 這次不做：刪舊模式、刪舊地圖
 - 做了：`MODES` 的街機／無盡／每日／澳門一夜標 `legacy`，模式 id 與次序不變（`danmaku` 仍是記錄裡的第 5 個）；名字暫定「子彈芭蕾 BULLET BALLET」，開發者改一行 `waves.js` 就換。標題：`?modes=all`、`?mode=<舊模式>`、或以前揀過舊模式（localStorage 記住的）才顯示四張卡、每日卡、地圖卡；否則一張大卡，地圖那行只寫三層的房。測試工具在沒有 `?mode=` 的頁面先存「街機」，所以舊測試照跑；新標題的測試用 `?mode=danmaku`
 
@@ -1278,8 +1278,8 @@
 - 漂亮的解法：打得精彩——頭目是最大的題目
 - 涉及：`src/boss.js`、`src/rooms.js`（頭目房）、`src/waves.js`（層尾）、各頭目的測試
 - 驗收（每張）：
-  - [ ] 測試：招式的預告、彈數、缺口；機械人打贏他
-  - [ ] 截圖；npm run lint && npm test && npm run test:game 通過
+  - [x] 測試：招式的預告、彈數、缺口；機械人打贏他（四個頭目各一個測試檔）
+  - [x] 截圖；npm run lint && npm test && npm run test:game 通過（截圖四張；lint 與 npm test 在 CI 4287227 全綠；test:game 本機 3 個通過）
 - 這次不做：新頭目、頭目做人盾
 
 #### D①：刀后入房 ✅ 2026-10-26
