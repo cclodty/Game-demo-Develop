@@ -4,7 +4,7 @@
 // heads, however many bullets there are (draw, from main.js render).
 
 import * as THREE from 'three';
-import { BULLET, GRAZE, GUN_Y, LEVELS, PAN, PLAYER } from './config.js';
+import { BULLET, CARDS, GRAZE, GUN_Y, LEVELS, PAN, PLAYER } from './config.js';
 import { pointSegDist2, segCircle } from './utils.js';
 
 function trailGeometry(headW, tailW) {
@@ -37,6 +37,7 @@ export class Bullets {
   constructor(game) {
     this.game = game;
     this.list = [];
+    this.turnedAt = -1; // the step a style card last turned a round back (turnBack)
     this.pool = [];
     this.geo = {
       playerTrail: trailGeometry(0.11, 0.01),
@@ -292,7 +293,7 @@ export class Bullets {
       }
     } else {
       const p = game.player;
-      if (p.alive && !p.spinning && !p.sliding && !p.diving) {
+      if (p.alive && !p.spinning && !p.diving && (!p.sliding || game.cards.has('slideReflect'))) { // a slide is under the rounds; with the card 滑鏟反彈 it meets them (handleHit)
         const t = segCircle(x0, z0, x1, z1, p.x, p.z, PLAYER.hitRadius);
         // from the front, where the human shield is held, it meets him instead (player.js grab)
         if (t >= 0 && (!best || t < best.t)) best = p.shieldedFrom(b.dx, b.dz) ? { t, type: 'hostage', enemy: p.hostage } : { t, type: 'player' };
@@ -333,6 +334,12 @@ export class Bullets {
       case 'solid': {
         const s = hit.solid;
         if (b.owner === 'player') game.boss.shotSolid(s, b); // one of the boss's (the DJ's speakers)
+        if (s.table && b.owner === 'enemy' && game.cards.has('tableBounce')) {
+          // the card (cards.js 枱面反彈): the table's wall sends his round back at his side, unworn
+          this.turnBack(b, hit.nx ? -b.dx : b.dx, hit.nz ? -b.dz : b.dz, 'TABLE BOUNCE', '翻起的枱彈回子彈');
+          b.ignore = s;
+          return;
+        }
         if (s.table) s.table.shot(b); // a flipped table wears (fixtures.js), whoever's the shot
         if (s.kind === 'glass') {
           game.level.breakGlass(s, b.dx, b.dz);
@@ -407,6 +414,11 @@ export class Bullets {
         b.alive = false;
         return;
       case 'player':
+        if (game.player.sliding && game.cards.has('slideReflect')) {
+          // the card (cards.js 滑鏟反彈): a round that would have caught him in the slide goes back instead
+          this.turnBack(b, -b.dx, -b.dz, 'SLIDE DEFLECT', '滑鏟彈回子彈');
+          return;
+        }
         game.player.hurt(b.damage, b.dx, b.dz, false, b.source && b.source.cfg ? `${b.source.cfg.label} 的子彈` : '子彈');
         b.alive = false;
         return;
@@ -421,6 +433,41 @@ export class Bullets {
         game.addFocus(0.03);
         return;
       }
+    }
+  }
+
+  /**
+   * An enemy round turned back by a style card (cards.js): the player's own now, at the nearest man in sight, else
+   * along (nx, nz), at least as fast as it came, CARDS.reflectDamage. `tag` is the style the first of a step's earns.
+   */
+  turnBack(b, nx, nz, tag, note) {
+    const game = this.game;
+    const target = game.enemies.nearestVisible(b.x, b.z, 32);
+    if (target) {
+      nx = target.x - b.x;
+      nz = target.z - b.z;
+    }
+    const l = Math.hypot(nx, nz) || 1;
+    b.dx = nx / l;
+    b.dz = nz / l;
+    b.owner = 'player';
+    b.damage = CARDS.reflectDamage;
+    b.speed = Math.max(b.speed, PAN.batSpeed);
+    b.turnedBack = true;
+    b.hits = [];
+    b.near = false;
+    b.awarded = true;
+    b.trailLen = 0;
+    b.range = b.traveled + 40;
+    this.setLook(b, 'ricochet');
+    game.fx.sparks(b.x, GUN_Y, b.z, b.dx, b.dz, 10, [7, 7, 5], 9, 0.8);
+    game.fx.flash(b.x, GUN_Y, b.z, 0xfff0c0, 24, 0.18, 6);
+    game.audio.ricochet(game.panFor(b.x));
+    if (game.stepCount !== this.turnedAt) {
+      // one style line a step however many rounds turn (a fan's pellets come together)
+      this.turnedAt = game.stepCount;
+      game.score.style(tag, 40, true);
+      game.notes.log(note);
     }
   }
 
@@ -546,6 +593,8 @@ export class Bullets {
         b.awarded = true;
         if (graze) this.game.onGraze();
         else this.game.onCloseCall(b.dodgedSpin);
+        // the card (cards.js 擦彈反彈): grazed in bullet time, the round turns round
+        if (graze && this.game.focusActive && this.game.cards.has('grazeReflect')) this.turnBack(b, -b.dx, -b.dz, 'GRAZE RETURN', '擦彈反彈');
       }
     }
   }

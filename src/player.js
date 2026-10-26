@@ -378,8 +378,9 @@ export class Player {
     if (this.sinceHurt > PLAYER.regenDelay && this.hp < PLAYER.hp) this.hp = Math.min(PLAYER.hp, this.hp + PLAYER.regenRate * dt);
 
     // --- weapon switching
-    if (input.hit('Digit1')) this.equip('pistols');
-    else if (input.hit('Digit2')) this.equip('special');
+    const cardUp = g.cards.pending; // the digits pick a style card then (cards.js), not a weapon
+    if (!cardUp && input.hit('Digit1')) this.equip('pistols');
+    else if (!cardUp && input.hit('Digit2')) this.equip('special');
     else if (input.wheel && this.special && !this.special.empty) this.equip(this.slot === 'pistols' ? 'special' : 'pistols');
     const w = this.weapon;
 

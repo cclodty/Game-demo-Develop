@@ -477,6 +477,14 @@ export class Waves {
       }
       return;
     }
+    if (this.state === 'cards') {
+      // the floor's end (C②): three style cards on the screen; the pick (a press of 1, 2 or 3) opens the exit
+      if (this.game.cards.read(this.game.cmd)) {
+        this.state = 'exit';
+        this.game.level.exit.unlock();
+      }
+      return;
+    }
     if (this.state === 'exit') {
       // a cleared room's exit is open (彈幕試驗): the player walking into it goes on to the floor's next room
       const p = this.game.player;
@@ -533,8 +541,14 @@ export class Waves {
       const exit = this.stageNext && this.rules.floor && this.game.level.exit;
       if (exit) {
         this.stageNext = false;
-        this.state = 'exit';
-        exit.unlock();
+        if (this.isFloorEnd(this.wave)) {
+          // the floor is done (C②): the style cards first, the exit opens on the pick
+          this.state = 'cards';
+          this.game.cards.show(this.stageIndex);
+        } else {
+          this.state = 'exit';
+          exit.unlock();
+        }
       }
       this.game.onWaveClear(this.wave, this.stageNext || !!exit);
     }

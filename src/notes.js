@@ -4,7 +4,7 @@
 // moment" notes (N) that export as Markdown from the pause menu. Nothing here
 // changes gameplay on its own; only the tuning rows do, and the HUD says so.
 
-import { AI, CAMERA, FOCUS, HELL, LOGIC_HZ, PLAYER, STYLE, VIEWS } from './config.js';
+import { AI, CAMERA, CARDS, FOCUS, HELL, LOGIC_HZ, PLAYER, STYLE, VIEWS } from './config.js';
 import { keyName } from './input.js';
 import { QUALITIES, readQuality, saveQuality } from './quality.js';
 import { SWITCHES } from './style.js';
@@ -17,7 +17,7 @@ const FPS_KEY = 'bullet-ballet.fps';
 const MAX_EVENTS = 40;
 const EVENTS_PER_NOTE = 10;
 
-const ROOTS = { FOCUS, PLAYER, CAMERA, STYLE, AI, HELL };
+const ROOTS = { FOCUS, PLAYER, CAMERA, STYLE, AI, HELL, CARDS };
 
 /** Feel numbers the panel exposes for live tuning. Paths point into config.js. */
 export const TUNABLES = [
@@ -388,6 +388,7 @@ export class Notes {
       hp: Math.max(0, Math.ceil(p.hp)),
       score: Math.round(g.score.score),
       focusOn: g.focusActive,
+      cards: g.cards ? g.cards.names.join('、') : '',
       focus: Math.round(g.focusMeter * 100),
       weapon: p.weapon.name,
       view: VIEWS[g.view].name,
@@ -398,7 +399,7 @@ export class Notes {
   }
 
   contextLine(c) {
-    return `${c.map} · 第 ${c.wave} 波 · 開局後 ${mmss(c.runT)} · HP ${c.hp} · ${fmt(c.score)} 分 · 慢鏡 ${c.focusOn ? '開' : '關'} ${c.focus}% · ${c.weapon} · 鏡頭 ${c.view} · ${c.fps} fps`;
+    return `${c.map} · 第 ${c.wave} 波 · 開局後 ${mmss(c.runT)} · HP ${c.hp} · ${fmt(c.score)} 分 · 慢鏡 ${c.focusOn ? '開' : '關'} ${c.focus}% · ${c.weapon} · 鏡頭 ${c.view} · ${c.fps} fps${c.cards ? ` · 風格卡 ${c.cards}` : ''}`;
   }
 
   /** N: pause if playing and open the note box with this moment's context. */

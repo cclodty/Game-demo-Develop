@@ -81,6 +81,7 @@ src/daily.js                 the daily challenge: UTC date → seed, map and rul
 src/achievements.js          achievements as data, counted from the game's events (never feeding back into play); unlocks: rules.js variants with `unlock`, coat colours
 src/clip.js                  the best-kill clip: overlapping MediaRecorder recordings of a small copy of the screen, played on the end screen
 src/telemetry.js             local play records: one row per run (start, waves, end and cause, time, played again), carried by the feedback export
+src/cards.js                 the style cards (彈幕 ② C②): six as data, three offered at a floor's end, the pick a 1/2/3 press in the input record; each is one switch its system reads (game.cards.has)
 src/rules.js                 run rules: difficulties and variants as data (one switch or number each), read by their systems as game.ruleset
 src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export
 src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions

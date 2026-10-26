@@ -2,7 +2,7 @@
 // brightens while they aim, so a quick read (or bullet time) lets you dodge.
 
 import * as THREE from 'three';
-import { AI, ENEMY_HP, ENV, FIREPOWER, GUN_Y, HELL, LOGIC_HZ, PLAYER, RAMP } from './config.js';
+import { AI, CARDS, ENEMY_HP, ENV, FIREPOWER, GUN_Y, HELL, LOGIC_HZ, PLAYER, RAMP } from './config.js';
 import { animateRig, BODY, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, keyPose, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { fireLines, safeSpot } from './gaps.js';
@@ -402,6 +402,8 @@ class Enemy {
     this.held = false; // held up by the player as a human shield (player.js grab): moved by the player, does nothing
     if (cfg.shield) this.buildShield();
     this.fuseT = -1; // a bomber's lit vest: seconds left, or -1
+    this.boomT = -1; // a shoved human shield going off with the card 人盾引爆 (cards.js): seconds left at the latest, or -1
+    this.boomNow = false; // he met a man (bowl): off he goes next step
     this.bombT = -1; // a dead bomber's charges: seconds until they go off, or -1
     this.turnT = 0; // a kicked bomber charges along (dashX, dashZ) this long
     this.dashX = this.dashZ = 0;
@@ -595,6 +597,11 @@ class Enemy {
       this.game.notes.log(`推出炸彈客，${H.bombFuse} 秒後爆`);
     }
     if (this.cfg.captain) this.mgr.captainFreed(this);
+    if (this.alive && (dx || dz) && !this.cfg.bomb && this.game.cards.has('shoveBoom')) {
+      // the card (cards.js 人盾引爆): whoever is shoved out goes off CARDS.boomFuse s later, with a small barrel's blast
+      this.boomT = CARDS.boomFuse;
+      this.game.notes.log('人盾引爆：推出去的人盾會爆');
+    }
   }
 
   /** A bullet of his own side's, meant for the player behind him (bullets.js): PLAYER.humanShield.hit of his hp. */
@@ -1191,6 +1198,16 @@ class Enemy {
     g.notes.log('炸彈客點火');
   }
 
+  /** The shoved human shield goes off (the card 人盾引爆, cards.js): a small barrel's blast where he is, the player's kill. */
+  boom() {
+    const g = this.game;
+    this.boomT = -1;
+    this.boomNow = false;
+    g.notes.log('人盾爆開');
+    this.die(this.vx, this.vz, { cause: 'explosion', chain: true });
+    g.explode(this.x, this.z, CARDS.boomBlast, { chain: true, source: '人盾引爆' });
+  }
+
   /** The charges go off with a barrel's blast: his fuse ran out (he goes with them), or a moment after he was killed. */
   goOff() {
     const g = this.game;
@@ -1591,6 +1608,15 @@ class Enemy {
       }
       this.updateCorpse(dt);
       return;
+    }
+    if (this.boomT >= 0) {
+      // a shoved human shield with the card 人盾引爆 (letGo, cards.js): he goes off on the first man he bowls over (bowl),
+      // where his flight ends, or CARDS.boomFuse s out at the latest
+      this.boomT -= dt;
+      if (this.boomT < 0 || this.stunT <= 0 || this.boomNow) {
+        this.boom();
+        return;
+      }
     }
     if (this.fuseT >= 0) {
       // lit: nothing stops it now, a kick only moves where it happens
@@ -2295,6 +2321,7 @@ class Enemy {
       // a shoved human shield taking a row of them down (彈幕 ② B①): the men he bowls over, and the men they bowl over in turn, are his
       const by = this.stunCause === 'shove' ? this : this.stunCause === 'strike' ? this.knockedBy : null;
       o.knockedBy = by;
+      if (this.boomT >= 0) this.boomNow = true; // the card 人盾引爆: he goes off on the man he met (update)
       if (by && ++by.bowled === PLAYER.humanShield.bowling) {
         this.game.score.style('SHIELD BOWLING', PLAYER.humanShield.bowlPts);
         this.game.notes.log(`推出的人盾撞倒 ${by.bowled} 人`);

@@ -4,7 +4,7 @@
 
 import { PAD, TOUCH } from './config.js';
 
-const BLOCKED = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'Tab', 'Digit1', 'Digit2', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+const BLOCKED = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'Tab', 'Digit1', 'Digit2', 'Digit3', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
 /**
  * Every control the game logic reads, one bit each (at most 31). Recorded runs
@@ -15,6 +15,7 @@ export const BUTTONS = [
   'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight',
   'ShiftLeft', 'ShiftRight', 'KeyQ', 'Space', 'KeyC', 'KeyF', 'KeyG', 'KeyE', 'KeyR',
   'Digit1', 'Digit2', 'Mouse0', 'Mouse2', 'WheelUp', 'WheelDown', 'Escape',
+  'Digit3', // the third style card (cards.js, 彈幕 ② C②); new controls go at the end, so older records read the same
 ];
 const BIT = new Map(BUTTONS.map((c, i) => [c, 1 << i]));
 

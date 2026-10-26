@@ -132,6 +132,23 @@ export const HELL = {
   beat: 0.5,
 };
 
+/**
+ * The style cards (彈幕 ② C②, cards.js): at the end of every floor but the last the player picks one of `offer`.
+ * The numbers each card plays by: `reflectDamage` is what a round turned back (a slide, a flipped table, a graze in
+ * bullet time) does to a man (a thug has 3); a human shield shoved goes off on the first man he meets, where he lands or `boomFuse` s out at the
+ * latest, with a barrel's blast of `boomBlast` m; `killSlow` s of bullet time a kill brings, costing nothing; the deep slow-mo's world
+ * speed (FOCUS.worldScale otherwise) and what it multiplies the meter's drain by.
+ */
+export const CARDS = {
+  offer: 3,
+  reflectDamage: 2,
+  boomFuse: 0.8,
+  boomBlast: 3.5,
+  killSlow: 0.5,
+  deepScale: 0.1,
+  deepDrain: 1.6,
+};
+
 export const BULLET = {
   playerSpeed: 62,
   playerTrail: 2.2,

@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
+import { Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS } from './cards.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
-import { CAMERA, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
+import { CAMERA, CARDS, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
@@ -153,6 +154,8 @@ class Game {
     this.player = new Player(this);
     this.score = new Score(this);
     this.waves = new Waves(this);
+    this.cards = new Cards(this); // the style cards (彈幕 ② C②): held for the run, picked at a floor's end
+    this.cardSel = 0; // the card a pad has marked on the card screen (showCards)
     this.hud = new HUD(this);
     // the settings (settings.js): volumes and bindings, applied to the input, the audio and the hints
     this.settings = new Settings(localStorage);
@@ -190,6 +193,8 @@ class Game {
     this.focusActive = false;
     this.focusAmt = 0;
     this.focusMeter = 1;
+    this.focusFree = 0; // s of bullet time left that costs nothing (the card 擊殺慢鏡, cards.js)
+    this.focusAuto = false; // bullet time the card put on: it goes off by itself when focusFree runs out
     this.timeScale = 1;
     this.playerVelScale = 1;
     this.hitstopT = 0;
@@ -757,6 +762,7 @@ class Game {
     const spec = MODES[this.mode].floor;
     this.floors = spec ? drawFloors(spec, this.rng.fork('floor')) : null; // C①: three floors of rooms, each an array of room ids
     this.floor = this.floors ? this.floors.flat() : null;
+    this.cards.reset();
     // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
     const warmup = this.fixedWarmup ?? wantWarmup();
     // the rules hold for the whole run (a replay brings its own: fixedRules)
@@ -1190,6 +1196,7 @@ class Game {
     this.resetWorld(this.level.map);
     this.state = 'title';
     this.notes.hideNote();
+    this.hideCards();
     $('pause').classList.add('hidden');
     $('gameover').classList.add('hidden');
     $('title').classList.remove('hidden');
@@ -1230,6 +1237,8 @@ class Game {
     this.focusActive = false;
     this.focusAmt = 0;
     this.focusMeter = 1;
+    this.focusFree = 0;
+    this.focusAuto = false;
     this.timeScale = 1;
     this.hitstopT = 0;
     this.killcamT = 0;
@@ -1426,6 +1435,7 @@ class Game {
   /** The end of a run: the player fell, or (cleared) the last arcade wave is down. */
   gameOver(cleared = false) {
     this.state = 'over';
+    this.hideCards();
     this.overAt = performance.now();
     const isBest = !this.replay && this.score.saveBest(); // a replay sets no records
     const s = this.score;
@@ -1438,6 +1448,8 @@ class Game {
     $('go-time').textContent = clock(this.stepCount / LOGIC_HZ);
     $('go-kills').textContent = String(s.kills);
     $('go-combo').textContent = `x${Math.max(1, s.maxCombo)}`;
+    $('go-cards').textContent = this.cards.held.length ? this.cards.names.join(' · ') : '—';
+    $('gameover').classList.toggle('cards', !!this.floors);
     $('go-clean').textContent = this.floors ? `${this.waves.cleanRooms} / ${this.stage + (this.waves.state === 'done' ? 1 : 0)} 間房` : `${this.waves.cleanWaves} / ${this.waves.wave}`;
     const graded = !!this.waves.rules.graded;
     $('gameover').classList.toggle('graded', graded);
@@ -1559,6 +1571,11 @@ class Game {
 
   toggleFocus() {
     if (!this.ruleset.slowmo) return; // a variant turned bullet time off
+    if (this.focusAuto) {
+      // the key during the card 擊殺慢鏡's half second: it keeps bullet time on, and pays for it once the half second is up
+      this.focusAuto = false;
+      return;
+    }
     if (this.focusActive) this.setFocus(false);
     else if (this.focusMeter >= FOCUS.minToEnter) this.setFocus(true);
     else this.audio.denied();
@@ -1585,6 +1602,14 @@ class Game {
 
   onEnemyKilled(e, info) {
     const p = this.player;
+    if (this.cards.has('killSlow') && p.alive && this.ruleset.slowmo && this.state === 'playing') {
+      // the card (cards.js 擊殺慢鏡): CARDS.killSlow s of bullet time on every kill, costing nothing; a hand on the key keeps it
+      this.focusFree = Math.max(this.focusFree, CARDS.killSlow);
+      if (!this.focusActive) {
+        this.focusAuto = true;
+        this.setFocus(true);
+      }
+    }
     const d = Math.hypot(e.x - p.x, e.z - p.z);
     const tags = [{ label: e.cfg.label, pts: e.cfg.score }];
     let refill = FOCUS.killRefill;
@@ -1827,8 +1852,44 @@ class Game {
   }
 
   /** Once a display frame: read the gamepad; Start pauses and resumes; the hints follow whether one is connected. */
+  /** The style cards on the screen (cards.js): three to pick from; the buttons make the press the logic reads. */
+  showCards(ids) {
+    const el = $('cards');
+    el.innerHTML = ids.map((id, i) => {
+      const c = CARD_DATA[id];
+      return `<button type="button" class="card ${c.kind}${i === this.cardSel ? ' sel' : ''}" data-card="${i}"><span class="card-kind">${CARD_KINDS[c.kind].name} <small>${CARD_KINDS[c.kind].en}</small></span><span class="card-en">${c.en}</span><span class="card-name">${c.name}</span><span class="card-text">${c.text}</span><kbd>${i + 1}</kbd></button>`;
+    }).join('');
+    this.cardSel = 0;
+    el.classList.remove('hidden');
+    for (const b of el.querySelectorAll('button[data-card]')) {
+      b.addEventListener('mousedown', (e) => e.stopPropagation()); // not a shot
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.input.pressed.add(`Digit${Number(b.dataset.card) + 1}`); // the pick is a press of its number: the logic reads and records it
+      });
+    }
+    this.markCard();
+  }
+
+  hideCards() {
+    $('cards').classList.add('hidden');
+  }
+
+  markCard() {
+    for (const b of $('cards').querySelectorAll('button[data-card]')) b.classList.toggle('sel', Number(b.dataset.card) === this.cardSel);
+  }
+
   pollPad() {
     const pad = this.input.poll();
+    if (this.cards.pending && this.input.padPress >= 0 && this.state === 'playing') {
+      // a pad picks a style card: the d-pad (or LB/RB) moves along the three, A takes the one marked
+      const b = this.input.padPress;
+      const n = this.cards.offer.length;
+      if (b === 14 || b === 4) this.cardSel = (this.cardSel + n - 1) % n;
+      else if (b === 15 || b === 5) this.cardSel = (this.cardSel + 1) % n;
+      else if (b === 0) this.input.pressed.add(`Digit${this.cardSel + 1}`);
+      this.markCard();
+    }
     if (this.binding && this.binding.pad && this.input.padPress >= 0) {
       // the settings page waits for a pad button: this one is it
       this.settings.bindPad(this.binding.id, this.input.padPress);
@@ -2006,8 +2067,16 @@ class Game {
   logic(h) {
     const cmd = this.cmd;
     if (this.state === 'playing' && cmd.hit('ShiftLeft', 'ShiftRight', 'KeyQ')) this.toggleFocus();
+    const deep = this.cards.has('deepSlow'); // the card (cards.js 深慢鏡): a slower world, a faster drain (CARDS)
     if (this.focusActive) {
-      this.focusMeter -= FOCUS.drain * h;
+      if (this.focusFree > 0) {
+        // the card 擊殺慢鏡's half second costs nothing; put on by the card, it goes off with it
+        this.focusFree -= h;
+        if (this.focusFree <= 0 && this.focusAuto) {
+          this.focusAuto = false;
+          this.setFocus(false);
+        }
+      } else this.focusMeter -= FOCUS.drain * (deep ? CARDS.deepDrain : 1) * h;
       if (this.focusMeter <= 0) {
         this.focusMeter = 0;
         this.setFocus(false);
@@ -2022,7 +2091,7 @@ class Game {
     }
 
     this.focusAmt = damp(this.focusAmt, this.focusActive ? 1 : 0, 9, h);
-    let ts = lerp(1, FOCUS.worldScale, this.focusAmt);
+    let ts = lerp(1, deep ? CARDS.deepScale : FOCUS.worldScale, this.focusAmt);
     let ps = lerp(1, FOCUS.playerScale, this.focusAmt);
     if (this.killcamT > 0) {
       this.killcamT -= h;
