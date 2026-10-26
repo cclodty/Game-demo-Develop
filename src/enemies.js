@@ -126,6 +126,7 @@ export const TYPES = {
     label: 'BRUTE',
     hp: 20,
     speed: 2.1,
+    holdWalk: 0.4, // held up as a human shield (彈幕 ② B①): the player walks at this of his pace, slower than with the others (PLAYER.humanShield.walkMul)
     radius: 0.48,
     aimTime: 1.1,
     cooldown: [2.6, 3.4],
@@ -508,10 +509,18 @@ class Enemy {
     return !!this.cfg.fly || this.perch > 0;
   }
 
-  /** Can the player grab him as a human shield: on the street, in the fight, no riot shield, not heavy, no vest of charges. */
+  /**
+   * Can the player grab him as a human shield: on his feet, in the fight, not held already. Since 彈幕 ② B① nearly
+   * everyone (a riot shield, a brute, a heavy gun, a bomber whose vest is not lit); never a drone (it flies).
+   */
   get holdable() {
     const c = this.cfg;
-    return this.alive && !this.held && !this.aloft && !c.shield && !c.heavy && !c.bomb && this.state !== 'enter' && this.spawnLock <= 0;
+    return this.alive && !this.held && !this.aloft && !c.fly && !(c.bomb && this.fuseT >= 0) && this.state !== 'enter' && this.spawnLock <= 0;
+  }
+
+  /** Shoved out by the player (letGo) and still flying: the rounds that meet him are his own side's, as when held (bullets.js). */
+  get shoved() {
+    return this.alive && this.stunT > 0 && this.stunCause === 'shove';
   }
 
   /** Grabbed as a human shield: whatever he was doing, he stops. */
@@ -527,6 +536,7 @@ class Enemy {
   /** Let go: shoved out along (dx, dz), flying like a kicked man (bowl knocks over whoever he meets) but unhurt. */
   letGo(dx, dz) {
     this.held = false;
+    this.bowled = 0; // men he bowls over on this flight (bowl): PLAYER.humanShield.bowling of them is SHIELD BOWLING
     this.kick(dx, dz, PLAYER.humanShield.shove, 'shove', 0);
   }
 
@@ -2189,6 +2199,11 @@ class Enemy {
       this.vz *= 0.5;
       this.game.audio.kick(true);
       this.game.shake(0.2);
+      if (this.stunCause === 'shove' && ++this.bowled === PLAYER.humanShield.bowling) {
+        // a shoved human shield taking a row of them down (彈幕 ② B①)
+        this.game.score.style('SHIELD BOWLING', PLAYER.humanShield.bowlPts);
+        this.game.notes.log(`推出的人盾撞倒 ${this.bowled} 人`);
+      }
     }
   }
 

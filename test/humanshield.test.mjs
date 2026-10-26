@@ -79,7 +79,7 @@ after(async () => {
   await h.close();
 });
 
-test('E: a weapon to swap first, then a thing to pick up, then the man in front; not a riot shield, a brute, a bomber, a drone, a man behind or out of reach', async () => {
+test('E: a weapon to swap first, then a thing to pick up, then the man in front: a riot shield, a brute, a bomber, a heavy gun too (彈幕 ② B①); not a drone, a lit bomber, a man behind or out of reach', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     const p = g.player;
@@ -105,13 +105,25 @@ test('E: a weapon to swap first, then a thing to pick up, then the man in front;
     window.play(1, [], ['KeyE']);
     const man = { held: p.hostage === e, flag: e.held, gap: Math.hypot(e.x - p.x, e.z - p.z), east: e.x > p.x, note: g.notes.events.at(-1).text };
     const refuse = {};
-    for (const [type, dx] of [['shield', 1], ['brute', 1.2], ['bomber', 1], ['drone', 1], ['grunt', -1], ['grunt', 2.2]]) {
+    for (const [type, dx] of [['drone', 1], ['grunt', -1], ['grunt', 2.2]]) {
       window.begin();
       window.post(type, p.x + dx, p.z);
       window.play(1, [], ['KeyE']);
       refuse[`${type} ${dx}`] = !!p.hostage;
     }
-    return { swap, prop, man, refuse };
+    window.begin();
+    const lit = window.post('bomber', p.x + 1, p.z);
+    lit.fuseT = 0.4;
+    window.play(1, [], ['KeyE']);
+    refuse['bomber lit'] = !!p.hostage;
+    const take = {};
+    for (const [type, dx] of [['shield', 1], ['brute', 1.2], ['bomber', 1], ['hoser', 1.2], ['captain', 1]]) {
+      window.begin();
+      window.post(type, p.x + dx, p.z);
+      window.play(1, [], ['KeyE']);
+      take[`${type} ${dx}`] = !!p.hostage;
+    }
+    return { swap, prop, man, refuse, take };
   });
   assert.deepEqual(r.swap, { weapon: 'rifle', held: false }, 'a weapon to swap: E swaps it');
   assert.deepEqual(r.prop, { carry: 'pan', held: false }, 'a pan to pick up: E picks it up');
@@ -120,6 +132,93 @@ test('E: a weapon to swap first, then a thing to pick up, then the man in front;
   assert.ok(r.man.east && Math.abs(r.man.gap - 0.75) < 0.05, `held 0.75 m in front (${r.man.gap.toFixed(2)})`);
   assert.match(r.man.note, /抓住人盾/);
   assert.deepEqual(Object.values(r.refuse), Object.values(r.refuse).map(() => false), JSON.stringify(r.refuse));
+  assert.deepEqual(Object.values(r.take), Object.values(r.take).map(() => true), JSON.stringify(r.take));
+  assert.deepEqual(problems(logs), []);
+});
+
+test('彈幕 ② B①: shoved out, he still takes the rounds that meet him as he flies, one of his hp each, and shot dead flying he is a HUMAN SHIELD; two men bowled over in one shove is SHIELD BOWLING (+250); a brute held, a walk at 0.4', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const p = g.player;
+    const { PLAYER } = await import('/src/config.js');
+    // shoved east, a round from the east meets him in the air
+    window.begin(-8, 4);
+    const e = window.post('grunt', p.x + 1, p.z);
+    window.play(1, [], ['KeyE']);
+    window.play(10);
+    window.play(1, [], ['KeyE']);
+    window.play(12);
+    const hp0 = e.hp;
+    const flying = e.shoved;
+    window.shootAt(0, 6);
+    window.play(20);
+    const flight = { flying, lost: hp0 - e.hp, shoved: e.shoved, hp: p.hp };
+    // shot dead in the air by his own side: HUMAN SHIELD
+    const kills = [];
+    const kill0 = g.score.kill.bind(g.score);
+    g.score.kill = (t) => {
+      kills.push(t.map((x) => x.label));
+      return kill0(t);
+    };
+    window.begin(-8, 4);
+    const e2 = window.post('grunt', p.x + 1, p.z);
+    window.play(1, [], ['KeyE']);
+    window.play(10);
+    window.play(1, [], ['KeyE']);
+    window.play(12);
+    e2.hp = 1;
+    window.shootAt(0, 6);
+    window.play(20);
+    const dead = { alive: e2.alive, tags: kills.flat() };
+    g.score.kill = kill0;
+    // two in a row ahead: both bowled over, SHIELD BOWLING
+    const styles = [];
+    const style0 = g.score.style.bind(g.score);
+    g.score.style = (l, pts, ...rest) => {
+      styles.push(`${l}:${pts}`);
+      return style0(l, pts, ...rest);
+    };
+    window.begin(-8, 4);
+    const held = window.post('grunt', p.x + 1, p.z);
+    window.play(1, [], ['KeyE']);
+    const a = window.post('grunt', p.x + 3, p.z);
+    const b = window.post('grunt', p.x + 4.2, p.z);
+    window.play(1, [], ['KeyE']);
+    for (let i = 0; i < 120; i++) window.play(1);
+    const bowling = { a: a.stunCause, b: b.stunCause, bowled: held.bowled, styles: styles.filter((x) => x.startsWith('SHIELD')), note: g.notes.events.map((x) => x.text).find((t) => t.includes('撞倒')) };
+    g.score.style = style0;
+    // one bowled: no SHIELD BOWLING
+    styles.length = 0;
+    window.begin(-8, 4);
+    window.post('grunt', p.x + 1, p.z);
+    window.play(1, [], ['KeyE']);
+    window.post('grunt', p.x + 3, p.z);
+    window.play(1, [], ['KeyE']);
+    for (let i = 0; i < 120; i++) window.play(1);
+    const one = styles.filter((x) => x.startsWith('SHIELD'));
+    // a brute held: the walk
+    const pace = (type) => {
+      window.begin(-8, 4);
+      window.post(type, p.x + 1.2, p.z);
+      window.play(1, [], ['KeyE']);
+      window.play(60, ['KeyD']);
+      return Math.hypot(p.vx, p.vz);
+    };
+    const walk = { brute: pace('brute'), grunt: pace('grunt'), want: PLAYER.speed * 0.4 };
+    return { flight, dead, bowling, one, walk };
+  });
+  assert.equal(r.flight.flying, true, 'flying after the shove');
+  assert.equal(r.flight.lost, 1, `the round meets him for one of his hp (lost ${r.flight.lost})`);
+  assert.equal(r.flight.hp, 100, 'not the player');
+  assert.equal(r.dead.alive, false);
+  assert.ok(r.dead.tags.includes('HUMAN SHIELD'), r.dead.tags.join(','));
+  assert.deepEqual([r.bowling.a, r.bowling.b], ['strike', 'strike'], 'both bowled over');
+  assert.equal(r.bowling.bowled, 2);
+  assert.deepEqual(r.bowling.styles, ['SHIELD BOWLING:250']);
+  assert.match(r.bowling.note || '', /撞倒 2 人/);
+  assert.deepEqual(r.one, [], 'one bowled over: no SHIELD BOWLING');
+  assert.ok(Math.abs(r.walk.brute - r.walk.want) < 0.15, `a brute held: ${r.walk.brute.toFixed(2)} m/s, ${r.walk.want.toFixed(2)} wanted`);
+  assert.ok(r.walk.grunt > r.walk.brute * 1.3, `a thug held: faster (${r.walk.grunt.toFixed(2)})`);
   assert.deepEqual(problems(logs), []);
 });
 

@@ -294,12 +294,18 @@ export class Bullets {
       if (p.alive && !p.spinning && !p.sliding && !p.diving) {
         const t = segCircle(x0, z0, x1, z1, p.x, p.z, PLAYER.hitRadius);
         // from the front, where the human shield is held, it meets him instead (player.js grab)
-        if (t >= 0 && (!best || t < best.t)) best = { t, type: p.shieldedFrom(b.dx, b.dz) ? 'hostage' : 'player' };
+        if (t >= 0 && (!best || t < best.t)) best = p.shieldedFrom(b.dx, b.dz) ? { t, type: 'hostage', enemy: p.hostage } : { t, type: 'player' };
       }
       const hs = p.hostage;
       if (hs && hs.alive) {
         const t = segCircle(x0, z0, x1, z1, hs.x, hs.z, hs.radius);
-        if (t >= 0 && (!best || t < best.t)) best = { t, type: 'hostage' };
+        if (t >= 0 && (!best || t < best.t)) best = { t, type: 'hostage', enemy: hs };
+      }
+      // a human shield just shoved out, still flying (enemies.js shoved): his own side's rounds meet him as when held (彈幕 ② B①)
+      for (const e of game.enemies.list) {
+        if (!e.shoved || e === hs) continue;
+        const t = segCircle(x0, z0, x1, z1, e.x, e.z, e.radius);
+        if (t >= 0 && (!best || t < best.t)) best = { t, type: 'hostage', enemy: e };
       }
       // one of a duo's bullets can meet the other of the two (CROSSFIRE, boss.js)
       if (b.source && b.source.team && game.boss.members) {
@@ -396,7 +402,7 @@ export class Bullets {
         b.alive = false;
         return;
       case 'hostage':
-        game.player.hostage.shieldHit(b);
+        hit.enemy.shieldHit(b);
         b.alive = false;
         return;
       case 'player':

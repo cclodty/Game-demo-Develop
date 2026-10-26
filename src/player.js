@@ -410,7 +410,7 @@ export class Player {
     let tx;
     let tz;
     let accel = PLAYER.accel;
-    const speed = PLAYER.speed * (w.moveMul || 1) * (this.shieldOn ? UMBRELLA.walkMul : 1) * (this.hostage ? PLAYER.humanShield.walkMul : 1); // an open umbrella, a man held: a walk
+    const speed = PLAYER.speed * (w.moveMul || 1) * (this.shieldOn ? UMBRELLA.walkMul : 1) * (this.hostage ? (this.hostage.cfg.holdWalk ?? PLAYER.humanShield.walkMul) : 1); // an open umbrella, a man held: a walk (a brute held, a slower one: TYPES holdWalk)
     if (this.execT > 0) {
       // an execution: standing over him until it is done
       this.execT -= dt;
