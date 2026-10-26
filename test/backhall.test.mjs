@@ -97,10 +97,10 @@ test('the boss rooms are drawn a floor: over the seeds some floors end in the ba
   });
   await page.screenshot({ path: new URL('backhall.png', OUT).pathname });
   assert.ok(r.ends.includes('backhall') && r.ends.includes('arena'), `both boss rooms over eight seeds: ${[...new Set(r.ends)]}`);
-  assert.ok(r.ends.every((id) => ['arena', 'backhall'].includes(id)), 'nothing else at a floor’s end');
+  assert.ok(r.ends.every((id) => ['arena', 'backhall', 'strongroom'].includes(id)), 'nothing else at a floor’s end');
   assert.deepEqual([r.room, r.kind, r.danmaku, r.segs, r.bar], ['backhall', 'gunner', true, 4, '碼頭重炮 HEAVY GUNNER']);
   assert.ok(r.inside && r.state !== 'enter', `in the room after three seconds (${r.state})`);
-  assert.match(r.route, /層尾大廳：刀后或後廳：重炮/, r.route);
+  assert.match(r.route, /層尾大廳：刀后或後廳：重炮或庫房：鐵盾/, r.route);
   assert.ok(r.calls <= r.budget.calls && r.tris <= r.budget.tris, `${r.calls} draw calls, ${r.tris} triangles, budget ${r.budget.calls} / ${r.budget.tris}`);
   assert.deepEqual(problems(logs), []);
 });

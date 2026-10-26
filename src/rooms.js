@@ -450,7 +450,41 @@ export const BACKHALL = room({
   budget: ROOM_BUDGET,
 });
 
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, arena: ARENA, backhall: BACKHALL };
+/**
+ * The strongroom (庫房, 彈幕 ② D③): the bulwark's. He comes in by the north door and bashes; two medium tables to
+ * duck behind and come out at his side or his back, the way 大三巴's doorways do. 22 × 15 m, in at the south, out at
+ * the north.
+ */
+export const STRONGROOM = room({
+  id: 'strongroom',
+  rev: 1,
+  name: '庫房',
+  en: 'STRONGROOM',
+  desc: '層尾的庫房：鐵盾由北門踏入，兩張枱繞到他側面。',
+  color: '#ffb02a',
+  size: [22, 15],
+  walls: [3.2, 'teaWall', 'teaTrim'],
+  low: [0.9, ['s', 'w']],
+  doors: [['n', -5], ['n', 5], ['e', -3], ['e', 3]],
+  tables: [[-4.5, 0, 1.1], [4.5, 0, 1.1]],
+  entry: ['s', 0],
+  exit: ['n', 0],
+  // the far side: the north ends of the aisles outside and between the two tables
+  posts: [[-8.5, -5], [8.5, -5], [0, -5], [-9.5, -1], [9.5, -1]],
+  // the bulwark (boss.js BULWARK) with his slow wall (`danmaku`): in through the exit's wall from beyond it
+  boss: { kind: 'bulwark', danmaku: true, from: [0, -9.5], at: [0, -5] },
+  floor: 'teahouse',
+  theme: teaTheme([
+    [-4, -3],
+    [4, -3],
+    [-4, 3],
+    [4, 3],
+  ]),
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM };
 
 /**
  * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of

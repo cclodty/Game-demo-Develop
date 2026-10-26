@@ -339,6 +339,10 @@ export const BULWARK = {
   // paying the player no heed unless right before his shield or shooting him; there he looks round `look` s: the way
   // round through the doorways
   lost: { after: 0.5, search: 4, look: 0.8 },
+  // his slow wall (彈幕 ② D③), on where the map's def says `danmaku` (rooms.js STRONGROOM): the moment a bash is spent,
+  // his shield down, a ring of `count` slow rounds (the pattern men's look) out from him with `gap` of them missing:
+  // the way in to him while he is open
+  wall: { count: 14, gap: 3, speed: 5.5, dmg: 10, range: 18 },
 };
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -3256,6 +3260,7 @@ class Bulwark extends Boss {
   constructor(game) {
     super(game, BULWARK);
     this.rig = null;
+    this.wallSrc = { cfg: { label: '鐵盾的盾震' } }; // what his slow wall says hit the player (bullets.js: `source.cfg.label`)
     this.reset();
   }
 
@@ -3305,7 +3310,32 @@ class Bulwark extends Boss {
     this.lit = 0; // the shield's glow, braced for the bash
     this.firstBrace = true;
     this.raging = false;
+    this.danmaku = !!def.danmaku; // his slow wall (BULWARK.wall)
+    this.firstWall = true;
     this.build();
+  }
+
+  /** The slow wall (danmaku): as the bash is spent, a ring of slow rounds out from him, BULWARK.wall.gap of them missing at a random place. */
+  wallRing() {
+    const g = this.game;
+    const W = BULWARK.wall;
+    const step = (Math.PI * 2) / W.count;
+    const gapAt = g.rng.int(0, W.count - 1);
+    const base = g.rng.range(0, step);
+    for (let i = 0; i < W.count; i++) {
+      if ((i - gapAt + W.count) % W.count < W.gap) continue;
+      const a = base + i * step;
+      const dx = Math.sin(a);
+      const dz = Math.cos(a);
+      g.bullets.spawn({ x: this.x + dx * 0.7, z: this.z + dz * 0.7, dx, dz, speed: W.speed, owner: 'enemy', damage: W.dmg, range: W.range, source: this.wallSrc, look: 'danmaku' });
+    }
+    g.fx.ring(this.x, this.z, 1.4, 0.4, 0xffb02a, 3);
+    g.audio.shot('shotgun', g.panFor(this.x));
+    if (this.firstWall) {
+      this.firstWall = false;
+      g.notes.log('鐵盾盾震：撞完放出慢彈環，有缺口，趁他盾垂下入去');
+      g.hud.banner('SHIELD SHOCK', '撞完的盾震慢：由缺口入去，他的盾正垂下', 'clear');
+    }
   }
 
   /** The look: the brute's rig a size up, a tall shield before him with a band of light, his red line. */
@@ -3413,6 +3443,7 @@ class Bulwark extends Boss {
           this.state = 'spent';
           this.timer = B.bash.spent;
           this.bashT = B.bash.every * (this.raging ? 0.6 : 1);
+          if (this.danmaku && p.alive) this.wallRing();
         }
         break;
       }

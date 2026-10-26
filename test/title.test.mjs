@@ -70,13 +70,14 @@ test('a new player’s title (彈幕 ② C③): one mode card, the game’s own;
       hiddenCards: [...document.querySelectorAll('#mode-cards .mode-card')].filter((c) => c.offsetParent === null).map((c) => c.dataset.mode),
       daily: document.getElementById('daily-start').offsetParent !== null,
       maps: document.getElementById('map-cards').offsetParent !== null,
-      head: document.getElementById('maps-note').parentElement.textContent,
+      head: document.getElementById('maps-note').textContent,
+      pick: document.querySelector('.maps-title .legacy-only').offsetParent !== null,
     }));
     assert.equal(t.mode, 'danmaku');
     assert.deepEqual(t.cards, ['danmaku'], `one card: ${t.cards}`);
     assert.deepEqual(t.hiddenCards, ['arcade', 'endless', 'night'], 'the older ones still on the page, off it');
     assert.ok(!t.daily && !t.maps, 'no daily card, no map cards');
-    assert.ok(!t.head.includes('選擇起點場景') && t.head.includes('茶樓'), `the maps line says the rooms: ${t.head}`);
+    assert.ok(!t.pick && t.head.includes('茶樓'), `the maps line says the rooms, not 選擇起點場景: ${t.head}`);
     assert.equal(r.scrolls, false, 'the title does not scroll');
     assert.deepEqual(Object.entries(r.inView).filter(([k, v]) => !v && !['#daily-start', '#map-cards'].includes(k)), [], 'everything else is on the first screen');
     await page.screenshot({ path: new URL('title-new.png', OUT).pathname });
