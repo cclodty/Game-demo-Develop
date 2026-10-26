@@ -994,6 +994,7 @@ class Enemy {
     const heavy = this.cfg.heavy;
     this.stunT = heavy ? 0.35 : 0.85;
     this.stunCause = cause;
+    this.knockedBy = null; // the shoved human shield this knock goes back to, if one (bowl)
     const m = heavy ? 0.3 : 1;
     this.vx = dx * power * m;
     this.vz = dz * power * m;
@@ -2200,10 +2201,12 @@ class Enemy {
       this.vz *= keep;
       this.game.audio.kick(true);
       this.game.shake(0.2);
-      if (this.stunCause === 'shove' && ++this.bowled === PLAYER.humanShield.bowling) {
-        // a shoved human shield taking a row of them down (彈幕 ② B①)
+      // a shoved human shield taking a row of them down (彈幕 ② B①): the men he bowls over, and the men they bowl over in turn, are his
+      const by = this.stunCause === 'shove' ? this : this.stunCause === 'strike' ? this.knockedBy : null;
+      o.knockedBy = by;
+      if (by && ++by.bowled === PLAYER.humanShield.bowling) {
         this.game.score.style('SHIELD BOWLING', PLAYER.humanShield.bowlPts);
-        this.game.notes.log(`推出的人盾撞倒 ${this.bowled} 人`);
+        this.game.notes.log(`推出的人盾撞倒 ${by.bowled} 人`);
       }
     }
   }
