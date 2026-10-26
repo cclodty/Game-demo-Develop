@@ -5,7 +5,7 @@ stylised present-day Macau. Plain JavaScript + three.js (vendored, no
 bundler, no framework). One developer plus Claude; the developer plays and
 judges feel, Claude builds.
 
-Read before starting any task: this file, `docs/ROADMAP.md` (the plan and the
+Read before starting any task: this file, `docs/ROADMAP.md` (the plan, third edition 2026-10-26: the bullet-hell direction, and the
 four design pillars), `docs/TASKS.md` (the current checklist), and
 `docs/DECISIONS.md` (why things are the way they are). Add to the last two as
 you go.
@@ -89,7 +89,7 @@ backend/                     the leaderboard Cloudflare Worker (worker.js), its 
 scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, itch.mjs (+ itch-cover.mjs), serve.mjs, senado-extract.mjs, measure.mjs (bot runs, wave by wave)
 test/                        node:test + playwright; helpers.mjs has the bot; fixtures/ holds a short recorded clip
 assets/                      SPEC.md, PROMPTS.md, START_HERE.md, asset-list.*, maps/*.json, source/ (masters), models/ (web)
-docs/                        ROADMAP.md, TASKS.md, DECISIONS.md, BACKEND.md (deploying the back end); shots/ holds the screenshots PR descriptions show; itch/ the itch.io page
+docs/                        ROADMAP.md (third edition; ROADMAP-2026-10-22.md is the second, kept for its § numbers), TASKS.md, DECISIONS.md, BACKEND.md (deploying the back end); shots/ holds the screenshots PR descriptions show; itch/ the itch.io page
 senado/                      the Largo do Senado city-model sub-project (own README, tests, scripts); don't edit from game tasks
 vendor/three/                three.js r186 + the addons we use; never modify
 ```
