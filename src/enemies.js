@@ -1262,7 +1262,7 @@ class Enemy {
   /**
    * The gap guarantee (彈幕 ② A②, gaps.js; config.js HELL): his shot now, with every round already on its way near the
    * player, still leaves a clear spot by him. Refused, he asks again only in the next beat of world time. HELL.gap 0:
-   * always. A shotgun's fan counts as its middle and its two edges.
+   * always. A shotgun's fan counts pellet by pellet.
    */
   gapAllows() {
     if (!(HELL.gap > 0)) return true;
@@ -1270,14 +1270,24 @@ class Enemy {
     const beat = Math.floor(g.worldTime / HELL.beat);
     if (this.gapBeat === beat) return false;
     const p = g.player;
+    const now = g.worldTime;
     const lines = fireLines(g.bullets.list, p.x, p.z, HELL.gapRange);
+    // shots let through a moment ago whose rounds are not in the air yet count too, else two men pass the gate on one step
+    this.mgr.claims = this.mgr.claims.filter((c) => c.until > now);
+    for (const c of this.mgr.claims) lines.push(c.line);
     const m = this.muzzle();
     const w = WEAPONS[this.cfg.weapon];
-    const fan = w && w.pellets > 1 ? w.spread : 0;
-    for (const a of fan ? [-fan, 0, fan] : [0]) lines.push([m.x, m.z, Math.sin(this.aimAngle + a), Math.cos(this.aimAngle + a)]);
+    // his shot's lines: one, or a fan's every pellet as shoot() spreads them (the jitter is within the margin)
+    const n = w && w.pellets > 1 ? w.pellets : 1;
+    const mine = Array.from({ length: n }, (_, i) => {
+      const a = this.aimAngle + (n > 1 ? (i / (n - 1) - 0.5) * w.spread * 2 : 0);
+      return [m.x, m.z, Math.sin(a), Math.cos(a)];
+    });
+    lines.push(...mine);
     const L = g.level;
-    const ok = !!safeSpot(lines, p.x, p.z, { reach: HELL.gapReach, gap: HELL.gap, walkable: (x, z) => Math.abs(x) < L.bounds.halfW && Math.abs(z) < L.bounds.halfD && L.nav.isWalkable(x, z) });
+    const ok = !!safeSpot(lines, p.x, p.z, { reach: HELL.gapReach, gap: HELL.gap + HELL.gapMargin, walkable: (x, z) => Math.abs(x) < L.bounds.halfW && Math.abs(z) < L.bounds.halfD && L.nav.isWalkable(x, z) });
     if (!ok) this.gapBeat = beat;
+    else for (const line of mine) this.mgr.claims.push({ line, until: now + 0.15 });
     return ok;
   }
 
@@ -2312,6 +2322,7 @@ export class Enemies {
     this.captain = null; // the 帶頭大佬 on his feet, if one is (AI.captain)
     this.panicT = 0; // s left of the others wavering after he fell
     this.patternsSeen = new Set(); // the pattern kinds that have fired this run (a line in the notes the first time)
+    this.claims = []; // lines of fire let through the gap gate whose rounds are not yet in the air (gapAllows): { line, until }
   }
 
   /** Another living flanker for `e` to split up with. */
@@ -2379,6 +2390,7 @@ export class Enemies {
     this.captain = null;
     this.panicT = 0;
     this.patternsSeen.clear();
+    this.claims = [];
   }
 
   maxTokens() {

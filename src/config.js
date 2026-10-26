@@ -115,7 +115,8 @@ export const HELL = {
   // that no round within `gapRange` m is on its way through; a man whose shot would close the last one waits `beat` s
   // and looks again (his laser stays on). `gap` 0 turns it off (test/gap.test.mjs shows what it does)
   gap: 1.2,
-  gapReach: 3,
+  gapMargin: 0.3, // the gate asks for this much more: the rounds scatter a little, and a burst follows its first round
+  gapReach: 2, // what he crosses in a beat of bullet time; at 3, six shotgunners round him still left a spot at its edge and the gate never spoke (test/gap.test.mjs)
   gapRange: 6,
   beat: 0.5,
 };
