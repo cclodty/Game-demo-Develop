@@ -4,13 +4,14 @@ import { Bullets } from './bullets.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
-import { CAMERA, FOCUS, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
+import { CAMERA, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
 import { ACTIONS, Input, keyName, padButtonName, padLabel, StepInput } from './input.js';
 import { Level } from './level.js';
 import { MAPS, MAPS_REV } from './maps.js';
+import { drawFloor, ROOMS } from './rooms.js';
 import { nightRoute, NightStore } from './night.js';
 import { loadedCharacters, loadModels } from './models.js';
 import { Notes } from './notes.js';
@@ -45,6 +46,7 @@ const STEP = 1 / LOGIC_HZ;
 
 const $ = (id) => document.getElementById(id);
 const clock = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+const CN_COUNT = ['零', '一', '兩', '三', '四', '五', '六', '七', '八', '九']; // how many, in words (一層三間房)
 const TOGGLES = new Set(['checkbox', 'radio', 'range', 'button']);
 const isTyping = (t) => !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !TOGGLES.has(t.type)) || t.isContentEditable);
 
@@ -105,6 +107,8 @@ class Game {
     this.fx = new FX(this);
     this.style = new Style(this); // the look; before the level, whose materials it converts as they load
     this.maps = MAPS;
+    this.rooms = ROOMS; // where 彈幕試驗 is played (rooms.js)
+    this.floor = null; // a 彈幕試驗 run's rooms, in order (room ids: startRun draws them)
     this.enemyTypes = ENEMY_TYPES; // for the tests and the stats panel
     this.startMap = 0;
     try {
@@ -201,6 +205,20 @@ class Game {
     this.lastKillAt = -9;
     this.lastKillPos = null; // where the last kill fell (ROAM)
     this.lastCloseCall = -LOGIC_HZ; // a logic step number
+    this.grazes = 0; // bullets grazed this run (彈幕試驗: GRAZE), and those not yet scored or in the notes
+    this.grazePending = 0;
+    this.grazeFlushAt = -LOGIC_HZ;
+    this.grazeLogged = 0;
+    this.grazeLogAt = -LOGIC_HZ;
+    // the hitbox (彈幕試驗, in bullet time): a white dot the size of PLAYER.hitRadius in a dark ring, over everything
+    this.hitbox = new THREE.Group();
+    for (const [r0, r1, c] of [[0, PLAYER.hitRadius, 0xffffff], [PLAYER.hitRadius, PLAYER.hitRadius + 0.05, 0x14060a]]) {
+      const ring = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: c, depthTest: false, toneMapped: false }));
+      ring.renderOrder = 10;
+      this.hitbox.add(ring);
+    }
+    this.hitbox.visible = false;
+    this.scene.add(this.hitbox);
     this.time = 0; // real time for what is only shown (camera shake, title sway, pulses)
     this.last = performance.now();
     this.notes = new Notes(this);
@@ -243,6 +261,7 @@ class Game {
       b.dataset.mode = id;
       b.style.setProperty('--mode', m.color);
       b.innerHTML = `<span class="mode-zh">${m.name}</span><span class="mode-en">${m.en}</span><span class="mode-desc">${m.desc}</span>`;
+      b.title = m.desc; // the whole of it, if the card cuts it short (style.css .modes.four)
       b.addEventListener('click', (e) => {
         e.stopPropagation(); // choosing a mode is not starting a run
         this.setMode(id);
@@ -572,6 +591,11 @@ class Game {
       $('maps-note').textContent = `${resume ? `上次到 ${m.hour} ${m.name}，由這裏繼續` : `由 ${m.hour} ${m.name} 開始`} · 每 ${r.perStage} 波一個鐘頭，到 ${end.hour} ${end.name}`;
       return;
     }
+    if (r.floor) {
+      // 彈幕試驗: a floor of rooms, whatever card is picked
+      $('maps-note').textContent = `一層${CN_COUNT[r.floor.rooms]}間房，每間 ${r.perStage} 波，打完開門去下一間：${this.routeText(start, this.mode)} · 場景不用揀`;
+      return;
+    }
     $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結：${this.routeText(start, this.mode)}` : `每 ${r.perStage} 波換一個場景`;
   }
 
@@ -728,6 +752,9 @@ class Game {
       /* storage unavailable */
     }
     this.rng.reset(this.fixedSeed ?? randomSeed());
+    // 彈幕試驗: the run's floor of rooms, drawn from its seed (the same seed, the same floor)
+    const spec = MODES[this.mode].floor;
+    this.floor = spec ? drawFloor(spec, this.rng.fork('floor')) : null;
     // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
     const warmup = this.fixedWarmup ?? wantWarmup();
     // the rules hold for the whole run (a replay brings its own: fixedRules)
@@ -735,16 +762,20 @@ class Game {
     this.ruleset = rulesFor(pick.difficulty, pick.variants);
     const rules = packRules(this.ruleset.difficulty, this.ruleset.variants);
     this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, rules, hz: LOGIC_HZ, mapsRev: MAPS_REV });
-    this.resetWorld(MAPS[mapIndex]);
+    const first = this.firstMap(this.mode, mapIndex);
+    this.resetWorld(first);
     this.score.useBest(this.mode, this.ruleset);
     this.score.reset();
     this.waves.reset();
+    this.grazes = this.grazePending = this.grazeLogged = 0;
+    this.grazeFlushAt = this.grazeLogAt = -LOGIC_HZ; // logic steps: the run's count starts again (stepCount)
     // 澳門一夜 goes on where the night got to: its place in the night, and the night's waves before it as done
     this.routeAt = MODES[this.mode].night ? Math.max(0, NIGHT.indexOf(mapIndex)) : 0;
     this.waves.wave = this.routeAt * MODES[this.mode].perStage;
     this.hud.reset();
-    this.notes.reset(MAPS[mapIndex]);
+    this.notes.reset(first);
     if (MODES[this.mode].night) this.nightLine(MAPS[mapIndex]);
+    if (this.floor) this.notes.log(`這一層：${this.floor.map((id) => ROOMS[id].name).join(' → ')}`);
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
     // the music: the first stage's song from its start, on its base (audio.js)
     this.audio.setStage(0, true);
@@ -752,7 +783,7 @@ class Game {
     this.notes.log(`音樂：${this.audio.song.name}`);
     this.telemetry.confirm(); // the switch was on the title screen: playing is leaving it as it is
     $('telemetry-switch').classList.add('hidden');
-    if (!this.replay) this.telemetry.start({ map: MAPS[mapIndex].name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup, input: this.padOn ? 'pad' : 'keyboard', daily: !!this.dailyRun });
+    if (!this.replay) this.telemetry.start({ map: first.name, mode: MODES[this.mode].name, rules: this.ruleset.label, view: VIEWS[this.view].name, warmup, input: this.padOn ? 'pad' : 'keyboard', daily: !!this.dailyRun });
     $('replay-badge').classList.toggle('hidden', !this.replay);
     document.body.classList.toggle('replaying', !!this.replay);
     this.deathCause = '';
@@ -1012,8 +1043,8 @@ class Game {
     return this.replays.add(
       {
         at: new Date().toISOString(), // when it was played, for the list (not the game)
-        map: MAPS[this.record.map].name,
-        mapId: MAPS[this.record.map].id,
+        map: this.firstMap(this.mode, this.record.map).name,
+        mapId: this.firstMap(this.mode, this.record.map).id,
         mode: MODES[this.mode].name,
         rules: this.ruleset.label,
         result,
@@ -1249,6 +1280,11 @@ class Game {
   routeText(start, mode) {
     const r = MODES[mode];
     if (!Number.isFinite(r.waves)) return '';
+    if (r.floor) {
+      // a floor of rooms: its first, then the others in an order each run's seed draws; no boss
+      const k = r.floor.rooms - 1;
+      return `${ROOMS[r.floor.first].name} → ${r.floor.pool.map((id) => ROOMS[id].name).join('、')}${r.floor.pool.length > k ? `中抽${CN_COUNT[k]}間` : ''}（次序每局不同）`;
+    }
     // 澳門一夜 from where it starts to its end, each map at its hour; any other the maps after the one picked
     const maps = r.night ? NIGHT.slice(Math.max(0, NIGHT.indexOf(start))).map((i) => MAPS[i]) : Array.from({ length: Math.ceil(r.waves / r.perStage) }, (_, i) => MAPS[(start + i) % MAPS.length]);
     const stages = maps.length;
@@ -1268,8 +1304,19 @@ class Game {
     return this.mapAt(this.stage);
   }
 
-  /** The run's map at `stage`: in 澳門一夜 the night's, from where it started; in any other mode the next in MAPS. */
+  /** A run's first map: in a mode played in rooms (彈幕試驗) its floor's first room, whatever map was picked; else MAPS[mapIndex]. */
+  firstMap(mode, mapIndex) {
+    const floor = MODES[mode].floor;
+    return floor ? ROOMS[floor.first] : MAPS[mapIndex];
+  }
+
+  /** The run's map at `stage`: in 彈幕試驗 its floor's room; in 澳門一夜 the night's, from where it started; in any other mode the next in MAPS. */
   mapAt(stage) {
+    const floor = MODES[this.mode].floor;
+    if (floor) {
+      const rooms = this.floor || [floor.first];
+      return ROOMS[rooms[Math.min(stage, rooms.length - 1)]];
+    }
     if (MODES[this.mode].night) return MAPS[NIGHT[Math.min(this.routeAt + stage, NIGHT.length - 1)]];
     return MAPS[(this.startMap + stage) % MAPS.length];
   }
@@ -1299,10 +1346,17 @@ class Game {
       this.thrown.clear();
       this.fx.clear();
       this.level.load(this.stageMap, this.layoutFor(this.stage));
-      this.notes.log(`轉場 → ${this.stageMap.name}`);
-      this.audio.setStage(this.stage); // the next song comes in on the bar line
-      this.audio.setLevel(0);
-      this.notes.log(`音樂：${this.audio.upcoming.name}`);
+      const floor = MODES[this.mode].floor;
+      if (floor) {
+        // the floor's next room: its doors shut behind the player; one song for the floor
+        this.notes.log(`第 ${this.stage + 1} 間房：${this.stageMap.name}（入房鎖門，打完 ${MODES[this.mode].perStage} 波開門）`);
+        this.audio.setLevel(0);
+      } else {
+        this.notes.log(`轉場 → ${this.stageMap.name}`);
+        this.audio.setStage(this.stage); // the next song comes in on the bar line
+        this.audio.setLevel(0);
+        this.notes.log(`音樂：${this.audio.upcoming.name}`);
+      }
       this.applyMapView();
       this.player.placeAtStart();
       this.updateCamera(1, true);
@@ -1312,7 +1366,7 @@ class Game {
     if (tr.t >= 1.3) {
       this.transition = null;
       const m = this.stageMap;
-      this.hud.banner(MODES[this.mode].night ? m.hour : `STAGE ${this.stage + 1}`, `${m.name} · ${m.en}`, 'stage');
+      this.hud.banner(MODES[this.mode].night ? m.hour : this.floor && MODES[this.mode].floor ? `ROOM ${this.stage + 1} / ${this.floor.length}` : `STAGE ${this.stage + 1}`, `${m.name} · ${m.en}`, 'stage');
       if (MODES[this.mode].night) this.nightLine(m);
       this.waves.state = 'intermission';
       this.waves.timer = 2.6;
@@ -1586,6 +1640,27 @@ class Game {
     }
   }
 
+  /** A bullet grazed (彈幕試驗: GRAZE): the focus now, the Style gathered (logic: flushGraze). */
+  onGraze() {
+    this.grazes++;
+    this.grazePending++;
+    this.addFocus(GRAZE.focus);
+  }
+
+  /** The grazes since the last: one GRAZE at most every GRAZE.flush s, a line in the notes every GRAZE.log s. */
+  flushGraze() {
+    if (this.grazePending && this.stepCount - this.grazeFlushAt >= GRAZE.flush * LOGIC_HZ) {
+      this.score.style('GRAZE', GRAZE.pts * this.grazePending);
+      this.grazePending = 0;
+      this.grazeFlushAt = this.stepCount;
+    }
+    if (this.grazes > this.grazeLogged && this.stepCount - this.grazeLogAt >= GRAZE.log * LOGIC_HZ) {
+      this.notes.log(`擦彈 ×${this.grazes - this.grazeLogged}（這局共 ${this.grazes}）`);
+      this.grazeLogged = this.grazes;
+      this.grazeLogAt = this.stepCount;
+    }
+  }
+
   onPlayerHurt(dmg, source = '子彈') {
     this.deathCause = source; // the last thing that hit: the cause, if this was the end
     this.notes.log(`被${source}打中 −${dmg}（HP ${Math.max(0, Math.ceil(this.player.hp))}）`);
@@ -1611,16 +1686,17 @@ class Game {
   onWaveClear(n, stageEnd = false) {
     if (!this.player.alive) return;
     const bonus = 250 * n;
-    this.notes.log(`第 ${n} 波清空${stageEnd ? '，準備轉場' : ''}`);
+    const room = MODES[this.mode].floor; // 彈幕試驗: a room's last wave opens its exit (waves.js 'exit')
+    this.notes.log(`第 ${n} 波清空${stageEnd ? (room ? '，門開了：行出門口去下一間' : '，準備轉場') : ''}`);
     this.achievements.wave(!this.waves.hurt, this.waves.shots);
     this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt, shots: this.waves.shots });
     this.score.bonus('WAVE CLEAR', bonus);
     this.level.waveEnd(); // shutters roll back up
     this.addFocus(0.35);
     this.player.hp = PLAYER.hp;
-    const next = stageEnd ? ` · 下一站：${this.mapAt(this.stage + 1).name}` : '';
+    const next = stageEnd ? (room ? ` · 門開了：下一間 ${this.mapAt(this.stage + 1).name}` : ` · 下一站：${this.mapAt(this.stage + 1).name}`) : '';
     if (stageEnd && MODES[this.mode].night && !this.replay) this.night.cleared(this.routeAt + this.stage, NIGHT.length); // kept: the next night starts after it
-    this.hud.banner(stageEnd ? 'STAGE CLEAR' : 'WAVE CLEAR', `+${bonus.toLocaleString('en-US')} · 生命值回滿${next}`, 'clear');
+    this.hud.banner(stageEnd ? (room ? 'ROOM CLEAR' : 'STAGE CLEAR') : 'WAVE CLEAR', `+${bonus.toLocaleString('en-US')} · 生命值回滿${next}`, 'clear');
     this.audio.waveClear();
   }
 
@@ -1941,6 +2017,7 @@ class Game {
     this.boss.update(dt);
     this.level.updateProps(dt);
     this.bullets.update(dt);
+    this.flushGraze();
     this.grenades.update(dt);
     this.thrown.update(dt);
     this.pickups.update(dt, h, cmd);
@@ -2036,6 +2113,16 @@ class Game {
       tz -= 1.5;
       zoom = 0.82 + Math.sin(this.time * 0.25) * 0.03;
     }
+    // a room (rooms.js): the camera holds its middle, set back `back` m towards itself (in the 45° views a corner is
+    // near it), and leans only part of the way to the player; nothing zooms in (bullet time, a kill) while the room is
+    // played: all of it stays on the screen
+    const held = this.level.map.camera?.room;
+    if (held && this.state === 'playing') {
+      const yaw = (VIEWS[this.view].yaw ?? 0) * (Math.PI / 180);
+      tx = lerp(held.at[0], tx, held.lean) + Math.sin(yaw) * held.back;
+      tz = lerp(held.at[1], tz, held.lean) + Math.cos(yaw) * held.back;
+      zoom = 1;
+    }
     this.zoom = snap ? zoom : damp(this.zoom, zoom, 4, realDt);
     // up a flight of steps (大三巴) the camera rises with the player
     const ty = this.state === 'title' ? 0 : this.level.groundY(this.player.x, this.player.z);
@@ -2089,6 +2176,11 @@ class Game {
   }
 
   render() {
+    this.bullets.draw(); // into their instanced meshes (bullets.js), whoever renders: a frame or a test
+    const p = this.player;
+    const hb = this.hitbox;
+    hb.visible = !!MODES[this.mode].graze && this.state === 'playing' && p.alive && this.focusAmt >= GRAZE.show;
+    if (hb.visible) hb.position.set(p.x, GUN_Y + this.level.groundY(p.x, p.z), p.z);
     this.renderer.info.reset();
     const u = this.post.u;
     let focus = this.focusAmt;

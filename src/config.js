@@ -86,6 +86,14 @@ export const FOCUS = {
   closeCallRefill: 0.05,
 };
 
+/**
+ * Grazing (彈幕試驗 ③): in a mode with `graze` (waves.js MODES), every enemy bullet that passes within `radius` m of
+ * the player's middle without hitting him gives `focus` of the meter and GRAZE Style, `pts` a bullet (gathered into
+ * one GRAZE at most every `flush` s, so the HUD's feed is not flooded); the notes count them every `log` s. There the
+ * hitbox (PLAYER.hitRadius) shows as a dot once bullet time is `show` of the way in. Other modes keep CLOSE CALL.
+ */
+export const GRAZE = { radius: 0.5, focus: 0.02, pts: 10, flush: 0.25, log: 3, show: 0.3 };
+
 export const BULLET = {
   playerSpeed: 62,
   playerTrail: 2.2,
@@ -269,6 +277,12 @@ export const ENV = {
   slamPower: 12, // how hard the door throws him
   shutterFall: 0.5, // s from the lock giving to the shutter on the ground
   shutterDamage: 60, // what the player takes under a shutter
+  // a round table (fixtures.js 'table', 彈幕試驗 ④): upright `low` m high (bodies stop at it, shots and sight pass
+  // over); kicked, it flips in `flipTime` s, its top a wall `height` m high and `thick` m thick across the kick's way,
+  // `out` m beyond its middle, FLIP +`pts`; it stops shots and sight until `hp` shots (anyone's) break it
+  table: { low: 0.8, height: 1.6, thick: 0.3, out: 0.45, flipTime: 0.2, hp: 10, pts: 50 },
+  // a room's exit (fixtures.js 'exit', 彈幕試驗 ⑤): open, the player within `reach` m of its wall goes on; its leaves swing out in `open` s (looks)
+  exit: { reach: 1.1, open: 0.6 },
   // a kicked LPG cylinder jets off (level.js Barrel.rocket) and bursts on an enemy or when its time is up: ROCKET CAN
   rocketTime: 1.5, // s of flight
   rocketAccel: 26, // m/s² along its way
