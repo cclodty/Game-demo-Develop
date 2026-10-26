@@ -152,7 +152,7 @@ test('彈幕 ② B①: shoved out, he still takes the rounds that meet him as he
     const flying = e.shoved;
     window.shootAt(0, 6);
     window.play(20);
-    const flight = { flying, lost: hp0 - e.hp, shoved: e.shoved, hp: p.hp };
+    const flight = { flying, lost: hp0 - e.hp, one: e.tough, shoved: e.shoved, hp: p.hp }; // one of his hp as a held man takes it: PLAYER.humanShield.hit × his toughness (config.js ENEMY_HP)
     // shot dead in the air by his own side: HUMAN SHIELD
     const kills = [];
     const kill0 = g.score.kill.bind(g.score);
@@ -208,7 +208,7 @@ test('彈幕 ② B①: shoved out, he still takes the rounds that meet him as he
     return { flight, dead, bowling, one, walk };
   });
   assert.equal(r.flight.flying, true, 'flying after the shove');
-  assert.equal(r.flight.lost, 1, `the round meets him for one of his hp (lost ${r.flight.lost})`);
+  assert.ok(Math.abs(r.flight.lost - r.flight.one) < 1e-6, `the round meets him for one of his hp (lost ${r.flight.lost}, one is ${r.flight.one})`);
   assert.equal(r.flight.hp, 100, 'not the player');
   assert.equal(r.dead.alive, false);
   assert.ok(r.dead.tags.includes('HUMAN SHIELD'), r.dead.tags.join(','));
@@ -275,7 +275,7 @@ test('bullets from within 60° of the front hit the man held there, not the play
   assert.deepEqual(problems(logs), []);
 });
 
-test('held 1.5 s or until E; a walk at 0.6 of the pace; the left gun alone, its shots past him', async () => {
+test('held PLAYER.humanShield.hold s (4.5 since 彈幕 ② B①) or until E; a walk at 0.6 of the pace; the left gun alone, its shots past him', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const p = g.player;
@@ -373,7 +373,7 @@ test('let go, he is shoved out about 6 m and bowls over a man in the way; shot d
     window.begin(-8, 4);
     const e2 = window.post('grunt', p.x + 1, p.z);
     window.play(1, [], ['KeyE']);
-    const timedOut = furthest(e2, 330);
+    const timedOut = furthest(e2, 600); // 4.5 s held (PLAYER.humanShield.hold), then out
     window.begin(-8, 4);
     const e3 = window.post('grunt', p.x + 1, p.z);
     window.play(1, [], ['KeyE']);
