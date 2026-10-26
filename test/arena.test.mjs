@@ -91,9 +91,9 @@ test('every floor ends in a boss room; the arena’s last wave is the blade quee
     const bar = document.getElementById('boss-bar');
     const info = g.renderer.info.render;
     const first = { room: g.level.map.id, kind: b.active && b.def.kind, danmaku: b.danmaku, state: b.state, perch: b.def.perches.some(([x, z]) => Math.hypot(x - b.x, z - b.z) < 0.01), segs: b.segments, bonus: b.bonus, queue: g.waves.queue.length, bar: !bar.classList.contains('hidden') && bar.querySelector('.boss-name').textContent, banner: document.getElementById('banner').textContent, calls: info.calls, tris: info.triangles, budget: g.level.map.budget };
-    const floors = g.floors.map((f) => f[f.length - 1]);
     const bossRooms = g.waves.rules.floor.boss;
     window.toArena(2);
+    const floors = g.floors.map((f) => f[f.length - 1]); // the last floor's made the arena by toArena; the others as the seed drew them
     const last = { segs: g.boss.segments, bonus: g.boss.bonus, isFinal: g.waves.isFinal };
     return { first, floors, bossRooms, last, route: g.routeText(0, 'danmaku') };
   });
