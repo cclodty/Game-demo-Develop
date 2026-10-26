@@ -309,6 +309,9 @@ export const BUCKSHOT = {
   stagger: 0.8, // s he reels after a kick, a pan smash or a thug bowled into him
   bowl: 5, // m/s a kicked thug needs to knock him off balance
   blast: 2.6, // m: a blast this close takes a segment
+  // his slow wall (彈幕 ② D④), on where his def says `danmaku` (rooms.js FRONTHALL): every blast of his is followed by a
+  // fan of `count` slow rounds (the pattern men's look) across ± `spread` rad with `gap` of them missing inside: the way through
+  wall: { count: 9, spread: 0.9, gap: 2, speed: 6, dmg: 10, range: 16 },
 };
 
 export const BULWARK = {
@@ -2954,6 +2957,7 @@ class Buckshot extends Boss {
   constructor(game) {
     super(game, BUCKSHOT);
     this.rig = null;
+    this.wallSrc = { cfg: { label: '散彈手的慢彈' } }; // what his slow wall says hit the player (bullets.js: `source.cfg.label`)
     this.reset();
   }
 
@@ -2990,7 +2994,29 @@ class Buckshot extends Boss {
     this.phase = 0;
     this.flash = 0;
     this.raging = false;
+    this.danmaku = !!def.danmaku; // his slow wall (BUCKSHOT.wall)
+    this.firstWall = true;
     this.build();
+  }
+
+  /** The slow wall (danmaku): after the blast, a fan of slow rounds the same way, BUCKSHOT.wall.gap of them missing somewhere inside. */
+  wallFan() {
+    const g = this.game;
+    const W = BUCKSHOT.wall;
+    const gapAt = g.rng.int(1, W.count - 1 - W.gap);
+    const step = (W.spread * 2) / (W.count - 1);
+    for (let i = 0; i < W.count; i++) {
+      if (i >= gapAt && i < gapAt + W.gap) continue;
+      const a = this.aimA - W.spread + i * step;
+      const dx = Math.sin(a);
+      const dz = Math.cos(a);
+      g.bullets.spawn({ x: this.x + dx * 0.8, z: this.z + dz * 0.8, dx, dz, speed: W.speed, owner: 'enemy', damage: W.dmg, range: W.range, source: this.wallSrc, look: 'danmaku' });
+    }
+    if (this.firstWall) {
+      this.firstWall = false;
+      g.notes.log('散彈手的慢彈：每槍之後一排慢彈，有缺口');
+      g.hud.banner('SLOW FAN', '散彈之後一排慢彈：找缺口', 'clear');
+    }
   }
 
   /** The look: the shotgunner's rig a size up, a pale shirt, the shotgun; his fan of three lines. */
@@ -3109,6 +3135,7 @@ class Buckshot extends Boss {
       g.bullets.spawn({ x: this.x + dx * 0.8, z: this.z + dz * 0.8, dx, dz, speed: G.speed, owner: 'enemy', damage: G.dmg, range: G.range, source: this.team ? this : g.boss });
     }
     g.audio.shot('shotgun', g.panFor(this.x));
+    if (this.danmaku) this.wallFan();
     this.state = 'pump';
     this.timer = G.pump * (this.raging ? 0.7 : 1);
     this.gunT = G.every * (this.raging ? 0.6 : 1);

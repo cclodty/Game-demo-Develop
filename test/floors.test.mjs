@@ -103,7 +103,7 @@ test('the floors are the run’s stages: a thug of the second floor has more hea
   assert.deepEqual(r.floorOf, [...Array(a * 2).fill(0), ...Array(b * 2).fill(1), ...Array(c * 2).fill(2)], 'each wave on its floor');
   assert.deepEqual(r.stats.map((s) => s.hp), r.want.map((s) => s.hp), `a thug's health a floor (ENEMY_HP): ${r.stats.map((s) => s.hp)}`);
   assert.ok(r.stats.every((s, f) => Math.abs(s.pace - r.want[f].pace) < 1e-9), `the pace: ${r.stats.map((s) => s.pace)}`);
-  assert.ok(r.sizes.bossRooms.includes(r.sizes.lastRoom) && ['blade', 'gunner', 'bulwark'].includes(r.sizes.boss), `the floor ends in a boss room (${r.sizes.lastRoom}: ${r.sizes.boss})`);
+  assert.ok(r.sizes.bossRooms.includes(r.sizes.lastRoom) && ['blade', 'gunner', 'bulwark', 'duo'].includes(r.sizes.boss), `the floor ends in a boss room (${r.sizes.lastRoom}: ${r.sizes.boss})`);
   assert.ok(!r.sizes.isEnd, 'no bigger wave in place of a boss there is');
   assert.ok(r.sizes.floorLast && !r.sizes.notLast && !r.sizes.runLast, 'the floor is done with the arena’s last wave; not a wave before, not the run’s last');
 });

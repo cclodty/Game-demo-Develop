@@ -484,7 +484,49 @@ export const STRONGROOM = room({
   budget: ROOM_BUDGET,
 });
 
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM };
+/**
+ * The front hall (前廳, 彈幕 ② D④): the marksman's and the shotgunner's, two at once (boss.js Duo). The marksman has
+ * six posts round the room, the shotgunner comes in by the north; two tables to break the line and the fan. 22 × 15 m,
+ * in at the south, out at the north.
+ */
+export const FRONTHALL = room({
+  id: 'fronthall',
+  rev: 1,
+  name: '前廳',
+  en: 'FRONT HALL',
+  desc: '層尾的前廳：長槍手在六個角落換位，散彈手追着你，兩張枱擋紅線。',
+  color: '#ff5a10',
+  size: [22, 15],
+  walls: [3.2, 'teaWall', 'teaTrim'],
+  low: [0.9, ['s', 'w']],
+  doors: [['n', -5], ['n', 5], ['e', -3], ['e', 3]],
+  tables: [[-5, -2, 0.9], [5, 2, 0.9]],
+  entry: ['s', 0],
+  exit: ['n', 0],
+  // the far side: the north ends of the aisles, and behind the north table
+  posts: [[-8.5, -5.5], [8.5, -5.5], [0, -5.5], [-5, -4.5, -5, -2], [9.5, -1]],
+  // the pair (boss.js DUO): the marksman's posts round the room, the shotgunner in through the exit's wall with his slow wall (`danmaku`);
+  // their combo RED LINE RUSH as on Senado
+  boss: {
+    kind: 'duo',
+    pair: [
+      { kind: 'marksman', from: [0, -9.5], posts: [[-9, -5.5], [9, -5.5], [-9, 5.5], [9, 5.5], [0, -6], [0, 6]] },
+      { kind: 'buckshot', danmaku: true, from: [0, -9.5], at: [0, -4] },
+    ],
+    combo: { name: '紅線衝鋒', en: 'RED LINE RUSH', hint: '閃出紅線：散彈手衝入去，長槍打中他', wait: 6 },
+  },
+  floor: 'teahouse',
+  theme: teaTheme([
+    [-4, -3],
+    [4, -3],
+    [-4, 3],
+    [4, 3],
+  ]),
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
 
 /**
  * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of
