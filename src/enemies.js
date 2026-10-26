@@ -523,7 +523,7 @@ class Enemy {
     return this.alive && this.stunT > 0 && this.stunCause === 'shove';
   }
 
-  /** Grabbed as a human shield: whatever he was doing, he stops. */
+  /** Grabbed as a human shield: whatever he was doing, he stops; a riot shield comes up again (B②: he is immune from the front). */
   hold() {
     this.held = true;
     this.endAim();
@@ -531,19 +531,46 @@ class Enemy {
     this.vx = this.vz = 0;
     this.state = 'move';
     this.repath = 0;
+    this.shieldDownT = 0;
+    if (this.cfg.captain) this.game.notes.log('抓住帶頭大佬：手下停火');
+  }
+
+  /** His gun's numbers (WEAPONS), or null for a blade, a bomber's detonator, a grenadier's bag. */
+  get weaponStats() {
+    return WEAPONS[this.cfg.weapon] || null;
+  }
+
+  /** Held or shoved, the captain's men hold their fire (彈幕 ② B②): his guards and the thugs of the room. */
+  get muzzled() {
+    const c = this.mgr.captain;
+    return !!c && c !== this && c.alive && c.held && (this.escortOf === c || this.type === 'grunt');
   }
 
   /** Let go: shoved out along (dx, dz), flying like a kicked man (bowl knocks over whoever he meets) but unhurt. */
   letGo(dx, dz) {
+    const H = PLAYER.humanShield;
     this.held = false;
     this.bowled = 0; // men he bowls over on this flight (bowl): PLAYER.humanShield.bowling of them is SHIELD BOWLING
-    this.kick(dx, dz, PLAYER.humanShield.shove, 'shove', 0);
+    this.kick(dx, dz, H.shove, 'shove', 0);
+    if (this.cfg.bomb && this.alive && (dx || dz)) {
+      // a bomber shoved out is a bomb thrown (B②): his vest lit, a short fuse
+      this.light();
+      this.fuseT = H.bombFuse;
+      this.game.notes.log(`推出炸彈客，${H.bombFuse} 秒後爆`);
+    }
+    if (this.cfg.captain) this.mgr.captainFreed(this);
   }
 
   /** A bullet of his own side's, meant for the player behind him (bullets.js): PLAYER.humanShield.hit of his hp. */
   shieldHit(b) {
     if (!this.alive) return;
     const g = this.game;
+    if (this.blocks(b.dx, b.dz)) {
+      // a riot-shield man held up (B②): his shield, raised again, takes what comes from the front
+      g.fx.sparks(b.x, GUN_Y, b.z, -b.dx, -b.dz, 10, [7, 6, 3], 7);
+      g.audio.deflect(g.panFor(this.x));
+      return;
+    }
     this.harm(PLAYER.humanShield.hit);
     this.flash = 1;
     g.fx.blood(this.x, 1.3, this.z, b.dx, b.dz, 7);
@@ -2195,7 +2222,8 @@ class Enemy {
       const rr = this.radius + o.radius + 0.1;
       if (dx * dx + dz * dz > rr * rr) continue;
       const d = Math.hypot(dx, dz) || 1;
-      o.kick(dx / d, dz / d, sp * 0.75, 'strike');
+      const ram = this.stunCause === 'shove' && this.cfg.shield ? PLAYER.humanShield.shieldKnock : 1; // shoved with his riot shield before him (B②): twice as far
+      o.kick(dx / d, dz / d, sp * 0.75 * ram, 'strike');
       const keep = this.stunCause === 'shove' ? PLAYER.humanShield.knock : 0.5; // a shoved human shield goes on through a row (彈幕 ② B①)
       this.vx *= keep;
       this.vz *= keep;
@@ -2393,6 +2421,12 @@ export class Enemies {
     return e;
   }
 
+  /** The captain let go by the player (B②): the men who held their fire waver a moment, as when he falls. */
+  captainFreed(c) {
+    for (const e of this.list) if (e !== c && e.alive && (e.escortOf === c || e.type === 'grunt')) e.waver();
+    this.game.notes.log('放開帶頭大佬：手下亂一陣');
+  }
+
   /** The captain fell (AI.captain): the rest waver for a while, slower to aim and falling back. */
   captainDown(c) {
     if (this.captain === c) this.captain = null;
@@ -2429,6 +2463,7 @@ export class Enemies {
   }
 
   requestToken(e) {
+    if (e.muzzled) return false; // his captain in the player's arms (B②): he holds his fire
     if (e.hasToken) return true;
     if (e.cfg.heavy || this.game.waves.rules.floor) return true; // heavy fire (彈幕試驗 ⑦), and anyone in a room (彈幕 ② A①): the whole room opens up at once, no token to wait for
     if (this.tokens >= this.maxTokens()) return false;

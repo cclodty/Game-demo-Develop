@@ -158,6 +158,7 @@ export class Bullets {
     b.dodgedSpin = false;
     b.source = o.source || null;
     b.homeRun = false; // set by batBack: a bullet of the pool keeps nothing from its last life
+    b.hostageFire = o.hostageFire || false; // a held heavy gun's round, the player's own (player.js hostageFire): a kill is HOSTAGE FIRE
     this.list.push(b);
     this.updateVisual(b);
     return b;

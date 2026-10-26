@@ -41,7 +41,12 @@ export const PLAYER = {
   // bowling over whoever he meets and still taking the rounds that meet him as he flies; `bowling` men bowled over in
   // one shove is SHIELD BOWLING +`bowlPts`. 彈幕 ② B① (DECISIONS 2026-10-26): nearly everyone can be held (not a drone,
   // not a lit bomber) and for 4.5 s (was 1.5), the shield as a resource
-  humanShield: { reach: 1.5, gap: 0.75, hold: 4.5, arc: 60, hit: 1, walkMul: 0.6, shove: 24, knock: 0.85, bowling: 2, bowlPts: 250 }, // `knock`: of his speed he keeps through each man he bowls over (a kicked man keeps half; a trolley's is 0.85 too)
+  // `knock`: of his speed he keeps through each man he bowls over (a kicked man keeps half; a trolley's is 0.85 too).
+  // By kind (B②): a bomber shoved out goes off `bombFuse` s later (held, his vest never lights); a riot-shield man held
+  // raises his shield (his own arc, enemies.js blocks: no harm from the front) and shoved bowls men `shieldKnock` times as
+  // far; a captain held, his guards and the thugs hold their fire, and waver once he is let go; a heavy gun held fires
+  // his gun along the player's facing every `fireEvery` s, rounds that are the player's own (a kill: HOSTAGE FIRE +`firePts`)
+  humanShield: { reach: 1.5, gap: 0.75, hold: 4.5, arc: 60, hit: 1, walkMul: 0.6, shove: 24, knock: 0.85, bowling: 2, bowlPts: 250, bombFuse: 0.4, shieldKnock: 2, fireEvery: 0.1, firePts: 150 },
   throwReach: 1.6, // metres: G picks up a pan or barrel this close
   throwRange: 8, // metres a carried thing is thrown, at most
   kickRange: 2.1,

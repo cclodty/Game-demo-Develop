@@ -96,6 +96,7 @@ export class Player {
     this.diveDirZ = 0;
     this.hostage = null; // the man held up as a human shield (grab), or null
     this.hostageT = 0; // s he is held for still
+    this.hostageFireT = 0; // s to a held heavy gun's next round (hostageFire)
     this.eUsed = false; // this step's E went to letting him go (pickups.js leaves it alone)
     this.spinDirX = 0;
     this.spinDirZ = -1;
@@ -199,6 +200,8 @@ export class Player {
     if (!best) return false;
     this.hostage = best;
     this.hostageT = H.hold;
+    this.hostageFireT = 0;
+    this.hostageFired = false;
     best.hold();
     this.holdHostage();
     g.audio.kick(false);
@@ -216,6 +219,26 @@ export class Player {
       if (!shove) return;
       this.game.audio.kick(true);
       this.game.notes.log('推出人盾');
+    }
+  }
+
+  /** A heavy gun held up (B②): his gun fires along the player's facing every PLAYER.humanShield.fireEvery s, the rounds the player's own. */
+  hostageFire(dt) {
+    const g = this.game;
+    const e = this.hostage;
+    this.hostageFireT -= dt;
+    if (this.hostageFireT > 0) return;
+    this.hostageFireT = PLAYER.humanShield.fireEvery;
+    const w = e.weaponStats; // his WEAPONS entry (enemies.js)
+    if (!w) return;
+    const a = this.facing + g.rng.range(-0.03, 0.03);
+    const dx = Math.sin(a);
+    const dz = Math.cos(a);
+    g.bullets.spawn({ x: e.x + dx * 0.45, z: e.z + dz * 0.45, dx, dz, speed: w.speed, owner: 'player', damage: w.dmg, range: w.range || 70, weapon: null, hostageFire: true, look: 'player' });
+    g.audio.shot(w.sound, g.panFor(e.x));
+    if (!this.hostageFired) {
+      this.hostageFired = true;
+      g.notes.log(`人盾開火：${e.cfg.name || e.cfg.label}`);
     }
   }
 
@@ -338,6 +361,7 @@ export class Player {
         if (!this.hostage.alive) g.notes.log('人盾被打死');
         this.letGo();
       } else if (this.hostageT <= 0) this.letGo();
+      else if (this.hostage.cfg.heavy) this.hostageFire(dt);
     }
     this.hurtFlash = Math.max(0, this.hurtFlash - dt * 4);
     this.recoilL = Math.max(0, this.recoilL - dt * 8);
