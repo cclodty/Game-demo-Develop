@@ -99,7 +99,7 @@ test('a bomber held never lights his vest, even beside his own men; shoved out h
     const held = { held: p.hostage === b, lit: b.fuseT >= 0, alive: b.alive };
     const far = window.post('grunt', p.x + 6, p.z); // where the shove lands him
     window.play(1, [], ['KeyE']);
-    const shoved = { lit: b.fuseT >= 0, fuse: b.fuseT, note: g.notes.events.at(-1).text };
+    const shoved = { lit: b.fuseT >= 0, fuse: b.fuseT, note: g.notes.events.map((x) => x.text).find((t) => t.includes('推出炸彈客')) || '' };
     let went = -1;
     for (let i = 0; i < 120; i++) {
       window.play(1);
@@ -180,6 +180,8 @@ test('a captain held: his guards and the thugs hold their fire; let go, they fir
     window.play(1, [], ['KeyE']);
     window.play(120 * 2.5);
     const held = { ...shots, muzzled: [guard.muzzled, thug.muzzled, rifle.muzzled], note: g.notes.events.map((x) => x.text).find((t) => t.includes('停火')) };
+    guard.sp.stay = false; // posted men keep their posts and never waver: in the fight proper now
+    thug.sp.stay = false;
     window.play(1, [], ['KeyE']); // let go
     const wavered = [guard.retreatTo, thug.retreatTo].map((t) => !!t);
     window.play(120 * 4);
@@ -222,5 +224,85 @@ test('a heavy gun held fires his gun along the player’s facing, rounds that ar
   assert.equal(r.markAlive, false, 'the thug ahead is shot down');
   assert.ok(r.tags.includes('HOSTAGE FIRE'), r.tags.join(','));
   assert.match(r.note || '', /人盾開火：機槍手/);
+  assert.deepEqual(problems(logs), []);
+});
+
+test('彈幕 ② B③: a rifleman in front of a man held goes round to the player’s side before he fires; a thug fires into the held man; the HUD offers E 人盾 for a man in front with nothing else to pick up; a blade’s cut from the front lands on the held man', { timeout: 5 * 60 * 1000 }, async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const p = g.player;
+    const H = 60; // PLAYER.humanShield.arc
+    const off = (e) => (Math.atan2(e.x - p.x, e.z - p.z) - p.facing + 3 * Math.PI) % (2 * Math.PI) - Math.PI; // rad off the facing
+    // the rifleman: in front, 7 m off, ready: he goes round first
+    window.begin(-8, 4);
+    const held = window.post('grunt', p.x + 1, p.z);
+    window.play(1, [], ['KeyE']);
+    const rifle = window.post('rifle', p.x + 7, p.z + 1, 0);
+    rifle.sp.stay = false;
+    const shots = [];
+    const spawn0 = g.bullets.spawn.bind(g.bullets);
+    g.bullets.spawn = (o) => {
+      if (o.source === rifle) shots.push(Math.abs(off(rifle)) * (180 / Math.PI));
+      return spawn0(o);
+    };
+    let went = false;
+    for (let i = 0; i < 120 * 4; i++) {
+      window.play(1);
+      went = went || rifle.behindShield === false;
+    }
+    g.bullets.spawn = spawn0;
+    const flank = { went, firedFrom: shots.map((a) => Math.round(a)), note: g.notes.events.map((x) => x.text).find((t) => t.includes('繞到人盾側面')) || '', heldHp: held.hp };
+    // a thug in front fires into the held man
+    window.begin(-8, 4);
+    const held2 = window.post('grunt', p.x + 1, p.z);
+    const full = held2.hp;
+    window.play(1, [], ['KeyE']);
+    const thug = window.post('grunt', p.x + 6, p.z, 0);
+    for (let i = 0; i < 120 * 3; i++) window.play(1);
+    const thugFire = { behind: thug.behindShield, heldLost: full - held2.hp };
+    // the hint
+    window.begin(-8, 4);
+    const none = p.grabPrompt;
+    window.post('grunt', p.x + 1, p.z);
+    window.play(1);
+    const man = p.grabPrompt;
+    g.hud.update(1 / 60);
+    const text = document.getElementById('prompt').textContent;
+    window.play(1, [], ['KeyE']);
+    const holding = p.grabPrompt;
+    window.begin(-8, 4);
+    const pan = g.level.props.find((q) => q.kind === 'pan' && q.alive);
+    pan.x = p.x + 0.4;
+    pan.z = p.z + 0.4;
+    window.post('grunt', p.x + 1, p.z);
+    window.play(1);
+    const withPan = p.grabPrompt;
+    const hint = { none, man, text, holding, withPan };
+    // a blade from the front: the held man takes the cut
+    window.begin(-8, 4);
+    const held3 = window.post('grunt', p.x + 1, p.z);
+    const hp3 = held3.hp;
+    window.play(1, [], ['KeyE']);
+    const blade = window.post('rusher', p.x + 4, p.z, 0);
+    blade.sp.stay = false;
+    let cut = '';
+    for (let i = 0; i < 120 * 4 && !cut; i++) {
+      window.play(1);
+      cut = g.notes.events.map((x) => x.text).find((t) => t.includes('人盾擋住')) || '';
+    }
+    const melee = { cut, heldLost: hp3 - held3.hp, player: p.hp };
+    return { flank, thugFire, hint, melee, H };
+  });
+  assert.equal(r.flank.went, true, 'the rifleman got out of the arc the held man covers');
+  assert.ok(r.flank.firedFrom.length > 0, 'and fired');
+  assert.ok(r.flank.firedFrom.every((a) => a > r.H), `every round from beyond ±${r.H}° (${r.flank.firedFrom.join(',')})`);
+  assert.match(r.flank.note, /繞到人盾側面/);
+  assert.equal(r.thugFire.behind, false, 'a thug is not one to go round');
+  assert.ok(r.thugFire.heldLost > 0, `the thug's rounds land on the held man (lost ${r.thugFire.heldLost})`);
+  assert.deepEqual(r.hint, { none: false, man: true, text: r.hint.text, holding: false, withPan: false });
+  assert.match(r.hint.text, /人盾/);
+  assert.match(r.melee.cut, /人盾擋住刀/);
+  assert.ok(r.melee.heldLost > 0, 'the held man took the cut');
+  assert.equal(r.melee.player, 100, 'not the player');
   assert.deepEqual(problems(logs), []);
 });

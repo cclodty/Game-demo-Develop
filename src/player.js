@@ -180,14 +180,14 @@ export class Player {
   }
 
   /** E by a man in front, nothing else to pick up: hold him up as a human shield. */
-  grab() {
-    const g = this.game;
+  /** The man E would hold: the nearest holdable one within reach, in the half in front; null for none. */
+  grabTarget() {
     const H = PLAYER.humanShield;
     const fx = Math.sin(this.facing);
     const fz = Math.cos(this.facing);
     let best = null;
     let bestD = H.reach;
-    for (const e of g.enemies.list) {
+    for (const e of this.game.enemies.list) {
       if (!e.holdable) continue;
       const dx = e.x - this.x;
       const dz = e.z - this.z;
@@ -197,6 +197,13 @@ export class Player {
         bestD = d;
       }
     }
+    return best;
+  }
+
+  grab() {
+    const g = this.game;
+    const H = PLAYER.humanShield;
+    const best = this.grabTarget();
     if (!best) return false;
     this.hostage = best;
     this.hostageT = H.hold;
@@ -363,6 +370,8 @@ export class Player {
       } else if (this.hostageT <= 0) this.letGo();
       else if (this.hostage.cfg.heavy) this.hostageFire(dt);
     }
+    // the HUD's hint (hud.js): E would hold the man in front, nothing else to pick up or swap (B③)
+    this.grabPrompt = this.alive && !this.hostage && !g.pickups.prompt && !g.thrown.prompt && !g.thrown.inHand && !g.thrown.carry && !!this.grabTarget();
     this.hurtFlash = Math.max(0, this.hurtFlash - dt * 4);
     this.recoilL = Math.max(0, this.recoilL - dt * 8);
     this.recoilR = Math.max(0, this.recoilR - dt * 8);

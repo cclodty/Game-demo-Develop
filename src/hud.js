@@ -120,8 +120,9 @@ export class HUD {
     const q = g.pickups.prompt;
     const t = g.thrown.prompt;
     const pad = !!g.input.pad; // a connected pad: hints name its buttons
-    this.set('prompt', q ? `${pad}:e:${q.kind}` : t ? `${pad}:t:${t}` : '', (v) => {
-      e.prompt.innerHTML = withLabels(q ? `{swap} 交換為 ${PLAYER_WEAPONS[q.kind].name}` : t || '', pad);
+    const hold = p.grabPrompt ? '{pick} 人盾' : ''; // a man in front to hold up (player.js grabPrompt, 彈幕 ② B③)
+    this.set('prompt', q ? `${pad}:e:${q.kind}` : t ? `${pad}:t:${t}` : hold ? `${pad}:h` : '', (v) => {
+      e.prompt.innerHTML = withLabels(q ? `{swap} 交換為 ${PLAYER_WEAPONS[q.kind].name}` : t || hold, pad);
       e.prompt.classList.toggle('show', !!v);
     });
     this.set('reload', reloading ? Math.round(p.reloadProgress * 50) / 50 : 0, (v) => {

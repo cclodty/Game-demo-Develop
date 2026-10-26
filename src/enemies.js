@@ -439,6 +439,7 @@ class Enemy {
     this.postLogged = false;
     this.gapBeat = -1; // the beat (HELL.beat) in which his shot was refused for the gap (gapAllows): he waits for the next
     this.gapWait = false; // aimed and waiting for a gap
+    this.flankLogged = false; // the note of his going round a held man (B③), once
     this.retreatTo = null; // where to, with no cover farther back
     this.alive = true;
     this.dead = false;
@@ -533,6 +534,41 @@ class Enemy {
     this.repath = 0;
     this.shieldDownT = 0;
     if (this.cfg.captain) this.game.notes.log('抓住帶頭大佬：手下停火');
+  }
+
+  /**
+   * A man held up in front of the player, and this one in the arc he covers (B③): a gunner who strafes goes round to
+   * the player's side before he fires; the others fire into the held man as ever.
+   */
+  get behindShield() {
+    const p = this.game.player;
+    const hs = p.hostage;
+    if (!hs || !hs.alive || hs === this || !this.cfg.strafe) return false;
+    const dx = this.x - p.x;
+    const dz = this.z - p.z;
+    const d = Math.hypot(dx, dz) || 1;
+    return (dx * Math.sin(p.facing) + dz * Math.cos(p.facing)) / d >= Math.cos((PLAYER.humanShield.arc * Math.PI) / 180);
+  }
+
+  /** A man is held up before the player and this one would go round (B③): no hiding behind cover meanwhile, he fires from the side. */
+  get flanking() {
+    const hs = this.game.player.hostage;
+    return !!hs && hs.alive && hs !== this && !!this.cfg.strafe;
+  }
+
+  /** Where to go round to (B③): `flankTo`° off the player's facing on his own side, as far off as he is now (within his gun's reach), on open ground. */
+  flankSpot() {
+    const g = this.game;
+    const p = g.player;
+    const H = PLAYER.humanShield;
+    const dx = this.x - p.x;
+    const dz = this.z - p.z;
+    const side = Math.sign(dx * Math.cos(p.facing) - dz * Math.sin(p.facing)) || 1;
+    const a = p.facing + (side * H.flankTo * Math.PI) / 180;
+    const r = clamp(Math.hypot(dx, dz), this.cfg.range[0], this.cfg.range[1]);
+    const nav = g.level.nav;
+    const i = nav.nearestOpen(p.x + Math.sin(a) * r, p.z + Math.cos(a) * r);
+    return i < 0 ? null : { x: nav.centerX(i), z: nav.centerZ(i) };
   }
 
   /** His gun's numbers (WEAPONS), or null for a blade, a bomber's detonator, a grenadier's bag. */
@@ -1699,6 +1735,23 @@ class Enemy {
               break;
             }
           }
+          if (this.behindShield) {
+            // a man held up before the player (B③): round to his side first, then fire
+            this.repath -= dt;
+            if (this.repath <= 0 || !this.path || this.pathI >= this.path.length) {
+              this.repath = 0.6;
+              const to = this.flankSpot();
+              this.path = to ? g.level.nav.findPath(this.x, this.z, to.x, to.z) : null;
+              this.pathI = 0;
+              if (!this.flankLogged) {
+                this.flankLogged = true;
+                g.notes.log(`${cfg.label} 繞到人盾側面`);
+              }
+            }
+            want = this.followPath(cfg.speed);
+            if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
+            break;
+          }
           if (this.postsFor) {
             // the far side (彈幕 ② A①): to a free post of the room's, and there he holds (state 'hold'); none free, he fights as ever for a while
             this.postCd -= dt;
@@ -1744,7 +1797,7 @@ class Enemy {
             }
           }
           this.coverRest -= dt;
-          if (this.tactic === 'cover' && !this.sp.stay && !this.bold && this.blindT <= 0 && this.coverRest <= 0 && this.mgr.aliveCount > 1) {
+          if (this.tactic === 'cover' && !this.sp.stay && !this.bold && !this.flanking && this.blindT <= 0 && this.coverRest <= 0 && this.mgr.aliveCount > 1) {
             // a gunner with cover near goes there first, ducks, and fights by stepping out (peek); one holding
             // a post keeps it, the last man standing comes on instead of hiding, and so do all with a captain about
             this.coverCheck -= dt;
@@ -1816,9 +1869,9 @@ class Enemy {
           // (HELL.postClose) or the cover gone, he gives it up for another
           want = [0, 0];
           face = angleTo(this.x, this.z, p.x, p.z);
-          if (distP < HELL.postClose || !this.postValid() || !this.postsFor) {
+          if (distP < HELL.postClose || !this.postValid() || !this.postsFor || this.behindShield) {
             this.post = null;
-            this.postCd = 0;
+            this.postCd = this.behindShield ? HELL.postRetry * 4 : 0; // round the held man first (B③), the posts later
             this.state = 'move';
             this.repath = 0;
             break;
@@ -1837,6 +1890,12 @@ class Enemy {
           if (!this.coverValid() || distP < AI.flankClose || distP > cfg.range[1] + 3 || this.mgr.aliveCount <= 1 || this.bold) {
             // the cover shows him, the player is on top of him or out of his reach, he is the last, or a captain came: out of it
             this.cover = null;
+            this.state = 'move';
+            this.repath = 0;
+            break;
+          }
+          if (this.behindShield) {
+            this.cover = null; // round the held man first (B③)
             this.state = 'move';
             this.repath = 0;
             break;
@@ -2146,7 +2205,11 @@ class Enemy {
           if (!this.struck && distP < 1.55 + this.radius) {
             this.struck = true;
             const kick = !!cfg.tumble; // a tumbler's flying kick (AI.tumble), else a blade's cut
-            if (p.hurt(kick ? AI.tumble.kick : 30, dxp / distP, dzp / distP, false, kick ? '飛仔飛踢' : `${this.cfg.label} 近身`)) g.shake(0.4);
+            if (p.hostage && p.hostage.alive && p.shieldedFrom(dxp / distP, dzp / distP)) {
+              // the man held up in front takes it (B③)
+              p.hostage.shieldHit({ dx: dxp / distP, dz: dzp / distP });
+              g.notes.log(`人盾擋住${kick ? '飛踢' : '刀'}`);
+            } else if (p.hurt(kick ? AI.tumble.kick : 30, dxp / distP, dzp / distP, false, kick ? '飛仔飛踢' : `${this.cfg.label} 近身`)) g.shake(0.4);
             else if (p.spinning) g.score.style('DODGE', 40, true);
           }
           if (this.timer <= 0) {
