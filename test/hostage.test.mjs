@@ -269,13 +269,14 @@ test('彈幕 ② B③: a rifleman in front of a man held goes round to the playe
     g.hud.update(1 / 60);
     const text = document.getElementById('prompt').textContent;
     window.play(1, [], ['KeyE']);
+    window.play(1); // the hint is worked out before the step's E is read: a step later it is gone
     const holding = p.grabPrompt;
     window.begin(-8, 4);
     const pan = g.level.props.find((q) => q.kind === 'pan' && q.alive);
     pan.x = p.x + 0.4;
     pan.z = p.z + 0.4;
     window.post('grunt', p.x + 1, p.z);
-    window.play(1);
+    window.play(2); // the pan's own hint (thrown.js) is set after the player's step
     const withPan = p.grabPrompt;
     const hint = { none, man, text, holding, withPan };
     // a blade from the front: the held man takes the cut
