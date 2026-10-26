@@ -246,6 +246,8 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
             if (path && path.length) lootTo = path.find((q) => Math.hypot(q.x - p.x, q.z - p.z) > 0.5) || path[path.length - 1];
           }
           if (lootTo) chase = lootTo;
+          // a floor's end offers the style cards (cards.js, 彈幕 ② C②): the bot takes one of them, by their number
+          if (g.waves.state === 'cards' && g.cards.pending && i % 20 === 0) inp.pressed.add(`Digit${1 + (i % 3)}`);
           // 彈幕試驗: a cleared room's exit is open: walk out of it, round the tables on the nav grid
           if (g.waves.state === 'exit' && g.level.exit) {
             const at = g.level.exit.at;

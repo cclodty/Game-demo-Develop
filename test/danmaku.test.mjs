@@ -252,22 +252,24 @@ test('the hitbox: in 彈幕試驗 in bullet time a dot at the player shows where
   assert.equal(r.arcade.visible, false);
 });
 
-test('the pattern men come to 彈幕試驗 only as its elites, one in a room’s first wave from wave 3 (彈幕 ② A③: test/mix.test.mjs); the arcade and endless never had them', async () => {
+test('the pattern men come to 彈幕試驗 only as its elites, one in a room’s first wave from the second floor (彈幕 ② A③, C①: test/mix.test.mjs); the arcade and endless never had them', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom();
-    const danmaku = Array.from({ length: 6 }, (_, i) => g.waves.compose(i + 1));
+    const danmaku = Array.from({ length: g.waves.totalWaves }, (_, i) => g.waves.compose(i + 1));
+    const firstFloor = g.floors[0].length * g.waves.rules.perStage;
     g.setMode('arcade');
     g.startRun(0);
     const arcade = Array.from({ length: 12 }, (_, i) => g.waves.compose(i + 1));
     g.setMode('endless');
     g.startRun(0);
     const endless = Array.from({ length: 20 }, (_, i) => g.waves.compose(i + 1));
-    return { danmaku, arcade, endless };
+    return { danmaku, arcade, endless, firstFloor };
   });
   const pattern = ['ringer', 'spiraler', 'fanner'];
   const all = r.danmaku.flat();
   assert.ok(all.some((t) => pattern.includes(t)), `some in 彈幕試驗 (${[...new Set(all)]})`);
+  assert.ok(!r.danmaku.slice(0, r.firstFloor).flat().some((t) => pattern.includes(t)), 'none on the first floor');
   assert.ok(r.danmaku.every((w) => w.filter((t) => pattern.includes(t)).length <= 1), 'at most one a wave');
   assert.ok(!r.arcade.flat().some((t) => pattern.includes(t)) && !r.endless.flat().some((t) => pattern.includes(t)), 'none in the arcade or endless');
 });
