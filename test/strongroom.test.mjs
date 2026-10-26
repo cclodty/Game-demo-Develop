@@ -87,12 +87,12 @@ test('the strongroom is among the boss rooms a floor can end in; its last wave i
     const bar = document.getElementById('boss-bar');
     return { rooms, room: g.level.map.id, kind: b.active && b.def.kind, danmaku: b.danmaku, state: b.state, inside: Math.abs(b.x) < 11 && Math.abs(b.z) < 7.5, segs: b.segments, bar: !bar.classList.contains('hidden') && bar.querySelector('.boss-name').textContent, route: g.routeText(0, 'danmaku'), calls: info.calls, tris: info.triangles, budget: g.level.map.budget };
   });
-  await page.screenshot({ path: new URL('strongroom.png', OUT).pathname });
   assert.ok(r.rooms.includes('strongroom'), `in the draw: ${r.rooms}`);
   assert.deepEqual([r.room, r.kind, r.danmaku, r.segs, r.bar], ['strongroom', 'bulwark', true, 4, '大三巴鐵盾 BULWARK']);
   assert.ok(r.inside && r.state !== 'enter', `in the room after three seconds (${r.state})`);
   assert.match(r.route, /庫房：鐵盾/, r.route);
   assert.ok(r.calls <= r.budget.calls && r.tris <= r.budget.tris, `${r.calls} draw calls, ${r.tris} triangles, budget ${r.budget.calls} / ${r.budget.tris}`);
+  await page.screenshot({ path: new URL('strongroom.png', OUT).pathname });
   assert.deepEqual(problems(logs), []);
 });
 
@@ -104,7 +104,6 @@ test('the slow wall: the bash spent, shield down, eleven slow rounds in the patt
     window.toRoom(0, 0, 0);
     const shots = window.watch(120 * 20);
     const wall = shots.filter((s) => s.label === '鐵盾的盾震');
-    const gun = shots.filter((s) => s.label !== '鐵盾的盾震');
     const at = wall.length ? wall[0].at : -1;
     const one = wall.filter((s) => s.at === at);
     const angles = one.map((s) => Math.atan2(s.dx, s.dz)).sort((x, y) => x - y);
@@ -115,6 +114,23 @@ test('the slow wall: the bash spent, shield down, eleven slow rounds in the patt
     }
     const gapAt3m = 2 * 3 * Math.sin(widest / 2);
     const notes = g.notes.events.map((e) => e.text);
+    // the revolver: the player kept away (the room's corner farthest from him each step), beyond the bash's reach
+    window.toRoom(0, 0, 4);
+    const gun = [];
+    const spawn0 = g.bullets.spawn.bind(g.bullets);
+    g.bullets.spawn = (o) => {
+      if (o.owner === 'enemy') gun.push(o.speed);
+      return spawn0(o);
+    };
+    for (let i = 0; i < 120 * 12; i++) {
+      const p = g.player;
+      let best = null;
+      for (const [x, z] of [[-9.5, -6.5], [9.5, -6.5], [-9.5, 6.5], [9.5, 6.5]]) if (!best || Math.hypot(x - b.x, z - b.z) > Math.hypot(best[0] - b.x, best[1] - b.z)) best = [x, z];
+      p.x = best[0];
+      p.z = best[1];
+      window.step();
+    }
+    g.bullets.spawn = spawn0;
     // 大三巴's bulwark, the same seed's arcade run: no wall
     g.setMode('arcade');
     g.startRun(g.maps.findIndex((m) => m.id === 'ruins'));
@@ -126,7 +142,7 @@ test('the slow wall: the bash spent, shield down, eleven slow rounds in the patt
     g.enemies.clear();
     const ruins = { kind: g.boss.def.kind, danmaku: g.boss.danmaku };
     const ruinsWall = window.watch(120 * 20).filter((s) => s.label === '鐵盾的盾震').length;
-    return { n: one.length, when: one.length ? one[0].state : '', speeds: [...new Set(one.map((s) => s.speed))], looks: [...new Set(one.map((s) => s.look))], gapAt3m, gun: gun.length, gunSpeed: [...new Set(gun.map((s) => s.speed))], notes: notes.filter((t) => t.includes('盾震')), ruins, ruinsWall, state: b.state };
+    return { n: one.length, when: one.length ? one[0].state : '', speeds: [...new Set(one.map((s) => s.speed))], looks: [...new Set(one.map((s) => s.look))], gapAt3m, gun: gun.length, gunSpeed: [...new Set(gun)], notes: notes.filter((t) => t.includes('盾震')), ruins, ruinsWall, state: b.state };
   });
   assert.equal(r.n, 11, `fourteen less three: ${r.n} (${r.state})`);
   assert.equal(r.when, 'spent', 'as the bash is spent');

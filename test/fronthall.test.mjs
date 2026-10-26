@@ -87,13 +87,13 @@ test('the front hall is among the boss rooms a floor can end in; its last wave i
     const bar = document.getElementById('boss-bar');
     return { rooms, room: g.level.map.id, kind: b.active && b.def.kind, members: b.members.map((m) => [m.def.kind, m.segments, !!m.danmaku, m.state]), segs: b.segments, bars: bar.querySelectorAll('.boss-row').length, inside: b.members.every((m) => Math.abs(m.x) < 11 && Math.abs(m.z) < 7.5), route: g.routeText(0, 'danmaku'), calls: info.calls, tris: info.triangles, budget: g.level.map.budget };
   });
-  await page.screenshot({ path: new URL('fronthall.png', OUT).pathname });
   assert.ok(r.rooms.includes('fronthall'), `in the draw: ${r.rooms}`);
   assert.deepEqual([r.room, r.kind, r.segs, r.bars], ['fronthall', 'duo', 4, 2]);
   assert.deepEqual(r.members.map((m) => m.slice(0, 3)), [['marksman', 2, false], ['buckshot', 2, true]], `the pair: ${JSON.stringify(r.members)}`);
   assert.ok(r.inside && r.members.every((m) => m[3] !== 'enter'), `both in the room after four seconds: ${JSON.stringify(r.members)}`);
   assert.match(r.route, /前廳：雙頭目/, r.route);
   assert.ok(r.calls <= r.budget.calls && r.tris <= r.budget.tris, `${r.calls} draw calls, ${r.tris} triangles, budget ${r.budget.calls} / ${r.budget.tris}`);
+  await page.screenshot({ path: new URL('fronthall.png', OUT).pathname });
   assert.deepEqual(problems(logs), []);
 });
 

@@ -95,13 +95,13 @@ test('the boss rooms are drawn a floor: over the seeds some floors end in the ba
     const bar = document.getElementById('boss-bar');
     return { ends, room: g.level.map.id, kind: b.active && b.def.kind, danmaku: b.danmaku, state: b.state, inside: Math.abs(b.x) < 11 && Math.abs(b.z) < 7.5, segs: b.segments, bar: !bar.classList.contains('hidden') && bar.querySelector('.boss-name').textContent, route: g.routeText(0, 'danmaku'), calls: info.calls, tris: info.triangles, budget: g.level.map.budget };
   });
-  await page.screenshot({ path: new URL('backhall.png', OUT).pathname });
   assert.ok(r.ends.includes('backhall') && r.ends.includes('arena'), `both boss rooms over eight seeds: ${[...new Set(r.ends)]}`);
   assert.ok(r.ends.every((id) => ['arena', 'backhall', 'strongroom', 'fronthall'].includes(id)), 'nothing else at a floor’s end');
   assert.deepEqual([r.room, r.kind, r.danmaku, r.segs, r.bar], ['backhall', 'gunner', true, 4, '碼頭重炮 HEAVY GUNNER']);
   assert.ok(r.inside && r.state !== 'enter', `in the room after three seconds (${r.state})`);
   assert.match(r.route, /層尾大廳：刀后或後廳：重炮或庫房：鐵盾或前廳：雙頭目/, r.route);
   assert.ok(r.calls <= r.budget.calls && r.tris <= r.budget.tris, `${r.calls} draw calls, ${r.tris} triangles, budget ${r.budget.calls} / ${r.budget.tris}`);
+  await page.screenshot({ path: new URL('backhall.png', OUT).pathname });
   assert.deepEqual(problems(logs), []);
 });
 

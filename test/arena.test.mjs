@@ -97,7 +97,6 @@ test('every floor ends in a boss room; the arena’s last wave is the blade quee
     const last = { segs: g.boss.segments, bonus: g.boss.bonus, isFinal: g.waves.isFinal };
     return { first, floors, bossRooms, last, route: g.routeText(0, 'danmaku') };
   });
-  await page.screenshot({ path: new URL('arena.png', OUT).pathname });
   assert.ok(r.floors.every((id) => r.bossRooms.includes(id)) && r.floors[2] === 'arena', `a boss room at every floor’s end (${r.floors}), the last made the arena`);
   assert.deepEqual([r.first.room, r.first.kind, r.first.danmaku, r.first.state, r.first.perch, r.first.queue, r.first.bar], ['arena', 'blade', true, 'perch', true, 0, '夜店刀后 BLADE QUEEN']);
   assert.deepEqual([r.first.segs, r.first.bonus], [4, 1500], 'a floor’s fight: four segments');
@@ -105,6 +104,7 @@ test('every floor ends in a boss room; the arena’s last wave is the blade quee
   assert.match(r.first.banner, /BOSS/);
   assert.match(r.route, /層尾大廳：刀后/, r.route);
   assert.ok(r.first.calls <= r.first.budget.calls && r.first.tris <= r.first.budget.tris, `${r.first.calls} draw calls, ${r.first.tris} triangles, budget ${r.first.budget.calls} / ${r.first.budget.tris}`);
+  await page.screenshot({ path: new URL('arena.png', OUT).pathname });
   assert.deepEqual(problems(logs), []);
 });
 

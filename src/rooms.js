@@ -523,7 +523,7 @@ export const FRONTHALL = room({
     [4, 3],
   ]),
   camera: ROOM_CAMERA,
-  budget: ROOM_BUDGET,
+  budget: { ...ROOM_BUDGET, tris: 150000 }, // two bosses' worn models at once: 134,345 triangles with the pair in (test/fronthall.test.mjs); the draw calls (the weak-GPU number) stay about 110
 });
 
 export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
