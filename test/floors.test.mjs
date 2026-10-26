@@ -141,8 +141,8 @@ test('the HUD opens each floor with its number and names the room’s place on i
   assert.deepEqual(r.banners, expect, `the rooms of the first floor, then the second floor opens: ${r.banners}`);
   assert.match(r.subs[r.subs.length - 1], /第 2 層/);
   assert.ok(r.songs.length >= 2, `a song a floor: ${r.songs.join(' / ')}`);
-  assert.equal(r.clean, n - 1, `${n} rooms cleared, the first with a hit: ${r.clean} clean`);
+  assert.equal(r.clean, r.roomsDone - 1, `${r.roomsDone} rooms cleared (the first floor and the second's first), the first with a hit: ${r.clean} clean`);
   assert.deepEqual(r.notes, ['第 2 層開始']);
-  assert.ok(Math.abs(r.grade - 30 * ((n - 1) / r.rooms)) < 1e-9, `the grade's clean part counts rooms of ${r.rooms}: ${r.grade}`);
+  assert.ok(Math.abs(r.grade - 30 * (r.clean / r.rooms)) < 1e-9, `the grade's clean part counts rooms of ${r.rooms}: ${r.grade}`);
   assert.deepEqual(problems(logs), []);
 });

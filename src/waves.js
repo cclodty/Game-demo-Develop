@@ -169,8 +169,10 @@ export class Waves {
     const own = R && !R.arcade; // its own types; with `arcade` the arcade's men, brutes and all (彈幕 ② A①)
     const F = this.game.floors;
     const floorOfWave = (w) => (F ? this.game.floorOf(Math.floor((w - 1) / this.rules.perStage)) : 0);
-    let total = R ? (R.perFloor !== undefined ? R.total[(n - 1) % this.rules.perStage] + R.perFloor * floorOfWave(n) : R.total[Math.min(n, R.total.length) - 1]) : 3 + Math.floor(n * 1.7);
-    let brutes = own ? 0 : n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
+    const byRoom = R && R.perFloor !== undefined; // sized by the wave's place in its room and its floor (C①)
+    let total = R ? (byRoom ? R.total[(n - 1) % this.rules.perStage] + R.perFloor * floorOfWave(n) : R.total[Math.min(n, R.total.length) - 1]) : 3 + Math.floor(n * 1.7);
+    // brutes: the arcade's climb with the wave; by room, as many as the floor's number in a room's last wave (none on the first floor but its end)
+    let brutes = own ? 0 : byRoom ? (n % this.rules.perStage === 0 ? floorOfWave(n) : 0) : n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
     if (finale) {
       total = Math.round(total * finale.size);
       brutes += finale.brutes;

@@ -660,7 +660,7 @@ class Enemy {
   /** He fights from the room's posts (level.js posts): a gun that reaches that far, on his feet, not rushing in, not a guard. */
   get postsFor() {
     const cfg = this.cfg;
-    return this.inRoom && this.game.level.posts.length > 0 && !this.rushes && !cfg.fly && !this.sp.stay && !(this.escortOf && this.escortOf.alive) && cfg.range[1] >= HELL.postRange;
+    return this.inRoom && this.game.level.posts.length > 0 && !this.rushes && !cfg.fly && cfg.tactic !== 'advance' && !this.sp.stay && !(this.escortOf && this.escortOf.alive) && cfg.range[1] >= HELL.postRange;
   }
 
   /** A captain stands (AI.captain): the others hide less and go round to the player's sides. */
