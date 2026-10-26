@@ -11,7 +11,7 @@ import { HUD } from './hud.js';
 import { ACTIONS, Input, keyName, padButtonName, padLabel, StepInput } from './input.js';
 import { Level } from './level.js';
 import { MAPS, MAPS_REV } from './maps.js';
-import { drawFloor, ROOMS } from './rooms.js';
+import { drawFloors, ROOMS } from './rooms.js';
 import { nightRoute, NightStore } from './night.js';
 import { loadedCharacters, loadModels } from './models.js';
 import { Notes } from './notes.js';
@@ -109,6 +109,7 @@ class Game {
     this.maps = MAPS;
     this.rooms = ROOMS; // where 彈幕試驗 is played (rooms.js)
     this.floor = null; // a 彈幕試驗 run's rooms, in order (room ids: startRun draws them)
+    this.floors = null; // the same rooms floor by floor (C①), or null
     this.enemyTypes = ENEMY_TYPES; // for the tests and the stats panel
     this.startMap = 0;
     try {
@@ -593,7 +594,7 @@ class Game {
     }
     if (r.floor) {
       // 彈幕試驗: a floor of rooms, whatever card is picked
-      $('maps-note').textContent = `一層${CN_COUNT[r.floor.rooms]}間房，每間 ${r.perStage} 波，打完開門去下一間：${this.routeText(start, this.mode)} · 場景不用揀`;
+      $('maps-note').textContent = `${CN_COUNT[r.floor.floors]}層，每層${CN_COUNT[r.floor.rooms[0]]}至${CN_COUNT[r.floor.rooms[1]]}間房，每間 ${r.perStage} 波，打完開門去下一間：${this.routeText(start, this.mode)} · 場景不用揀`;
       return;
     }
     $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結：${this.routeText(start, this.mode)}` : `每 ${r.perStage} 波換一個場景`;
@@ -754,7 +755,8 @@ class Game {
     this.rng.reset(this.fixedSeed ?? randomSeed());
     // 彈幕試驗: the run's floor of rooms, drawn from its seed (the same seed, the same floor)
     const spec = MODES[this.mode].floor;
-    this.floor = spec ? drawFloor(spec, this.rng.fork('floor')) : null;
+    this.floors = spec ? drawFloors(spec, this.rng.fork('floor')) : null; // C①: three floors of rooms, each an array of room ids
+    this.floor = this.floors ? this.floors.flat() : null;
     // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
     const warmup = this.fixedWarmup ?? wantWarmup();
     // the rules hold for the whole run (a replay brings its own: fixedRules)
@@ -775,7 +777,7 @@ class Game {
     this.hud.reset();
     this.notes.reset(first);
     if (MODES[this.mode].night) this.nightLine(MAPS[mapIndex]);
-    if (this.floor) this.notes.log(`這一層：${this.floor.map((id) => ROOMS[id].name).join(' → ')}`);
+    if (this.floors) for (const [f, ids] of this.floors.entries()) this.notes.log(`第 ${f + 1} 層：${ids.map((id) => ROOMS[id].name).join(' → ')}`);
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
     // the music: the first stage's song from its start, on its base (audio.js)
     this.audio.setStage(0, true);
@@ -1281,9 +1283,8 @@ class Game {
     const r = MODES[mode];
     if (!Number.isFinite(r.waves)) return '';
     if (r.floor) {
-      // a floor of rooms: its first, then the others in an order each run's seed draws; no boss
-      const k = r.floor.rooms - 1;
-      return `${ROOMS[r.floor.first].name} → ${r.floor.pool.map((id) => ROOMS[id].name).join('、')}${r.floor.pool.length > k ? `中抽${CN_COUNT[k]}間` : ''}（次序每局不同）`;
+      // floors of rooms (C①): the first floor opens in `first`, the rest draw from all the rooms in an order each run's seed draws; no boss yet
+      return `${ROOMS[r.floor.first].name}起，${[r.floor.first, ...r.floor.pool].map((id) => ROOMS[id].name).join('、')}輪流（每層抽，次序每局不同）`;
     }
     // 澳門一夜 from where it starts to its end, each map at its hour; any other the maps after the one picked
     const maps = r.night ? NIGHT.slice(Math.max(0, NIGHT.indexOf(start))).map((i) => MAPS[i]) : Array.from({ length: Math.ceil(r.waves / r.perStage) }, (_, i) => MAPS[(start + i) % MAPS.length]);
@@ -1302,6 +1303,27 @@ class Game {
 
   get stageMap() {
     return this.mapAt(this.stage);
+  }
+
+  /** Which floor room `stage` (an index into `floor`) is on, from 0 (C①); 0 without floors. */
+  floorOf(stage) {
+    const F = this.floors;
+    if (!F) return 0;
+    let end = 0;
+    for (let f = 0; f < F.length; f++) {
+      end += F[f].length;
+      if (stage < end) return f;
+    }
+    return F.length - 1;
+  }
+
+  /** Room `stage`'s place on its floor: [which room from 1, how many on the floor]. */
+  roomOnFloor(stage) {
+    const F = this.floors;
+    const f = this.floorOf(stage);
+    let before = 0;
+    for (let i = 0; i < f; i++) before += F[i].length;
+    return [stage - before + 1, F[f].length];
   }
 
   /** A run's first map: in a mode played in rooms (彈幕試驗) its floor's first room, whatever map was picked; else MAPS[mapIndex]. */
@@ -1353,7 +1375,7 @@ class Game {
         this.audio.setLevel(0);
       } else {
         this.notes.log(`轉場 → ${this.stageMap.name}`);
-        this.audio.setStage(this.stage); // the next song comes in on the bar line
+        this.audio.setStage(this.floors ? this.floorOf(this.stage) : this.stage); // the next song comes in on the bar line (a song a floor, C①)
         this.audio.setLevel(0);
         this.notes.log(`音樂：${this.audio.upcoming.name}`);
       }
@@ -1366,7 +1388,13 @@ class Game {
     if (tr.t >= 1.3) {
       this.transition = null;
       const m = this.stageMap;
-      this.hud.banner(MODES[this.mode].night ? m.hour : this.floor && MODES[this.mode].floor ? `ROOM ${this.stage + 1} / ${this.floor.length}` : `STAGE ${this.stage + 1}`, `${m.name} · ${m.en}`, 'stage');
+      if (this.floors) {
+        // a room of a floor (C①): the floor's number opens the floor, then the room's place on it
+        const [i, n] = this.roomOnFloor(this.stage);
+        const f = this.floorOf(this.stage);
+        this.hud.banner(i === 1 ? `FLOOR ${f + 1}` : `ROOM ${i} / ${n}`, i === 1 ? `第 ${f + 1} 層 · ${m.name} · ${m.en}` : `${m.name} · ${m.en}`, 'stage');
+        if (i === 1) this.notes.log(`第 ${f + 1} 層開始`);
+      } else this.hud.banner(MODES[this.mode].night ? m.hour : `STAGE ${this.stage + 1}`, `${m.name} · ${m.en}`, 'stage');
       if (MODES[this.mode].night) this.nightLine(m);
       this.waves.state = 'intermission';
       this.waves.timer = 2.6;
@@ -1406,7 +1434,7 @@ class Game {
     $('go-time').textContent = clock(this.stepCount / LOGIC_HZ);
     $('go-kills').textContent = String(s.kills);
     $('go-combo').textContent = `x${Math.max(1, s.maxCombo)}`;
-    $('go-clean').textContent = `${this.waves.cleanWaves} / ${this.waves.wave}`;
+    $('go-clean').textContent = this.floors ? `${this.waves.cleanRooms} / ${this.stage + (this.waves.state === 'done' ? 1 : 0)} 間房` : `${this.waves.cleanWaves} / ${this.waves.wave}`;
     const graded = !!this.waves.rules.graded;
     $('gameover').classList.toggle('graded', graded);
     if (graded) this.showGrade(cleared);
@@ -1476,7 +1504,10 @@ class Game {
   /** The arcade grade on the end screen: the letter, its three parts, and a hint at the weakest one. */
   showGrade(cleared) {
     const w = this.waves;
-    const r = rate({ score: this.score.score, cleanWaves: w.cleanWaves, waves: w.rules.waves, seconds: this.stepCount / LOGIC_HZ, cleared });
+    // in a floor run the grade counts rooms cleared without a hit, of the run's rooms (C①)
+    const r = this.floors
+      ? rate({ score: this.score.score, cleanWaves: w.cleanRooms, waves: this.floor.length, seconds: this.stepCount / LOGIC_HZ, cleared })
+      : rate({ score: this.score.score, cleanWaves: w.cleanWaves, waves: w.rules.waves, seconds: this.stepCount / LOGIC_HZ, cleared });
     const grade = $('go-grade');
     grade.textContent = r.grade;
     grade.dataset.grade = r.grade;
@@ -1492,7 +1523,7 @@ class Game {
       clean: '下次：少捱打，多幾波無傷',
       time: `下次：打快一點，${Math.round(RATING.timePar / 60)} 分鐘內用時滿分`,
     };
-    $('go-hint').textContent = cleared ? hints[weakest] : `下次：撐到第 ${w.rules.waves} 波，通關才有用時分`;
+    $('go-hint').textContent = cleared ? hints[weakest] : `下次：撐到第 ${w.totalWaves} 波，通關才有用時分`;
     const p = r.parts;
     this.notes.log(`評級 ${r.grade}（Style ${Math.round(p.style)}/${RATING.style} · 無傷 ${Math.round(p.clean)}/${RATING.clean} · 用時 ${Math.round(p.time)}/${RATING.time}）`);
   }

@@ -168,7 +168,7 @@ export class HUD {
       e.tutorial.classList.toggle('show', !!v);
     });
 
-    const last = g.waves.rules.waves; // arcade runs show how far there is to go
+    const last = g.waves.totalWaves; // arcade runs show how far there is to go (a floor run: its rooms × waves, C①)
     const waveLabel = g.waves.wave > 0 ? `WAVE ${g.waves.wave}${Number.isFinite(last) ? ` / ${last}` : ''}` : '';
     this.set('wave', waveLabel, (v) => (e.wave.textContent = v));
     // a boss: its name and health bar, one segment a hit (a stage's boss has fewer than the run's last); two at once

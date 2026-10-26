@@ -382,14 +382,31 @@ export const DAIPAIDONG = room({
 export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG };
 
 /**
- * A run's floor (waves.js MODES `floor`: { first, pool, rooms }): `first`, then `rooms` − 1 of `pool` in an order
- * drawn from `rng` (the run's own stream: the same seed, the same floor). Room ids.
+ * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most] }, 彈幕 ② C①): `floors` of
+ * them, each `rooms` rooms (how many, the rng's), none twice on a floor; the first floor opens with `first`, the others
+ * draw from `first` and `pool` alike, in an order drawn from `rng` (the run's own stream: the same seed, the same
+ * floors). Arrays of room ids, one an floor.
  */
-export function drawFloor(spec, rng) {
-  const pool = spec.pool.slice();
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = rng.int(0, i);
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+export function drawFloors(spec, rng) {
+  const [least, most] = spec.rooms;
+  const all = [spec.first, ...spec.pool];
+  const shuffled = (ids) => {
+    const a = ids.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = rng.int(0, i);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const floors = [];
+  for (let f = 0; f < spec.floors; f++) {
+    const n = Math.min(all.length, rng.int(least, most));
+    floors.push(f === 0 ? [spec.first, ...shuffled(spec.pool).slice(0, n - 1)] : shuffled(all).slice(0, n));
   }
-  return [spec.first, ...pool.slice(0, spec.rooms - 1)];
+  return floors;
+}
+
+/** The floors as one run of rooms, in order (main.js `floor`). */
+export function drawFloor(spec, rng) {
+  return drawFloors(spec, rng).flat();
 }

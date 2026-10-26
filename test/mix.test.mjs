@@ -114,7 +114,6 @@ test('a wall’s rounds are slow and solid pink, a presser’s fast and in the a
 
 test('six blasters round the player are held for the gap like any gun; six ringers round him are not (their rings have gaps of their own)', { timeout: 10 * 60 * 1000 }, async () => {
   const r = await page.evaluate(() => {
-    const g = window.game;
     const ring = (type) => {
       window.toRoom(0, 0);
       return Array.from({ length: 6 }, (_, i) => window.put(type, Math.sin((i / 6) * Math.PI * 2) * 5, Math.cos((i / 6) * Math.PI * 2) * 5, 0));

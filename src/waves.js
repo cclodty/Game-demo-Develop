@@ -29,17 +29,21 @@ export const MODES = {
   // arcade's own men (TYPES `spawn`, but for `skip`), brutes among them from wave 4 as there (彈幕 ② A①, DECISIONS
   // 2026-10-26: the hell is the arcade's fast bullets, many at once: config.js HELL); a wave of thugs alone takes a
   // `fill` for its first. `graze`: bullets passing close count (config.js GRAZE).
-  // `floor`: played in rooms (rooms.js), not on the maps: a floor of `rooms`, `first` then the rest drawn from `pool`
-  // (rooms.js drawFloor), `perStage` waves in each; a cleared room's exit opens and the player walks out of it to the next
+  // `floor`: played in rooms (rooms.js), not on the maps: `floors` floors of `rooms` [least, most] rooms each (C①), the
+  // first opening with `first`, the rest drawn from `pool` and `first` (rooms.js drawFloors), `perStage` waves in each
+  // room; a cleared room's exit opens and the player walks out of it to the next. `waves` is what a run without floors
+  // would have: a floor run has rooms × `perStage` (Waves totalWaves). A floor's last room ends on a bigger wave
+  // (`floorEnd`, in place of the floor boss until D), and a floor counts as a stage for how hard the men are
   danmaku: {
     name: '彈幕試驗',
     en: 'BULLET HELL',
     color: '#ff6a3d',
-    desc: '試驗：一層三間房，滿屏快彈',
+    desc: '試驗：三層，每層三四間房，滿屏快彈',
     waves: 6,
     perStage: 2,
     graded: true,
-    floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong'], rooms: 3 },
+    floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong'], floors: 3, rooms: [3, 4] },
+    floorEnd: { size: 1.5, brutes: 1 },
     graze: true,
     // 彈幕 ② A①: the arcade's men; five in the first wave: four fired 1.96× the arcade's first wave, short of the 2× asked
     // (test/hell.test.mjs). A③: `also` the heavy three as pressers (the same [from wave, weight, most a wave]), and an
@@ -50,7 +54,7 @@ export const MODES = {
       skip: ['sniper', 'drone'],
       fill: 'grunt',
       also: { volleyer: [2, 2, 2], blaster: [2, 1.5, 2], hoser: [3, 1, 1] },
-      elite: { types: ['ringer', 'spiraler', 'fanner'], from: 3 },
+      elite: { types: ['ringer', 'spiraler', 'fanner'], fromFloor: 1 },
     },
   },
 };
@@ -79,6 +83,8 @@ export class Waves {
     this.hurt = false; // the player took damage this wave
     this.shots = 0; // the player's shots this wave (player.js fire; none is 赤手空拳)
     this.cleanWaves = 0;
+    this.cleanRooms = 0; // rooms cleared without a hit (C①: the grade counts rooms in a floor run)
+    this.roomHurt = false; // the player was hit in this room so far
     this.beats = []; // the wave's roster in beats (modes with `beats`); empty for a trickle
     this.beatI = 0; // beats launched so far
     this.beatPhase = 'quiet'; // 'quiet' → 'telegraph' → 'live' → 'quiet' …
@@ -100,19 +106,49 @@ export class Waves {
     return MODES[this.game.mode];
   }
 
-  /** The stage of the run the wave is in, from 0: one every `stageWaves` waves (澳門一夜 counts the night's waves before it). ENEMY_HP climbs with it. */
+  /** The stage of the run the wave is in, from 0: one every `stageWaves` waves (澳門一夜 counts the night's waves before it); in rooms, the floor (C①). ENEMY_HP climbs with it. */
   get stageIndex() {
+    if (this.game.floors) return this.game.floorOf(Math.max(0, Math.floor((this.wave - 1) / this.rules.perStage)));
     return Math.max(0, Math.floor((this.wave - 1) / this.stageWaves));
   }
 
   /** The waves a stage of the run lasts, for how hard it is and its music: `perStage` (a map's), or a whole floor of rooms (彈幕試驗: its rooms are one stage). */
   get stageWaves() {
-    const f = this.rules.floor;
-    return f ? f.rooms * this.rules.perStage : this.rules.perStage;
+    if (this.game.floors) return this.game.floors[this.stageIndex].length * this.rules.perStage;
+    return this.rules.perStage;
+  }
+
+  /** Which wave of its stage this one is, from 0 (the music's layers). */
+  get waveInStage() {
+    if (this.game.floors) {
+      let before = 0;
+      for (let f = 0; f < this.stageIndex; f++) before += this.game.floors[f].length * this.rules.perStage;
+      return Math.max(0, this.wave - 1 - before);
+    }
+    return (this.wave - 1) % this.stageWaves;
+  }
+
+  /** The run's waves: a mode's own, or its floors' rooms × `perStage` (C①). */
+  get totalWaves() {
+    return this.game.floor ? this.game.floor.length * this.rules.perStage : this.rules.waves;
+  }
+
+  /** The run's last wave of a floor's last room, and not the run's last (C①): a bigger wave in place of the floor boss (MODES `floorEnd`). */
+  isFloorEnd(n) {
+    const F = this.game.floors;
+    if (!F || !this.rules.floorEnd || n === this.totalWaves) return false;
+    const stage = Math.floor((n - 1) / this.rules.perStage);
+    const last = n % this.rules.perStage === 0;
+    let end = -1;
+    for (const f of F) {
+      end += f.length;
+      if (end === stage) return last;
+    }
+    return false;
   }
 
   get isFinal() {
-    return this.wave === this.rules.waves;
+    return this.wave === this.totalWaves;
   }
 
   get remaining() {
@@ -125,7 +161,7 @@ export class Waves {
 
   /** Wave n's roster, drawn from `rng` (the wave's own stream unless given). */
   compose(n, rng = this.game.rng.fork('wave', n)) {
-    const finale = n === this.rules.waves ? this.rules.finale : null;
+    const finale = n === this.totalWaves ? this.rules.finale : this.isFloorEnd(n) ? this.rules.floorEnd : null; // the run's last, or a floor's (C①)
     const R = this.rules.roster; // a mode's own (彈幕試驗)
     const own = R && !R.arcade; // its own types; with `arcade` the arcade's men, brutes and all (彈幕 ② A①)
     let total = R ? R.total[Math.min(n, R.total.length) - 1] : 3 + Math.floor(n * 1.7);
@@ -158,9 +194,11 @@ export class Waves {
     }
     for (let b = 0; b < brutes; b++) list.splice(Math.floor(rng.range(list.length * 0.4, list.length)), 0, 'brute');
     if (R && list.every((t) => t === 'grunt')) list[0] = R.fill;
-    // an elite (A③): one of the slow walls in a room's first wave, in the last place, from wave `from`
+    // an elite (A③): one of the slow walls in a room's first wave, in the last place, from floor `fromFloor` (C①; a wave number `from` before)
     const E = R && R.elite;
-    if (E && n >= E.from && (n - 1) % this.rules.perStage === 0) list[list.length - 1] = E.types[rng.int(0, E.types.length - 1)];
+    const floorOf = (w) => (this.game.floors ? this.game.floorOf(Math.floor((w - 1) / this.rules.perStage)) : 0);
+    const due = E && (E.fromFloor !== undefined ? floorOf(n) >= E.fromFloor : n >= E.from);
+    if (due && (n - 1) % this.rules.perStage === 0) list[list.length - 1] = E.types[rng.int(0, E.types.length - 1)];
     return list;
   }
 
@@ -177,7 +215,7 @@ export class Waves {
     const stageEnd = this.wave % this.rules.perStage === 0;
     this.bossWave = !!boss && !!BOSSES[boss.kind] && (this.isFinal || (stageEnd && !!this.rules.midBoss));
     // the music (audio.js): a stage's first two waves on the base of its song, its later layers after, its boss section for a boss and the last wave
-    g.audio.setLevel(this.isFinal || this.bossWave ? 2 : (this.wave - 1) % this.stageWaves >= 2 ? 1 : 0);
+    g.audio.setLevel(this.isFinal || this.bossWave ? 2 : this.waveInStage >= 2 ? 1 : 0);
     if (this.bossWave) {
       this.queue = [];
       g.level.restock(); // what the boss is fought with (the barrels the helicopter fears) is back where it began
@@ -472,6 +510,11 @@ export class Waves {
     const bossDown = this.bossWave && this.game.boss.downed;
     if (bossDown || (!this.queue.length && !this.pending.length && enemies.aliveCount === 0 && !this.game.boss.active)) {
       if (!this.hurt) this.cleanWaves++;
+      this.roomHurt = this.roomHurt || this.hurt;
+      if (this.wave % this.rules.perStage === 0 && this.rules.floor) {
+        if (!this.roomHurt) this.cleanRooms++;
+        this.roomHurt = false;
+      }
       if (this.isFinal) {
         this.state = 'done';
         this.game.onRunClear(this.wave);

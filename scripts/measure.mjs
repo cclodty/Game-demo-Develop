@@ -44,7 +44,7 @@ try {
       const M = (window.M = { waves: {}, end: null });
       const row = () => {
         const n = g.waves.wave;
-        return (M.waves[n] ||= { n, boss: g.waves.bossWave, map: g.level.map.id, frames: 0, heavy: 0, hurt: 0, hp: 0, enemies: 0, pads: 0, drops: 0, taken: 0, kills0: g.score.kills, kills: 0 });
+        return (M.waves[n] ||= { n, boss: g.waves.bossWave, map: g.level.map.id, floor: g.floors ? g.floorOf(g.stage) + 1 : 0, frames: 0, heavy: 0, hurt: 0, hp: 0, enemies: 0, pads: 0, drops: 0, taken: 0, kills0: g.score.kills, kills: 0 });
       };
       let dropping = false;
       const drop0 = g.pickups.drop.bind(g.pickups);
@@ -149,4 +149,11 @@ for (const [a, b] of [
 }
 const cleared = runs.filter((r) => r.cleared).length;
 console.log(`ended at wave ${runs.map((r) => r.wave).join(', ')} (mean ${fmt(runs.reduce((a, r) => a + r.wave, 0) / runs.length)}); cleared ${cleared}/${runs.length}; ${fmt(runs.reduce((a, r) => a + r.minutes, 0) / runs.length)} min a run`);
+// a floor run (彈幕 ② C①): a line a floor, over the runs
+const floors = [...new Set(all.map((w) => w.floor).filter((f) => f > 0))].sort((a, b) => a - b);
+for (const f of floors) {
+  const rows = all.filter((w) => w.floor === f);
+  const n = new Set(rows.map((w) => w.n)).size;
+  console.log(`floor ${f}: ${n} waves, ${fmt(rows.reduce((a, w) => a + w.frames, 0) / 60 / runs.length, 0)} s a run, hurt ${fmt(rows.reduce((a, w) => a + w.hurt, 0) / runs.length, 0)} a run`);
+}
 if (JSON_OUT) fs.writeFileSync(JSON_OUT, JSON.stringify(runs, null, 1));

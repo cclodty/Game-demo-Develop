@@ -340,7 +340,7 @@ test('screenshot: the first wave in the teahouse, fast bullets and lasers from t
   assert.deepEqual(problems(logs), []);
 });
 
-test('the bot clears a floor of the arcade’s men in god mode; the notes name the posts held', { timeout: 15 * 60 * 1000 }, async () => {
+test('the bot clears the three floors of the arcade’s men in god mode; the notes name the posts held and the floors', { timeout: 25 * 60 * 1000 }, async () => {
   await installBot(page, { map: 0, view: 2, seed: 5, mode: 'danmaku', restart: false, god: true });
   const r = await page.evaluate(() => {
     const g = window.game;
@@ -351,16 +351,17 @@ test('the bot clears a floor of the arcade’s men in god mode; the notes name t
       return log0(text);
     };
     let frames = 0;
-    while (g.state === 'playing' && g.waves.state !== 'done' && frames < 60 * 60 * 8) {
+    while (g.state === 'playing' && g.waves.state !== 'done' && frames < 60 * 60 * 16) {
       window.simStep(60);
       frames += 60;
     }
     g.notes.log = log0;
-    return { wave: g.waves.wave, done: g.waves.state === 'done', s: frames / 60, notes: said, errors: window.stats.errors, shots: window.stats.enemyShots };
+    return { wave: g.waves.wave, done: g.waves.state === 'done', s: frames / 60, notes: said, errors: window.stats.errors, shots: window.stats.enemyShots, floors: g.floors.length };
   });
   assert.deepEqual(r.errors, [], 'nothing thrown on the way');
   assert.equal(r.done, true, `cleared (wave ${r.wave}, ${r.s} s)`);
   assert.ok(r.notes.some((t) => t.includes('守住開火位')), 'a post held');
-  console.log(`# the bot's floor: ${r.s} s, ${r.shots} enemy shots`);
+  assert.ok(r.notes.some((t) => t.includes('第 3 層開始')), `the third floor begun (${r.floors} floors)`);
+  console.log(`# the bot's three floors: ${r.s} s, ${r.shots} enemy shots`);
   assert.deepEqual(problems(logs), []);
 });

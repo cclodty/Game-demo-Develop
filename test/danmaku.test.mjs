@@ -299,7 +299,7 @@ test('screenshot: the three firing in the teahouse, the player in bullet time, h
   assert.deepEqual(problems(logs), []);
 });
 
-test('the bot clears 彈幕試驗’s floor in god mode, six waves in its three rooms; the notes say in Chinese who came, who held a post and how the grazes go', { timeout: 15 * 60 * 1000 }, async () => {
+test('the bot clears 彈幕試驗’s three floors in god mode, every room in order; the notes say in Chinese who came, who held a post and how the grazes go', { timeout: 25 * 60 * 1000 }, async () => {
   await installBot(page, { map: 0, view: 2, seed: 11, mode: 'danmaku', restart: false, god: true });
   const r = await page.evaluate(() => {
     const g = window.game;
@@ -311,18 +311,18 @@ test('the bot clears 彈幕試驗’s floor in god mode, six waves in its three 
     };
     let frames = 0;
     const rooms = [g.level.map.id]; // the rooms it fought in, in order (彈幕試驗 ⑤: the bot walks out of each cleared room's exit)
-    while (g.state === 'playing' && g.waves.state !== 'done' && frames < 60 * 60 * 8) {
+    while (g.state === 'playing' && g.waves.state !== 'done' && frames < 60 * 60 * 16) {
       window.simStep(60);
       frames += 60;
       if (g.level.map.id !== rooms[rooms.length - 1]) rooms.push(g.level.map.id);
     }
     g.notes.log = log0;
-    return { wave: g.waves.wave, done: g.waves.state === 'done', s: frames / 60, grazes: g.grazes, notes: said, errors: window.stats.errors, rooms, floor: g.floor };
+    return { wave: g.waves.wave, total: g.waves.totalWaves, done: g.waves.state === 'done', s: frames / 60, grazes: g.grazes, notes: said, errors: window.stats.errors, rooms, floor: g.floor };
   });
   assert.deepEqual(r.errors, [], 'nothing thrown on the way (the bot catches what the game throws)');
   assert.equal(r.done, true, `cleared (wave ${r.wave}, ${r.s} s, in ${r.rooms.join(' → ')})`);
-  assert.equal(r.wave, 6, 'after six waves');
-  assert.deepEqual(r.rooms, r.floor, 'through the floor’s three rooms, in its order');
+  assert.equal(r.wave, r.total, `after every wave (${r.total}: the floors’ rooms × 2)`);
+  assert.deepEqual(r.rooms, r.floor, 'through every room of the three floors, in order');
   assert.ok(r.notes.some((t) => t.startsWith('第 1 波開始：') && t.includes('THUG')), `the arcade's men (彈幕 ② A①): ${r.notes.find((t) => t.startsWith('第 1 波開始'))}`);
   assert.ok(r.notes.some((t) => t.includes('守住開火位')), 'someone held a post (the far side)');
   assert.ok(r.notes.some((t) => t.includes('擦彈')), r.notes.slice(-12).join(' / '));
