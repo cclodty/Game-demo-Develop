@@ -111,6 +111,13 @@ export const HELL = {
   postClose: 4,
   postRetry: 0.6,
   postRange: 10,
+  // the gap guarantee (A②, gaps.js): within `gapReach` m of the player there is always a clear circle `gap` m across
+  // that no round within `gapRange` m is on its way through; a man whose shot would close the last one waits `beat` s
+  // and looks again (his laser stays on). `gap` 0 turns it off (test/gap.test.mjs shows what it does)
+  gap: 1.2,
+  gapReach: 3,
+  gapRange: 6,
+  beat: 0.5,
 };
 
 export const BULLET = {

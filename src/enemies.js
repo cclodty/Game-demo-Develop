@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { AI, ENEMY_HP, ENV, FIREPOWER, GUN_Y, HELL, LOGIC_HZ, PLAYER, RAMP } from './config.js';
 import { animateRig, BODY, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, keyPose, setFlash } from './characters.js';
 import { Laser } from './fx.js';
+import { fireLines, safeSpot } from './gaps.js';
 import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowards } from './utils.js';
 
 export const TYPES = {
@@ -433,6 +434,8 @@ class Enemy {
     this.post = null; // the room's firing post he holds or makes for (level.js posts, 彈幕 ② A①: config.js HELL)
     this.postCd = 0; // s before he looks for one again
     this.postLogged = false;
+    this.gapBeat = -1; // the beat (HELL.beat) in which his shot was refused for the gap (gapAllows): he waits for the next
+    this.gapWait = false; // aimed and waiting for a gap
     this.retreatTo = null; // where to, with no cover farther back
     this.alive = true;
     this.dead = false;
@@ -1135,6 +1138,7 @@ class Enemy {
   }
 
   endAim() {
+    this.gapWait = false;
     this.mgr.releaseToken(this);
     this.laser.hide();
   }
@@ -1253,6 +1257,28 @@ class Enemy {
       }
     }
     return best;
+  }
+
+  /**
+   * The gap guarantee (彈幕 ② A②, gaps.js; config.js HELL): his shot now, with every round already on its way near the
+   * player, still leaves a clear spot by him. Refused, he asks again only in the next beat of world time. HELL.gap 0:
+   * always. A shotgun's fan counts as its middle and its two edges.
+   */
+  gapAllows() {
+    if (!(HELL.gap > 0)) return true;
+    const g = this.game;
+    const beat = Math.floor(g.worldTime / HELL.beat);
+    if (this.gapBeat === beat) return false;
+    const p = g.player;
+    const lines = fireLines(g.bullets.list, p.x, p.z, HELL.gapRange);
+    const m = this.muzzle();
+    const w = WEAPONS[this.cfg.weapon];
+    const fan = w && w.pellets > 1 ? w.spread : 0;
+    for (const a of fan ? [-fan, 0, fan] : [0]) lines.push([m.x, m.z, Math.sin(this.aimAngle + a), Math.cos(this.aimAngle + a)]);
+    const L = g.level;
+    const ok = !!safeSpot(lines, p.x, p.z, { reach: HELL.gapReach, gap: HELL.gap, walkable: (x, z) => Math.abs(x) < L.bounds.halfW && Math.abs(z) < L.bounds.halfD && L.nav.isWalkable(x, z) });
+    if (!ok) this.gapBeat = beat;
+    return ok;
   }
 
   /** The post is still his to hold: its cover (a table) stands, if it names one. */
@@ -1775,9 +1801,10 @@ class Enemy {
           this.timer -= dt;
           const c = this.cover;
           face = this.aimAngle;
-          if (c && this.los) {
+          if (c && this.los) this.aimAngle = angleTo(this.x, this.z, this.aimPoint().x, this.aimPoint().z);
+          if (c && this.los && (!this.inRoom || this.gapAllows())) {
             const w = WEAPONS[cfg.weapon];
-            this.aimAngle = angleTo(this.x, this.z, this.aimPoint().x, this.aimPoint().z);
+            this.gapWait = false;
             this.coverShots++;
             this.state = 'fire';
             this.burst = w.shots;
@@ -1785,6 +1812,7 @@ class Enemy {
             want = [0, 0];
             break;
           }
+          if (c && this.los) this.gapWait = true; // out and in sight, but his shot would close the last gap: he holds (the gap guarantee)
           if (c) {
             const dx = c.peekX - this.x;
             const dz = c.peekZ - this.z;
@@ -1848,6 +1876,14 @@ class Enemy {
             break;
           }
           if (this.aimT >= this.aimTime) {
+            if (this.inRoom && !this.gapAllows()) {
+              // the gap guarantee (彈幕 ② A②): his shot would close the last clear spot by the player; he holds his aim
+              // (the laser bright) and looks again next beat
+              this.aimT = this.aimTime;
+              this.gapWait = true;
+              break;
+            }
+            this.gapWait = false;
             const w = WEAPONS[cfg.weapon];
             this.state = 'fire';
             this.burst = w.shots;
