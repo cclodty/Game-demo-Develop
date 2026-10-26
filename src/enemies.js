@@ -1275,13 +1275,15 @@ class Enemy {
     // shots let through a moment ago whose rounds are not in the air yet count too, else two men pass the gate on one step
     this.mgr.claims = this.mgr.claims.filter((c) => c.until > now);
     for (const c of this.mgr.claims) lines.push(c.line);
-    const m = this.muzzle();
     const w = WEAPONS[this.cfg.weapon];
-    // his shot's lines: one, or a fan's every pellet as shoot() spreads them (the jitter is within the margin)
+    // his shot's lines, from where shoot() lets them go (0.35 m ahead of him, not the gun's muzzle): one, or a fan's
+    // every pellet as shoot() spreads them (the jitter is within the margin)
+    const ox = this.x + Math.sin(this.aimAngle) * 0.35;
+    const oz = this.z + Math.cos(this.aimAngle) * 0.35;
     const n = w && w.pellets > 1 ? w.pellets : 1;
     const mine = Array.from({ length: n }, (_, i) => {
       const a = this.aimAngle + (n > 1 ? (i / (n - 1) - 0.5) * w.spread * 2 : 0);
-      return [m.x, m.z, Math.sin(a), Math.cos(a)];
+      return [ox, oz, Math.sin(a), Math.cos(a)];
     });
     lines.push(...mine);
     const L = g.level;

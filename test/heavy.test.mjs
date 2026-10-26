@@ -78,14 +78,14 @@ before(async () => {
         if (r) hits++;
         return r;
       };
-      const tells = men.map(() => ({ steps: 0, still: true, glow: 0 }));
+      const tells = men.map(() => ({ steps: 0, still: true, glow: 0 })); // his first tell: in a room he rests only half as long (HELL.fireMul), so a second may begin before `steps` are up
       const aims = men.map(() => []); // his aim each step he fires
       for (; i < steps; i++) {
         const at = men.map((e) => [e.x, e.z]);
         if (move) move(i);
         window.step();
         men.forEach((e, k) => {
-          if (e.state === 'aim') {
+          if (e.state === 'aim' && !shots.some((s) => s.who === k)) {
             tells[k].steps++;
             tells[k].still = tells[k].still && Math.hypot(e.x - at[k][0], e.z - at[k][1]) < 1e-6;
             tells[k].glow = Math.max(tells[k].glow, e.glow || 0);
