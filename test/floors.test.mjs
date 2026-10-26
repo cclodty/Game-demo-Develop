@@ -43,6 +43,11 @@ before(async () => {
       g.enemies.clear();
       while (g.boss.active) g.boss.hurt('測試');
       window.step();
+      if (g.waves.state === 'cards') {
+        // a floor's end offers the style cards (C②): the first one
+        g.input.pressed.add('Digit1');
+        window.step();
+      }
     };
     /** Through a cleared room's exit (and the fade) into the next room, its first wave about to begin. */
     window.nextRoom = () => {
@@ -91,14 +96,14 @@ test('the floors are the run’s stages: a thug of the second floor has more hea
     g.waves.wave = 0;
     // the first floor's last wave is its arena's boss (D①), not a bigger wave; the floor is done with it (floorLast: the cards)
     const endOfFirst = F[0].length * per;
-    const sizes = { lastRoom: F[0][F[0].length - 1], boss: g.mapAt(F[0].length - 1).boss && g.mapAt(F[0].length - 1).boss.kind, isEnd: g.waves.isFloorEnd(endOfFirst), floorLast: g.waves.floorLast(endOfFirst), notLast: g.waves.floorLast(endOfFirst - 1), runLast: g.waves.floorLast(total) };
+    const sizes = { bossRooms: g.waves.rules.floor.boss, lastRoom: F[0][F[0].length - 1], boss: g.mapAt(F[0].length - 1).boss && g.mapAt(F[0].length - 1).boss.kind, isEnd: g.waves.isFloorEnd(endOfFirst), floorLast: g.waves.floorLast(endOfFirst), notLast: g.waves.floorLast(endOfFirst - 1), runLast: g.waves.floorLast(total) };
     return { floors: F.map((x) => x.length), floorOf, stats, want, sizes, total };
   });
   const [a, b, c] = r.floors;
   assert.deepEqual(r.floorOf, [...Array(a * 2).fill(0), ...Array(b * 2).fill(1), ...Array(c * 2).fill(2)], 'each wave on its floor');
   assert.deepEqual(r.stats.map((s) => s.hp), r.want.map((s) => s.hp), `a thug's health a floor (ENEMY_HP): ${r.stats.map((s) => s.hp)}`);
   assert.ok(r.stats.every((s, f) => Math.abs(s.pace - r.want[f].pace) < 1e-9), `the pace: ${r.stats.map((s) => s.pace)}`);
-  assert.deepEqual([r.sizes.lastRoom, r.sizes.boss], ['arena', 'blade'], 'the floor ends in the arena, the blade queen’s');
+  assert.ok(r.sizes.bossRooms.includes(r.sizes.lastRoom) && ['blade', 'gunner'].includes(r.sizes.boss), `the floor ends in a boss room (${r.sizes.lastRoom}: ${r.sizes.boss})`);
   assert.ok(!r.sizes.isEnd, 'no bigger wave in place of a boss there is');
   assert.ok(r.sizes.floorLast && !r.sizes.notLast && !r.sizes.runLast, 'the floor is done with the arena’s last wave; not a wave before, not the run’s last');
 });
@@ -134,7 +139,8 @@ test('the HUD opens each floor with its number and names the room’s place on i
     }
     const clean = g.waves.cleanRooms;
     const grade = rate({ score: 0, cleanWaves: g.waves.cleanRooms, waves: g.floor.length, seconds: 100, cleared: false });
-    return { banners: banners.filter((b) => b[2] === 'stage').map((b) => b[0]), subs: banners.filter((b) => b[2] === 'stage').map((b) => b[1]), songs, clean, roomsDone, firstFloor: F[0].length, grade: grade.parts.clean, rooms: g.floor.length, notes: g.notes.events.map((x) => x.text).filter((t) => t.includes('層開始')) };
+    const stage = banners.filter((b) => b[2] === 'stage' && /^(ROOM|FLOOR) /.test(b[0])); // the boss room's BOSS banner and the card picked aside (D①, C②)
+    return { banners: stage.map((b) => b[0]), subs: stage.map((b) => b[1]), songs, clean, roomsDone, firstFloor: F[0].length, grade: grade.parts.clean, rooms: g.floor.length, notes: g.notes.events.map((x) => x.text).filter((t) => t.includes('層開始')) };
   });
   const n = r.firstFloor;
   const expect = [...Array.from({ length: n - 1 }, (_, i) => `ROOM ${i + 2} / ${n}`), 'FLOOR 2'];

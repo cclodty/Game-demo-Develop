@@ -56,6 +56,11 @@ before(async () => {
       g.enemies.clear();
       while (g.boss.active) g.boss.hurt('測試'); // the arena's boss (D①)
       window.step();
+      if (g.waves.state === 'cards') {
+        // a floor's end offers the style cards (C②): the first one
+        g.input.pressed.add('Digit1');
+        window.step();
+      }
     };
     /** The intermission over: the next wave begins. */
     window.nextWave = () => {
@@ -108,7 +113,7 @@ test('a run is three floors of three or four rooms (彈幕 ② C①): the first 
   for (const f of r.floors) {
     assert.equal(f.floors.length, r.spec.floors, `seed ${f.seed}: ${r.spec.floors} floors (${f.floors.map((x) => x.join('>')).join(' | ')})`);
     for (const [i, ids] of f.floors.entries()) {
-      assert.equal(ids[ids.length - 1], r.spec.boss, `seed ${f.seed}, floor ${i + 1}: ends in the boss room (D①)`);
+      assert.ok(r.spec.boss.includes(ids[ids.length - 1]), `seed ${f.seed}, floor ${i + 1}: ends in a boss room (D①): ${ids[ids.length - 1]}`);
       assert.ok(ids.length - 1 >= r.spec.rooms[0] && ids.length - 1 <= r.spec.rooms[1], `seed ${f.seed}, floor ${i + 1}: ${ids.length - 1} fight rooms before it`);
       assert.equal(new Set(ids).size, ids.length, `seed ${f.seed}, floor ${i + 1}: no room twice (${ids})`);
       assert.ok(ids.every((id) => r.rooms.includes(id)), `seed ${f.seed}: ${ids}`);

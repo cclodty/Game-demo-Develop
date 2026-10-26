@@ -228,7 +228,7 @@ test('彈幕試驗 ⑥: the dai pai dong (大排檔) is in the floors’ draw: s
   assert.ok(r.pool.includes('daipaidong'), `the pool: ${r.pool}`);
   const withIt = r.floors.filter((f) => f.includes('daipaidong')).length;
   assert.ok(withIt > 0 && withIt < r.floors.length, `${withIt} of ${r.floors.length} floors have it: ${r.floors.map((f) => f.join('>')).join(' | ')}`);
-  assert.ok(r.floors.every((f) => f.length >= 3 && f.length <= 4), 'three or four rooms a floor');
+  assert.ok(r.floors.every((f) => f.length - 1 >= 3 && f.length - 1 <= 4), 'three or four fight rooms a floor, before its boss room (D①)');
   assert.equal(r.first, 'teahouse', 'the run’s first room the teahouse');
   assert.match(r.route, /大排檔/, r.route);
 });

@@ -1306,8 +1306,8 @@ class Game {
     if (!Number.isFinite(r.waves)) return '';
     if (r.floor) {
       // floors of rooms (C①): the first floor opens in `first`, the rest draw from all the rooms in an order each run's seed draws; each floor ends in the boss room (D①)
-      const arena = r.floor.boss && ROOMS[r.floor.boss];
-      const boss = arena && arena.boss && BOSSES[arena.boss.kind] ? `，層尾${arena.name}：${BOSSES[arena.boss.kind].cfg.short}` : '';
+      const arenas = [].concat(r.floor.boss || []).map((id) => ROOMS[id]).filter((a) => a && a.boss && BOSSES[a.boss.kind]);
+      const boss = arenas.length ? `，層尾${arenas.map((a) => `${a.name}：${BOSSES[a.boss.kind].cfg.short}`).join('或')}（每層抽）` : '';
       return `${ROOMS[r.floor.first].name}起，${[r.floor.first, ...r.floor.pool].map((id) => ROOMS[id].name).join('、')}輪流（每層抽，次序每局不同）${boss}`;
     }
     // 澳門一夜 from where it starts to its end, each map at its hour; any other the maps after the one picked

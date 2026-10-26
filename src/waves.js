@@ -32,7 +32,7 @@ export const MODES = {
   // `floor`: played in rooms (rooms.js), not on the maps: `floors` floors of `rooms` [least, most] rooms each (C①), the
   // first opening with `first`, the rest drawn from `pool` and `first` (rooms.js drawFloors), `perStage` waves in each
   // room; a cleared room's exit opens and the player walks out of it to the next. `waves` is what a run without floors
-  // would have: a floor run has rooms × `perStage` (Waves totalWaves). Each floor ends in the room `floor.boss` (D①),
+  // would have: a floor run has rooms × `perStage` (Waves totalWaves). Each floor ends in one of the rooms `floor.boss` (D①, D②),
   // whose boss is fought on its last wave (`floorBoss` sizes the fight but the run's last, in full); a floor without
   // one ends on a bigger wave instead (`floorEnd`); a floor counts as a stage for how hard the men are
   danmaku: {
@@ -45,7 +45,7 @@ export const MODES = {
     waves: 6,
     perStage: 2,
     graded: true,
-    floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong'], floors: 3, rooms: [3, 4], boss: 'arena' },
+    floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong'], floors: 3, rooms: [3, 4], boss: ['arena', 'backhall'] }, // a boss room a floor, drawn (D①, D②)
     floorBoss: { segments: 4, bonus: 1500 }, // a floor's boss fight but the last floor's, in full (boss.js cfg)
     finale: { size: 1.5, brutes: 1, maxAlive: 12 }, // the run's last wave, bigger like a floor's end (C①)
     graze: true,

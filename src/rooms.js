@@ -416,10 +416,44 @@ export const ARENA = room({
   budget: ROOM_BUDGET,
 });
 
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, arena: ARENA };
+/**
+ * The back hall (後廳, 彈幕 ② D②): the heavy gunner's. He comes in by the north door and walks after the player; a big
+ * round table in the middle to circle round him to his open back, two small ones for cover from his sweep and his
+ * slow wall. 22 × 15 m, in at the south, out at the north.
+ */
+export const BACKHALL = room({
+  id: 'backhall',
+  rev: 1,
+  name: '後廳',
+  en: 'BACK HALL',
+  desc: '層尾的後廳：重炮由北門踏入，繞着大圓枱走到他背後。',
+  color: '#ff8a2a',
+  size: [22, 15],
+  walls: [3.2, 'teaWall', 'teaTrim'],
+  low: [0.9, ['s', 'w']],
+  doors: [['n', -5], ['n', 5], ['e', -3], ['e', 3]],
+  tables: [[0, 0, 1.4], [-7.5, -3.5, 0.8], [7.5, -3.5, 0.8]],
+  entry: ['s', 0],
+  exit: ['n', 0],
+  // the far side: behind the north pair of small tables, and the north ends of the side aisles
+  posts: [[-7.5, -5.5, -7.5, -3.5], [7.5, -5.5, 7.5, -3.5], [-9.5, -1], [9.5, -1]],
+  // the heavy gunner (boss.js GUNNER) with his slow wall (`danmaku`): in through the exit's wall from beyond it
+  boss: { kind: 'gunner', danmaku: true, from: [0, -9.5], at: [0, -5] },
+  floor: 'teahouse',
+  theme: teaTheme([
+    [-4, -3],
+    [4, -3],
+    [-4, 3],
+    [4, 3],
+  ]),
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, arena: ARENA, backhall: BACKHALL };
 
 /**
- * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss }, 彈幕 ② C①): `floors` of
+ * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of
  * them, each `rooms` rooms (how many, the rng's), none twice on a floor; the first floor opens with `first`, the others
  * draw from `first` and `pool` alike, in an order drawn from `rng` (the run's own stream: the same seed, the same
  * floors). Arrays of room ids, one an floor.
@@ -439,7 +473,7 @@ export function drawFloors(spec, rng) {
   for (let f = 0; f < spec.floors; f++) {
     const n = Math.min(all.length, rng.int(least, most));
     const rooms = f === 0 ? [spec.first, ...shuffled(spec.pool).slice(0, n - 1)] : shuffled(all).slice(0, n);
-    if (spec.boss) rooms.push(spec.boss); // the floor ends in the boss's room (D①)
+    if (spec.boss) rooms.push(Array.isArray(spec.boss) ? spec.boss[rng.int(0, spec.boss.length - 1)] : spec.boss); // the floor ends in a boss's room, one of them drawn (D①, D②)
     floors.push(rooms);
   }
   return floors;

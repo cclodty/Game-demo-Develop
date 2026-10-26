@@ -231,6 +231,11 @@ export const GUNNER = {
   stagger: { kick: 0.7, smash: 1.3, bowl: 1.2, blast: 1.2 }, // s he reels (plate down, aim dropped) after a kick, a pan smash, a thug bowled into him, a blast
   bowl: 5, // m/s a kicked thug needs to stagger him
   blast: 2.8, // m: a blast this close takes a segment
+  // his slow wall (彈幕 ② D②), on where the map's def says `danmaku` (rooms.js BACKHALL): every `every` s (first after
+  // `first`) he plants his feet and his plate lights for `warn` s, then a fan of `count` slow rounds (the pattern men's
+  // look) across ± `spread` rad in front of him with `gap` of them missing somewhere inside: the way through, or round
+  // him to his open back
+  wall: { first: 5, every: 9, warn: 0.6, count: 13, spread: 1.1, gap: 2, speed: 6, dmg: 10, range: 20 },
 };
 
 export const CONVOY = {
@@ -2136,6 +2141,7 @@ class Gunner extends Boss {
   constructor(game) {
     super(game, GUNNER);
     this.rig = null;
+    this.wallSrc = { cfg: { label: '重炮的彈幕' } }; // what his slow wall says hit the player (bullets.js: `source.cfg.label`)
     this.reset();
   }
 
@@ -2181,6 +2187,11 @@ class Gunner extends Boss {
     this.flash = 0;
     this.plateFlash = 0;
     this.raging = false; // his partner down (a duo): shells more often (enrage)
+    this.danmaku = !!def.danmaku; // his slow wall (GUNNER.wall)
+    this.wallState = 'idle'; // idle, warn
+    this.wallT = GUNNER.wall.first;
+    this.wallTimer = 0;
+    this.firstWall = true;
     this.build();
   }
 
@@ -2256,8 +2267,60 @@ class Gunner extends Boss {
     if (this.state === 'walk' || this.state === 'plant') {
       this.updateGun(dt);
       this.updateMortar(dt);
+      this.updateWall(dt);
     }
     this.sync();
+  }
+
+  /** The slow wall (danmaku): planted, his plate alight for the warning, then the fan with its gap. */
+  updateWall(dt) {
+    if (!this.danmaku) return;
+    const g = this.game;
+    const p = g.player;
+    const W = GUNNER.wall;
+    if (this.wallState === 'idle') {
+      this.wallT -= dt;
+      if (this.wallT > 0 || this.state !== 'walk' || this.gunState !== 'idle' || this.blind || !p.alive || !this.mayTell()) return;
+      this.wallState = 'warn';
+      this.wallTimer = W.warn;
+      this.state = 'plant';
+      this.lock = { x: p.x, z: p.z };
+      g.audio.aimWarn(g.panFor(this.x));
+      g.fx.ring(this.x, this.z, 1.6, W.warn, 0xff8a2a, 3);
+      if (this.firstWall) {
+        this.firstWall = false;
+        g.notes.log('重炮鋼板發光：慢彈幕牆要來，有缺口');
+        g.hud.banner('SLOW WALL', '鋼板發光：慢彈幕牆，找缺口或繞到背後', 'clear');
+      }
+      return;
+    }
+    this.plateFlash = 1;
+    this.wallTimer -= dt;
+    if (this.wallTimer > 0) return;
+    this.fireWall();
+    this.wallState = 'idle';
+    this.wallT = W.every;
+    if (this.gunState === 'idle') {
+      this.lock = null;
+      if (this.state === 'plant') this.state = 'walk';
+    }
+  }
+
+  /** The fan of slow rounds across his front (GUNNER.wall), `gap` of them missing somewhere inside. */
+  fireWall() {
+    const g = this.game;
+    const W = GUNNER.wall;
+    const gapAt = g.rng.int(1, W.count - 1 - W.gap);
+    const step = (W.spread * 2) / (W.count - 1);
+    for (let i = 0; i < W.count; i++) {
+      if (i >= gapAt && i < gapAt + W.gap) continue;
+      const a = this.facing - W.spread + i * step;
+      const dx = Math.sin(a);
+      const dz = Math.cos(a);
+      g.bullets.spawn({ x: this.x + dx * 1.2, z: this.z + dz * 1.2, dx, dz, speed: W.speed, owner: 'enemy', damage: W.dmg, range: W.range, source: this.wallSrc, look: 'danmaku' });
+    }
+    g.audio.shot('shotgun', g.panFor(this.x));
+    this.flash = 0.4;
   }
 
   /** After the player along the nav grid, turning on him at his own slow rate; this close he stands and turns. */
@@ -2520,7 +2583,7 @@ class Gunner extends Boss {
     r.root.rotation.y = this.facing;
     setFlash(r, this.flash * 2.5);
     this.plateMats[0].emissiveIntensity = this.plateFlash * 1.5;
-    r.ring.material.color.setRGB(this.gunState === 'idle' ? 1 : 2.2, 0.35, 0.08);
+    r.ring.material.color.setRGB(this.gunState === 'idle' && this.wallState === 'idle' ? 1 : 2.2, 0.35, 0.08);
     if (this.gunState === 'warn' && this.lock) this.laser.set(this.x, this.z, this.lock.x, this.lock.z, 0.07, 1.5 + 2 * clamp(1 - this.gunTimer / GUNNER.gun.warn, 0, 1), GUN_Y);
     else if (this.gunState === 'fire') this.laser.set(this.x, this.z, this.x + Math.sin(this.lineA) * GUNNER.gun.range, this.z + Math.cos(this.lineA) * GUNNER.gun.range, 0.05, 3, GUN_Y);
     else this.laser.hide();

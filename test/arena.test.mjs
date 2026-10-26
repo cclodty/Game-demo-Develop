@@ -19,7 +19,7 @@ before(async () => {
   await page.evaluate(() => {
     const g = window.game;
     g.frame = () => {};
-    /** The run moved on to the arena at the end of floor `floor` (0-based) and the start of its last wave: the boss; the player at (x, z). */
+    /** The run moved on to the arena at the end of floor `floor` (0-based; made the blade queen's, whichever boss room the seed drew) and the start of its last wave: the boss; the player at (x, z). */
     window.toArena = (floor = 0, x = 0, z = 4) => {
       g.setRules('normal', []);
       g.setMode('danmaku');
@@ -27,6 +27,8 @@ before(async () => {
       g.waves.state = 'done';
       g.enemies.clear();
       g.bullets.clear();
+      g.floors[floor][g.floors[floor].length - 1] = 'arena';
+      g.floor = g.floors.flat();
       g.stage = g.floors.slice(0, floor + 1).flat().length - 1;
       g.level.load(g.stageMap);
       g.applyMapView();
@@ -78,7 +80,7 @@ after(async () => {
   await h.close();
 });
 
-test('every floor ends in the arena; its last wave is the blade queen at a perch, four segments on the first floor, five on the last; the route and the boss bar name her; the budget holds', async () => {
+test('every floor ends in a boss room; the arena’s last wave is the blade queen at a perch, four segments on the first floor, five on the last; the route and the boss bar name her; the budget holds', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toArena(0);
@@ -90,12 +92,13 @@ test('every floor ends in the arena; its last wave is the blade queen at a perch
     const info = g.renderer.info.render;
     const first = { room: g.level.map.id, kind: b.active && b.def.kind, danmaku: b.danmaku, state: b.state, perch: b.def.perches.some(([x, z]) => Math.hypot(x - b.x, z - b.z) < 0.01), segs: b.segments, bonus: b.bonus, queue: g.waves.queue.length, bar: !bar.classList.contains('hidden') && bar.querySelector('.boss-name').textContent, banner: document.getElementById('banner').textContent, calls: info.calls, tris: info.triangles, budget: g.level.map.budget };
     const floors = g.floors.map((f) => f[f.length - 1]);
+    const bossRooms = g.waves.rules.floor.boss;
     window.toArena(2);
     const last = { segs: g.boss.segments, bonus: g.boss.bonus, isFinal: g.waves.isFinal };
-    return { first, floors, last, route: g.routeText(0, 'danmaku') };
+    return { first, floors, bossRooms, last, route: g.routeText(0, 'danmaku') };
   });
   await page.screenshot({ path: new URL('arena.png', OUT).pathname });
-  assert.deepEqual(r.floors, ['arena', 'arena', 'arena'], 'the arena at every floor’s end');
+  assert.ok(r.floors.every((id) => r.bossRooms.includes(id)) && r.floors[2] === 'arena', `a boss room at every floor’s end (${r.floors}), the last made the arena`);
   assert.deepEqual([r.first.room, r.first.kind, r.first.danmaku, r.first.state, r.first.perch, r.first.queue, r.first.bar], ['arena', 'blade', true, 'perch', true, 0, '夜店刀后 BLADE QUEEN']);
   assert.deepEqual([r.first.segs, r.first.bonus], [4, 1500], 'a floor’s fight: four segments');
   assert.deepEqual([r.last.segs, r.last.bonus, r.last.isFinal], [5, 2000, true], 'the last floor’s: in full, the run’s last wave');
@@ -146,7 +149,6 @@ test('the knives: from her perch a red line on the player for 0.4 s (shots turne
 test('the ring: as she lands on a perch sixteen slow blades go out in the pattern men’s look, three missing: a gap over 1.2 m wide 3 m out; the club’s queen (no `danmaku`) throws and rings nothing', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    const b = g.boss;
     window.toArena(0, 0, 4);
     // through a throw, the dash and the cut to her retreat and her landing
     window.until('retreat');
