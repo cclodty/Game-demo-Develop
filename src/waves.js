@@ -41,7 +41,7 @@ export const MODES = {
     graded: true,
     floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong'], rooms: 3 },
     graze: true,
-    roster: { total: [4, 6, 7, 8, 9, 10], arcade: true, skip: ['sniper', 'drone'], fill: 'grunt' }, // 彈幕 ② A①: the arcade's men (the heavy three no longer: their code stays)
+    roster: { total: [5, 6, 7, 8, 9, 10], arcade: true, skip: ['sniper', 'drone'], fill: 'grunt' }, // 彈幕 ② A①: the arcade's men (the heavy three no longer: their code stays); five in the first wave: four fired 1.96× the arcade's first wave, short of the 2× asked (test/hell.test.mjs)
   },
 };
 export const MODE_IDS = Object.keys(MODES);

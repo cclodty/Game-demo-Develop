@@ -155,7 +155,7 @@ test('a wave in the room is the arcade’s men with the arcade’s bullets: no h
   const all = r.roster.flat();
   assert.ok(!all.some((t) => banned.includes(t)), `the arcade's men only: ${[...new Set(all)]}`);
   assert.ok(all.includes('grunt') && all.includes('rifle') && all.includes('brute'), `thugs, riflemen and a brute among them: ${[...new Set(all)]}`);
-  assert.deepEqual(r.roster.map((w) => w.length), [4, 6, 7, 8, 9, 10], 'the wave sizes (MODES.danmaku roster)');
+  assert.deepEqual(r.roster.map((w) => w.length), [5, 6, 7, 8, 9, 10], 'the wave sizes (MODES.danmaku roster)');
   assert.ok(r.hell.wave === 1 && r.arcade.wave === 1, `both measured in wave 1 (${r.hell.wave}, ${r.arcade.wave})`);
   assert.equal(r.hell.refused, 0, 'nobody in the room waited for an aim token');
   assert.ok(r.arcade.refused > 0, `in the arcade the tokens still limit who aims (${r.arcade.refused} refusals)`);
@@ -305,9 +305,9 @@ test('the stats panel tunes HELL live: the fire gap, the crowd and the post dist
     return { paths, before, after, reset: HELL.fireMul };
   });
   assert.deepEqual(r.paths, ['HELL.fireMul', 'HELL.maxAlive', 'HELL.postClose']);
-  assert.equal(r.before, 0.6);
+  assert.ok(r.before > 0 && r.before < 1, `config.js's own (${r.before})`);
   assert.equal(r.after, 0.3);
-  assert.equal(r.reset, 0.6);
+  assert.equal(r.reset, r.before);
 });
 
 test('screenshot: the first wave in the teahouse, fast bullets and lasers from the far side, the player in bullet time', async () => {

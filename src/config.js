@@ -105,7 +105,7 @@ export const GRAZE = { radius: 0.5, focus: 0.02, pts: 10, flush: 0.25, log: 3, s
  * version, to be confirmed in play.
  */
 export const HELL = {
-  fireMul: 0.6,
+  fireMul: 0.5, // the card said 0.6: measured, wave 1 then fired 1.75× the arcade's first wave, short of the 2× asked (test/hell.test.mjs)
   maxAlive: 12,
   entry: [0.3, 0.7],
   postClose: 4,
