@@ -94,14 +94,17 @@ test('a wall’s rounds are slow and solid pink, a presser’s fast and in the a
     window.toRoom(-3, 2.5);
     const ringer = window.put('ringer', -9, -5.5);
     const hoser = window.put('hoser', -3, -6.5);
-    const blaster = window.put('blaster', 2, 0, 0.6);
-    const shots = window.watch([ringer, hoser, blaster], 120 * 4);
+    const shots = window.watch([ringer, hoser], 120 * 4);
     const by = (k) => shots.filter((s) => s.who === k);
     const p = g.player;
     // the ring's rounds about the player are lines of fire for the gate (fireLines counts every enemy round)
     const ringAbout = g.bullets.list.filter((b) => b.owner === 'enemy' && b.look === 'danmaku' && Math.hypot(b.x - p.x, b.z - p.z) < 6).length;
     const lines = window.fireLines(g.bullets.list, p.x, p.z, 6).length;
-    return { ring: by(0), hose: by(1), blast: by(2), ringAbout, lines };
+    // a blaster on his own (beside a ring's wall his fan would close every spot, and the gate holds him: the next test)
+    window.toRoom(-3, 2.5);
+    const blaster = window.put('blaster', 2, 0, 0.6);
+    const blast = window.watch([blaster], 120 * 4).map((s) => ({ ...s, who: 2 }));
+    return { ring: by(0), hose: by(1), blast, ringAbout, lines };
   });
   assert.ok(r.ring.length > 20 && r.ring.every((s) => s.speed <= 8 && s.look === 'danmaku'), `the ring: ${r.ring.length} slow pink rounds`);
   assert.ok(r.hose.length > 20 && r.hose.every((s) => s.speed >= 17 && s.look === 'enemy'), `the stream: ${r.hose.length} fast rounds in the arcade's look`);

@@ -52,12 +52,12 @@ before(async () => {
       e.fireCd = wait;
       return e;
     };
-    /** The clear spot by the player now, from the rounds in the air (what the guarantee promises: 1.2 m across within 2 m, whatever the gate is set to), or null. */
+    /** The clear spot by the player now, from the rounds in the air (what the guarantee promises: 1.2 m across within 3 m, whatever the gate is set to), or null. */
     window.spotNow = () => {
       const p = g.player;
       const L = g.level;
       const lines = fireLines(g.bullets.list, p.x, p.z, 6);
-      return { lines: lines.length, spot: safeSpot(lines, p.x, p.z, { reach: 2, gap: 1.2, walkable: (x, z) => Math.abs(x) < L.bounds.halfW && Math.abs(z) < L.bounds.halfD && L.nav.isWalkable(x, z) }) };
+      return { lines: lines.length, spot: safeSpot(lines, p.x, p.z, { reach: 3, gap: 1.2, walkable: (x, z) => Math.abs(x) < L.bounds.halfW && Math.abs(z) < L.bounds.halfD && L.nav.isWalkable(x, z) }) };
     };
     /**
      * The room's first `seconds` s, the player standing still: every step the clear spot is looked for; the steps
@@ -156,7 +156,7 @@ test('a wave in the room, the player standing still: at every step there is a cl
 test('six shotgunners round the player, their fans from every side: the gate makes some hold their aim, laser on, firing nothing while they wait, and a clear spot stays at every step; the gate off, no one waits and the spot is gone at times', { timeout: 10 * 60 * 1000 }, async () => {
   const r = await page.evaluate(() => {
     const { HELL } = window.gaps;
-    // six at once, ready together: their fans cover all but 28° either way, and 2 m out that is no room for the spot
+    // six at once, ready together: their fans cover all but 24° either way, and 3 m out that is no room for the spot
     const ring = () => {
       window.toRoom(0, 0);
       for (let i = 0; i < 6; i++) window.put('shotgun', Math.sin((i / 6) * Math.PI * 2) * 5, Math.cos((i / 6) * Math.PI * 2) * 5, 0);

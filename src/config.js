@@ -116,7 +116,7 @@ export const HELL = {
   // and looks again (his laser stays on). `gap` 0 turns it off (test/gap.test.mjs shows what it does)
   gap: 1.2,
   gapMargin: 0.3, // the gate asks for this much more: the rounds scatter a little, and a burst follows its first round
-  gapReach: 2, // what he crosses in a beat of bullet time; at 3, six shotgunners round him still left a spot at its edge and the gate never spoke (test/gap.test.mjs)
+  gapReach: 3, // at 2 a lone shotgun's fan from 6 m closed every spot and the gate held him for good; at 3 six shotgunners firing together still make the gate speak (test/gap.test.mjs)
   gapRange: 6,
   beat: 0.5,
 };
