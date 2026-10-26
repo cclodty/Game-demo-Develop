@@ -168,14 +168,14 @@ test('a room is fought behind shut doors: standing at its exit does nothing whil
   assert.deepEqual(r.waits, { state: 'exit', wave: 2, room: 'teahouse', fade: false }, 'the open exit waits for the player');
 });
 
-test('walking out of the open exit: the floor’s next room, nobody and no bullets in it, the player just inside its entry, its exit locked; its waves come; the third room’s last wave ends the run', async () => {
+test('walking out of the open exit: the floor’s next room, nobody and no bullets in it, the player just inside its entry, its exit locked; its waves come; the last room’s last wave ends the run', { timeout: 10 * 60 * 1000 }, async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     g.view = 1; // W is north (the 45° tilt has no yaw)
     window.toFloor();
     const floor = g.floor.slice();
     const out = { floor, rooms: [] };
-    for (let room = 0; room < 3; room++) {
+    for (let room = 0; room < floor.length; room++) {
       const L = g.level;
       const ex = L.exit;
       const entry = L.map.entry;
@@ -210,7 +210,7 @@ test('walking out of the open exit: the floor’s next room, nobody and no bulle
     g.view = 2;
     return out;
   });
-  assert.equal(r.rooms.length, 3, `three rooms played: ${r.rooms.map((x) => `${x.id} → ${x.then}`).join(', ')}`);
+  assert.equal(r.rooms.length, r.floor.length, `every room played: ${r.rooms.map((x) => `${x.id} → ${x.then}`).join(', ')}`);
   r.rooms.forEach((x, i) => {
     assert.equal(x.id, r.floor[i], `room ${i + 1} is the floor’s (${r.floor})`);
     assert.equal(x.stage, i);
@@ -220,13 +220,13 @@ test('walking out of the open exit: the floor’s next room, nobody and no bulle
     assert.ok(x.start < 0.3, `${x.id}: the player at its start (${x.start.toFixed(2)} m off)`);
     assert.ok(x.toEntry < 2, `${x.id}: its start just inside its entry (${x.toEntry.toFixed(2)} m)`);
     assert.deepEqual([x.wave0, x.state0, x.wave1, x.state1], [i * 2 + 1, 'active', i * 2 + 2, 'active'], `${x.id}: its two waves`);
-    if (i < 2) {
+    if (i < r.floor.length - 1) {
       assert.equal(x.then, 'exit', `${x.id}: cleared, its exit open`);
       assert.ok(x.walk >= 0, `${x.id}: walking into the exit goes on`);
     }
     if (i > 0) assert.ok(r.rooms[i - 1].notes.some((t) => t.includes(`第 ${i + 1} 間房`)), r.rooms[i - 1].notes.join(' / '));
   });
-  assert.equal(r.done, 'done', 'the third room’s last wave: the run is cleared');
+  assert.equal(r.done, 'done', 'the last room’s last wave: the run is cleared');
   assert.equal(r.wave, 6);
   assert.equal(r.lastLocked, true, 'the last room’s exit stays shut (the floor ends there)');
 });

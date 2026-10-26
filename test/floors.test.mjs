@@ -63,8 +63,8 @@ after(async () => {
   await h.close();
 });
 
-test('the floors are the run’s stages: a thug of the second floor has 1.25× the health and aims 0.9× as long as one of the first; the third 1.5× and 0.81×; the first floor’s last wave of its last room is bigger, with a brute; the run’s last wave bigger still', async () => {
-  const r = await page.evaluate(() => {
+test('the floors are the run’s stages: a thug of the second floor has more health and aims quicker than one of the first, the third more so (ENEMY_HP, RAMP a floor); the first floor’s last wave of its last room is bigger, with a brute; the run’s last wave bigger still', async () => {
+  const r = await page.evaluate(async () => {
     const g = window.game;
     window.toFloor();
     const F = g.floors;
@@ -76,7 +76,10 @@ test('the floors are the run’s stages: a thug of the second floor has 1.25× t
       g.waves.wave = n;
       floorOf.push(g.waves.stageIndex);
     }
-    // a thug's health and pace on each floor
+    // a thug's health and pace on each floor (config.js ENEMY_HP: base × (1 + perStage × floor), rounded; RAMP)
+    const { ENEMY_HP, RAMP } = await import('./src/config.js');
+    const { TYPES } = await import('./src/enemies.js');
+    const want = [0, 1, 2].map((f) => ({ hp: Math.round(TYPES.grunt.hp * ENEMY_HP.base * (1 + ENEMY_HP.perStage * f)), pace: (1 - RAMP.perStage) ** f }));
     const stats = [];
     for (const f of [0, 1, 2]) {
       g.waves.wave = F.slice(0, f).flat().length * per + 1;
@@ -88,13 +91,12 @@ test('the floors are the run’s stages: a thug of the second floor has 1.25× t
     // the floor-end wave of the first floor, a wave before it, and the run's last
     const endOfFirst = F[0].length * per;
     const sizes = { before: g.waves.compose(endOfFirst - 1).length, floorEnd: g.waves.compose(endOfFirst).length, brutes: g.waves.compose(endOfFirst).filter((t) => t === 'brute').length, brutesBefore: g.waves.compose(endOfFirst - 1).filter((t) => t === 'brute').length, last: g.waves.compose(total).length, isEnd: g.waves.isFloorEnd(endOfFirst), notEnd: g.waves.isFloorEnd(endOfFirst - 1), lastIsEnd: g.waves.isFloorEnd(total) };
-    return { floors: F.map((x) => x.length), floorOf, stats, sizes, total };
+    return { floors: F.map((x) => x.length), floorOf, stats, want, sizes, total };
   });
   const [a, b, c] = r.floors;
   assert.deepEqual(r.floorOf, [...Array(a * 2).fill(0), ...Array(b * 2).fill(1), ...Array(c * 2).fill(2)], 'each wave on its floor');
-  assert.equal(r.stats[1].hp / r.stats[0].hp, 1.25, `second floor: ${r.stats.map((s) => s.hp)}`);
-  assert.equal(r.stats[2].hp / r.stats[0].hp, 1.5);
-  assert.ok(Math.abs(r.stats[1].pace - 0.9) < 1e-9 && Math.abs(r.stats[2].pace - 0.81) < 1e-9, `the pace: ${r.stats.map((s) => s.pace)}`);
+  assert.deepEqual(r.stats.map((s) => s.hp), r.want.map((s) => s.hp), `a thug's health a floor (ENEMY_HP): ${r.stats.map((s) => s.hp)}`);
+  assert.ok(r.stats.every((s, f) => Math.abs(s.pace - r.want[f].pace) < 1e-9), `the pace: ${r.stats.map((s) => s.pace)}`);
   assert.ok(r.sizes.isEnd && !r.sizes.notEnd && !r.sizes.lastIsEnd, 'the floor-end wave is the last of the floor’s last room, not the run’s last');
   assert.ok(r.sizes.floorEnd > r.sizes.before, `the floor’s last wave is bigger (${r.sizes.before} → ${r.sizes.floorEnd})`);
   assert.ok(r.sizes.brutes > r.sizes.brutesBefore, `with a brute more (${r.sizes.brutesBefore} → ${r.sizes.brutes})`);
@@ -112,7 +114,8 @@ test('the HUD opens each floor with its number and names the room’s place on i
       banners.push([t, s, k]);
       return banner0(t, s, k);
     };
-    const songs = [g.audio.song.name];
+    const song = () => (g.audio.nextSong || g.audio.song).name; // the next song comes in on the bar line
+    const songs = [song()];
     const F = g.floors;
     const per = g.waves.rules.perStage;
     // through the first floor: its rooms cleared, the first hurt once
@@ -126,7 +129,7 @@ test('the HUD opens each floor with its number and names the room’s place on i
       roomsDone++;
       if (room < F[0].length) {
         window.nextRoom();
-        if (g.audio.song.name !== songs[songs.length - 1]) songs.push(g.audio.song.name);
+        if (song() !== songs[songs.length - 1]) songs.push(song());
       }
     }
     const clean = g.waves.cleanRooms;

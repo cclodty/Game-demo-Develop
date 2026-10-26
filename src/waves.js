@@ -45,11 +45,13 @@ export const MODES = {
     floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong'], floors: 3, rooms: [3, 4] },
     floorEnd: { size: 1.5, brutes: 1 },
     graze: true,
-    // 彈幕 ② A①: the arcade's men; five in the first wave: four fired 1.96× the arcade's first wave, short of the 2× asked
-    // (test/hell.test.mjs). A③: `also` the heavy three as pressers (the same [from wave, weight, most a wave]), and an
-    // `elite` of the slow walls (ringer, spiraler, fanner) in a room's first wave from wave `from`, one a room
+    // 彈幕 ② A①: the arcade's men; five in a room's first wave (four fired 1.96× the arcade's first wave, short of the 2×
+    // asked: test/hell.test.mjs), six in its second (`total` by the wave's place in its room), `perFloor` more a floor
+    // (C①: about 150 men a run of three floors). A③: `also` the heavy three as pressers (the same [from wave, weight,
+    // most a wave]), and an `elite` of the slow walls (ringer, spiraler, fanner) in a room's first wave from `fromFloor`
     roster: {
-      total: [5, 6, 7, 8, 9, 10],
+      total: [5, 6],
+      perFloor: 1,
       arcade: true,
       skip: ['sniper', 'drone'],
       fill: 'grunt',
@@ -164,7 +166,9 @@ export class Waves {
     const finale = n === this.totalWaves ? this.rules.finale : this.isFloorEnd(n) ? this.rules.floorEnd : null; // the run's last, or a floor's (C①)
     const R = this.rules.roster; // a mode's own (彈幕試驗)
     const own = R && !R.arcade; // its own types; with `arcade` the arcade's men, brutes and all (彈幕 ② A①)
-    let total = R ? R.total[Math.min(n, R.total.length) - 1] : 3 + Math.floor(n * 1.7);
+    const F = this.game.floors;
+    const floorOfWave = (w) => (F ? this.game.floorOf(Math.floor((w - 1) / this.rules.perStage)) : 0);
+    let total = R ? (R.perFloor !== undefined ? R.total[(n - 1) % this.rules.perStage] + R.perFloor * floorOfWave(n) : R.total[Math.min(n, R.total.length) - 1]) : 3 + Math.floor(n * 1.7);
     let brutes = own ? 0 : n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
     if (finale) {
       total = Math.round(total * finale.size);
@@ -196,8 +200,7 @@ export class Waves {
     if (R && list.every((t) => t === 'grunt')) list[0] = R.fill;
     // an elite (A③): one of the slow walls in a room's first wave, in the last place, from floor `fromFloor` (C①; a wave number `from` before)
     const E = R && R.elite;
-    const floorOf = (w) => (this.game.floors ? this.game.floorOf(Math.floor((w - 1) / this.rules.perStage)) : 0);
-    const due = E && (E.fromFloor !== undefined ? floorOf(n) >= E.fromFloor : n >= E.from);
+    const due = E && (E.fromFloor !== undefined ? floorOfWave(n) >= E.fromFloor : n >= E.from);
     if (due && (n - 1) % this.rules.perStage === 0) list[list.length - 1] = E.types[rng.int(0, E.types.length - 1)];
     return list;
   }

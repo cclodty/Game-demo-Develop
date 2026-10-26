@@ -155,7 +155,7 @@ test('a wave in the room is the arcade’s men with the arcade’s bullets (no s
   const all = r.roster.flat();
   assert.ok(!all.some((t) => banned.includes(t)), `no sniper, no drone: ${[...new Set(all)]}`);
   assert.ok(all.includes('grunt') && all.includes('rifle') && all.includes('brute'), `thugs, riflemen and a brute among them: ${[...new Set(all)]}`);
-  assert.deepEqual(r.roster.map((w) => w.length), [5, 6, 7, 8, 9, 10], 'the wave sizes (MODES.danmaku roster)');
+  assert.deepEqual(r.roster.slice(0, 4).map((w) => w.length), [5, 6, 5, 6], 'the wave sizes: five in a room’s first wave, six in its second (MODES.danmaku roster; the floor’s end and the floors above are bigger: test/floors.test.mjs)');
   assert.ok(r.hell.wave === 1 && r.arcade.wave === 1, `both measured in wave 1 (${r.hell.wave}, ${r.arcade.wave})`);
   assert.equal(r.hell.refused, 0, 'nobody in the room waited for an aim token');
   assert.ok(r.arcade.refused > 0, `in the arcade the tokens still limit who aims (${r.arcade.refused} refusals)`);

@@ -81,7 +81,7 @@ test('the roster: an elite (a slow wall) in a room’s first wave from wave 3, o
   const walls = ['ringer', 'spiraler', 'fanner'];
   const heavy = ['hoser', 'volleyer', 'blaster'];
   const elites = r.waves.map((w) => w.filter((t) => walls.includes(t)).length);
-  assert.deepEqual(elites, [0, 0, 1, 0, 1, 0], `one in waves 3 and 5 (the first wave of rooms 2 and 3): ${elites}`);
+  assert.deepEqual(elites, [0, 0, 0, 0, 0, 0], `none on the first floor (the elites come from the second: test/floors.test.mjs): ${elites}`);
   assert.ok(heavy.some((t) => r.waves.slice(1).flat().includes(t)), `pressers from wave 2: ${r.waves.map((w) => w.join(' ')).join(' / ')}`);
   assert.ok(!heavy.some((t) => r.waves[0].includes(t)), 'none in wave 1');
   assert.ok(r.waves.flat().includes('grunt'), 'the arcade’s men still');
