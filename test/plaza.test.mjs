@@ -127,7 +127,7 @@ test('a player shot past a resting flock bursts it up: a thug aiming within 2 m 
     far.blindT = 0;
     // a shot from the player past the flock (within ENV.flockScare of its spot)
     g.bullets.spawn({ x: g.player.x, z: g.player.z, dx: 0, dz: -1, speed: 62, owner: 'player', damage: 1 });
-    for (let i = 0; i < 6; i++) window.play(1, [], [], f.x, f.z);
+    for (let i = 0; i < 14; i++) window.play(1, [], [], f.x, f.z); // 5.5 m from the player to the flock: a dozen steps at 62 m/s
     const after = { near: near.state, far: far.state, blindNear: near.blindT, blindFar: far.blindT, away: f.away, gen: f.gen, cloud: f.upT };
     return { before, after, notes: g.notes.events.map((e) => e.text).filter((t) => t.includes('鴿')) };
   });
