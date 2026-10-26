@@ -5,7 +5,7 @@ stylised present-day Macau. Plain JavaScript + three.js (vendored, no
 bundler, no framework). One developer plus Claude; the developer plays and
 judges feel, Claude builds.
 
-Read before starting any task: this file, `docs/ROADMAP.md` (the plan and the
+Read before starting any task: this file, `docs/ROADMAP.md` (the plan, third edition 2026-10-26: the bullet-hell direction, and the
 four design pillars), `docs/TASKS.md` (the current checklist), and
 `docs/DECISIONS.md` (why things are the way they are). Add to the last two as
 you go.
@@ -61,7 +61,7 @@ src/input.js  replay.js      live keyboard/mouse/gamepad (standard layout mapped
 src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, VIEWS, FIREPOWER (pads, drops)
 src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS and the AI state machine
 src/weapons.js bullets.js    player weapon stats, grenades (the launcher's, and the grenadier's lobbed ones: ring, fuse, kick back, AIRBURST); projectile stepping and ricochet
-src/waves.js  pickups.js     MODES (arcade: 12 waves, then RUN CLEAR; endless; daily; night), wave composition and spawn pacing; floor weapons and pads
+src/waves.js  pickups.js     MODES (danmaku, the game's own: three floors of rooms, the default; arcade, endless, daily and night are `legacy`, off the title unless ?modes=all), wave composition and spawn pacing; floor weapons and pads
 src/night.js                 澳門一夜: the maps in order of the hour each is set at (maps.js `hour`, `line`), how far the night has got (kept in this browser)
 src/level.js  maps.js        map loading (solids, glass, barrels, pans, pads, spawns, lights); the 7 maps as data (福隆新街's walls built from its `shops`, 東望洋跑道's barriers from `guiaBarriers`, 大三巴's steps from its `ground`: everything is drawn at its height over the ground there, `groundY`)
 src/nav.js                   grid A* on 0.5 m cells
@@ -75,12 +75,13 @@ src/music.js                 the songs as data (tempo, chords, step patterns, la
 src/race.js                  the Guia circuit's racing cars: a pack sweeps the track on the map's timetable (maps.js `race`), warned by red lights; GRAND PRIX
 src/boss.js                  each map's boss, the last wave of every arcade stage there (maps.js `boss.kind`; waves 4 and 8 shorter, waves.js `midBoss`): helicopter (rooftop), blade queen (club), heavy gunner (docks), taxi convoy (Senado), with the DJ and the armoured truck as spare kinds; what they share (health bar, banners, BOSS bonus, clip) is Boss
 src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
-src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time, a pan, a barrel)
+src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time against the laser, a human shield, a flipped table)
 src/leaderboard.js           boards: local always, the back end's when config.js BACKEND.url is set (never waited on); nickname rule shared with backend/
 src/daily.js                 the daily challenge: UTC date → seed, map and rules from a rotation table; one try a day; share codes
 src/achievements.js          achievements as data, counted from the game's events (never feeding back into play); unlocks: rules.js variants with `unlock`, coat colours
 src/clip.js                  the best-kill clip: overlapping MediaRecorder recordings of a small copy of the screen, played on the end screen
 src/telemetry.js             local play records: one row per run (start, waves, end and cause, time, played again), carried by the feedback export
+src/cards.js                 the style cards (彈幕 ② C②): six as data, three offered at a floor's end, the pick a 1/2/3 press in the input record; each is one switch its system reads (game.cards.has)
 src/rules.js                 run rules: difficulties and variants as data (one switch or number each), read by their systems as game.ruleset
 src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export
 src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions
@@ -89,7 +90,7 @@ backend/                     the leaderboard Cloudflare Worker (worker.js), its 
 scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, itch.mjs (+ itch-cover.mjs), serve.mjs, senado-extract.mjs, measure.mjs (bot runs, wave by wave)
 test/                        node:test + playwright; helpers.mjs has the bot; fixtures/ holds a short recorded clip
 assets/                      SPEC.md, PROMPTS.md, START_HERE.md, asset-list.*, maps/*.json, source/ (masters), models/ (web)
-docs/                        ROADMAP.md, TASKS.md, DECISIONS.md, BACKEND.md (deploying the back end); shots/ holds the screenshots PR descriptions show; itch/ the itch.io page
+docs/                        ROADMAP.md (third edition; ROADMAP-2026-10-22.md is the second, kept for its § numbers), TASKS.md, DECISIONS.md, BACKEND.md (deploying the back end); shots/ holds the screenshots PR descriptions show; itch/ the itch.io page
 senado/                      the Largo do Senado city-model sub-project (own README, tests, scripts); don't edit from game tasks
 vendor/three/                three.js r186 + the addons we use; never modify
 ```

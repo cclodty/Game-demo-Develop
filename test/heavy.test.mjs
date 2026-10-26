@@ -1,13 +1,14 @@
 // 彈幕試驗 ⑦: heavy fire. The developer, after playing the trial (2026-10-26): not the patterns all round, but the
 // bullet hell that heavy fire from the other side makes. The three pattern men (rings, spirals, fans) are no longer sent;
 // three who aim at the player and fire a great deal take their place, each with the pattern men's tell (he stands and
-// glows) and their slow, solid bullets (bullets.js 'danmaku'):
+// glows); since 彈幕 ② A③ their rounds are fast ones in the arcade's look (the pressers between the slow walls):
 //   機槍手 MG: a stream two seconds long that turns after the player only so fast: standing in it he is hit, running
 //     across it he leaves it behind;
 //   排槍手 VOLLEY: every one of them in the room fires on the squad's beat, the same logic step, a row of rounds; between
 //     beats none of theirs: the time to move;
 //   霰彈手 BLAST: comes in close for two wide blasts that die out within their range: back off, or out of the fan.
-// The same seed, the same fire. Only 彈幕試驗 sends them.
+// The same seed, the same fire. 彈幕 ② A① (2026-10-26) gave the mode the arcade's men (test/hell.test.mjs); A③
+// sends the three again among them, from wave 2 (test/mix.test.mjs). These tests put them in a room by hand.
 // Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -76,14 +77,14 @@ before(async () => {
         if (r) hits++;
         return r;
       };
-      const tells = men.map(() => ({ steps: 0, still: true, glow: 0 }));
+      const tells = men.map(() => ({ steps: 0, still: true, glow: 0 })); // his first tell: in a room he rests only half as long (HELL.fireMul), so a second may begin before `steps` are up
       const aims = men.map(() => []); // his aim each step he fires
       for (; i < steps; i++) {
         const at = men.map((e) => [e.x, e.z]);
         if (move) move(i);
         window.step();
         men.forEach((e, k) => {
-          if (e.state === 'aim') {
+          if (e.state === 'aim' && !shots.some((s) => s.who === k)) {
             tells[k].steps++;
             tells[k].still = tells[k].still && Math.hypot(e.x - at[k][0], e.z - at[k][1]) < 1e-6;
             tells[k].glow = Math.max(tells[k].glow, e.glow || 0);
@@ -136,7 +137,7 @@ test('機槍手 MG: a tell (he stands and glows), then a stream of solid rounds 
   assert.ok(s.shots.length >= 25, `${s.shots.length} rounds`);
   const span = (s.shots[s.shots.length - 1].i - s.shots[0].i) / 120;
   assert.ok(span >= 1.8, `a stream ${span.toFixed(2)} s long`);
-  assert.ok(s.shots.every((x) => x.look === 'danmaku'), 'in the solid look');
+  assert.ok(s.shots.every((x) => x.look === 'enemy'), 'in the arcade’s look (彈幕 ② A③: a presser’s rounds are fast ones)');
   const err = s.shots.map((x) => Math.abs(wrap(x.angle - s.toPlayer)));
   assert.ok(Math.max(...err) < 0.15, `at the player, standing still (worst ${Math.max(...err).toFixed(3)} rad off)`);
   assert.ok(s.hits >= 10, `standing in it he is hit (${s.hits} times)`);
@@ -182,7 +183,7 @@ test('排槍手 VOLLEY: three in the room, ready at different times, open up on 
     assert.ok(quiet >= 1.4, `between rows ${quiet.toFixed(2)} s with none of theirs`);
   }
   assert.ok(r.tells.every((t) => t.still && t.glow > 0.5), 'each stood and glowed for it');
-  assert.ok(r.shots.every((s) => s.look === 'danmaku'));
+  assert.ok(r.shots.every((s) => s.look === 'enemy'));
 });
 
 test('霰彈手 BLAST: a tell, then two wide blasts of pellets at the player that die out within their range; a step 2.5 m to the side at 6 m is out of the fan; the same seed, the same blasts', async () => {
@@ -229,7 +230,7 @@ test('霰彈手 BLAST: a tell, then two wide blasts of pellets at the player tha
   assert.deepEqual(b.shots.map((s) => s.angle.toFixed(5)), a.shots.map((s) => s.angle.toFixed(5)), 'the same seed, the same blasts');
 });
 
-test('彈幕試驗’s waves are the three heavy guns (and a few thugs), never the pattern men; no other mode sends the heavy three; the notes name each the first time it fires', async () => {
+test('彈幕試驗 sends the heavy three among the arcade’s men (彈幕 ② A③), no other mode does; put in a room each fires its pattern, and the notes name each the first time', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom(-3, 2.5);
@@ -258,9 +259,8 @@ test('彈幕試驗’s waves are the three heavy guns (and a few thugs), never t
   });
   const heavy = ['hoser', 'volleyer', 'blaster'];
   const all = r.danmaku.flat();
-  assert.ok(heavy.every((t) => all.includes(t)), `all three come (${[...new Set(all)]})`);
-  assert.ok(all.every((t) => heavy.includes(t) || t === 'grunt'), `and only they and thugs: no pattern men (${[...new Set(all)]})`);
-  assert.ok(r.danmaku.every((w) => w.some((t) => heavy.includes(t))), 'every wave has some');
+  assert.ok(heavy.some((t) => all.includes(t)), `the heavy three come to 彈幕試驗 (this seed's six waves: ${[...new Set(all)]})`);
+  assert.ok(all.includes('grunt'), 'among the arcade’s men');
   assert.ok(!r.arcade.flat().some((t) => heavy.includes(t)) && !r.endless.flat().some((t) => heavy.includes(t)), 'none in the arcade or endless');
   for (const name of ['機槍手', '排槍手', '霰彈手']) assert.equal(r.said.filter((t) => t.includes(name)).length, 1, `${name} once in the notes: ${r.said.join(' / ')}`);
 });

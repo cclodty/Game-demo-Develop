@@ -252,23 +252,25 @@ test('the hitbox: in 彈幕試驗 in bullet time a dot at the player shows where
   assert.equal(r.arcade.visible, false);
 });
 
-test('the pattern men are in no mode’s waves now: 彈幕試驗 sends the heavy guns instead (彈幕試驗 ⑦: test/heavy.test.mjs), the arcade and endless never did', async () => {
+test('the pattern men come to 彈幕試驗 only as its elites, one in a room’s first wave from the second floor (彈幕 ② A③, C①: test/mix.test.mjs); the arcade and endless never had them', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom();
-    const danmaku = Array.from({ length: 6 }, (_, i) => g.waves.compose(i + 1));
+    const danmaku = Array.from({ length: g.waves.totalWaves }, (_, i) => g.waves.compose(i + 1));
+    const firstFloor = g.floors[0].length * g.waves.rules.perStage;
     g.setMode('arcade');
     g.startRun(0);
     const arcade = Array.from({ length: 12 }, (_, i) => g.waves.compose(i + 1));
     g.setMode('endless');
     g.startRun(0);
     const endless = Array.from({ length: 20 }, (_, i) => g.waves.compose(i + 1));
-    return { danmaku, arcade, endless };
+    return { danmaku, arcade, endless, firstFloor };
   });
   const pattern = ['ringer', 'spiraler', 'fanner'];
   const all = r.danmaku.flat();
-  assert.ok(!all.some((t) => pattern.includes(t)), `none in 彈幕試驗 (${[...new Set(all)]})`);
-  assert.ok(all.length > 0, 'which still sends men');
+  assert.ok(all.some((t) => pattern.includes(t)), `some in 彈幕試驗 (${[...new Set(all)]})`);
+  assert.ok(!r.danmaku.slice(0, r.firstFloor).flat().some((t) => pattern.includes(t)), 'none on the first floor');
+  assert.ok(r.danmaku.every((w) => w.filter((t) => pattern.includes(t)).length <= 1), 'at most one a wave');
   assert.ok(!r.arcade.flat().some((t) => pattern.includes(t)) && !r.endless.flat().some((t) => pattern.includes(t)), 'none in the arcade or endless');
 });
 
@@ -299,7 +301,7 @@ test('screenshot: the three firing in the teahouse, the player in bullet time, h
   assert.deepEqual(problems(logs), []);
 });
 
-test('the bot clears 彈幕試驗’s floor in god mode, six waves in its three rooms; the notes say in Chinese what the heavy guns are and how the grazes go', { timeout: 15 * 60 * 1000 }, async () => {
+test('the bot clears 彈幕試驗’s three floors in god mode, every room in order; the notes say in Chinese who came, who held a post and how the grazes go', { timeout: 40 * 60 * 1000 }, async () => {
   await installBot(page, { map: 0, view: 2, seed: 11, mode: 'danmaku', restart: false, god: true });
   const r = await page.evaluate(() => {
     const g = window.game;
@@ -310,20 +312,25 @@ test('the bot clears 彈幕試驗’s floor in god mode, six waves in its three 
       return log0(text);
     };
     let frames = 0;
-    const rooms = [g.level.map.id]; // the rooms it fought in, in order (彈幕試驗 ⑤: the bot walks out of each cleared room's exit)
-    while (g.state === 'playing' && g.waves.state !== 'done' && frames < 60 * 60 * 8) {
+    const rooms = [g.level.map.id]; // the rooms it fought in, in order (彈幕試驗 ⑤: the bot walks out of each cleared room's exit); by stage: a room can follow itself on the next floor (C①)
+    let stage = g.stage;
+    while (g.state === 'playing' && g.waves.state !== 'done' && frames < 60 * 60 * 22) {
       window.simStep(60);
       frames += 60;
-      if (g.level.map.id !== rooms[rooms.length - 1]) rooms.push(g.level.map.id);
+      if (g.stage !== stage) {
+        stage = g.stage;
+        rooms.push(g.level.map.id);
+      }
     }
     g.notes.log = log0;
-    return { wave: g.waves.wave, done: g.waves.state === 'done', s: frames / 60, grazes: g.grazes, notes: said, errors: window.stats.errors, rooms, floor: g.floor };
+    return { wave: g.waves.wave, total: g.waves.totalWaves, done: g.waves.state === 'done', s: frames / 60, grazes: g.grazes, notes: said, errors: window.stats.errors, rooms, floor: g.floor };
   });
   assert.deepEqual(r.errors, [], 'nothing thrown on the way (the bot catches what the game throws)');
   assert.equal(r.done, true, `cleared (wave ${r.wave}, ${r.s} s, in ${r.rooms.join(' → ')})`);
-  assert.equal(r.wave, 6, 'after six waves');
-  assert.deepEqual(r.rooms, r.floor, 'through the floor’s three rooms, in its order');
-  for (const name of ['機槍手', '排槍手', '霰彈手']) assert.ok(r.notes.some((t) => t.includes(name)), `${name} in the notes (the heavy guns: 彈幕試驗 ⑦)`);
+  assert.equal(r.wave, r.total, `after every wave (${r.total}: the floors’ rooms × 2)`);
+  assert.deepEqual(r.rooms, r.floor, 'through every room of the three floors, in order');
+  assert.ok(r.notes.some((t) => t.startsWith('第 1 波開始：') && t.includes('THUG')), `the arcade's men (彈幕 ② A①): ${r.notes.find((t) => t.startsWith('第 1 波開始'))}`);
+  assert.ok(r.notes.some((t) => t.includes('守住開火位')), 'someone held a post (the far side)');
   assert.ok(r.notes.some((t) => t.includes('擦彈')), r.notes.slice(-12).join(' / '));
   assert.deepEqual(problems(logs), []);
 });

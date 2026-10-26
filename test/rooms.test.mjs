@@ -49,7 +49,7 @@ after(async () => {
   await h.close();
 });
 
-test('the menu has 彈幕試驗; its run is in the teahouse whatever map card is picked; its route says so; the other modes keep their places', async () => {
+test('the menu has the game’s own mode (子彈芭蕾, once 彈幕試驗); its run is in the teahouse whatever map card is picked; its route says so; the other modes keep their places', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { MODE_IDS } = await import('./src/waves.js');
@@ -70,10 +70,10 @@ test('the menu has 彈幕試驗; its run is in the teahouse whatever map card is
       note,
     };
   });
-  assert.ok(r.card && r.card.includes('彈幕試驗') && r.card.includes('BULLET HELL'), `the card: ${r.card}`);
+  assert.ok(r.card && r.card.includes('子彈芭蕾') && r.card.includes('BULLET BALLET'), `the card (C③: the game's own name): ${r.card}`);
   assert.deepEqual(r.runs, ['teahouse', 'teahouse', 'teahouse']);
   assert.equal(r.room, '茶樓');
-  assert.match(r.route, /^茶樓 → /, 'the floor’s first room the teahouse (彈幕試驗 ⑤: test/floor.test.mjs)');
+  assert.match(r.route, /^茶樓起/, 'the first floor’s first room the teahouse (彈幕試驗 ⑤, C①: test/floor.test.mjs)');
   assert.match(r.note, /茶樓/, `the maps note: ${r.note}`);
   assert.deepEqual(r.modes, ['arcade', 'endless', 'daily', 'night', 'danmaku'], 'the new mode last: a record’s mode number means what it did');
   assert.deepEqual(r.maps, ['rooftop', 'club', 'docks', 'senado', 'felicidade', 'guia', 'ruins'], 'MAPS as it was: the room is not one of them');
@@ -210,7 +210,7 @@ test('a wave in 彈幕試驗: the men come in at the teahouse’s doors; two wav
   assert.deepEqual([r.waves, r.perStage, r.map], [6, 2, 'teahouse'], 'six waves, two in each room of the floor (test/floor.test.mjs), the teahouse first');
 });
 
-test('彈幕試驗 ⑥: the dai pai dong (大排檔) is in the floor’s draw: some floors have it, some do not, never first', async () => {
+test('彈幕試驗 ⑥: the dai pai dong (大排檔) is in the floors’ draw: some floors have it, some do not, never the run’s first room', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { MODES } = await import('./src/waves.js');
@@ -219,16 +219,17 @@ test('彈幕試驗 ⑥: the dai pai dong (大排檔) is in the floor’s draw: s
     for (let seed = 1; seed <= 16; seed++) {
       g.fixedSeed = seed;
       window.toRoom();
-      floors.push(g.floor.slice());
+      floors.push(...g.floors.map((f) => f.slice()));
     }
     g.fixedSeed = seed0;
-    return { floors, pool: MODES.danmaku.floor.pool, route: g.routeText(0, 'danmaku'), room: g.rooms.daipaidong && { name: g.rooms.daipaidong.name, en: g.rooms.daipaidong.en } };
+    return { floors, first: g.floor[0], pool: MODES.danmaku.floor.pool, route: g.routeText(0, 'danmaku'), room: g.rooms.daipaidong && { name: g.rooms.daipaidong.name, en: g.rooms.daipaidong.en } };
   });
   assert.deepEqual(r.room, { name: '大排檔', en: 'DAI PAI DONG' });
   assert.ok(r.pool.includes('daipaidong'), `the pool: ${r.pool}`);
   const withIt = r.floors.filter((f) => f.includes('daipaidong')).length;
   assert.ok(withIt > 0 && withIt < r.floors.length, `${withIt} of ${r.floors.length} floors have it: ${r.floors.map((f) => f.join('>')).join(' | ')}`);
-  assert.ok(r.floors.every((f) => f[0] === 'teahouse' && f.length === 3), 'the teahouse first, three rooms');
+  assert.ok(r.floors.every((f) => f.length - 1 >= 3 && f.length - 1 <= 4), 'three or four fight rooms a floor, before its boss room (D①)');
+  assert.equal(r.first, 'teahouse', 'the run’s first room the teahouse');
   assert.match(r.route, /大排檔/, r.route);
 });
 

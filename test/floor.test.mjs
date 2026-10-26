@@ -54,7 +54,13 @@ before(async () => {
       g.waves.queue = [];
       g.waves.pending = [];
       g.enemies.clear();
+      while (g.boss.active) g.boss.hurt('測試'); // the arena's boss (D①)
       window.step();
+      if (g.waves.state === 'cards') {
+        // a floor's end offers the style cards (C②): the first one
+        g.input.pressed.add('Digit1');
+        window.step();
+      }
     };
     /** The intermission over: the next wave begins. */
     window.nextWave = () => {
@@ -85,7 +91,7 @@ after(async () => {
   await h.close();
 });
 
-test('a floor is three rooms: the teahouse first, then two others in an order the seed draws; the same seed, the same floor; the menu says so', async () => {
+test('a run is three floors of three or four rooms (彈幕 ② C①): the first floor opens in the teahouse, no room twice on a floor; the same seed, the same floors; the menu says so', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { MODES } = await import('./src/waves.js');
@@ -94,7 +100,7 @@ test('a floor is three rooms: the teahouse first, then two others in an order th
     for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
       g.fixedSeed = seed;
       window.toFloor();
-      floors.push({ seed, floor: g.floor.slice(), loaded: g.level.map.id });
+      floors.push({ seed, floor: g.floor.slice(), floors: g.floors.map((f) => f.slice()), loaded: g.level.map.id, total: g.waves.totalWaves });
     }
     g.fixedSeed = 3;
     window.toFloor();
@@ -105,19 +111,24 @@ test('a floor is three rooms: the teahouse first, then two others in an order th
     return { floors, again, spec: MODES.danmaku.floor, waves: MODES.danmaku.waves, perStage: MODES.danmaku.perStage, rooms: Object.keys(g.rooms), route: g.routeText(0, 'danmaku'), note };
   });
   for (const f of r.floors) {
-    assert.equal(f.floor.length, 3, `seed ${f.seed}: ${f.floor}`);
-    assert.equal(f.floor[0], 'teahouse', `seed ${f.seed}: the teahouse first`);
-    assert.equal(new Set(f.floor).size, 3, `seed ${f.seed}: three rooms, none twice (${f.floor})`);
-    assert.ok(f.floor.every((id) => r.rooms.includes(id)), `seed ${f.seed}: ${f.floor}`);
-    assert.equal(f.loaded, f.floor[0], 'the run starts in the floor’s first room');
+    assert.equal(f.floors.length, r.spec.floors, `seed ${f.seed}: ${r.spec.floors} floors (${f.floors.map((x) => x.join('>')).join(' | ')})`);
+    for (const [i, ids] of f.floors.entries()) {
+      assert.ok(r.spec.boss.includes(ids[ids.length - 1]), `seed ${f.seed}, floor ${i + 1}: ends in a boss room (D①): ${ids[ids.length - 1]}`);
+      assert.ok(ids.length - 1 >= r.spec.rooms[0] && ids.length - 1 <= r.spec.rooms[1], `seed ${f.seed}, floor ${i + 1}: ${ids.length - 1} fight rooms before it`);
+      assert.equal(new Set(ids).size, ids.length, `seed ${f.seed}, floor ${i + 1}: no room twice (${ids})`);
+      assert.ok(ids.every((id) => r.rooms.includes(id)), `seed ${f.seed}: ${ids}`);
+    }
+    assert.equal(f.floors[0][0], 'teahouse', `seed ${f.seed}: the teahouse first`);
+    assert.deepEqual(f.floor, f.floors.flat(), 'the run’s rooms are the floors in order');
+    assert.equal(f.loaded, f.floor[0], 'the run starts in the first floor’s first room');
+    assert.equal(f.total, f.floor.length * r.perStage, `the run’s waves: ${f.floor.length} rooms × ${r.perStage}`);
   }
-  assert.deepEqual(r.again, r.floors[2].floor, 'the same seed, the same floor');
+  assert.deepEqual(r.again, r.floors[2].floor, 'the same seed, the same floors');
   assert.ok(new Set(r.floors.map((f) => f.floor.join())).size > 1, `other seeds, another order: ${r.floors.map((f) => f.floor.join('>')).join(' | ')}`);
-  assert.equal(r.spec.rooms * r.perStage, r.waves, `${r.spec.rooms} rooms × ${r.perStage} waves = the run’s ${r.waves}`);
   for (const id of [r.spec.first, ...r.spec.pool]) {
     assert.ok(r.route.includes(ROOMS[id].name), `the route names ${ROOMS[id].name}: ${r.route}`);
   }
-  assert.match(r.note, /三間房/, `the maps note: ${r.note}`);
+  assert.match(r.note, /三層/, `the maps note: ${r.note}`);
 });
 
 test('a room is fought behind shut doors: standing at its exit does nothing while its waves go on; its last wave down, the exit opens and lights, a line in the notes and on the HUD; then nothing more comes', async () => {
@@ -164,14 +175,14 @@ test('a room is fought behind shut doors: standing at its exit does nothing whil
   assert.deepEqual(r.waits, { state: 'exit', wave: 2, room: 'teahouse', fade: false }, 'the open exit waits for the player');
 });
 
-test('walking out of the open exit: the floor’s next room, nobody and no bullets in it, the player just inside its entry, its exit locked; its waves come; the third room’s last wave ends the run', async () => {
+test('walking out of the open exit: the floor’s next room, nobody and no bullets in it, the player just inside its entry, its exit locked; its waves come; the last room’s last wave ends the run', { timeout: 10 * 60 * 1000 }, async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     g.view = 1; // W is north (the 45° tilt has no yaw)
     window.toFloor();
     const floor = g.floor.slice();
     const out = { floor, rooms: [] };
-    for (let room = 0; room < 3; room++) {
+    for (let room = 0; room < floor.length; room++) {
       const L = g.level;
       const ex = L.exit;
       const entry = L.map.entry;
@@ -206,7 +217,7 @@ test('walking out of the open exit: the floor’s next room, nobody and no bulle
     g.view = 2;
     return out;
   });
-  assert.equal(r.rooms.length, 3, `three rooms played: ${r.rooms.map((x) => `${x.id} → ${x.then}`).join(', ')}`);
+  assert.equal(r.rooms.length, r.floor.length, `every room played: ${r.rooms.map((x) => `${x.id} → ${x.then}`).join(', ')}`);
   r.rooms.forEach((x, i) => {
     assert.equal(x.id, r.floor[i], `room ${i + 1} is the floor’s (${r.floor})`);
     assert.equal(x.stage, i);
@@ -216,14 +227,14 @@ test('walking out of the open exit: the floor’s next room, nobody and no bulle
     assert.ok(x.start < 0.3, `${x.id}: the player at its start (${x.start.toFixed(2)} m off)`);
     assert.ok(x.toEntry < 2, `${x.id}: its start just inside its entry (${x.toEntry.toFixed(2)} m)`);
     assert.deepEqual([x.wave0, x.state0, x.wave1, x.state1], [i * 2 + 1, 'active', i * 2 + 2, 'active'], `${x.id}: its two waves`);
-    if (i < 2) {
+    if (i < r.floor.length - 1) {
       assert.equal(x.then, 'exit', `${x.id}: cleared, its exit open`);
       assert.ok(x.walk >= 0, `${x.id}: walking into the exit goes on`);
     }
     if (i > 0) assert.ok(r.rooms[i - 1].notes.some((t) => t.includes(`第 ${i + 1} 間房`)), r.rooms[i - 1].notes.join(' / '));
   });
-  assert.equal(r.done, 'done', 'the third room’s last wave: the run is cleared');
-  assert.equal(r.wave, 6);
+  assert.equal(r.done, 'done', 'the last room’s last wave: the run is cleared');
+  assert.equal(r.wave, r.floor.length * 2, 'every wave of every room');
   assert.equal(r.lastLocked, true, 'the last room’s exit stays shut (the floor ends there)');
 });
 

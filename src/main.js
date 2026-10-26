@@ -1,17 +1,18 @@
 import * as THREE from 'three';
 import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
+import { Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS } from './cards.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
-import { CAMERA, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
+import { CAMERA, CARDS, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
 import { ACTIONS, Input, keyName, padButtonName, padLabel, StepInput } from './input.js';
 import { Level } from './level.js';
 import { MAPS, MAPS_REV } from './maps.js';
-import { drawFloor, ROOMS } from './rooms.js';
+import { drawFloors, ROOMS } from './rooms.js';
 import { nightRoute, NightStore } from './night.js';
 import { loadedCharacters, loadModels } from './models.js';
 import { Notes } from './notes.js';
@@ -109,6 +110,7 @@ class Game {
     this.maps = MAPS;
     this.rooms = ROOMS; // where 彈幕試驗 is played (rooms.js)
     this.floor = null; // a 彈幕試驗 run's rooms, in order (room ids: startRun draws them)
+    this.floors = null; // the same rooms floor by floor (C①), or null
     this.enemyTypes = ENEMY_TYPES; // for the tests and the stats panel
     this.startMap = 0;
     try {
@@ -116,13 +118,21 @@ class Game {
     } catch {
       this.startMap = 0;
     }
-    this.mode = 'arcade'; // see MODES in waves.js; the title screen switches it
+    // the mode (MODES in waves.js): the game's own is the default (彈幕 ② C③); the four older ones are `legacy`, kept
+    // off the title (with the daily card and the map cards, theirs) unless asked for: ?modes=all, ?mode=<a legacy one>
+    // (which also picks it), or one picked before and remembered
+    const params = new URLSearchParams(location.search);
+    this.mode = MODE_IDS.find((id) => !MODES[id].legacy) || 'arcade';
+    let saved = null;
     try {
-      const saved = localStorage.getItem(MODE_KEY);
-      if (MODE_IDS.includes(saved)) this.mode = saved;
+      saved = localStorage.getItem(MODE_KEY);
     } catch {
       /* storage unavailable */
     }
+    const asked = MODE_IDS.includes(params.get('mode')) ? params.get('mode') : null;
+    this.legacyModes = params.get('modes') === 'all' || !!(asked && MODES[asked].legacy) || !!(MODE_IDS.includes(saved) && MODES[saved].legacy);
+    if (asked) this.mode = asked;
+    else if (MODE_IDS.includes(saved) && (!MODES[saved].legacy || this.legacyModes)) this.mode = saved;
     // achievements and what they open (achievements.js); a locked rule pick is not on offer
     this.achievements = new Achievements(localStorage, (a) => this.onAchievement(a));
     // the run rules picked on the title screen (rules.js); a run fixes them as ruleset
@@ -152,6 +162,8 @@ class Game {
     this.player = new Player(this);
     this.score = new Score(this);
     this.waves = new Waves(this);
+    this.cards = new Cards(this); // the style cards (彈幕 ② C②): held for the run, picked at a floor's end
+    this.cardSel = 0; // the card a pad has marked on the card screen (showCards)
     this.hud = new HUD(this);
     // the settings (settings.js): volumes and bindings, applied to the input, the audio and the hints
     this.settings = new Settings(localStorage);
@@ -189,6 +201,8 @@ class Game {
     this.focusActive = false;
     this.focusAmt = 0;
     this.focusMeter = 1;
+    this.focusFree = 0; // s of bullet time left that costs nothing (the card 擊殺慢鏡, cards.js)
+    this.focusAuto = false; // bullet time the card put on: it goes off by itself when focusFree runs out
     this.timeScale = 1;
     this.playerVelScale = 1;
     this.hitstopT = 0;
@@ -256,7 +270,7 @@ class Game {
       const m = MODES[id];
       if (m.daily) continue; // it has its own card
       const b = document.createElement('button');
-      b.className = 'mode-card';
+      b.className = `mode-card${m.legacy && !this.legacyModes ? ' hidden' : ''}`; // an older mode: off the title unless asked for (legacyModes)
       b.type = 'button';
       b.dataset.mode = id;
       b.style.setProperty('--mode', m.color);
@@ -268,6 +282,11 @@ class Game {
       });
       $('mode-cards').appendChild(b);
     }
+    // the older modes off the title (C③): one card, the daily card and the map cards away, the maps line says the rooms
+    const shown = [...$('mode-cards').children].filter((c) => !c.classList.contains('hidden')).length;
+    $('mode-cards').classList.toggle('four', shown > 1);
+    $('mode-cards').classList.toggle('one', shown <= 1);
+    $('title').classList.toggle('no-legacy', !this.legacyModes);
     this.markMode();
     const ruleCard = (id, r, row, onClick) => {
       const b = document.createElement('button');
@@ -593,7 +612,7 @@ class Game {
     }
     if (r.floor) {
       // 彈幕試驗: a floor of rooms, whatever card is picked
-      $('maps-note').textContent = `一層${CN_COUNT[r.floor.rooms]}間房，每間 ${r.perStage} 波，打完開門去下一間：${this.routeText(start, this.mode)} · 場景不用揀`;
+      $('maps-note').textContent = `${CN_COUNT[r.floor.floors]}層，每層${CN_COUNT[r.floor.rooms[0]]}至${CN_COUNT[r.floor.rooms[1]]}間房，每間 ${r.perStage} 波，打完開門去下一間：${this.routeText(start, this.mode)} · 場景不用揀`;
       return;
     }
     $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結：${this.routeText(start, this.mode)}` : `每 ${r.perStage} 波換一個場景`;
@@ -754,7 +773,9 @@ class Game {
     this.rng.reset(this.fixedSeed ?? randomSeed());
     // 彈幕試驗: the run's floor of rooms, drawn from its seed (the same seed, the same floor)
     const spec = MODES[this.mode].floor;
-    this.floor = spec ? drawFloor(spec, this.rng.fork('floor')) : null;
+    this.floors = spec ? drawFloors(spec, this.rng.fork('floor')) : null; // C①: three floors of rooms, each an array of room ids
+    this.floor = this.floors ? this.floors.flat() : null;
+    this.cards.reset();
     // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
     const warmup = this.fixedWarmup ?? wantWarmup();
     // the rules hold for the whole run (a replay brings its own: fixedRules)
@@ -775,7 +796,7 @@ class Game {
     this.hud.reset();
     this.notes.reset(first);
     if (MODES[this.mode].night) this.nightLine(MAPS[mapIndex]);
-    if (this.floor) this.notes.log(`這一層：${this.floor.map((id) => ROOMS[id].name).join(' → ')}`);
+    if (this.floors) for (const [f, ids] of this.floors.entries()) this.notes.log(`第 ${f + 1} 層：${ids.map((id) => ROOMS[id].name).join(' → ')}`);
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
     // the music: the first stage's song from its start, on its base (audio.js)
     this.audio.setStage(0, true);
@@ -1188,6 +1209,7 @@ class Game {
     this.resetWorld(this.level.map);
     this.state = 'title';
     this.notes.hideNote();
+    this.hideCards();
     $('pause').classList.add('hidden');
     $('gameover').classList.add('hidden');
     $('title').classList.remove('hidden');
@@ -1228,6 +1250,8 @@ class Game {
     this.focusActive = false;
     this.focusAmt = 0;
     this.focusMeter = 1;
+    this.focusFree = 0;
+    this.focusAuto = false;
     this.timeScale = 1;
     this.hitstopT = 0;
     this.killcamT = 0;
@@ -1281,9 +1305,10 @@ class Game {
     const r = MODES[mode];
     if (!Number.isFinite(r.waves)) return '';
     if (r.floor) {
-      // a floor of rooms: its first, then the others in an order each run's seed draws; no boss
-      const k = r.floor.rooms - 1;
-      return `${ROOMS[r.floor.first].name} → ${r.floor.pool.map((id) => ROOMS[id].name).join('、')}${r.floor.pool.length > k ? `中抽${CN_COUNT[k]}間` : ''}（次序每局不同）`;
+      // floors of rooms (C①): the first floor opens in `first`, the rest draw from all the rooms in an order each run's seed draws; each floor ends in the boss room (D①)
+      const arenas = [].concat(r.floor.boss || []).map((id) => ROOMS[id]).filter((a) => a && a.boss && BOSSES[a.boss.kind]);
+      const boss = arenas.length ? `，層尾${arenas.map((a) => `${a.name}：${BOSSES[a.boss.kind].cfg.short}`).join('或')}（每層抽）` : '';
+      return `${ROOMS[r.floor.first].name}起，${[r.floor.first, ...r.floor.pool].map((id) => ROOMS[id].name).join('、')}輪流（每層抽，次序每局不同）${boss}`;
     }
     // 澳門一夜 from where it starts to its end, each map at its hour; any other the maps after the one picked
     const maps = r.night ? NIGHT.slice(Math.max(0, NIGHT.indexOf(start))).map((i) => MAPS[i]) : Array.from({ length: Math.ceil(r.waves / r.perStage) }, (_, i) => MAPS[(start + i) % MAPS.length]);
@@ -1302,6 +1327,27 @@ class Game {
 
   get stageMap() {
     return this.mapAt(this.stage);
+  }
+
+  /** Which floor room `stage` (an index into `floor`) is on, from 0 (C①); 0 without floors. */
+  floorOf(stage) {
+    const F = this.floors;
+    if (!F) return 0;
+    let end = 0;
+    for (let f = 0; f < F.length; f++) {
+      end += F[f].length;
+      if (stage < end) return f;
+    }
+    return F.length - 1;
+  }
+
+  /** Room `stage`'s place on its floor: [which room from 1, how many on the floor]. */
+  roomOnFloor(stage) {
+    const F = this.floors;
+    const f = this.floorOf(stage);
+    let before = 0;
+    for (let i = 0; i < f; i++) before += F[i].length;
+    return [stage - before + 1, F[f].length];
   }
 
   /** A run's first map: in a mode played in rooms (彈幕試驗) its floor's first room, whatever map was picked; else MAPS[mapIndex]. */
@@ -1348,12 +1394,16 @@ class Game {
       this.level.load(this.stageMap, this.layoutFor(this.stage));
       const floor = MODES[this.mode].floor;
       if (floor) {
-        // the floor's next room: its doors shut behind the player; one song for the floor
+        // the floor's next room: its doors shut behind the player; one song for the floor, the next floor's at its first room (C①)
         this.notes.log(`第 ${this.stage + 1} 間房：${this.stageMap.name}（入房鎖門，打完 ${MODES[this.mode].perStage} 波開門）`);
+        if (this.floors && this.roomOnFloor(this.stage)[0] === 1) {
+          this.audio.setStage(this.floorOf(this.stage));
+          this.notes.log(`音樂：${this.audio.upcoming.name}`);
+        }
         this.audio.setLevel(0);
       } else {
         this.notes.log(`轉場 → ${this.stageMap.name}`);
-        this.audio.setStage(this.stage); // the next song comes in on the bar line
+        this.audio.setStage(this.floors ? this.floorOf(this.stage) : this.stage); // the next song comes in on the bar line (a song a floor, C①)
         this.audio.setLevel(0);
         this.notes.log(`音樂：${this.audio.upcoming.name}`);
       }
@@ -1366,7 +1416,13 @@ class Game {
     if (tr.t >= 1.3) {
       this.transition = null;
       const m = this.stageMap;
-      this.hud.banner(MODES[this.mode].night ? m.hour : this.floor && MODES[this.mode].floor ? `ROOM ${this.stage + 1} / ${this.floor.length}` : `STAGE ${this.stage + 1}`, `${m.name} · ${m.en}`, 'stage');
+      if (this.floors) {
+        // a room of a floor (C①): the floor's number opens the floor, then the room's place on it
+        const [i, n] = this.roomOnFloor(this.stage);
+        const f = this.floorOf(this.stage);
+        this.hud.banner(i === 1 ? `FLOOR ${f + 1}` : `ROOM ${i} / ${n}`, i === 1 ? `第 ${f + 1} 層 · ${m.name} · ${m.en}` : `${m.name} · ${m.en}`, 'stage');
+        if (i === 1) this.notes.log(`第 ${f + 1} 層開始`);
+      } else this.hud.banner(MODES[this.mode].night ? m.hour : `STAGE ${this.stage + 1}`, `${m.name} · ${m.en}`, 'stage');
       if (MODES[this.mode].night) this.nightLine(m);
       this.waves.state = 'intermission';
       this.waves.timer = 2.6;
@@ -1394,6 +1450,7 @@ class Game {
   /** The end of a run: the player fell, or (cleared) the last arcade wave is down. */
   gameOver(cleared = false) {
     this.state = 'over';
+    this.hideCards();
     this.overAt = performance.now();
     const isBest = !this.replay && this.score.saveBest(); // a replay sets no records
     const s = this.score;
@@ -1406,7 +1463,9 @@ class Game {
     $('go-time').textContent = clock(this.stepCount / LOGIC_HZ);
     $('go-kills').textContent = String(s.kills);
     $('go-combo').textContent = `x${Math.max(1, s.maxCombo)}`;
-    $('go-clean').textContent = `${this.waves.cleanWaves} / ${this.waves.wave}`;
+    $('go-cards').textContent = this.cards.held.length ? this.cards.names.join(' · ') : '—';
+    $('gameover').classList.toggle('cards', !!this.floors);
+    $('go-clean').textContent = this.floors ? `${this.waves.cleanRooms} / ${this.stage + (this.waves.state === 'done' ? 1 : 0)} 間房` : `${this.waves.cleanWaves} / ${this.waves.wave}`;
     const graded = !!this.waves.rules.graded;
     $('gameover').classList.toggle('graded', graded);
     if (graded) this.showGrade(cleared);
@@ -1476,7 +1535,10 @@ class Game {
   /** The arcade grade on the end screen: the letter, its three parts, and a hint at the weakest one. */
   showGrade(cleared) {
     const w = this.waves;
-    const r = rate({ score: this.score.score, cleanWaves: w.cleanWaves, waves: w.rules.waves, seconds: this.stepCount / LOGIC_HZ, cleared });
+    // in a floor run the grade counts rooms cleared without a hit, of the run's rooms (C①)
+    const r = this.floors
+      ? rate({ score: this.score.score, cleanWaves: w.cleanRooms, waves: this.floor.length, seconds: this.stepCount / LOGIC_HZ, cleared })
+      : rate({ score: this.score.score, cleanWaves: w.cleanWaves, waves: w.rules.waves, seconds: this.stepCount / LOGIC_HZ, cleared });
     const grade = $('go-grade');
     grade.textContent = r.grade;
     grade.dataset.grade = r.grade;
@@ -1492,7 +1554,7 @@ class Game {
       clean: '下次：少捱打，多幾波無傷',
       time: `下次：打快一點，${Math.round(RATING.timePar / 60)} 分鐘內用時滿分`,
     };
-    $('go-hint').textContent = cleared ? hints[weakest] : `下次：撐到第 ${w.rules.waves} 波，通關才有用時分`;
+    $('go-hint').textContent = cleared ? hints[weakest] : `下次：撐到第 ${w.totalWaves} 波，通關才有用時分`;
     const p = r.parts;
     this.notes.log(`評級 ${r.grade}（Style ${Math.round(p.style)}/${RATING.style} · 無傷 ${Math.round(p.clean)}/${RATING.clean} · 用時 ${Math.round(p.time)}/${RATING.time}）`);
   }
@@ -1524,6 +1586,11 @@ class Game {
 
   toggleFocus() {
     if (!this.ruleset.slowmo) return; // a variant turned bullet time off
+    if (this.focusAuto) {
+      // the key during the card 擊殺慢鏡's half second: it keeps bullet time on, and pays for it once the half second is up
+      this.focusAuto = false;
+      return;
+    }
     if (this.focusActive) this.setFocus(false);
     else if (this.focusMeter >= FOCUS.minToEnter) this.setFocus(true);
     else this.audio.denied();
@@ -1550,6 +1617,14 @@ class Game {
 
   onEnemyKilled(e, info) {
     const p = this.player;
+    if (this.cards.has('killSlow') && p.alive && this.ruleset.slowmo && this.state === 'playing') {
+      // the card (cards.js 擊殺慢鏡): CARDS.killSlow s of bullet time on every kill, costing nothing; a hand on the key keeps it
+      this.focusFree = Math.max(this.focusFree, CARDS.killSlow);
+      if (!this.focusActive) {
+        this.focusAuto = true;
+        this.setFocus(true);
+      }
+    }
     const d = Math.hypot(e.x - p.x, e.z - p.z);
     const tags = [{ label: e.cfg.label, pts: e.cfg.score }];
     let refill = FOCUS.killRefill;
@@ -1583,6 +1658,7 @@ class Game {
     if (info.cause === 'splash') tags.push({ label: 'SPLASH', pts: 150, cls: 'gold' });
     if (info.cause === 'smash') tags.push({ label: 'PAN SMASH', pts: 120, cls: 'gold' });
     if (info.bullet && info.bullet.homeRun) tags.push({ label: 'HOME RUN', pts: 200, cls: 'gold' });
+    if (info.bullet && info.bullet.hostageFire) tags.push({ label: 'HOSTAGE FIRE', pts: PLAYER.humanShield.firePts, cls: 'gold' }); // a held heavy gun's round (player.js hostageFire, B②)
     if (this.level.darkAt(e.x, e.z)) tags.push({ label: 'BLACKOUT', pts: 100, cls: 'gold' });
     if (this.level.smokeAt(e.x, e.z)) tags.push({ label: 'SMOKE', pts: 80, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });
@@ -1791,8 +1867,44 @@ class Game {
   }
 
   /** Once a display frame: read the gamepad; Start pauses and resumes; the hints follow whether one is connected. */
+  /** The style cards on the screen (cards.js): three to pick from; the buttons make the press the logic reads. */
+  showCards(ids) {
+    const el = $('cards');
+    el.innerHTML = ids.map((id, i) => {
+      const c = CARD_DATA[id];
+      return `<button type="button" class="card ${c.kind}${i === this.cardSel ? ' sel' : ''}" data-card="${i}"><span class="card-kind">${CARD_KINDS[c.kind].name} <small>${CARD_KINDS[c.kind].en}</small></span><span class="card-en">${c.en}</span><span class="card-name">${c.name}</span><span class="card-text">${c.text}</span><kbd>${i + 1}</kbd></button>`;
+    }).join('');
+    this.cardSel = 0;
+    el.classList.remove('hidden');
+    for (const b of el.querySelectorAll('button[data-card]')) {
+      b.addEventListener('mousedown', (e) => e.stopPropagation()); // not a shot
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.input.pressed.add(`Digit${Number(b.dataset.card) + 1}`); // the pick is a press of its number: the logic reads and records it
+      });
+    }
+    this.markCard();
+  }
+
+  hideCards() {
+    $('cards').classList.add('hidden');
+  }
+
+  markCard() {
+    for (const b of $('cards').querySelectorAll('button[data-card]')) b.classList.toggle('sel', Number(b.dataset.card) === this.cardSel);
+  }
+
   pollPad() {
     const pad = this.input.poll();
+    if (this.cards.pending && this.input.padPress >= 0 && this.state === 'playing') {
+      // a pad picks a style card: the d-pad (or LB/RB) moves along the three, A takes the one marked
+      const b = this.input.padPress;
+      const n = this.cards.offer.length;
+      if (b === 14 || b === 4) this.cardSel = (this.cardSel + n - 1) % n;
+      else if (b === 15 || b === 5) this.cardSel = (this.cardSel + 1) % n;
+      else if (b === 0) this.input.pressed.add(`Digit${this.cardSel + 1}`);
+      this.markCard();
+    }
     if (this.binding && this.binding.pad && this.input.padPress >= 0) {
       // the settings page waits for a pad button: this one is it
       this.settings.bindPad(this.binding.id, this.input.padPress);
@@ -1970,8 +2082,16 @@ class Game {
   logic(h) {
     const cmd = this.cmd;
     if (this.state === 'playing' && cmd.hit('ShiftLeft', 'ShiftRight', 'KeyQ')) this.toggleFocus();
+    const deep = this.cards.has('deepSlow'); // the card (cards.js 深慢鏡): a slower world, a faster drain (CARDS)
     if (this.focusActive) {
-      this.focusMeter -= FOCUS.drain * h;
+      if (this.focusFree > 0) {
+        // the card 擊殺慢鏡's half second costs nothing; put on by the card, it goes off with it
+        this.focusFree -= h;
+        if (this.focusFree <= 0 && this.focusAuto) {
+          this.focusAuto = false;
+          this.setFocus(false);
+        }
+      } else this.focusMeter -= FOCUS.drain * (deep ? CARDS.deepDrain : 1) * h;
       if (this.focusMeter <= 0) {
         this.focusMeter = 0;
         this.setFocus(false);
@@ -1986,7 +2106,7 @@ class Game {
     }
 
     this.focusAmt = damp(this.focusAmt, this.focusActive ? 1 : 0, 9, h);
-    let ts = lerp(1, FOCUS.worldScale, this.focusAmt);
+    let ts = lerp(1, deep ? CARDS.deepScale : FOCUS.worldScale, this.focusAmt);
     let ps = lerp(1, FOCUS.playerScale, this.focusAmt);
     if (this.killcamT > 0) {
       this.killcamT -= h;

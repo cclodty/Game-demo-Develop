@@ -36,9 +36,20 @@ export const PLAYER = {
   dive: { dist: 4, air: 0.42, roll: 0.3, rollMul: 0.5, cooldown: 0.4 },
   // a human shield (player.js grab): E within `reach` m of a man in front, with nothing to pick up, holds him `gap` m in
   // front for `hold` s (or until E again); enemy bullets from within ±`arc`° of the facing hit him instead, `hit` of his
-  // hp each; the player walks at `walkMul` of the run speed and fires the left gun alone. Let go, he is shoved out
-  // ahead at `shove` m/s (about a quarter of that in metres, as a kick's flight slows), bowling over whoever he meets
-  humanShield: { reach: 1.5, gap: 0.75, hold: 1.5, arc: 60, hit: 1, walkMul: 0.6, shove: 24 },
+  // hp each; the player walks at `walkMul` of the run speed (a type's own `holdWalk`: the brute's) and fires the left gun
+  // alone. Let go, he is shoved out ahead at `shove` m/s (about a quarter of that in metres, as a kick's flight slows),
+  // bowling over whoever he meets and still taking the rounds that meet him as he flies; `bowling` men bowled over in
+  // one shove is SHIELD BOWLING +`bowlPts`. 彈幕 ② B① (DECISIONS 2026-10-26): nearly everyone can be held (not a drone,
+  // not a lit bomber) and for 4.5 s (was 1.5), the shield as a resource
+  // `knock`: of his speed he keeps through each man he bowls over (a kicked man keeps half; a trolley's is 0.85 too).
+  // By kind (B②): a bomber shoved out goes off `bombFuse` s later (held, his vest never lights); a riot-shield man held
+  // raises his shield (his own arc, enemies.js blocks: no harm from the front) and shoved bowls men `shieldKnock` times as
+  // far; a captain held, his guards and the thugs hold their fire, and waver once he is let go; a heavy gun held fires
+  // his gun along the player's facing every `fireEvery` s, rounds that are the player's own (a kill: HOSTAGE FIRE +`firePts`)
+  // B③: a gunner who strafes (TYPES `strafe`) and finds a man held in front of the player goes round to `flankTo`° off
+  // the player's facing before he fires (the shield covers ±`arc`°; thugs fire into the held man as ever); a blade's
+  // cut or a tumbler's kick from the front lands on the held man too
+  humanShield: { reach: 1.5, gap: 0.75, hold: 4.5, arc: 60, hit: 1, walkMul: 0.6, shove: 24, knock: 0.85, bowling: 2, bowlPts: 250, bombFuse: 0.4, shieldKnock: 2, fireEvery: 0.1, firePts: 150, flankTo: 80 },
   throwReach: 1.6, // metres: G picks up a pan or barrel this close
   throwRange: 8, // metres a carried thing is thrown, at most
   kickRange: 2.1,
@@ -93,6 +104,50 @@ export const FOCUS = {
  * hitbox (PLAYER.hitRadius) shows as a dot once bullet time is `show` of the way in. Other modes keep CLOSE CALL.
  */
 export const GRAZE = { radius: 0.5, focus: 0.02, pts: 10, flush: 0.25, log: 3, show: 0.3 };
+
+/**
+ * The bullet hell's room fights (彈幕 ② A①, DECISIONS 2026-10-26): in a mode played in rooms (waves.js MODES `floor`)
+ * the arcade's enemies come, with the arcade's fast bullets, and the hell is how many fire at once: nobody waits for
+ * an aim token (enemies.js requestToken), the gap before a man fires again is `fireMul` of his type's, `maxAlive` may
+ * stand at once and the next comes in `entry` s after the last. Every one glows as he aims (the heavy guns' tell,
+ * on top of his laser). The far side (對面陣地): a room's `posts` (rooms.js) are where its gunners go to fire from;
+ * a man leaves his when the player comes within `postClose` m or the cover it names is gone, and looks for another
+ * `postRetry` s later; only a gun that reaches `postRange` m takes one (a shotgunner comes on as ever). First
+ * version, to be confirmed in play.
+ */
+export const HELL = {
+  fireMul: 0.5, // the card said 0.6: measured, wave 1 then fired 1.75× the arcade's first wave, short of the 2× asked (test/hell.test.mjs)
+  maxAlive: 12,
+  entry: [0.3, 0.7],
+  postClose: 4,
+  postRetry: 0.6,
+  postRange: 10,
+  // the gap guarantee (A②, gaps.js): within `gapReach` m of the player there is always a clear circle `gap` m across
+  // that no round within `gapRange` m is on its way through; a man whose shot would close the last one waits `beat` s
+  // and looks again (his laser stays on). `gap` 0 turns it off (test/gap.test.mjs shows what it does)
+  gap: 1.2,
+  gapMargin: 0.3, // the gate asks for this much more: the rounds scatter a little, and a burst follows its first round
+  gapReach: 3, // at 2 a lone shotgun's fan from 6 m closed every spot and the gate held him for good; at 3 six shotgunners firing together still make the gate speak (test/gap.test.mjs)
+  gapRange: 6,
+  beat: 0.5,
+};
+
+/**
+ * The style cards (彈幕 ② C②, cards.js): at the end of every floor but the last the player picks one of `offer`.
+ * The numbers each card plays by: `reflectDamage` is what a round turned back (a slide, a flipped table, a graze in
+ * bullet time) does to a man (a thug has 3); a human shield shoved goes off on the first man he meets, where he lands or `boomFuse` s out at the
+ * latest, with a barrel's blast of `boomBlast` m; `killSlow` s of bullet time a kill brings, costing nothing; the deep slow-mo's world
+ * speed (FOCUS.worldScale otherwise) and what it multiplies the meter's drain by.
+ */
+export const CARDS = {
+  offer: 3,
+  reflectDamage: 2,
+  boomFuse: 0.8,
+  boomBlast: 3.5,
+  killSlow: 0.5,
+  deepScale: 0.1,
+  deepDrain: 1.6,
+};
 
 export const BULLET = {
   playerSpeed: 62,
@@ -318,8 +373,8 @@ export const ENV = {
 export const WARMUP = {
   limit: 60, // real seconds before it ends anyway and wave 1 starts
   front: 8, // metres in front of the player for the first enemy
-  behindPan: 3.5, // metres beyond the nearest pan, seen from the player, for the second
-  besideBarrel: 1.6, // metres beyond the nearest barrel for the third: inside its blast
+  near: 2.5, // metres in front for the second: a step and he is in the arms (the human shield)
+  behindTable: 2.5, // metres beyond the nearest table, seen from the player, for the third (the table flipped between)
 };
 
 /**

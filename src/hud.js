@@ -120,8 +120,9 @@ export class HUD {
     const q = g.pickups.prompt;
     const t = g.thrown.prompt;
     const pad = !!g.input.pad; // a connected pad: hints name its buttons
-    this.set('prompt', q ? `${pad}:e:${q.kind}` : t ? `${pad}:t:${t}` : '', (v) => {
-      e.prompt.innerHTML = withLabels(q ? `{swap} 交換為 ${PLAYER_WEAPONS[q.kind].name}` : t || '', pad);
+    const hold = p.grabPrompt ? '{pick} 人盾' : ''; // a man in front to hold up (player.js grabPrompt, 彈幕 ② B③)
+    this.set('prompt', q ? `${pad}:e:${q.kind}` : t ? `${pad}:t:${t}` : hold ? `${pad}:h` : '', (v) => {
+      e.prompt.innerHTML = withLabels(q ? `{swap} 交換為 ${PLAYER_WEAPONS[q.kind].name}` : t || hold, pad);
       e.prompt.classList.toggle('show', !!v);
     });
     this.set('reload', reloading ? Math.round(p.reloadProgress * 50) / 50 : 0, (v) => {
@@ -167,7 +168,7 @@ export class HUD {
       e.tutorial.classList.toggle('show', !!v);
     });
 
-    const last = g.waves.rules.waves; // arcade runs show how far there is to go
+    const last = g.waves.totalWaves; // arcade runs show how far there is to go (a floor run: its rooms × waves, C①)
     const waveLabel = g.waves.wave > 0 ? `WAVE ${g.waves.wave}${Number.isFinite(last) ? ` / ${last}` : ''}` : '';
     this.set('wave', waveLabel, (v) => (e.wave.textContent = v));
     // a boss: its name and health bar, one segment a hit (a stage's boss has fewer than the run's last); two at once

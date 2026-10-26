@@ -96,6 +96,7 @@ export class Player {
     this.diveDirZ = 0;
     this.hostage = null; // the man held up as a human shield (grab), or null
     this.hostageT = 0; // s he is held for still
+    this.hostageFireT = 0; // s to a held heavy gun's next round (hostageFire)
     this.eUsed = false; // this step's E went to letting him go (pickups.js leaves it alone)
     this.spinDirX = 0;
     this.spinDirZ = -1;
@@ -179,14 +180,14 @@ export class Player {
   }
 
   /** E by a man in front, nothing else to pick up: hold him up as a human shield. */
-  grab() {
-    const g = this.game;
+  /** The man E would hold: the nearest holdable one within reach, in the half in front; null for none. */
+  grabTarget() {
     const H = PLAYER.humanShield;
     const fx = Math.sin(this.facing);
     const fz = Math.cos(this.facing);
     let best = null;
     let bestD = H.reach;
-    for (const e of g.enemies.list) {
+    for (const e of this.game.enemies.list) {
       if (!e.holdable) continue;
       const dx = e.x - this.x;
       const dz = e.z - this.z;
@@ -196,9 +197,18 @@ export class Player {
         bestD = d;
       }
     }
+    return best;
+  }
+
+  grab() {
+    const g = this.game;
+    const H = PLAYER.humanShield;
+    const best = this.grabTarget();
     if (!best) return false;
     this.hostage = best;
     this.hostageT = H.hold;
+    this.hostageFireT = 0;
+    this.hostageFired = false;
     best.hold();
     this.holdHostage();
     g.audio.kick(false);
@@ -216,6 +226,26 @@ export class Player {
       if (!shove) return;
       this.game.audio.kick(true);
       this.game.notes.log('推出人盾');
+    }
+  }
+
+  /** A heavy gun held up (B②): his gun fires along the player's facing every PLAYER.humanShield.fireEvery s, the rounds the player's own. */
+  hostageFire(dt) {
+    const g = this.game;
+    const e = this.hostage;
+    this.hostageFireT -= dt;
+    if (this.hostageFireT > 0) return;
+    this.hostageFireT = PLAYER.humanShield.fireEvery;
+    const w = e.weaponStats; // his WEAPONS entry (enemies.js)
+    if (!w) return;
+    const a = this.facing + g.rng.range(-0.03, 0.03);
+    const dx = Math.sin(a);
+    const dz = Math.cos(a);
+    g.bullets.spawn({ x: e.x + dx * 0.45, z: e.z + dz * 0.45, dx, dz, speed: w.speed, owner: 'player', damage: w.dmg, range: w.range || 70, weapon: null, hostageFire: true, look: 'player' });
+    g.audio.shot(w.sound, g.panFor(e.x));
+    if (!this.hostageFired) {
+      this.hostageFired = true;
+      g.notes.log(`人盾開火：${e.cfg.name || e.cfg.label}`);
     }
   }
 
@@ -338,15 +368,19 @@ export class Player {
         if (!this.hostage.alive) g.notes.log('人盾被打死');
         this.letGo();
       } else if (this.hostageT <= 0) this.letGo();
+      else if (this.hostage.cfg.heavy) this.hostageFire(dt);
     }
+    // the HUD's hint (hud.js): E would hold the man in front, nothing else to pick up or swap (B③)
+    this.grabPrompt = this.alive && !this.hostage && !g.pickups.prompt && !g.thrown.prompt && !g.thrown.inHand && !g.thrown.carry && !!this.grabTarget();
     this.hurtFlash = Math.max(0, this.hurtFlash - dt * 4);
     this.recoilL = Math.max(0, this.recoilL - dt * 8);
     this.recoilR = Math.max(0, this.recoilR - dt * 8);
     if (this.sinceHurt > PLAYER.regenDelay && this.hp < PLAYER.hp) this.hp = Math.min(PLAYER.hp, this.hp + PLAYER.regenRate * dt);
 
     // --- weapon switching
-    if (input.hit('Digit1')) this.equip('pistols');
-    else if (input.hit('Digit2')) this.equip('special');
+    const cardUp = g.cards.pending; // the digits pick a style card then (cards.js), not a weapon
+    if (!cardUp && input.hit('Digit1')) this.equip('pistols');
+    else if (!cardUp && input.hit('Digit2')) this.equip('special');
     else if (input.wheel && this.special && !this.special.empty) this.equip(this.slot === 'pistols' ? 'special' : 'pistols');
     const w = this.weapon;
 
@@ -410,7 +444,7 @@ export class Player {
     let tx;
     let tz;
     let accel = PLAYER.accel;
-    const speed = PLAYER.speed * (w.moveMul || 1) * (this.shieldOn ? UMBRELLA.walkMul : 1) * (this.hostage ? PLAYER.humanShield.walkMul : 1); // an open umbrella, a man held: a walk
+    const speed = PLAYER.speed * (w.moveMul || 1) * (this.shieldOn ? UMBRELLA.walkMul : 1) * (this.hostage ? (this.hostage.cfg.holdWalk ?? PLAYER.humanShield.walkMul) : 1); // an open umbrella, a man held: a walk (a brute held, a slower one: TYPES holdWalk)
     if (this.execT > 0) {
       // an execution: standing over him until it is done
       this.execT -= dt;

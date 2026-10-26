@@ -33,6 +33,9 @@ export async function gameHarness() {
       page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}\n${e.stack}`));
       // every test starts at wave 1 as if the warm-up had been seen, unless it asks about the warm-up (?tutorial=…)
       if (!query.includes('tutorial')) await page.addInitScript(() => localStorage.setItem('bullet-ballet.tutorial', 'done'));
+      // the title opens on the game's own mode with the older four off it (彈幕 ② C③): a test written for the arcade
+      // (and the maps, the daily, the night) starts as a player who picked it before, unless it names a mode (?mode=…)
+      if (!/[?&]modes?=/.test(query)) await page.addInitScript(() => localStorage.getItem('bullet-ballet.mode') || localStorage.setItem('bullet-ballet.mode', 'arcade')); // (`?models=off` is not a mode) a pick made in the test (the night, kept across its reload) stands
       await page.goto(`${server.url}/index.html${query}`);
       // index.html has <div id="game">, so window.game is that element until main.js
       // assigns the real Game (after the optional models load) — wait for the object.
@@ -246,6 +249,8 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
             if (path && path.length) lootTo = path.find((q) => Math.hypot(q.x - p.x, q.z - p.z) > 0.5) || path[path.length - 1];
           }
           if (lootTo) chase = lootTo;
+          // a floor's end offers the style cards (cards.js, 彈幕 ② C②): the bot takes one of them, by their number
+          if (g.waves.state === 'cards' && g.cards.pending && i % 20 === 0) inp.pressed.add(`Digit${1 + (i % 3)}`);
           // 彈幕試驗: a cleared room's exit is open: walk out of it, round the tables on the nav grid
           if (g.waves.state === 'exit' && g.level.exit) {
             const at = g.level.exit.at;

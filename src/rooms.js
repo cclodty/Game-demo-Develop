@@ -28,6 +28,12 @@
 //   w, d] its cooking counter, a solid 1 m high of the 'counter' material), theme (four point lights, as every map), floor, budget,
 //   entry: [side, at]: the gate the player comes in by, in a low wall (he starts 1.4 m inside it),
 //   exit: [side, at]: the door he goes on by, in a tall wall,
+//   posts: [[x, z, coverX?, coverZ?]]: the far side's firing posts (彈幕 ② A①, config.js HELL): where the room's gunners
+//   go to stand and fire from, at least four, all in the half of the room away from the entry, each walkable and
+//   seeing most of the room (test/hell.test.mjs); with the middle of the table a post stands behind, when it does:
+//   that table gone (flipped and shot to bits), the post is given up,
+//   boss: the room's boss (maps.js `boss`, boss.js BOSSES: { kind, perches… }), fought on the room's last wave (waves.js);
+//   with `danmaku: true` the kind's bullet-hell moves are on (彈幕 ② D①),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
 //   towards the player }, dist } }
 
@@ -85,6 +91,8 @@ export function room(t) {
     tools: (t.trolleys || []).map(([x, z, angle]) => [x, z, 'trolley', angle, 'dimsum']),
     fixtures: [...t.tables.map(([x, z, r]) => [x, z, 'table', 0, r, t.tableLook || 'cloth']), [ex, ez, 'exit', ef, ...EXIT_DOOR]],
     spawns: t.doors.map(([side, at]) => doorSpawn(side, at, halfW, halfD)),
+    posts: t.posts || [],
+    boss: t.boss || null, // its boss, on its last wave (D①)
     camera: t.camera,
     budget: t.budget,
     room: t, // the template itself (tests)
@@ -248,6 +256,8 @@ export const TEAHOUSE = room({
   trolleys: [[-9, 5.5, 0], [9, -5.5, Math.PI]],
   entry: ['s', 0],
   exit: ['n', 0], // between its two north doors, a table before it
+  // the far side: behind the north row's three tables, and the north ends of the two side aisles
+  posts: [[-6, -5.2, -6, -3], [0, -5.2, 0, -3], [6, -5.2, 6, -3], [-9.5, -1], [9.5, -1]],
   floor: 'teahouse',
   theme: teaTheme([
     [-3, -3],
@@ -280,6 +290,8 @@ export const BANQUET = room({
   trolleys: [[-3, 5.6, 0], [-8, -5.6, Math.PI]],
   entry: ['w', 0],
   exit: ['e', 0],
+  // the far side is the east: behind its two small tables, by the east wall, and either side of the big table's far end
+  posts: [[8, -3.5, 6, -3.5], [8, 3.5, 6, 3.5], [3, -5.8], [3, 5.8], [8.5, 0]],
   floor: 'teahouse',
   theme: teaTheme([
     [-3.5, -2.5],
@@ -310,6 +322,8 @@ export const SIDEHALL = room({
   trolleys: [[-3.5, -4.8, 0], [9.5, -5.2, Math.PI]],
   entry: ['s', 7],
   exit: ['n', -7],
+  // the far side is the north: behind its two north tables, the north-west corner by the exit, and the middle
+  posts: [[-7.5, -4.6, -7.5, -2.5], [2.5, -4.6, 2.5, -2.5], [-9.8, -1.5], [-3.5, -2.6]],
   floor: 'teahouse',
   theme: teaTheme([
     [-5, -2],
@@ -344,6 +358,8 @@ export const DAIPAIDONG = room({
   dress: 'stall',
   entry: ['s', -6],
   exit: ['e', -3],
+  // the far side is the north: behind the three tables nearest the stall, and the lane's two far corners
+  posts: [[-1, -5, -1, -3], [4, -2.4, 4, -0.5], [-6, -2.4, -6, -0.5], [-9.6, -2.5], [9.5, -3]],
   floor: 'asphalt',
   theme: {
     bg: 0x07080c,
@@ -366,17 +382,180 @@ export const DAIPAIDONG = room({
 });
 
 /** Every room, by id. */
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG };
+/**
+ * The arena (大廳, 彈幕 ② D①): a floor's last room, the floor boss's. The blade queen's for now: four perches in its
+ * corners she crouches on between dashes, four small tables for cover from her knives and her rings, the room's men
+ * on its first wave as anywhere. 22 × 15 m, in at the south, out at the north.
+ */
+export const ARENA = room({
+  id: 'arena',
+  rev: 1,
+  name: '大廳',
+  en: 'GRAND HALL',
+  desc: '層尾的大廳：頭目在四角的高台之間穿梭，四張小枱擋刀氣。',
+  color: '#ff2bd0',
+  size: [22, 15],
+  walls: [3.2, 'teaWall', 'teaTrim'],
+  low: [0.9, ['s', 'w']],
+  doors: [['n', -5], ['n', 5], ['e', -3], ['e', 3]],
+  tables: [[-7, -3, 0.8], [7, -3, 0.8], [-7, 3, 0.8], [7, 3, 0.8]],
+  entry: ['s', 0],
+  exit: ['n', 0],
+  // the far side: behind the north pair of tables, and the north ends of the side aisles
+  posts: [[-7, -5.2, -7, -3], [7, -5.2, 7, -3], [-9.5, -1], [9.5, -1]],
+  // the blade queen (boss.js BLADE) with her bullet-hell moves (`danmaku`): knives from a perch, a ring of slow blades as she lands on one
+  boss: { kind: 'blade', danmaku: true, perches: [[-8.5, -5.5], [8.5, -5.5], [-8.5, 5], [8.5, 5]] },
+  floor: 'teahouse',
+  theme: teaTheme([
+    [-4, -3],
+    [4, -3],
+    [-4, 3],
+    [4, 3],
+  ]),
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
 
 /**
- * A run's floor (waves.js MODES `floor`: { first, pool, rooms }): `first`, then `rooms` − 1 of `pool` in an order
- * drawn from `rng` (the run's own stream: the same seed, the same floor). Room ids.
+ * The back hall (後廳, 彈幕 ② D②): the heavy gunner's. He comes in by the north door and walks after the player; a big
+ * round table in the middle to circle round him to his open back, two small ones for cover from his sweep and his
+ * slow wall. 22 × 15 m, in at the south, out at the north.
  */
-export function drawFloor(spec, rng) {
-  const pool = spec.pool.slice();
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = rng.int(0, i);
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+export const BACKHALL = room({
+  id: 'backhall',
+  rev: 1,
+  name: '後廳',
+  en: 'BACK HALL',
+  desc: '層尾的後廳：重炮由北門踏入，繞着大圓枱走到他背後。',
+  color: '#ff8a2a',
+  size: [22, 15],
+  walls: [3.2, 'teaWall', 'teaTrim'],
+  low: [0.9, ['s', 'w']],
+  doors: [['n', -5], ['n', 5], ['e', -3], ['e', 3]],
+  tables: [[0, 0, 1.4], [-6.5, -3.5, 0.8], [6.5, -3.5, 0.8]], // the small ones clear of the east doors' way in (8.2, -3)
+  entry: ['s', 0],
+  exit: ['n', 0],
+  // the far side: behind the north pair of small tables, and the north ends of the side aisles
+  posts: [[-6.5, -5.5, -6.5, -3.5], [6.5, -5.5, 6.5, -3.5], [-9.5, -1], [9.5, -1]],
+  // the heavy gunner (boss.js GUNNER) with his slow wall (`danmaku`): in through the exit's wall from beyond it
+  boss: { kind: 'gunner', danmaku: true, from: [0, -9.5], at: [0, -5] },
+  floor: 'teahouse',
+  theme: teaTheme([
+    [-4, -3],
+    [4, -3],
+    [-4, 3],
+    [4, 3],
+  ]),
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+/**
+ * The strongroom (庫房, 彈幕 ② D③): the bulwark's. He comes in by the north door and bashes; two medium tables to
+ * duck behind and come out at his side or his back, the way 大三巴's doorways do. 22 × 15 m, in at the south, out at
+ * the north.
+ */
+export const STRONGROOM = room({
+  id: 'strongroom',
+  rev: 1,
+  name: '庫房',
+  en: 'STRONGROOM',
+  desc: '層尾的庫房：鐵盾由北門踏入，兩張枱繞到他側面。',
+  color: '#ffb02a',
+  size: [22, 15],
+  walls: [3.2, 'teaWall', 'teaTrim'],
+  low: [0.9, ['s', 'w']],
+  doors: [['n', -5], ['n', 5], ['e', -3], ['e', 3]],
+  tables: [[-4.5, 0, 1.1], [4.5, 0, 1.1]],
+  entry: ['s', 0],
+  exit: ['n', 0],
+  // the far side: the north ends of the aisles outside and between the two tables
+  posts: [[-8.5, -5], [8.5, -5], [0, -5], [-9.5, -1], [9.5, -1]],
+  // the bulwark (boss.js BULWARK) with his slow wall (`danmaku`): in through the exit's wall from beyond it
+  boss: { kind: 'bulwark', danmaku: true, from: [0, -9.5], at: [0, -5] },
+  floor: 'teahouse',
+  theme: teaTheme([
+    [-4, -3],
+    [4, -3],
+    [-4, 3],
+    [4, 3],
+  ]),
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+/**
+ * The front hall (前廳, 彈幕 ② D④): the marksman's and the shotgunner's, two at once (boss.js Duo). The marksman has
+ * six posts round the room, the shotgunner comes in by the north; two tables to break the line and the fan. 22 × 15 m,
+ * in at the south, out at the north.
+ */
+export const FRONTHALL = room({
+  id: 'fronthall',
+  rev: 1,
+  name: '前廳',
+  en: 'FRONT HALL',
+  desc: '層尾的前廳：長槍手在六個角落換位，散彈手追着你，兩張枱擋紅線。',
+  color: '#ff5a10',
+  size: [22, 15],
+  walls: [3.2, 'teaWall', 'teaTrim'],
+  low: [0.9, ['s', 'w']],
+  doors: [['n', -5], ['n', 5], ['e', -3], ['e', 3]],
+  tables: [[-5, -2, 0.9], [5, 2, 0.9]],
+  entry: ['s', 0],
+  exit: ['n', 0],
+  // the far side: the north ends of the aisles, and behind the north table
+  posts: [[-8.5, -5.5], [8.5, -5.5], [0, -5.5], [-5, -4.5, -5, -2], [9.5, -1]],
+  // the pair (boss.js DUO): the marksman's posts round the room, the shotgunner in through the exit's wall with his slow wall (`danmaku`);
+  // their combo RED LINE RUSH as on Senado
+  boss: {
+    kind: 'duo',
+    pair: [
+      { kind: 'marksman', from: [0, -9.5], posts: [[-9, -5.5], [9, -5.5], [-9, 5.5], [9, 5.5], [0, -6], [0, 6]] },
+      { kind: 'buckshot', danmaku: true, from: [0, -9.5], at: [0, -4] },
+    ],
+    combo: { name: '紅線衝鋒', en: 'RED LINE RUSH', hint: '閃出紅線：散彈手衝入去，長槍打中他', wait: 6 },
+  },
+  floor: 'teahouse',
+  theme: teaTheme([
+    [-4, -3],
+    [4, -3],
+    [-4, 3],
+    [4, 3],
+  ]),
+  camera: ROOM_CAMERA,
+  budget: { ...ROOM_BUDGET, tris: 150000 }, // two bosses' worn models at once: 134,345 triangles with the pair in (test/fronthall.test.mjs); the draw calls (the weak-GPU number) stay about 110
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
+
+/**
+ * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of
+ * them, each `rooms` rooms (how many, the rng's), none twice on a floor; the first floor opens with `first`, the others
+ * draw from `first` and `pool` alike, in an order drawn from `rng` (the run's own stream: the same seed, the same
+ * floors). Arrays of room ids, one an floor.
+ */
+export function drawFloors(spec, rng) {
+  const [least, most] = spec.rooms;
+  const all = [spec.first, ...spec.pool];
+  const shuffled = (ids) => {
+    const a = ids.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = rng.int(0, i);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const floors = [];
+  for (let f = 0; f < spec.floors; f++) {
+    const n = Math.min(all.length, rng.int(least, most));
+    const rooms = f === 0 ? [spec.first, ...shuffled(spec.pool).slice(0, n - 1)] : shuffled(all).slice(0, n);
+    if (spec.boss) rooms.push(Array.isArray(spec.boss) ? spec.boss[rng.int(0, spec.boss.length - 1)] : spec.boss); // the floor ends in a boss's room, one of them drawn (D①, D②)
+    floors.push(rooms);
   }
-  return [spec.first, ...pool.slice(0, spec.rooms - 1)];
+  return floors;
+}
+
+/** The floors as one run of rooms, in order (main.js `floor`). */
+export function drawFloor(spec, rng) {
+  return drawFloors(spec, rng).flat();
 }

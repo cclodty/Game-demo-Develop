@@ -2008,6 +2008,7 @@ body:not(.pad) .pad-only {
     3px 3px 0 rgba(255, 63, 164, 0.5);
 }
 
+#gameover:not(.cards) .cards-only,
 #gameover:not(.cleared) .clear-only,
 #gameover.cleared .over-only,
 #gameover:not(.graded) .go-grade,
@@ -2596,4 +2597,145 @@ body.playing #debug {
 .set-key .set-none {
   text-align: center;
   color: var(--dim);
+}
+
+/* the style cards (cards.js, 彈幕 ② C②): three on the screen at a floor's end, over the room; a pad marks one (.sel) */
+#cards {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 16px;
+  background: radial-gradient(ellipse at center, rgba(10, 8, 22, 0.2), rgba(10, 8, 22, 0.7));
+  pointer-events: auto;
+}
+
+#cards::before {
+  content: '風格卡 · 三選一  STYLE CARD';
+  position: absolute;
+  top: 18%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 30px;
+  letter-spacing: 4px;
+  color: var(--gold);
+}
+
+#cards .card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 220px;
+  min-height: 260px;
+  padding: 18px 18px 14px;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 4px solid var(--pink);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+#cards .card.slowmo {
+  border-top-color: var(--cyan);
+}
+
+#cards .card:hover,
+#cards .card:focus-visible,
+#cards .card.sel {
+  transform: translateY(-8px);
+  border-color: var(--gold);
+  outline: none;
+}
+
+#cards .card-kind {
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--pink);
+}
+
+#cards .card.slowmo .card-kind {
+  color: var(--cyan);
+}
+
+#cards .card-kind small {
+  color: var(--dim);
+}
+
+#cards .card-en {
+  font-family: var(--display);
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 2px;
+}
+
+#cards .card-name {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+#cards .card-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+#cards .card kbd {
+  align-self: flex-end;
+}
+
+@media (max-width: 760px) {
+  #cards {
+    gap: 8px;
+  }
+
+  #cards .card {
+    width: 31%;
+    min-height: 200px;
+    padding: 12px 10px;
+  }
+
+  #cards .card-en {
+    font-size: 24px;
+  }
+
+  #cards .card-name {
+    font-size: 16px;
+  }
+
+  #cards .card-text {
+    font-size: 12px;
+  }
+}
+
+/* the title with the older modes off it (main.js legacyModes, 彈幕 ② C③): one mode card, no daily card, no map cards */
+.modes.one {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.modes.one .mode-card {
+  padding: 16px 22px;
+}
+
+.modes.one .mode-zh {
+  font-size: 26px;
+}
+
+.modes.one .mode-desc {
+  white-space: normal;
+  overflow: visible;
+  font-size: 14px;
+}
+
+#title.no-legacy .daily-card,
+#title.no-legacy #map-cards,
+#title.no-legacy .legacy-only {
+  display: none;
 }

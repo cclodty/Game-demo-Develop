@@ -132,7 +132,7 @@
             <div id="coat-cards" class="modes four"></div>
           </div>
         </div>
-        <h3 class="maps-title">選擇起點場景 <span id="maps-note">每 3 波換一個場景</span> <button type="button" id="night-over" class="hidden">由頭再來 START OVER</button></h3>
+        <h3 class="maps-title"><span class="legacy-only">選擇起點場景 </span><span id="maps-note">每 3 波換一個場景</span> <button type="button" id="night-over" class="hidden">由頭再來 START OVER</button></h3>
         <div id="map-cards" class="maps"></div>
         <div class="telemetry-switch" id="telemetry-switch">
           <label><input type="checkbox" id="telemetry-on" checked /> 在這部電腦記錄每局的事件（開局、每波、死因、時長、有沒有再開一局），匯出回饋時一併帶上。不會上傳。</label>
@@ -264,6 +264,7 @@
       </div>
     </div>
 
+    <div id="cards" class="hidden"></div>
     <div id="fade"></div>
 
     <div id="pause" class="screen hidden">
@@ -325,6 +326,7 @@
           <div><span>擊殺</span><b id="go-kills">0</b></div>
           <div><span>最高連擊</span><b id="go-combo">x1</b></div>
           <div class="clear-only"><span>無傷波數</span><b id="go-clean">0</b></div>
+          <div class="cards-only"><span>風格卡</span><b id="go-cards">—</b></div>
         </div>
         <div class="start">點擊重新開始 <span>/ Enter</span></div>
         <div class="start replay-only">重播完 <span>/ 點擊或 Enter 返回</span></div>
