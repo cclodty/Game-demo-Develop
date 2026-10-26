@@ -44,6 +44,7 @@ export const MODES = {
     graded: true,
     floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong'], floors: 3, rooms: [3, 4] },
     floorEnd: { size: 1.5, brutes: 1 },
+    finale: { size: 1.5, brutes: 1, maxAlive: 12 }, // the run's last wave, bigger like a floor's end (C①)
     graze: true,
     // 彈幕 ② A①: the arcade's men; five in a room's first wave (four fired 1.96× the arcade's first wave, short of the 2×
     // asked: test/hell.test.mjs), six in its second (`total` by the wave's place in its room), `perFloor` more a floor

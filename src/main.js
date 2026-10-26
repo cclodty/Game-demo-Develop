@@ -1370,8 +1370,12 @@ class Game {
       this.level.load(this.stageMap, this.layoutFor(this.stage));
       const floor = MODES[this.mode].floor;
       if (floor) {
-        // the floor's next room: its doors shut behind the player; one song for the floor
+        // the floor's next room: its doors shut behind the player; one song for the floor, the next floor's at its first room (C①)
         this.notes.log(`第 ${this.stage + 1} 間房：${this.stageMap.name}（入房鎖門，打完 ${MODES[this.mode].perStage} 波開門）`);
+        if (this.floors && this.roomOnFloor(this.stage)[0] === 1) {
+          this.audio.setStage(this.floorOf(this.stage));
+          this.notes.log(`音樂：${this.audio.upcoming.name}`);
+        }
         this.audio.setLevel(0);
       } else {
         this.notes.log(`轉場 → ${this.stageMap.name}`);

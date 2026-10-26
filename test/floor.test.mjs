@@ -227,7 +227,7 @@ test('walking out of the open exit: the floor’s next room, nobody and no bulle
     if (i > 0) assert.ok(r.rooms[i - 1].notes.some((t) => t.includes(`第 ${i + 1} 間房`)), r.rooms[i - 1].notes.join(' / '));
   });
   assert.equal(r.done, 'done', 'the last room’s last wave: the run is cleared');
-  assert.equal(r.wave, 6);
+  assert.equal(r.wave, r.floor.length * 2, 'every wave of every room');
   assert.equal(r.lastLocked, true, 'the last room’s exit stays shut (the floor ends there)');
 });
 
