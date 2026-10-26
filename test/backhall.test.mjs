@@ -167,19 +167,18 @@ test('the bot beats him in the back hall in god mode within four minutes; then t
       frames += 60;
     }
     const downed = g.boss.downed;
-    // the cards come (the bot picks one), the exit opens, and the bot may be out of it within the second: catch the moment it is open
+    // the cards come (the bot picks one), the exit opens, and the bot, standing by it (behind the gunner at the north), may be
+    // through it in the same frame: the exit seen open, or the next room begun, counts
+    const stage0 = g.stage;
     let open = false;
-    let held = 0;
     for (let i = 0; i < 120 && !open; i++) {
       window.simStep(1);
-      if (g.waves.state === 'exit') {
-        open = !g.level.exit.locked;
-        held = g.cards.held.length;
-      }
+      if (g.waves.state === 'exit') open = !g.level.exit.locked;
+      if (g.transition || g.stage > stage0) open = true;
     }
     const notes = g.notes.events.map((e) => e.text);
     delete g.player.hurt;
-    return { downed, s: frames / 60, offered: notes.some((t) => t.startsWith('風格卡三選一')), held, open, bonus: notes.some((t) => t.includes('BOSS +1500')) };
+    return { downed, s: frames / 60, offered: notes.some((t) => t.startsWith('風格卡三選一')), held: g.cards.held.length, open, bonus: notes.some((t) => t.includes('BOSS +1500')) };
   });
   assert.equal(r.downed, true, `down (${r.s} s)`);
   assert.ok(r.bonus && r.offered && r.held === 1 && r.open, `BOSS +1,500, the cards, one picked, the exit open: ${JSON.stringify(r)}`);

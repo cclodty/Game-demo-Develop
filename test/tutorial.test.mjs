@@ -91,10 +91,10 @@ test('a first run plays the three warm-up steps, then wave 1 starts at once', { 
   assert.match(s.shown, /Shift/);
   await snap(page, 'warmup-1.png');
 
-  // step 2: close in front, to be held up as a human shield
+  // step 2: close in front, to be held up as a human shield (once he is in: a second)
   await page.evaluate(() => {
     window.killStep();
-    window.play(2);
+    window.play(60);
     window.game.hud.update(1 / 60);
   });
   s = await page.evaluate(() => window.look());

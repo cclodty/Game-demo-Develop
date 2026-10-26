@@ -70,7 +70,7 @@ test('a new player’s title (彈幕 ② C③): one mode card, the game’s own;
       hiddenCards: [...document.querySelectorAll('#mode-cards .mode-card')].filter((c) => c.offsetParent === null).map((c) => c.dataset.mode),
       daily: document.getElementById('daily-start').offsetParent !== null,
       maps: document.getElementById('map-cards').offsetParent !== null,
-      head: document.querySelector('.maps-title').textContent,
+      head: document.getElementById('maps-note').parentElement.textContent,
     }));
     assert.equal(t.mode, 'danmaku');
     assert.deepEqual(t.cards, ['danmaku'], `one card: ${t.cards}`);
