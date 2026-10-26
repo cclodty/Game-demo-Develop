@@ -252,7 +252,7 @@ test('the hitbox: in 彈幕試驗 in bullet time a dot at the player shows where
   assert.equal(r.arcade.visible, false);
 });
 
-test('the pattern men are in no mode’s waves now: 彈幕試驗 sends the arcade’s men (彈幕 ② A①: test/hell.test.mjs), the arcade and endless never had them', async () => {
+test('the pattern men come to 彈幕試驗 only as its elites, one in a room’s first wave from wave 3 (彈幕 ② A③: test/mix.test.mjs); the arcade and endless never had them', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom();
@@ -267,8 +267,8 @@ test('the pattern men are in no mode’s waves now: 彈幕試驗 sends the arcad
   });
   const pattern = ['ringer', 'spiraler', 'fanner'];
   const all = r.danmaku.flat();
-  assert.ok(!all.some((t) => pattern.includes(t)), `none in 彈幕試驗 (${[...new Set(all)]})`);
-  assert.ok(all.length > 0, 'which still sends men');
+  assert.ok(all.some((t) => pattern.includes(t)), `some in 彈幕試驗 (${[...new Set(all)]})`);
+  assert.ok(r.danmaku.every((w) => w.filter((t) => pattern.includes(t)).length <= 1), 'at most one a wave');
   assert.ok(!r.arcade.flat().some((t) => pattern.includes(t)) && !r.endless.flat().some((t) => pattern.includes(t)), 'none in the arcade or endless');
 });
 

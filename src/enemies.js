@@ -358,20 +358,22 @@ const WEAPONS = {
   sniper: { shots: 1, interval: 0.1, speed: 72, dmg: 40, pellets: 1, spread: 0, sound: 'sniper' },
   drone: { shots: 4, interval: 0.09, speed: 24, dmg: 9, pellets: 1, spread: 0.05, sound: 'smg' },
   dual: { shots: 2, interval: 0.12, speed: 21, dmg: 16, pellets: 1, spread: 0.03, sound: 'pistol' }, // the captain's pair: one from each hand
-  // the patterns (彈幕試驗 ③): `shots` volleys `interval` s apart, slow bullets in their own look (bullets.js 'danmaku')
+  // the patterns (彈幕試驗 ③): `shots` volleys `interval` s apart, slow bullets in their own look (bullets.js 'danmaku').
+  // `wall`: a barrage with gaps of its own (彈幕 ② A③, the slow walls): not held for the gap guarantee (gapAllows)
   // ring: `count` places round him, `gap` of them left out together (where, the rng's), each ring turned `twist` places
-  ring: { pattern: 'ring', shots: 3, interval: 0.5, speed: 6.5, dmg: 10, count: 34, gap: 4, twist: 0.5, range: 26, sound: 'pistol' },
+  ring: { pattern: 'ring', wall: true, shots: 3, interval: 0.5, speed: 6.5, dmg: 10, count: 34, gap: 4, twist: 0.5, range: 26, sound: 'pistol' },
   // spiral: `arms` bullets a shot, the arms turned `turn` rad each shot
-  spiral: { pattern: 'spiral', shots: 28, interval: 0.075, speed: 6, dmg: 8, arms: 4, turn: 0.21, range: 24, sound: 'smg' },
+  spiral: { pattern: 'spiral', wall: true, shots: 28, interval: 0.075, speed: 6, dmg: 8, arms: 4, turn: 0.21, range: 24, sound: 'smg' },
   // fan: `count` bullets across ± `spread` rad at the player, bunched to the middle (|u| ** `bunch` for u in -1…1)
-  fan: { pattern: 'fan', shots: 3, interval: 0.32, speed: 8, dmg: 10, count: 9, spread: 0.6, bunch: 1.7, range: 26, sound: 'shotgun' },
-  // heavy fire (彈幕試驗 ⑦): aimed at the player, the same slow solid bullets, a great many
+  fan: { pattern: 'fan', wall: true, shots: 3, interval: 0.32, speed: 8, dmg: 10, count: 9, spread: 0.6, bunch: 1.7, range: 26, sound: 'shotgun' },
+  // heavy fire (彈幕試驗 ⑦): aimed at the player, a great many; since 彈幕 ② A③ fast rounds in the arcade's look (`look`),
+  // the pressers between the slow walls, and held for the gap guarantee like any gun
   // hose: `shots` rounds `interval` s apart (a stream two seconds long), his aim turning after the player at most `track` rad/s, each round ± `jitter` rad
-  hose: { pattern: 'hose', shots: 30, interval: 0.07, speed: 9, dmg: 7, jitter: 0.05, track: 0.55, range: 26, sound: 'minigun' },
+  hose: { pattern: 'hose', shots: 30, interval: 0.07, speed: 20, look: 'enemy', dmg: 7, jitter: 0.05, track: 0.55, range: 26, sound: 'minigun' },
   // salvo: his aim ends on the squad's beat (every `beat` s of world time: all of them in the room on the same step), then `shots` rounds `interval` s apart where the player was
-  salvo: { pattern: 'salvo', shots: 3, interval: 0.09, speed: 11, dmg: 10, jitter: 0.04, beat: 2, range: 26, sound: 'rifle' },
+  salvo: { pattern: 'salvo', shots: 3, interval: 0.09, speed: 24, look: 'enemy', dmg: 10, jitter: 0.04, beat: 2, range: 26, sound: 'rifle' },
   // blast: `shots` blasts `interval` s apart, `count` pellets evenly across ± `spread` rad at the player (each ± `jitter`, its speed ± `spreadV` of it), gone at `range` m
-  blast: { pattern: 'blast', shots: 2, interval: 0.35, speed: 9.5, spreadV: 0.15, dmg: 8, count: 14, spread: 0.32, jitter: 0.02, range: 11, sound: 'shotgun' },
+  blast: { pattern: 'blast', shots: 2, interval: 0.35, speed: 19, look: 'enemy', spreadV: 0.15, dmg: 8, count: 14, spread: 0.32, jitter: 0.02, range: 11, sound: 'shotgun' },
 };
 
 const _aim = { x: 0, z: 0 };
@@ -1276,14 +1278,14 @@ class Enemy {
     this.mgr.claims = this.mgr.claims.filter((c) => c.until > now);
     for (const c of this.mgr.claims) lines.push(c.line);
     const w = WEAPONS[this.cfg.weapon];
-    // his shot's lines, from where shoot() lets them go (0.35 m ahead of him, not the gun's muzzle): one, or a fan's
-    // every pellet as shoot() spreads them (the jitter is within the margin)
-    const ox = this.x + Math.sin(this.aimAngle) * 0.35;
-    const oz = this.z + Math.cos(this.aimAngle) * 0.35;
-    const n = w && w.pellets > 1 ? w.pellets : 1;
+    // his shot's lines, from where shoot() (0.35 m ahead of him, not the gun's muzzle) or volley() (0.45 m) lets them
+    // go: one, or a fan's every pellet as they are spread (the jitter is within the margin); a blast's fan is at the player
+    const out = w && w.pattern ? 0.45 : 0.35;
+    const aim = w && w.pattern === 'blast' ? angleTo(this.x, this.z, p.x, p.z) : this.aimAngle;
+    const n = w && w.pellets > 1 ? w.pellets : w && w.pattern === 'blast' ? w.count : 1;
     const mine = Array.from({ length: n }, (_, i) => {
-      const a = this.aimAngle + (n > 1 ? (i / (n - 1) - 0.5) * w.spread * 2 : 0);
-      return [ox, oz, Math.sin(a), Math.cos(a)];
+      const a = aim + (n > 1 ? (i / (n - 1) - 0.5) * w.spread * 2 : 0);
+      return [this.x + Math.sin(a) * out, this.z + Math.cos(a) * out, Math.sin(a), Math.cos(a)];
     });
     lines.push(...mine);
     const L = g.level;
@@ -1488,7 +1490,7 @@ class Enemy {
       const dx = Math.sin(a);
       const dz = Math.cos(a);
       const speed = w.spreadV ? w.speed * g.rng.range(1 - w.spreadV, 1 + w.spreadV) : w.speed;
-      g.bullets.spawn({ x: this.x + dx * 0.45, z: this.z + dz * 0.45, dx, dz, speed, owner: 'enemy', damage: w.dmg, range: w.range, source: this, look: 'danmaku' });
+      g.bullets.spawn({ x: this.x + dx * 0.45, z: this.z + dz * 0.45, dx, dz, speed, owner: 'enemy', damage: w.dmg, range: w.range, source: this, look: w.look || 'danmaku' });
     }
     if (this.cfg.heavy) {
       // a gun's flash at the muzzle (looks only)
@@ -1853,8 +1855,16 @@ class Enemy {
             const salvo = this.salvoAt >= 0;
             this.glow = salvo ? clamp(this.aimT / Math.max(1e-6, this.salvoAt - this.aimFrom), 0, 1) : clamp(this.aimT / this.aimTime, 0, 1);
             if (salvo ? g.worldTime >= this.salvoAt - 1e-9 : this.aimT >= this.aimTime) {
-              this.salvoAt = -1;
               const w = WEAPONS[cfg.weapon];
+              if (this.inRoom && !w.wall && !this.gapAllows()) {
+                // a presser (the heavy guns) is held for the gap like any gun; a salvo waits for the squad's next beat, so the row stays one
+                if (salvo) this.salvoAt += w.beat;
+                else this.aimT = this.aimTime;
+                this.gapWait = true;
+                break;
+              }
+              this.gapWait = false;
+              this.salvoAt = -1;
               this.state = 'fire';
               this.burst = w.shots;
               this.burstT = 0;

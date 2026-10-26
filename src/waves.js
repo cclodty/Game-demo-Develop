@@ -41,7 +41,17 @@ export const MODES = {
     graded: true,
     floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong'], rooms: 3 },
     graze: true,
-    roster: { total: [5, 6, 7, 8, 9, 10], arcade: true, skip: ['sniper', 'drone'], fill: 'grunt' }, // 彈幕 ② A①: the arcade's men (the heavy three no longer: their code stays); five in the first wave: four fired 1.96× the arcade's first wave, short of the 2× asked (test/hell.test.mjs)
+    // 彈幕 ② A①: the arcade's men; five in the first wave: four fired 1.96× the arcade's first wave, short of the 2× asked
+    // (test/hell.test.mjs). A③: `also` the heavy three as pressers (the same [from wave, weight, most a wave]), and an
+    // `elite` of the slow walls (ringer, spiraler, fanner) in a room's first wave from wave `from`, one a room
+    roster: {
+      total: [5, 6, 7, 8, 9, 10],
+      arcade: true,
+      skip: ['sniper', 'drone'],
+      fill: 'grunt',
+      also: { volleyer: [2, 2, 2], blaster: [2, 1.5, 2], hoser: [3, 1, 1] },
+      elite: { types: ['ringer', 'spiraler', 'fanner'], from: 3 },
+    },
   },
 };
 export const MODE_IDS = Object.keys(MODES);
@@ -130,6 +140,7 @@ export class Waves {
       : Object.entries(TYPES)
           .filter(([type, t]) => t.spawn && !(R && R.skip && R.skip.includes(type)))
           .map(([type, t]) => [type, n >= t.spawn.from ? t.spawn.weight : 0, t.spawn.max ?? Infinity]);
+    if (R && R.also) for (const [type, [from, weight, max]] of Object.entries(R.also)) weights.push([type, n >= from ? weight : 0, max ?? Infinity]);
     const sum = weights.reduce((a, w) => a + w[1], 0);
     const list = [];
     const count = {};
@@ -147,6 +158,9 @@ export class Waves {
     }
     for (let b = 0; b < brutes; b++) list.splice(Math.floor(rng.range(list.length * 0.4, list.length)), 0, 'brute');
     if (R && list.every((t) => t === 'grunt')) list[0] = R.fill;
+    // an elite (A③): one of the slow walls in a room's first wave, in the last place, from wave `from`
+    const E = R && R.elite;
+    if (E && n >= E.from && (n - 1) % this.rules.perStage === 0) list[list.length - 1] = E.types[rng.int(0, E.types.length - 1)];
     return list;
   }
 
