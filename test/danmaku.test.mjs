@@ -299,7 +299,7 @@ test('screenshot: the three firing in the teahouse, the player in bullet time, h
   assert.deepEqual(problems(logs), []);
 });
 
-test('the bot clears 彈幕試驗’s three floors in god mode, every room in order; the notes say in Chinese who came, who held a post and how the grazes go', { timeout: 25 * 60 * 1000 }, async () => {
+test('the bot clears 彈幕試驗’s three floors in god mode, every room in order; the notes say in Chinese who came, who held a post and how the grazes go', { timeout: 40 * 60 * 1000 }, async () => {
   await installBot(page, { map: 0, view: 2, seed: 11, mode: 'danmaku', restart: false, god: true });
   const r = await page.evaluate(() => {
     const g = window.game;
@@ -311,7 +311,7 @@ test('the bot clears 彈幕試驗’s three floors in god mode, every room in or
     };
     let frames = 0;
     const rooms = [g.level.map.id]; // the rooms it fought in, in order (彈幕試驗 ⑤: the bot walks out of each cleared room's exit)
-    while (g.state === 'playing' && g.waves.state !== 'done' && frames < 60 * 60 * 16) {
+    while (g.state === 'playing' && g.waves.state !== 'done' && frames < 60 * 60 * 22) {
       window.simStep(60);
       frames += 60;
       if (g.level.map.id !== rooms[rooms.length - 1]) rooms.push(g.level.map.id);

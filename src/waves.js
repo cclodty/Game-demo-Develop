@@ -47,11 +47,11 @@ export const MODES = {
     finale: { size: 1.5, brutes: 1, maxAlive: 12 }, // the run's last wave, bigger like a floor's end (C①)
     graze: true,
     // 彈幕 ② A①: the arcade's men; five in a room's first wave (four fired 1.96× the arcade's first wave, short of the 2×
-    // asked: test/hell.test.mjs), six in its second (`total` by the wave's place in its room), `perFloor` more a floor
-    // (C①: about 150 men a run of three floors). A③: `also` the heavy three as pressers (the same [from wave, weight,
+    // asked: test/hell.test.mjs), five in its second (`total` by the wave's place in its room), `perFloor` more a floor
+    // (C①: about 140 men a run of three floors; the bot clears it in about a quarter of an hour, a player quicker). A③: `also` the heavy three as pressers (the same [from wave, weight,
     // most a wave]), and an `elite` of the slow walls (ringer, spiraler, fanner) in a room's first wave from `fromFloor`
     roster: {
-      total: [5, 6],
+      total: [5, 5],
       perFloor: 1,
       arcade: true,
       skip: ['sniper', 'drone'],

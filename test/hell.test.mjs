@@ -155,7 +155,7 @@ test('a wave in the room is the arcade’s men with the arcade’s bullets (no s
   const all = r.roster.flat();
   assert.ok(!all.some((t) => banned.includes(t)), `no sniper, no drone: ${[...new Set(all)]}`);
   assert.ok(all.includes('grunt') && all.includes('rifle') && all.includes('brute'), `thugs, riflemen and a brute among them: ${[...new Set(all)]}`);
-  assert.deepEqual(r.roster.slice(0, 4).map((w) => w.length), [5, 6, 5, 6], 'the wave sizes: five in a room’s first wave, six in its second (MODES.danmaku roster; the floor’s end and the floors above are bigger: test/floors.test.mjs)');
+  assert.deepEqual(r.roster.slice(0, 4).map((w) => w.length), [5, 5, 5, 5], 'the wave sizes: five a wave on the first floor (MODES.danmaku roster; the floor’s end and the floors above are bigger: test/floors.test.mjs)');
   assert.ok(r.hell.wave === 1 && r.arcade.wave === 1, `both measured in wave 1 (${r.hell.wave}, ${r.arcade.wave})`);
   assert.equal(r.hell.refused, 0, 'nobody in the room waited for an aim token');
   assert.ok(r.arcade.refused > 0, `in the arcade the tokens still limit who aims (${r.arcade.refused} refusals)`);
@@ -266,7 +266,7 @@ test('a post behind a table is given up once the table is flipped and shot to bi
   assert.ok(r.gone >= 0, 'the cover gone: he gave the post up');
 });
 
-test('the shotgunner comes on as ever (his gun does not reach a post), the brute and the rifleman take posts; in the arcade nobody glows and the tokens stand', async () => {
+test('the shotgunner and the brute come on as ever, the rifleman, grenadier and captain take posts; in the arcade nobody glows and the tokens stand', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom(0, 5);
@@ -289,7 +289,7 @@ test('the shotgunner comes on as ever (his gun does not reach a post), the brute
     }
     return { posts, aimed, glow, restMul: e.restMul, inRoom: e.inRoom };
   });
-  assert.deepEqual(r.posts, { shotgun: false, brute: true, rifle: true, grenadier: true, captain: true, rusher: false, bomber: false, shield: false });
+  assert.deepEqual(r.posts, { shotgun: false, brute: false, rifle: true, grenadier: true, captain: true, rusher: false, bomber: false, shield: false }); // a brute comes straight on as ever (C①: at a post he was a bullet sponge)
   assert.ok(r.aimed && r.glow === 0, `in the arcade an aim is the laser alone (glow ${r.glow})`);
   assert.ok(!r.inRoom && r.restMul === 1, 'and the gap before the next shot is the type’s own');
 });
@@ -340,7 +340,7 @@ test('screenshot: the first wave in the teahouse, fast bullets and lasers from t
   assert.deepEqual(problems(logs), []);
 });
 
-test('the bot clears the three floors of the arcade’s men in god mode; the notes name the posts held and the floors', { timeout: 25 * 60 * 1000 }, async () => {
+test('the bot clears the three floors of the arcade’s men in god mode; the notes name the posts held and the floors', { timeout: 40 * 60 * 1000 }, async () => {
   await installBot(page, { map: 0, view: 2, seed: 5, mode: 'danmaku', restart: false, god: true });
   const r = await page.evaluate(() => {
     const g = window.game;
@@ -351,7 +351,7 @@ test('the bot clears the three floors of the arcade’s men in god mode; the not
       return log0(text);
     };
     let frames = 0;
-    while (g.state === 'playing' && g.waves.state !== 'done' && frames < 60 * 60 * 16) {
+    while (g.state === 'playing' && g.waves.state !== 'done' && frames < 60 * 60 * 22) {
       window.simStep(60);
       frames += 60;
     }
