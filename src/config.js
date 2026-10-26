@@ -41,7 +41,7 @@ export const PLAYER = {
   // bowling over whoever he meets and still taking the rounds that meet him as he flies; `bowling` men bowled over in
   // one shove is SHIELD BOWLING +`bowlPts`. 彈幕 ② B① (DECISIONS 2026-10-26): nearly everyone can be held (not a drone,
   // not a lit bomber) and for 4.5 s (was 1.5), the shield as a resource
-  humanShield: { reach: 1.5, gap: 0.75, hold: 4.5, arc: 60, hit: 1, walkMul: 0.6, shove: 24, bowling: 2, bowlPts: 250 },
+  humanShield: { reach: 1.5, gap: 0.75, hold: 4.5, arc: 60, hit: 1, walkMul: 0.6, shove: 24, knock: 0.85, bowling: 2, bowlPts: 250 }, // `knock`: of his speed he keeps through each man he bowls over (a kicked man keeps half; a trolley's is 0.85 too)
   throwReach: 1.6, // metres: G picks up a pan or barrel this close
   throwRange: 8, // metres a carried thing is thrown, at most
   kickRange: 2.1,

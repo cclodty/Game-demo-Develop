@@ -182,7 +182,7 @@ test('彈幕 ② B①: shoved out, he still takes the rounds that meet him as he
     const held = window.post('grunt', p.x + 1, p.z);
     window.play(1, [], ['KeyE']);
     const a = window.post('grunt', p.x + 3, p.z);
-    const b = window.post('grunt', p.x + 4.2, p.z);
+    const b = window.post('grunt', p.x + 4, p.z);
     window.play(1, [], ['KeyE']);
     for (let i = 0; i < 120; i++) window.play(1);
     const bowling = { a: a.stunCause, b: b.stunCause, bowled: held.bowled, styles: styles.filter((x) => x.startsWith('SHIELD')), note: g.notes.events.map((x) => x.text).find((t) => t.includes('撞倒')) };

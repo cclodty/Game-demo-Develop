@@ -2195,8 +2195,9 @@ class Enemy {
       if (dx * dx + dz * dz > rr * rr) continue;
       const d = Math.hypot(dx, dz) || 1;
       o.kick(dx / d, dz / d, sp * 0.75, 'strike');
-      this.vx *= 0.5;
-      this.vz *= 0.5;
+      const keep = this.stunCause === 'shove' ? PLAYER.humanShield.knock : 0.5; // a shoved human shield goes on through a row (彈幕 ② B①)
+      this.vx *= keep;
+      this.vz *= keep;
       this.game.audio.kick(true);
       this.game.shake(0.2);
       if (this.stunCause === 'shove' && ++this.bowled === PLAYER.humanShield.bowling) {
