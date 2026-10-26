@@ -7,7 +7,9 @@
 //   排槍手 VOLLEY: every one of them in the room fires on the squad's beat, the same logic step, a row of rounds; between
 //     beats none of theirs: the time to move;
 //   霰彈手 BLAST: comes in close for two wide blasts that die out within their range: back off, or out of the fan.
-// The same seed, the same fire. Only 彈幕試驗 sends them.
+// The same seed, the same fire. 彈幕試驗 sent them until 彈幕 ② A① (2026-10-26) gave the mode the arcade's men and
+// their fast bullets (test/hell.test.mjs); the three stay, with their patterns, for a later card (ROADMAP §4: the
+// pressers), and these tests put them in a room by hand.
 // Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -229,7 +231,7 @@ test('霰彈手 BLAST: a tell, then two wide blasts of pellets at the player tha
   assert.deepEqual(b.shots.map((s) => s.angle.toFixed(5)), a.shots.map((s) => s.angle.toFixed(5)), 'the same seed, the same blasts');
 });
 
-test('彈幕試驗’s waves are the three heavy guns (and a few thugs), never the pattern men; no other mode sends the heavy three; the notes name each the first time it fires', async () => {
+test('no mode’s waves send the heavy three now (彈幕 ② A①: 彈幕試驗 sends the arcade’s men, test/hell.test.mjs); put in a room each still fires its pattern, and the notes name each the first time', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom(-3, 2.5);
@@ -258,9 +260,8 @@ test('彈幕試驗’s waves are the three heavy guns (and a few thugs), never t
   });
   const heavy = ['hoser', 'volleyer', 'blaster'];
   const all = r.danmaku.flat();
-  assert.ok(heavy.every((t) => all.includes(t)), `all three come (${[...new Set(all)]})`);
-  assert.ok(all.every((t) => heavy.includes(t) || t === 'grunt'), `and only they and thugs: no pattern men (${[...new Set(all)]})`);
-  assert.ok(r.danmaku.every((w) => w.some((t) => heavy.includes(t))), 'every wave has some');
+  assert.ok(!all.some((t) => heavy.includes(t)), `none in 彈幕試驗 any more (${[...new Set(all)]})`);
+  assert.ok(all.length > 0, 'which still sends men');
   assert.ok(!r.arcade.flat().some((t) => heavy.includes(t)) && !r.endless.flat().some((t) => heavy.includes(t)), 'none in the arcade or endless');
   for (const name of ['機槍手', '排槍手', '霰彈手']) assert.equal(r.said.filter((t) => t.includes(name)).length, 1, `${name} once in the notes: ${r.said.join(' / ')}`);
 });

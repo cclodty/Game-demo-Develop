@@ -94,6 +94,25 @@ export const FOCUS = {
  */
 export const GRAZE = { radius: 0.5, focus: 0.02, pts: 10, flush: 0.25, log: 3, show: 0.3 };
 
+/**
+ * The bullet hell's room fights (彈幕 ② A①, DECISIONS 2026-10-26): in a mode played in rooms (waves.js MODES `floor`)
+ * the arcade's enemies come, with the arcade's fast bullets, and the hell is how many fire at once: nobody waits for
+ * an aim token (enemies.js requestToken), the gap before a man fires again is `fireMul` of his type's, `maxAlive` may
+ * stand at once and the next comes in `entry` s after the last. Every one glows as he aims (the heavy guns' tell,
+ * on top of his laser). The far side (對面陣地): a room's `posts` (rooms.js) are where its gunners go to fire from;
+ * a man leaves his when the player comes within `postClose` m or the cover it names is gone, and looks for another
+ * `postRetry` s later; only a gun that reaches `postRange` m takes one (a shotgunner comes on as ever). First
+ * version, to be confirmed in play.
+ */
+export const HELL = {
+  fireMul: 0.6,
+  maxAlive: 12,
+  entry: [0.3, 0.7],
+  postClose: 4,
+  postRetry: 0.6,
+  postRange: 10,
+};
+
 export const BULLET = {
   playerSpeed: 62,
   playerTrail: 2.2,

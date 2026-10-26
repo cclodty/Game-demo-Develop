@@ -2,7 +2,7 @@
 // brightens while they aim, so a quick read (or bullet time) lets you dodge.
 
 import * as THREE from 'three';
-import { AI, ENEMY_HP, ENV, FIREPOWER, GUN_Y, LOGIC_HZ, PLAYER, RAMP } from './config.js';
+import { AI, ENEMY_HP, ENV, FIREPOWER, GUN_Y, HELL, LOGIC_HZ, PLAYER, RAMP } from './config.js';
 import { animateRig, BODY, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, keyPose, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowards } from './utils.js';
@@ -430,6 +430,9 @@ class Enemy {
     this.vaultFrom = this.vaultTo = null;
     this.vaulting = false;
     this.retreated = false; // AI.retreat: he has fallen back once
+    this.post = null; // the room's firing post he holds or makes for (level.js posts, 彈幕 ② A①: config.js HELL)
+    this.postCd = 0; // s before he looks for one again
+    this.postLogged = false;
     this.retreatTo = null; // where to, with no cover farther back
     this.alive = true;
     this.dead = false;
@@ -564,6 +567,22 @@ class Enemy {
    */
   get aimTime() {
     return this.cfg.aimTime * this.game.ruleset.aimMul * this.pace * (this.mgr.panicT > 0 ? AI.captain.panicAim : 1);
+  }
+
+  /** Fighting in a room (waves.js MODES `floor`, 彈幕 ② A①): the hell's rules (config.js HELL). */
+  get inRoom() {
+    return !!this.game.waves.rules.floor;
+  }
+
+  /** × the gap before he fires again: quicker each stage (`pace`), and quicker again in a room (HELL.fireMul). */
+  get restMul() {
+    return this.pace * (this.inRoom ? HELL.fireMul : 1);
+  }
+
+  /** He fights from the room's posts (level.js posts): a gun that reaches that far, on his feet, not rushing in, not a guard. */
+  get postsFor() {
+    const cfg = this.cfg;
+    return this.inRoom && this.game.level.posts.length > 0 && !this.rushes && !cfg.fly && !this.sp.stay && !(this.escortOf && this.escortOf.alive) && cfg.range[1] >= HELL.postRange;
   }
 
   /** A captain stands (AI.captain): the others hide less and go round to the player's sides. */
@@ -737,7 +756,7 @@ class Enemy {
     const D = AI.dodge;
     this.dodgeCd -= dt;
     const c = this.game.cmd;
-    const free = this.cfg.dodge && this.stunT <= 0 && !this.perch && !this.aloft && ['move', 'idle', 'aim', 'chase', 'duck', 'peek', 'recover'].includes(this.state);
+    const free = this.cfg.dodge && this.stunT <= 0 && !this.perch && !this.aloft && ['move', 'idle', 'aim', 'chase', 'duck', 'peek', 'recover', 'hold'].includes(this.state);
     const on = free && this.game.player.alive && c.mouse.left && Math.hypot(c.aim.x - this.x, c.aim.z - this.z) <= this.radius + D.reach;
     this.aimedT = on ? this.aimedT + dt : 0;
     if (this.aimedT < D.watch || this.dodgeCd > 0) return;
@@ -831,7 +850,7 @@ class Enemy {
    */
   wounded() {
     const R = AI.retreat;
-    if (!this.cfg.retreat || this.retreated || !this.alive || this.hp > this.hpMax * R.at || this.sp.stay) return;
+    if (!this.cfg.retreat || this.retreated || !this.alive || this.hp > this.hpMax * R.at || this.sp.stay || this.post) return; // a man at his post holds it
     if (this.mgr.aliveCount <= 1) return;
     const g = this.game;
     const p = g.player;
@@ -871,7 +890,7 @@ class Enemy {
     const g = this.game;
     const p = g.player;
     if (!this.alive || this.aloft || this.held || this.rushes || this.sp.stay || this.stunT > 0) return;
-    if (!['move', 'idle', 'duck', 'peek', 'aim', 'recover'].includes(this.state)) return;
+    if (!['move', 'idle', 'duck', 'peek', 'aim', 'recover', 'hold'].includes(this.state)) return;
     const nav = g.level.nav;
     const now = Math.hypot(this.x - p.x, this.z - p.z) || 1;
     const away = Math.atan2(this.x - p.x, this.z - p.z);
@@ -1209,6 +1228,45 @@ class Enemy {
     return Math.hypot(c.x - p.x, c.z - p.z) > Math.max(2, this.cfg.range[0] * 0.6) - 1 && !this.game.level.hasLOS(c.x, c.z, p.x, p.z);
   }
 
+  /**
+   * A post of the room's to fire from (level.js posts, 彈幕 ② A①): free (nobody else's), walkable, farther from the
+   * player than HELL.postClose, with its cover still standing; the nearest, with a liking for one within his gun's
+   * reach. Null when there is none.
+   */
+  pickPost() {
+    const g = this.game;
+    const p = g.player;
+    const L = g.level;
+    const rmax = this.cfg.range[1] + 3;
+    let best = null;
+    let bestScore = -Infinity;
+    for (const t of L.posts) {
+      if (!L.nav.isWalkable(t.x, t.z) || !this.coverStands(t)) continue;
+      const dp = Math.hypot(t.x - p.x, t.z - p.z);
+      if (dp < HELL.postClose) continue;
+      if (this.mgr.list.some((o) => o !== this && o.alive && o.post === t)) continue; // one man a post
+      const dm = Math.hypot(t.x - this.x, t.z - this.z);
+      const score = -dm * 0.3 - (dp > rmax ? 10 : 0) - (L.hasLOS(t.x, t.z, p.x, p.z) ? 0 : 2);
+      if (score > bestScore) {
+        bestScore = score;
+        best = t;
+      }
+    }
+    return best;
+  }
+
+  /** The post is still his to hold: its cover (a table) stands, if it names one. */
+  postValid() {
+    return !!this.post && this.coverStands(this.post);
+  }
+
+  /** A post's cover is still there: some solid of the room's within 1.5 m of the point it names (an upright or a flipped table; shot to bits, neither). */
+  coverStands(t) {
+    if (!t.cover) return true;
+    const [cx, cz] = t.cover;
+    return this.game.level.solids.some((s) => s.alive && !s.passable && Math.hypot((s.minX + s.maxX) / 2 - cx, (s.minZ + s.maxZ) / 2 - cz) < 1.5);
+  }
+
   pickGoal() {
     if (this.sp.stay) return { x: this.sp.ex, z: this.sp.ez }; // a warm-up enemy keeps its post
     const g = this.game;
@@ -1307,7 +1365,7 @@ class Enemy {
     this.endAim();
     this.state = 'recover';
     this.timer = 0.5;
-    this.fireCd = g.rng.range(this.cfg.cooldown[0], this.cfg.cooldown[1]) * this.pace;
+    this.fireCd = g.rng.range(this.cfg.cooldown[0], this.cfg.cooldown[1]) * this.restMul;
   }
 
   /** For a man on a balcony: his gun's height, and how far a shot drops a metre to come to the player's chest. {} on the street. */
@@ -1563,6 +1621,50 @@ class Enemy {
               break;
             }
           }
+          if (this.postsFor) {
+            // the far side (彈幕 ② A①): to a free post of the room's, and there he holds (state 'hold'); none free, he fights as ever for a while
+            this.postCd -= dt;
+            if (!this.post && this.postCd <= 0) {
+              this.post = this.pickPost();
+              this.postCd = HELL.postRetry;
+            }
+            if (this.post && !this.postValid()) this.post = null;
+            if (this.post) {
+              const t = this.post;
+              const dx = t.x - this.x;
+              const dz = t.z - this.z;
+              const d = Math.hypot(dx, dz);
+              if (d < 0.35) {
+                this.state = 'hold';
+                this.path = null;
+                this.vx = this.vz = 0;
+                if (!this.postLogged) {
+                  this.postLogged = true;
+                  g.notes.log(`${cfg.label} 守住開火位`);
+                }
+                break;
+              }
+              if (d < 1.2) {
+                const sp = Math.min(cfg.speed, d * 4 + 0.4);
+                want = [(dx / d) * sp, (dz / d) * sp];
+              } else {
+                this.repath -= dt;
+                if (this.repath <= 0 || !this.path || this.pathI >= this.path.length) {
+                  this.repath = 0.6;
+                  this.path = g.level.nav.findPath(this.x, this.z, t.x, t.z);
+                  this.pathI = 0;
+                }
+                if (!this.path) {
+                  this.post = null; // no way there: another, later
+                  break;
+                }
+                want = this.followPath(cfg.speed);
+                if (this.tryVault(dt, t)) break;
+              }
+              if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
+              break;
+            }
+          }
           this.coverRest -= dt;
           if (this.tactic === 'cover' && !this.sp.stay && !this.bold && this.blindT <= 0 && this.coverRest <= 0 && this.mgr.aliveCount > 1) {
             // a gunner with cover near goes there first, ducks, and fights by stepping out (peek); one holding
@@ -1629,6 +1731,24 @@ class Enemy {
           if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
           if (this.los && cfg.reload) want = [0, 0]; // a sniper who can see the player stands his ground
           else if (this.path && this.path.length && this.tryVault(dt, this.path[this.path.length - 1])) break;
+          break;
+        }
+        case 'hold': {
+          // at his post (彈幕 ② A①): standing, facing the player, firing whenever he can; the player on top of him
+          // (HELL.postClose) or the cover gone, he gives it up for another
+          want = [0, 0];
+          face = angleTo(this.x, this.z, p.x, p.z);
+          if (distP < HELL.postClose || !this.postValid() || !this.postsFor) {
+            this.post = null;
+            this.postCd = 0;
+            this.state = 'move';
+            this.repath = 0;
+            break;
+          }
+          const inReach = cfg.lob
+            ? distP < cfg.range[1] + 3 && distP > cfg.lob.radius + 1 && g.level.sameLevel(this.x, this.z, p.x, p.z)
+            : this.los && distP < cfg.range[1] + 3;
+          if (inReach && this.fireCd <= 0 && this.blindT <= 0 && this.mgr.requestToken(this)) this.startAim();
           break;
         }
         case 'duck': {
@@ -1714,8 +1834,9 @@ class Enemy {
               break;
             }
           } else this.losLost = 0;
+          if (this.inRoom) this.glow = clamp(this.aimT / this.aimTime, 0, 1); // in a room every man glows as he aims, on top of his laser (彈幕 ② A①)
           if (cfg.weapon === 'shotgun' && distP > 4) want = [(dxp / distP) * 1.2, (dzp / distP) * 1.2];
-          if (cfg.strafe && !this.cover) want = this.strafe(dt, want); // not standing still to fire (AI.strafe)
+          if (cfg.strafe && !this.cover && !this.post) want = this.strafe(dt, want); // not standing still to fire (AI.strafe); a man at his post stands
           if (this.aimT >= this.aimTime && cfg.lob) {
             this.throwGrenade();
             break;
@@ -1745,7 +1866,8 @@ class Enemy {
             this.aimAngle = turnTowards(this.aimAngle, angleTo(this.x, this.z, a.x, a.z), w.track * dt);
           }
           face = this.aimAngle;
-          if (cfg.strafe && !this.cover) want = this.strafe(dt, want);
+          if (this.inRoom) this.glow = 1;
+          if (cfg.strafe && !this.cover && !this.post) want = this.strafe(dt, want);
           this.burstT -= dt;
           if (this.burstT <= 0 && this.burst > 0) {
             this.shoot();
@@ -1756,7 +1878,7 @@ class Enemy {
             this.endAim();
             this.state = 'recover';
             this.timer = cfg.reload || (this.cover ? AI.peek : 0.35); // a sniper's reload: rifle down, the window to get him; a cover gunner's moment out
-            this.fireCd = g.rng.range(cfg.cooldown[0], cfg.cooldown[1]) * this.pace;
+            this.fireCd = g.rng.range(cfg.cooldown[0], cfg.cooldown[1]) * this.restMul;
           }
           break;
         }
@@ -2229,7 +2351,7 @@ export class Enemies {
 
   requestToken(e) {
     if (e.hasToken) return true;
-    if (e.cfg.heavy) return true; // heavy fire (彈幕試驗 ⑦): the whole room opens up at once, no token to wait for
+    if (e.cfg.heavy || this.game.waves.rules.floor) return true; // heavy fire (彈幕試驗 ⑦), and anyone in a room (彈幕 ② A①): the whole room opens up at once, no token to wait for
     if (this.tokens >= this.maxTokens()) return false;
     e.hasToken = true;
     this.tokens++;

@@ -4,7 +4,7 @@
 // one spot, quiet, then the next; endless trickles them in.
 
 import { BOSSES } from './boss.js';
-import { BEATS, FIREPOWER, RAMP } from './config.js';
+import { BEATS, FIREPOWER, HELL, RAMP } from './config.js';
 import { TYPES } from './enemies.js';
 import { clamp } from './utils.js';
 
@@ -23,23 +23,25 @@ export const MODES = {
   // 澳門一夜 (night.js): the maps by the hour of the night each is set at (maps.js `hour`), three waves a stage, the
   // third the map's boss where it has one; it goes on from the first stage not yet cleared (main.js route, routeAt)
   night: { name: '澳門一夜', en: 'A NIGHT IN MACAU', color: '#b48cff', desc: '晚上八點到凌晨三點 · 打完一關存進度', waves: 21, perStage: 3, finale: { size: 1.5, brutes: 1, maxAlive: 11 }, midBoss: { segments: 3, each: 2, bonus: 1000 }, graded: true, night: true, beats: true },
-  // 彈幕試驗 (DECISIONS 2026-10-23: the bullet-hell trial): six waves in one room (rooms.js `room`), whatever map card is
+  // 彈幕試驗 (DECISIONS 2026-10-23: the bullet-hell trial): six waves in rooms (rooms.js `room`), whatever map card is
   // picked; last in the list, so a record's mode number keeps its meaning
-  // its waves: `total` men in wave n, of `types` { type: [from wave, weight, most a wave] } (the three heavy guns, a
-  // few thugs); a wave of thugs alone takes a `fill` for its first. `graze`: bullets passing close count (config.js GRAZE).
+  // its waves: `total` men in wave n; of `types` { type: [from wave, weight, most a wave] }, or with `arcade` the
+  // arcade's own men (TYPES `spawn`, but for `skip`), brutes among them from wave 4 as there (彈幕 ② A①, DECISIONS
+  // 2026-10-26: the hell is the arcade's fast bullets, many at once: config.js HELL); a wave of thugs alone takes a
+  // `fill` for its first. `graze`: bullets passing close count (config.js GRAZE).
   // `floor`: played in rooms (rooms.js), not on the maps: a floor of `rooms`, `first` then the rest drawn from `pool`
   // (rooms.js drawFloor), `perStage` waves in each; a cleared room's exit opens and the player walks out of it to the next
   danmaku: {
     name: '彈幕試驗',
     en: 'BULLET HELL',
     color: '#ff6a3d',
-    desc: '試驗：一層三間房的彈幕',
+    desc: '試驗：一層三間房，滿屏快彈',
     waves: 6,
     perStage: 2,
     graded: true,
     floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong'], rooms: 3 },
     graze: true,
-    roster: { total: [3, 4, 5, 6, 7, 8], types: { volleyer: [1, 4], blaster: [1, 3], hoser: [2, 2, 2], grunt: [1, 1] }, fill: 'volleyer' }, // 彈幕試驗 ⑦: the heavy three (the pattern men no longer)
+    roster: { total: [4, 6, 7, 8, 9, 10], arcade: true, skip: ['sniper', 'drone'], fill: 'grunt' }, // 彈幕 ② A①: the arcade's men (the heavy three no longer: their code stays)
   },
 };
 export const MODE_IDS = Object.keys(MODES);
@@ -115,17 +117,18 @@ export class Waves {
   compose(n, rng = this.game.rng.fork('wave', n)) {
     const finale = n === this.rules.waves ? this.rules.finale : null;
     const R = this.rules.roster; // a mode's own (彈幕試驗)
+    const own = R && !R.arcade; // its own types; with `arcade` the arcade's men, brutes and all (彈幕 ② A①)
     let total = R ? R.total[Math.min(n, R.total.length) - 1] : 3 + Math.floor(n * 1.7);
-    let brutes = R ? 0 : n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
+    let brutes = own ? 0 : n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
     if (finale) {
       total = Math.round(total * finale.size);
       brutes += finale.brutes;
     }
     // who can come, and how often: TYPES[type].spawn (from which wave, weight, most per wave)
-    const weights = R
+    const weights = own
       ? Object.entries(R.types).map(([type, [from, weight, max]]) => [type, n >= from ? weight : 0, max ?? Infinity])
       : Object.entries(TYPES)
-          .filter(([, t]) => t.spawn)
+          .filter(([type, t]) => t.spawn && !(R && R.skip && R.skip.includes(type)))
           .map(([type, t]) => [type, n >= t.spawn.from ? t.spawn.weight : 0, t.spawn.max ?? Infinity]);
     const sum = weights.reduce((a, w) => a + w[1], 0);
     const list = [];
@@ -174,7 +177,8 @@ export class Waves {
     const count = {};
     for (const t of this.queue) count[t] = (count[t] || 0) + 1;
     g.notes.log(`第 ${this.wave} 波開始：${Object.entries(count).map(([t, n]) => `${TYPES[t] ? TYPES[t].label : t}×${n}`).join(' ')}`);
-    this.maxAlive = this.isFinal && this.rules.finale ? this.rules.finale.maxAlive : Math.min(3 + Math.floor(this.wave * 0.7), RAMP.maxAlive); // a mode without a finale (彈幕試驗) as any wave
+    // a mode without a finale (彈幕試驗) as any wave; in a room the hell's own crowd (config.js HELL)
+    this.maxAlive = this.isFinal && this.rules.finale ? this.rules.finale.maxAlive : this.rules.floor ? HELL.maxAlive : Math.min(3 + Math.floor(this.wave * 0.7), RAMP.maxAlive);
     this.state = 'active';
     this.spawnCd = 0.3;
     this.hurt = false;
@@ -446,7 +450,7 @@ export class Waves {
       if (this.queue.length && this.spawnCd <= 0 && enemies.aliveCount + coming + room(this.queue[0]) <= this.maxAlive) {
         const type = this.queue.shift();
         this.pending.push({ type, sp: this.pickSpawn(type), t: 0.9 });
-        this.spawnCd = this.wr.range(0.5, 1.3);
+        this.spawnCd = this.rules.floor ? this.wr.range(HELL.entry[0], HELL.entry[1]) : this.wr.range(0.5, 1.3); // a room fills faster (config.js HELL)
       }
     }
 

@@ -1147,6 +1147,9 @@ export class Level {
     this.props = [...this.barrels, ...this.pans, ...this.tools, ...this.fixtures];
     for (const [x, z] of map.pads || []) this.addPad(x, z);
     this.buildSpawns(map.spawns);
+    // a room's posts (rooms.js `posts`, 彈幕 ② A①): where its gunners go to fire from, each with the cover it stands
+    // behind, if one (a table's middle): a post is given up when that cover is gone (enemies.js postValid)
+    this.posts = (map.posts || []).map(([x, z, cx, cz]) => ({ x, z, cover: cx === undefined ? null : [cx, cz] }));
     // balconies (maps.js `perches`: [x, z, height, facing]): posts up a building's front where a beat sends a man to
     // stand and shoot from (waves.js, enemies.js perch). Each is a spawn of kind 'balcony': he steps out onto it from
     // inside the building, 1.2 m behind; `lamp` (the map's decorate) lights its window when one is coming

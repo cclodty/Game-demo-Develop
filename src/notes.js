@@ -4,7 +4,7 @@
 // moment" notes (N) that export as Markdown from the pause menu. Nothing here
 // changes gameplay on its own; only the tuning rows do, and the HUD says so.
 
-import { AI, CAMERA, FOCUS, LOGIC_HZ, PLAYER, STYLE, VIEWS } from './config.js';
+import { AI, CAMERA, FOCUS, HELL, LOGIC_HZ, PLAYER, STYLE, VIEWS } from './config.js';
 import { keyName } from './input.js';
 import { QUALITIES, readQuality, saveQuality } from './quality.js';
 import { SWITCHES } from './style.js';
@@ -17,7 +17,7 @@ const FPS_KEY = 'bullet-ballet.fps';
 const MAX_EVENTS = 40;
 const EVENTS_PER_NOTE = 10;
 
-const ROOTS = { FOCUS, PLAYER, CAMERA, STYLE, AI };
+const ROOTS = { FOCUS, PLAYER, CAMERA, STYLE, AI, HELL };
 
 /** Feel numbers the panel exposes for live tuning. Paths point into config.js. */
 export const TUNABLES = [
@@ -42,6 +42,9 @@ export const TUNABLES = [
   { path: 'PLAYER.regenDelay', label: '回血延遲 s', step: 0.1, min: 0, max: 10 },
   { path: 'PLAYER.regenRate', label: '回血速度 / 秒', step: 1, min: 0, max: 100 },
   { path: 'CAMERA.focusZoom', label: '慢鏡鏡頭拉近', step: 0.01, min: 0.5, max: 1.2 },
+  { path: 'HELL.fireMul', label: '房內：開火間隔倍率', step: 0.05, min: 0.1, max: 2 },
+  { path: 'HELL.maxAlive', label: '房內：同場人數上限', step: 1, min: 1, max: 30 },
+  { path: 'HELL.postClose', label: '房內：迫近換位 m', step: 0.5, min: 0, max: 12 },
 ];
 
 const $ = (id) => document.getElementById(id);

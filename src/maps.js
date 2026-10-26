@@ -1931,7 +1931,7 @@ export const MAPS = [rooftop, club, docks, senado, felicidade, guia, ruins];
  * cover, the hurt fall back (AI.strafe, vault, retreat). 6: the tumbler, from wave 5 (enemies.js TYPES, AI.tumble).
  * 7: the captain and his two guards, from wave 7 (AI.captain).
  */
-export const PLAY_REV = 7;
+export const PLAY_REV = 8; // 8: the bullet hell's room fights (彈幕 ② A①: the arcade's men, no aim tokens, posts)
 
 /**
  * The game's revision as one byte, for the input record (replay.js): the sum of every map's `rev`, every room's

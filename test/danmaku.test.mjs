@@ -252,7 +252,7 @@ test('the hitbox: in 彈幕試驗 in bullet time a dot at the player shows where
   assert.equal(r.arcade.visible, false);
 });
 
-test('the pattern men are in no mode’s waves now: 彈幕試驗 sends the heavy guns instead (彈幕試驗 ⑦: test/heavy.test.mjs), the arcade and endless never did', async () => {
+test('the pattern men are in no mode’s waves now: 彈幕試驗 sends the arcade’s men (彈幕 ② A①: test/hell.test.mjs), the arcade and endless never had them', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom();
@@ -299,7 +299,7 @@ test('screenshot: the three firing in the teahouse, the player in bullet time, h
   assert.deepEqual(problems(logs), []);
 });
 
-test('the bot clears 彈幕試驗’s floor in god mode, six waves in its three rooms; the notes say in Chinese what the heavy guns are and how the grazes go', { timeout: 15 * 60 * 1000 }, async () => {
+test('the bot clears 彈幕試驗’s floor in god mode, six waves in its three rooms; the notes say in Chinese who came, who held a post and how the grazes go', { timeout: 15 * 60 * 1000 }, async () => {
   await installBot(page, { map: 0, view: 2, seed: 11, mode: 'danmaku', restart: false, god: true });
   const r = await page.evaluate(() => {
     const g = window.game;
@@ -323,7 +323,8 @@ test('the bot clears 彈幕試驗’s floor in god mode, six waves in its three 
   assert.equal(r.done, true, `cleared (wave ${r.wave}, ${r.s} s, in ${r.rooms.join(' → ')})`);
   assert.equal(r.wave, 6, 'after six waves');
   assert.deepEqual(r.rooms, r.floor, 'through the floor’s three rooms, in its order');
-  for (const name of ['機槍手', '排槍手', '霰彈手']) assert.ok(r.notes.some((t) => t.includes(name)), `${name} in the notes (the heavy guns: 彈幕試驗 ⑦)`);
+  assert.ok(r.notes.some((t) => t.startsWith('第 1 波開始：') && t.includes('THUG')), `the arcade's men (彈幕 ② A①): ${r.notes.find((t) => t.startsWith('第 1 波開始'))}`);
+  assert.ok(r.notes.some((t) => t.includes('守住開火位')), 'someone held a post (the far side)');
   assert.ok(r.notes.some((t) => t.includes('擦彈')), r.notes.slice(-12).join(' / '));
   assert.deepEqual(problems(logs), []);
 });

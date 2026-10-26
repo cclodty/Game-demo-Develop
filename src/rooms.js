@@ -28,6 +28,10 @@
 //   w, d] its cooking counter, a solid 1 m high of the 'counter' material), theme (four point lights, as every map), floor, budget,
 //   entry: [side, at]: the gate the player comes in by, in a low wall (he starts 1.4 m inside it),
 //   exit: [side, at]: the door he goes on by, in a tall wall,
+//   posts: [[x, z, coverX?, coverZ?]]: the far side's firing posts (彈幕 ② A①, config.js HELL): where the room's gunners
+//   go to stand and fire from, at least four, all in the half of the room away from the entry, each walkable and
+//   seeing most of the room (test/hell.test.mjs); with the middle of the table a post stands behind, when it does:
+//   that table gone (flipped and shot to bits), the post is given up,
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
 //   towards the player }, dist } }
 
@@ -85,6 +89,7 @@ export function room(t) {
     tools: (t.trolleys || []).map(([x, z, angle]) => [x, z, 'trolley', angle, 'dimsum']),
     fixtures: [...t.tables.map(([x, z, r]) => [x, z, 'table', 0, r, t.tableLook || 'cloth']), [ex, ez, 'exit', ef, ...EXIT_DOOR]],
     spawns: t.doors.map(([side, at]) => doorSpawn(side, at, halfW, halfD)),
+    posts: t.posts || [],
     camera: t.camera,
     budget: t.budget,
     room: t, // the template itself (tests)
@@ -248,6 +253,8 @@ export const TEAHOUSE = room({
   trolleys: [[-9, 5.5, 0], [9, -5.5, Math.PI]],
   entry: ['s', 0],
   exit: ['n', 0], // between its two north doors, a table before it
+  // the far side: behind the north row's three tables, and the north ends of the two side aisles
+  posts: [[-6, -5.2, -6, -3], [0, -5.2, 0, -3], [6, -5.2, 6, -3], [-9.5, -1], [9.5, -1]],
   floor: 'teahouse',
   theme: teaTheme([
     [-3, -3],
@@ -280,6 +287,8 @@ export const BANQUET = room({
   trolleys: [[-3, 5.6, 0], [-8, -5.6, Math.PI]],
   entry: ['w', 0],
   exit: ['e', 0],
+  // the far side is the east: behind its two small tables, by the east wall, and either side of the big table's far end
+  posts: [[8, -3.5, 6, -3.5], [8, 3.5, 6, 3.5], [3, -5.8], [3, 5.8], [8.5, 0]],
   floor: 'teahouse',
   theme: teaTheme([
     [-3.5, -2.5],
@@ -310,6 +319,8 @@ export const SIDEHALL = room({
   trolleys: [[-3.5, -4.8, 0], [9.5, -5.2, Math.PI]],
   entry: ['s', 7],
   exit: ['n', -7],
+  // the far side is the north: behind its two north tables, the north-west corner by the exit, and the middle
+  posts: [[-7.5, -4.6, -7.5, -2.5], [2.5, -4.6, 2.5, -2.5], [-9.8, -1.5], [-3.5, -2.6]],
   floor: 'teahouse',
   theme: teaTheme([
     [-5, -2],
@@ -344,6 +355,8 @@ export const DAIPAIDONG = room({
   dress: 'stall',
   entry: ['s', -6],
   exit: ['e', -3],
+  // the far side is the north: behind the three tables nearest the stall, and the lane's two far corners
+  posts: [[-1, -5, -1, -3], [4, -2.4, 4, -0.5], [-6, -2.4, -6, -0.5], [-9.6, -2.5], [9.5, -3]],
   floor: 'asphalt',
   theme: {
     bg: 0x07080c,
