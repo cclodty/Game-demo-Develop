@@ -34,11 +34,17 @@
 //   that table gone (flipped and shot to bits), the post is given up,
 //   boss: the room's boss (maps.js `boss`, boss.js BOSSES: { kind, perches… }), fought on the room's last wave (waves.js);
 //   with `danmaku: true` the kind's bullet-hell moves are on (彈幕 ② D①),
+//   flocks: [[x, z]] pigeon flocks resting on the floor (level.js Flock, ambient.js Pigeons: a shot or a runner close by
+//   bursts them up, an enemy aiming within ENV.flockReach loses his aim, PIGEON STRIKE), pool: [x, z, r] a round
+//   fountain pool, a solid knee-high rim with water in it (level.js `water`: a man knocked over its rim is gone, SPLASH),
+//   dress 'plaza' (E①),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
 //   towards the player }, dist } }
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { Pigeons } from './ambient.js';
+import { PLAZA_ROOM } from './config.js';
 import { corrugatedTexture } from './textures.js';
 
 /** A door on side `side`, `at` m along it from its middle: where a man comes in (the wall's inner face) and the spot 2.2 m in. */
@@ -93,6 +99,8 @@ export function room(t) {
     spawns: t.doors.map(([side, at]) => doorSpawn(side, at, halfW, halfD)),
     posts: t.posts || [],
     boss: t.boss || null, // its boss, on its last wave (D①)
+    flocks: t.flocks || [], // pigeons (E①)
+    water: t.pool ? [{ x: t.pool[0], z: t.pool[1], r: t.pool[2] - 0.35 }] : [], // the pool's water, inside its rim
     camera: t.camera,
     budget: t.budget,
     room: t, // the template itself (tests)
@@ -116,7 +124,54 @@ function decorateRoom(L, t, entry, exit) {
   const gold = std({ color: 0xc9a24a, roughness: 0.4, metalness: 0.6 });
   const posts = entryGate(L, entry, std, merged);
   if (t.dress === 'stall') dressStall(L, t, std, merged, posts, gold);
+  else if (t.dress === 'plaza') dressPlaza(L, t, std, merged, posts, gold);
   else dressTea(L, t, exit, std, merged, posts, gold);
+}
+
+/**
+ * The plaza (E①): the fountain in the middle, a knee-high round rim (a solid: cover, and a man knocked over it lands in
+ * the water) with a basin and a lamp-topped pedestal above the water, benches by the walls, and the pigeons on the
+ * flocks' spots. The rim is a polygon solid of the level's, the water its `water` circle (room()).
+ */
+function dressPlaza(L, t, std, merged, posts, gold) {
+  merged(posts, gold, false);
+  const [px, pz, pr] = t.pool;
+  const P = PLAZA_ROOM;
+  const ring = [];
+  for (let k = 0; k < 20; k++) {
+    const a = (k / 20) * Math.PI * 2;
+    ring.push([px + Math.cos(a) * pr, pz + Math.sin(a) * pr]);
+  }
+  L.addPoly(ring, P.rim, 'wall').low = true; // the rim: knee high, shots and sight pass over it (`low`, as an upright table), bodies and the nav stop at it
+  const stone = std({ color: 0x9a9690, roughness: 0.8 });
+  const rim = new THREE.Mesh(L.own(new THREE.CylinderGeometry(pr + 0.05, pr + 0.15, P.rim, 28, 1, true)), stone);
+  rim.position.set(px, P.rim / 2, pz);
+  rim.castShadow = true;
+  L.add(rim);
+  const water = new THREE.Mesh(L.own(new THREE.CircleGeometry(pr - 0.05, 28)), std({ color: 0x1c3a4a, roughness: 0.15, metalness: 0.3 }));
+  water.rotation.x = -Math.PI / 2;
+  water.position.set(px, P.rim - 0.14, pz);
+  water.name = 'pool-water';
+  L.add(water);
+  const basin = new THREE.Mesh(L.own(new THREE.CylinderGeometry(pr * 0.42, pr * 0.3, 0.35, 16)), stone);
+  basin.position.set(px, P.rim + 0.5, pz);
+  basin.castShadow = true;
+  L.add(basin);
+  const column = new THREE.Mesh(L.own(new THREE.CylinderGeometry(0.16, 0.22, P.rim + 0.5, 10)), stone);
+  column.position.set(px, (P.rim + 0.5) / 2, pz);
+  L.add(column);
+  const lamp = new THREE.Mesh(L.own(new THREE.SphereGeometry(0.28, 12, 8)), L.own(new THREE.MeshBasicMaterial({ color: 0xffe9b0 })));
+  lamp.position.set(px, P.rim + 1.1, pz);
+  lamp.name = 'fountain-lamp';
+  L.add(lamp);
+  // benches along the long walls, between the doors
+  const benches = [];
+  for (const [bx, bz] of t.benches || []) {
+    benches.push(new THREE.BoxGeometry(1.8, 0.08, 0.45).translate(bx, 0.45, bz));
+    for (const s of [-0.7, 0.7]) benches.push(new THREE.BoxGeometry(0.08, 0.45, 0.4).translate(bx + s, 0.22, bz));
+  }
+  merged(benches, std({ color: 0x4a3a2c, roughness: 0.7 }), true, 'benches');
+  L.ambient.push(new Pigeons(L, P.birds));
 }
 
 /** The entry gate in its low wall, shut behind the player; its gold parts (posts, a rail) for the caller to merge with its own. */
@@ -526,7 +581,54 @@ export const FRONTHALL = room({
   budget: { ...ROOM_BUDGET, tris: 150000 }, // two bosses' worn models at once: 134,345 triangles with the pair in (test/fronthall.test.mjs); the draw calls (the weak-GPU number) stay about 110
 });
 
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
+/**
+ * The plaza (廣場, 彈幕 ② E①): the square remade as a room. The fountain pool in the middle (its rim cover, its water
+ * where a man knocked over the rim ends up: SPLASH), two pigeon flocks resting on the open floor either side of it
+ * (a shot or a runner bursts them up, and a man aiming within 2 m of the cloud loses his aim: PIGEON STRIKE), benches
+ * by the walls. 22 × 15 m, in at the south, out at the north.
+ */
+export const PLAZA = room({
+  id: 'plaza',
+  rev: 1,
+  name: '廣場',
+  en: 'PLAZA',
+  desc: '噴水池的廣場：白鴿驚起擋住瞄準，把人踢落水。',
+  color: '#8fc8ff',
+  size: [22, 15],
+  walls: [3.2, 'concrete', null],
+  low: [0.9, ['s', 'w']],
+  doors: [['n', -6], ['n', 6], ['e', -3], ['e', 3]],
+  tables: [],
+  pool: [0, 0, 2.2],
+  flocks: [[-6, 0.5], [6, -0.5]],
+  benches: [[-6, -6.6], [6, -6.6], [-9.9, 3], [9.9, -3]],
+  entry: ['s', 0],
+  exit: ['n', 0],
+  // the far side: the north ends of the aisles, and the north side of the pool
+  posts: [[-8.5, -5], [8.5, -5], [0, -4.2], [-9.5, -1], [9.5, -1]],
+  dress: 'plaza',
+  floor: 'asphalt',
+  theme: {
+    bg: 0x070a10,
+    fog: [0x0a0e14, 0.004],
+    hemi: [0xb8c8ff, 0x16140e, 0.8],
+    moon: [0xa8b8ff, 0.5],
+    sunDir: [-8, 30, 12],
+    // four street lamps at the corners of the square
+    points: [
+      [0xffd9a0, -7, 5, -4, 22, 16],
+      [0xffd9a0, 7, 5, -4, 22, 16],
+      [0xffc890, -7, 5, 4, 22, 16],
+      [0xffc890, 7, 5, 4, 22, 16],
+    ],
+    rain: false,
+    bloom: { strength: 0.6, threshold: 0.85 },
+  },
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
 
 /**
  * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of

@@ -132,6 +132,9 @@ export const HELL = {
   beat: 0.5,
 };
 
+/** The plaza room (rooms.js PLAZA, 彈幕 ② E①): the fountain's rim height (a solid shots fly over) and how many pigeons it keeps. */
+export const PLAZA_ROOM = { rim: 0.45, birds: 18 };
+
 /**
  * The style cards (彈幕 ② C②, cards.js): at the end of every floor but the last the player picks one of `offer`.
  * The numbers each card plays by: `reflectDamage` is what a round turned back (a slide, a flipped table, a graze in

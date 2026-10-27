@@ -1258,7 +1258,7 @@
 - 驗收：
   - [x] 測試：六張卡各一個效果測試；同種子同三張；重播帶回揀過的卡（`test/cards.test.mjs` 八個）
   - [x] 選卡畫面截圖（`docs/shots/hell/cards.jpg`）；結束畫面有揀過的卡
-  - [ ] npm run lint && npm test && npm run test:game 通過（lint 與直接相關的測試在本機過；全套由 CI 跑）
+  - [x] npm run lint && npm test && npm run test:game 通過（CI 在 4287227 全綠；test:game 本機 3 個通過）
 - 這次不做：成就解鎖新卡、第二批卡
 - 做了：層尾加大波清空後先出三選一（`waves.js` 狀態 `cards`），揀了才開門；揀卡是輸入記錄裡的 1／2／3（`input.js` `BUTTONS` 末尾加 `Digit3`），所以重播自然同一張；畫面的三張卡按下去、手掣（十字鍵或 LB／RB 揀、A 確定）都只是「按下那個數字」。滑鏟本來就在子彈底下穿過，所以「滑鏟反彈」改成：滑鏟時本來飛過頭頂的子彈彈回去；「人盾引爆」在推出去的人撞到人、落地或 `CARDS.boomFuse` 0.8 秒時爆（半徑 3.5）；三種反彈都是 `bullets.js` `turnBack`：變成你的子彈、瞄最近看得到的人、傷害 `CARDS.reflectDamage` 2。事件記錄與回饋匯出的一行都有揀過的卡
 
@@ -1269,7 +1269,7 @@
 - 驗收：
   - [x] 標題只有一張模式卡（加設定、排行榜、重播）；`?mode=arcade` 等仍進得去；1280 × 720 不用捲（`test/title.test.mjs` 新一個：一張卡、冇每日卡冇地圖卡、不用捲；`?modes=all`／`?mode=night` 帶回四張）
   - [x] 熱身三個敵人教三樣；截圖（`test/tutorial.test.mjs`：第二個站在手臂前、抓得到；第三個站在圓枱後；`test/.out/warmup-1..3.png`）
-  - [ ] npm run lint && npm test 通過（lint 與直接相關的測試在本機過；全套由 CI 跑）
+  - [x] npm run lint && npm test 通過（CI 在 4287227 三個 shard 全綠）
 - 這次不做：刪舊模式、刪舊地圖
 - 做了：`MODES` 的街機／無盡／每日／澳門一夜標 `legacy`，模式 id 與次序不變（`danmaku` 仍是記錄裡的第 5 個）；名字暫定「子彈芭蕾 BULLET BALLET」，開發者改一行 `waves.js` 就換。標題：`?modes=all`、`?mode=<舊模式>`、或以前揀過舊模式（localStorage 記住的）才顯示四張卡、每日卡、地圖卡；否則一張大卡，地圖那行只寫三層的房。測試工具在沒有 `?mode=` 的頁面先存「街機」，所以舊測試照跑；新標題的測試用 `?mode=danmaku`
 
@@ -1278,8 +1278,8 @@
 - 漂亮的解法：打得精彩——頭目是最大的題目
 - 涉及：`src/boss.js`、`src/rooms.js`（頭目房）、`src/waves.js`（層尾）、各頭目的測試
 - 驗收（每張）：
-  - [ ] 測試：招式的預告、彈數、缺口；機械人打贏他
-  - [ ] 截圖；npm run lint && npm test && npm run test:game 通過
+  - [x] 測試：招式的預告、彈數、缺口；機械人打贏他（四個頭目各一個測試檔）
+  - [x] 截圖；npm run lint && npm test && npm run test:game 通過（截圖四張；lint 與 npm test 在 CI 4287227 全綠；test:game 本機 3 個通過）
 - 這次不做：新頭目、頭目做人盾
 
 #### D①：刀后入房 ✅ 2026-10-26
@@ -1303,10 +1303,15 @@
 - 漂亮的解法：地圖會說話
 - 涉及：`src/rooms.js`、`src/level.js`／`fixtures.js`（互動件搬入房）、`test/rooms.test.mjs`、`test/floor.test.mjs`
 - 驗收（每間）：
-  - [ ] 過地圖驗證（走得到 ≥ 95%、開局繪製 ≤ 400、四盞點燈、由起點走得到出口）；一個畫面看得完；地面亮度 < 0.2
-  - [ ] 獨特互動一個測試；截圖
-  - [ ] npm run lint && npm test 通過
+  - [x] E① 過地圖驗證（走得到 ≥ 95%、開局繪製 ≤ 400、四盞點燈、由起點走得到出口）；一個畫面看得完；地面亮度 < 0.2（`test/maps.test.mjs`、`test/rooms.test.mjs`、`test/plaza.test.mjs`）
+  - [x] E① 獨特互動一個測試；截圖（`test/plaza.test.mjs` 三個：白鴿驚起打斷瞄準、踢人落水；`docs/shots/hell/plaza.jpg`）
+  - [x] E① npm run lint && npm test 通過（CI 在 9bf2bcf 六個 check 全綠）
+  - [ ] E②–E⑦ 各自的三個框
 - 這次不做：新模型、新音效、實景比例
+
+#### E①：廣場 ✅ 2026-10-26
+- 做了：`rooms.js` `PLAZA`（廣場 PLAZA，22 × 15，水泥牆、柏油地、四角街燈），加入打鬥房的抽選池（`floor.pool`）。獨特互動兩件，都是議事亭現成的系統搬入房：兩群白鴿歇在噴水池兩邊的空地（模板 `flocks` → `level.flocks`、`ambient.js` `Pigeons`），一槍或一個人跑過就驚起，雲裏 2 米內瞄準中的人失去瞄準半秒（PIGEON STRIKE）；中央噴水池（模板 `pool: [x, z, r]`）——池緣 0.45 米高的圓形實體（`low`：子彈與視線飛過、人與尋路停住），池內是水（`level.water`），把人踢過池緣就跌落水（SPLASH）。長凳是裝飾。`config.js` `PLAZA_ROOM` { rim 0.45, birds 18 }
+- 這次不做：E②–E⑦；水花、噴泉的動畫；舊的議事亭地圖照留
 
 ## 第四階段「一夜」②：實地重建（2026-10-22 起；`docs/GOAL.md`）
 
