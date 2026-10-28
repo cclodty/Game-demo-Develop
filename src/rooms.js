@@ -48,6 +48,13 @@
 //   down (level.js Barrel tip: ROLLING); across the slope either side of the flight [x0, x1] a planter `planter` m over
 //   the higher ground (low: shots and sight pass over it, bodies and the nav stop at it), so the flight is the one way
 //   between the levels; `treads` steps drawn on it; dress 'steps' (E③),
+//   shops: { depth, wall, h, door, shutter, list: [{ x: [x0, x1], front: 'door' | 'shutter' }] }: a row of shophouses
+//   along the north wall, `depth` m deep behind a front wall `wall` m thick and `h` high, side by side west to east;
+//   each one's street opening shut by a door `door` m wide (fixtures.js 'door': the player's kick slams it open, SLAM;
+//   a man walking into it pushes it open) or by a roller shutter over one `shutter` m wide (fixtures.js 'shutter': shot
+//   or kicked at its lock post it drops, SHUTTER, and shuts the opening till the wave is down); a door in each wall
+//   between two shops, so the row is a way through the houses (as 福隆新街's shops are: maps.js felicidadeWalls);
+//   cutaway: the camera's see-through hole round the player (main.js), for a room with rooms in it; dress 'shops' (E④),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
 //   towards the player }, dist } }
 
@@ -88,6 +95,7 @@ export function room(t) {
   const [nx, nz, nf] = wallPoint(...t.entry, halfW, halfD);
   const round = (v) => Math.round(v * 100) / 100;
   const start = [round(nx + Math.sin((nf * Math.PI) / 180) * ENTRY_IN), round(nz + Math.cos((nf * Math.PI) / 180) * ENTRY_IN)];
+  const shops = t.shops ? shopWalls(t) : { solids: [], fixtures: [] }; // the street's shophouses (E④)
   return {
     id: t.id,
     rev: t.rev,
@@ -102,10 +110,11 @@ export function room(t) {
     theme: t.theme,
     floor: t.floor,
     edges: { n: wall('n'), s: wall('s'), w: wall('w'), e: wall('e') },
-    solids: [...(t.solids || []), ...(t.stall ? [[...t.stall, 1.0, 'counter']] : [])],
+    solids: [...(t.solids || []), ...(t.stall ? [[...t.stall, 1.0, 'counter']] : []), ...shops.solids],
     barrels: t.barrels || [],
     tools: (t.trolleys || []).map(([x, z, angle]) => [x, z, 'trolley', angle, 'dimsum']),
-    fixtures: [...t.tables.map(([x, z, r]) => [x, z, 'table', 0, r, t.tableLook || 'cloth']), [ex, ez, 'exit', ef, ...EXIT_DOOR]],
+    fixtures: [...t.tables.map(([x, z, r]) => [x, z, 'table', 0, r, t.tableLook || 'cloth']), [ex, ez, 'exit', ef, ...EXIT_DOOR], ...shops.fixtures],
+    cutaway: !!t.cutaway,
     spawns: t.doors.map(([side, at]) => doorSpawn(side, at, halfW, halfD)),
     posts: t.posts || [],
     boss: t.boss || null, // its boss, on its last wave (D①)
@@ -140,7 +149,61 @@ function decorateRoom(L, t, entry, exit) {
   else if (t.dress === 'plaza') dressPlaza(L, t, std, merged, posts, gold);
   else if (t.dress === 'track') dressTrack(L, t, std, merged, posts, gold);
   else if (t.dress === 'steps') dressSteps(L, t, std, merged, posts, gold);
+  else if (t.dress === 'shops') dressStreet(L, t, std, merged, posts, gold);
   else dressTea(L, t, exit, std, merged, posts, gold);
+}
+
+/**
+ * The street's row of shophouses (rooms.js `shops`) as data: each one's front, two pieces either side of its opening,
+ * and the door or the shutter that shuts it; between two shops a wall in two pieces and the door between them. The
+ * north wall is their back, the room's walls their ends. 福隆新街's shops are built the same way (maps.js).
+ */
+function shopWalls(t) {
+  const { depth, wall: w, h, door, shutter, list } = t.shops;
+  const back = -t.size[1] / 2;
+  const frontZ = back + depth + w / 2; // the front wall's middle
+  const midZ = back + depth / 2; // a shop's room's middle
+  const solids = [];
+  const fixtures = [];
+  list.forEach((shop, i) => {
+    const [x0, x1] = shop.x;
+    const cx = (x0 + x1) / 2;
+    const open = shop.front === 'shutter' ? shutter : door;
+    // a shutter's lock post stands clear of the wall (fixtures.js: a prop bullets find): a slot either side too narrow for a body
+    const slot = shop.front === 'shutter' ? 0.3 : 0;
+    const a = cx - open / 2 - slot;
+    const b = cx + open / 2 + slot;
+    solids.push([(x0 + a) / 2, frontZ, a - x0, w, h, 'brick'], [(b + x1) / 2, frontZ, x1 - b, w, h, 'brick']);
+    if (shop.front === 'shutter') fixtures.push([cx - open / 2, frontZ, 'shutter', 90, open, h - 0.2]);
+    else fixtures.push([cx, frontZ, 'door', 0, open, 2.3]);
+    if (i + 1 < list.length) {
+      const part = (depth - door) / 2;
+      for (const j of [-1, 1]) solids.push([x1, midZ + j * (door / 2 + part / 2), w, part, h, 'brick']);
+      fixtures.push([x1, midZ, 'door', 90, door, 2.3]);
+    }
+  });
+  return { solids, fixtures };
+}
+
+/**
+ * The shop street (E④): over each shop's opening a signboard (lit, in its own colour: no names on them) on the
+ * front wall's street face, and a strip of light along the top of the row; the walls and the doors are the level's.
+ */
+function dressStreet(L, t, std, merged, posts, gold) {
+  merged(posts, gold, false);
+  const { depth, wall: w, h, list } = t.shops;
+  const frontZ = -t.size[1] / 2 + depth + w / 2;
+  const face = frontZ + w / 2 + 0.06; // just out from the front wall's street face
+  const colours = [0xff4a3a, 0x38d6c8, 0xffb43a];
+  const boards = colours.map(() => []);
+  list.forEach((shop, i) => {
+    const [x0, x1] = shop.x;
+    const cx = (x0 + x1) / 2;
+    boards[i % colours.length].push(new THREE.BoxGeometry(Math.min(3.4, x1 - x0 - 1.2), 0.42, 0.08).translate(cx, h - 0.05, face));
+  });
+  boards.forEach((parts, i) => merged(parts, std({ color: colours[i], emissive: colours[i], emissiveIntensity: 0.9 }), false, 'shop-signs'));
+  // the row's eaves: a dark ledge along its top on the street side
+  merged([new THREE.BoxGeometry(t.size[0], 0.12, 0.5).translate(0, h + 0.06, face + 0.2)], L.mat.darkMetal, true, 'eaves');
 }
 
 /** The ground's height at z along a profile [[z, y], …] given from south to north (rooms.js `steps`): level beyond its ends. */
@@ -940,7 +1003,56 @@ export const STEPS = room({
   budget: ROOM_BUDGET,
 });
 
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
+/**
+ * The shop street (直街, 彈幕 ② E④): a row of three old shophouses along the north wall, the street before them. The
+ * two end shops' fronts are wooden doors (kicked open, the man behind goes flying: SLAM), the middle one's a roller
+ * shutter over a wide opening (shot at its lock post it drops, SHUTTER, and shuts the shop till the wave is down) with
+ * the exit in its back wall; a door in each wall between them, so the row is a way through the houses to come out
+ * behind the gunners on the street. The men come in at the end shops' backs and out through their doors. 22 × 15 m, in
+ * at the south, out at the north.
+ */
+export const STREET = room({
+  id: 'shopstreet',
+  rev: 1,
+  name: '直街',
+  en: 'SHOP STREET',
+  desc: '直街一排舊舖：踢開舖門撞飛門後的人，穿屋繞到後面，射落鐵閘封住中間那間。',
+  color: '#ff5a4a',
+  size: [22, 15],
+  walls: [3.2, 'brick', null],
+  low: [0.9, ['s', 'w']],
+  doors: [['n', -7.5], ['n', 7.5], ['e', -5.25], ['e', 3]], // three into the end shops' backs, one onto the street
+  tables: [[-5.5, 0.3, 0.7], [5.5, 0.3, 0.7], [0, 3.6, 0.7]],
+  tableLook: 'folding',
+  shops: { depth: 4.5, wall: 0.3, h: 2.8, door: 2, shutter: 3.2, list: [{ x: [-11, -3.75], front: 'door' }, { x: [-3.75, 3.75], front: 'shutter' }, { x: [3.75, 11], front: 'door' }] },
+  cutaway: true,
+  dress: 'shops',
+  entry: ['s', 0],
+  exit: ['n', 0], // in the middle shop's back wall
+  // the far side: the street before the shops, either side of their openings and behind the two north tables
+  posts: [[-9.5, -1.4], [-5.5, -1.7, -5.5, 0.3], [-2.4, -1.6], [2.4, -1.6], [5.5, -1.7, 5.5, 0.3], [9.5, -1.4]],
+  floor: 'concrete',
+  theme: {
+    bg: 0x0d0808,
+    fog: [0x140c0c, 0.004],
+    hemi: [0xffc8b0, 0x1a0e0c, 0.8],
+    moon: [0xb0b8ff, 0.4],
+    sunDir: [-8, 30, 12],
+    // warm red over the street, a bare bulb in each end shop
+    points: [
+      [0xff9a70, -5, 4.5, 2, 22, 16],
+      [0xff9a70, 5, 4.5, 2, 22, 16],
+      [0xffd0a0, -7.4, 2.5, -5.2, 12, 10],
+      [0xffd0a0, 7.4, 2.5, -5.2, 12, 10],
+    ],
+    rain: false,
+    bloom: { strength: 0.6, threshold: 0.85 },
+  },
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, shopstreet: STREET, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
 
 /**
  * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of

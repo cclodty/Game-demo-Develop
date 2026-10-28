@@ -518,8 +518,9 @@ export class Fixture {
     }
     const p = g.player;
     if (p.alive && under(p, 0.3)) p.hurt(ENV.shutterDamage, ax, az, true, '鐵閘');
-    const across = Math.abs(ax) > Math.abs(az);
-    this.solid = this.level.addBox(this.midX, this.midZ, across ? this.w : 0.3, across ? 0.3 : this.w, this.h, null, 'wall', { visible: false });
+    // the curtain's box runs the opening's way, from the lock post along `facing` (a door's runs across its facing)
+    const along = Math.abs(dx) > Math.abs(dz);
+    this.solid = this.level.addBox(this.midX, this.midZ, along ? this.w : 0.3, along ? 0.3 : this.w, this.h, null, 'wall', { visible: false });
     this.level.nav.buildRect(this.level.solids, 0.5, Math.min(this.x, this.endX) - 1, Math.min(this.z, this.endZ) - 1, Math.max(this.x, this.endX) + 1, Math.max(this.z, this.endZ) + 1);
     g.fx.debris(this.midX, 0.2, this.midZ, 0, 0, 8, [0.3, 0.3, 0.34], 0.08);
     g.shake(0.35);
