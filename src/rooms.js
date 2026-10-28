@@ -58,6 +58,9 @@
 //   edges: { side: [height, material, trim] } a side's edge other than its wall (the quay's curb: E⑤), water: [{ x, z, w,
 //   d }] water beyond it (level.js: a man knocked into it is gone, SPLASH), trolleyLook: the trolleys' (fixtures' Trolley
 //   variant: 'dimsum', the teahouse's, by default; 'trolley' the docks' hand trolley), dress 'quay' (E⑤),
+//   laundry: { lines: [[x0, z0, x1, z1]], sheet, gap }: washing hung out on bamboo poles, each line along x or z, sheets
+//   `sheet` m wide `gap` m apart along it (level.js veils: an enemy cannot see the player through a sheet, a shot goes
+//   through it, a kill through one is LAUNDRY DAY), dress 'roof' (E⑥),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
 //   towards the player }, dist } }
 
@@ -65,7 +68,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Pigeons } from './ambient.js';
 import { PLAZA_ROOM } from './config.js';
-import { corrugatedTexture } from './textures.js';
+import { corrugatedTexture, windowTexture } from './textures.js';
 
 /** A door on side `side`, `at` m along it from its middle: where a man comes in (the wall's inner face) and the spot 2.2 m in. */
 function doorSpawn(side, at, halfW, halfD) {
@@ -123,6 +126,7 @@ export function room(t) {
     boss: t.boss || null, // its boss, on its last wave (D①)
     flocks: t.flocks || [], // pigeons (E①)
     water: [...(t.pool ? [{ x: t.pool[0], z: t.pool[1], r: t.pool[2] - 0.35 }] : []), ...(t.water || [])], // the pool's water, inside its rim; the quay's sea
+    veils: t.laundry ? laundrySheets(t).map((q) => q.box) : [], // the roof's washing: sight stops at a sheet (E⑥)
     race: t.track ? { first: t.track.first, every: t.track.every, lanes: t.track.lanes, line: bendLine(t.track) } : null, // the racing cars (E②)
     ground: t.steps ? profileGround(t.steps.profile) : null, // the steps' two levels (E③)
     slope: t.steps ? profileSlope(t.steps.profile) : null,
@@ -154,6 +158,7 @@ function decorateRoom(L, t, entry, exit) {
   else if (t.dress === 'steps') dressSteps(L, t, std, merged, posts, gold);
   else if (t.dress === 'shops') dressStreet(L, t, std, merged, posts, gold);
   else if (t.dress === 'quay') dressQuay(L, t, std, merged, posts, gold);
+  else if (t.dress === 'roof') dressRoof(L, t, std, merged, posts, gold);
   else dressTea(L, t, exit, std, merged, posts, gold);
 }
 
@@ -193,6 +198,80 @@ function dressQuay(L, t, std, merged, posts, gold) {
   }
   merged(glints, L.own(new THREE.MeshBasicMaterial({ color: 0x9a6a3a })), false, 'glints');
   merged(lights, L.own(new THREE.MeshBasicMaterial({ color: 0xffc070 })), false, 'far-shore');
+}
+
+/**
+ * The sheets on the roof's laundry lines (E⑥, `laundry`): along each line as many as fit, `gap` m apart and the row
+ * centred on it; each sheet's middle, its width, the way its line runs, and its box (level.js veils: 0.1 m thick).
+ */
+function laundrySheets(t) {
+  const { lines, sheet, gap } = t.laundry;
+  const out = [];
+  const round = (v) => Math.round(v * 100) / 100;
+  for (const [x0, z0, x1, z1] of lines) {
+    const len = Math.hypot(x1 - x0, z1 - z0);
+    const [ux, uz] = [(x1 - x0) / len, (z1 - z0) / len];
+    const n = Math.floor((len + gap) / (sheet + gap));
+    const first = (len - (n * sheet + (n - 1) * gap)) / 2 + sheet / 2;
+    for (let k = 0; k < n; k++) {
+      const a = first + k * (sheet + gap);
+      const [x, z] = [x0 + ux * a, z0 + uz * a];
+      const [hx, hz] = [Math.abs(ux) * (sheet / 2) + Math.abs(uz) * 0.05, Math.abs(uz) * (sheet / 2) + Math.abs(ux) * 0.05];
+      out.push({ x, z, w: sheet, along: Math.abs(ux) > 0.5 ? 'x' : 'z', box: [round(x - hx), round(z - hz), round(x + hx), round(z + hz)] });
+    }
+  }
+  return out;
+}
+
+/**
+ * The rooftop (E⑥): the washing (bamboo poles on iron stands at each line's ends, the sheets in four colours, hung
+ * from the pole, some longer than others: what they hide is the level's veils, not these), a strip of pink neon along
+ * the stair hut's wall, two aerials on it, and the next towers' lit windows beyond, dimmed (bullets stand out).
+ */
+function dressRoof(L, t, std, merged, posts, gold) {
+  merged(posts, gold, false);
+  const halfW = t.size[0] / 2;
+  const halfD = t.size[1] / 2;
+  const top = 2.05; // the poles' height
+  const poles = [];
+  const iron = [];
+  for (const [x0, z0, x1, z1] of t.laundry.lines) {
+    const len = Math.hypot(x1 - x0, z1 - z0);
+    const pole = new THREE.CylinderGeometry(0.035, 0.035, len + 0.5, 6).rotateZ(Math.PI / 2);
+    if (Math.abs(z1 - z0) > Math.abs(x1 - x0)) pole.rotateY(Math.PI / 2);
+    poles.push(pole.translate((x0 + x1) / 2, top, (z0 + z1) / 2));
+    for (const [x, z] of [[x0, z0], [x1, z1]]) {
+      iron.push(new THREE.CylinderGeometry(0.04, 0.04, top + 0.1, 6).translate(x, (top + 0.1) / 2, z));
+      iron.push(new THREE.CylinderGeometry(0.22, 0.25, 0.06, 8).translate(x, 0.03, z));
+    }
+  }
+  merged(poles, std({ color: 0xc8a868, roughness: 0.6 }), true, 'bamboo');
+  const colours = [0xe9e4d8, 0x6aa8d8, 0xe0806e, 0xf2cc66];
+  const cloth = colours.map(() => []);
+  laundrySheets(t).forEach((q, k) => {
+    const drop = [1.4, 1.0, 1.25][k % 3];
+    const geo = q.along === 'x' ? new THREE.BoxGeometry(q.w - 0.06, drop, 0.03) : new THREE.BoxGeometry(0.03, drop, q.w - 0.06);
+    cloth[k % colours.length].push(geo.translate(q.x, top - 0.04 - drop / 2, q.z));
+  });
+  cloth.forEach((parts, k) => merged(parts, std({ color: colours[k], roughness: 0.95 }), true, 'sheets'));
+  // the stair hut's wall: a strip of neon, two aerials on top
+  merged([new THREE.BoxGeometry(halfW * 1.4, 0.08, 0.06).translate(-halfW * 0.25, 2.7, -halfD + 0.05)], L.mat.neonPink, false, 'neon');
+  for (const [x, h] of [[1.5, 3.2], [3.2, 2.4]]) {
+    iron.push(new THREE.BoxGeometry(0.05, h, 0.05).translate(x, t.walls[0] + h / 2, -halfD - 0.8));
+    iron.push(new THREE.BoxGeometry(1.2, 0.04, 0.04).translate(x, t.walls[0] + h * 0.8, -halfD - 0.8));
+  }
+  merged(iron, L.mat.darkMetal, true, 'iron');
+  // the next towers, north and east: lit windows (no names anywhere)
+  const tex = L.own(windowTexture(0.3));
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(2, 3);
+  const towers = [[-14, -20, 9, 8, 18], [-3, -24, 10, 9, 26], [9, -19, 8, 7, 14], [20, -15, 8, 10, 20], [21, -2, 8, 9, 9], [-24, -12, 9, 9, 22]];
+  const city = new THREE.InstancedMesh(L.own(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0)), L.own(new THREE.MeshStandardMaterial({ color: 0x14131c, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.55, roughness: 0.9 })), towers.length);
+  const m = new THREE.Matrix4();
+  towers.forEach(([x, z, w, d, h], i) => city.setMatrixAt(i, m.makeScale(w, h + 30, d).setPosition(x, -30, z)));
+  city.frustumCulled = false;
+  city.name = 'towers';
+  L.add(city);
 }
 
 /**
@@ -1146,7 +1225,58 @@ export const QUAY = room({
   budget: ROOM_BUDGET,
 });
 
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, shopstreet: STREET, quay: QUAY, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
+/**
+ * The rooftop (天台, 彈幕 ② E⑥): a tenement's flat roof at night, in the rain. Washing hung out on bamboo poles across
+ * the middle (`laundry`): a gunner cannot see the player through a sheet, but a shot goes through it either way, so a
+ * line of sheets is cover that stops no bullet (a kill through one: LAUNDRY DAY). LPG cylinders on the player's side:
+ * kicked, one jets off at the gunners and bursts on the first it meets (ROCKET CAN; a red barrel by their posts for a
+ * CHAIN). The parapet low along the south and west, the stair hut's wall to the north and the next block's to the
+ * east; 22 × 15 m, in at the south, out by the stair hut.
+ */
+export const ROOF = room({
+  id: 'roof',
+  rev: 1,
+  name: '天台',
+  en: 'ROOFTOP',
+  desc: '天台：晾衫竹上的被單擋住視線，子彈照穿；踢氣樽射向開火位。',
+  color: '#ff3fa4',
+  size: [22, 15],
+  walls: [3.2, 'concrete', null],
+  low: [1.0, ['s', 'w']],
+  edges: { s: [1.0, 'parapet', 'neonCyan'], w: [1.0, 'parapet', 'neonCyan'] }, // the roof's parapet, neon along its top
+  doors: [['n', -1.5], ['e', -3], ['e', 2]], // the stair hut's door and the next block's
+  tables: [[3, 4.6, 0.6]], // a folding table the neighbours sit out at
+  tableLook: 'folding',
+  laundry: { lines: [[-9.5, -2, -3.5, -2], [1.5, -1, 8.5, -1], [-4, 2.5, 2, 2.5]], sheet: 1.3, gap: 0.6 },
+  solids: [[-9.6, -6.8, 1.6, 1.0, 1.1, 'unit'], [9.6, -6.8, 1.6, 1.0, 1.1, 'unit'], [-3.5, 4.8, 1.4, 1.2, 1.2, 'concrete']], // air-conditioner units in the far corners, behind the end posts (the made one is 7,880 triangles, so two), a concrete pipe housing on the player's side
+  barrels: [[-7, 3.2, 'lpg'], [0.5, 0.6, 'lpg'], [5.5, 4.2, 'lpg'], [2.5, -4.4]], // LPG cylinders to kick; a red barrel by the posts
+  dress: 'roof',
+  cutaway: true, // the player behind a sheet stays in sight
+  entry: ['s', -5],
+  exit: ['n', 7], // the stair hut's other door
+  posts: [[-9.2, -5.6], [-4, -6], [0.5, -5.6], [4.5, -6], [8.6, -5.4]],
+  floor: 'concrete',
+  theme: {
+    bg: 0x0a0816,
+    fog: [0x0d0a1c, 0.006],
+    hemi: [0x8c80ff, 0x1c1020, 0.9],
+    moon: [0xc4d2ff, 0.9],
+    sunDir: [-8, 30, 12],
+    // the stair hut's neon, the parapet's cyan, a lamp over the hut's door
+    points: [
+      [0xff3fa4, -2, 3, -6, 26, 16],
+      [0x3fe6ff, -9, 2.5, 4, 20, 14],
+      [0x3fe6ff, 8, 2.5, 4, 20, 14],
+      [0xffa040, 7, 3, -6, 18, 12],
+    ],
+    rain: true,
+    bloom: { strength: 0.55, threshold: 0.85 },
+  },
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, shopstreet: STREET, quay: QUAY, roof: ROOF, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
 
 /**
  * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of

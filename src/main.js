@@ -1665,6 +1665,7 @@ class Game {
     if (info.cause === 'shield') tags.push({ label: 'HUMAN SHIELD', pts: 200, cls: 'gold' }); // shot by his own side, held up in front (player.js grab)
     if (info.cause === 'race') tags.push({ label: 'GRAND PRIX', pts: 200, cls: 'gold' }); // run down by the racing cars (race.js)
     if (e.blindT > 0) tags.push({ label: 'PIGEON STRIKE', pts: 80, cls: 'gold' });
+    if (info.cause === 'bullet' && this.level.veiled(p.x, p.z, e.x, e.z)) tags.push({ label: 'LAUNDRY DAY', pts: 100, cls: 'gold' }); // shot through a sheet hung out to dry, by a player he could not see (level.js veils)
     if (e.netT > 0) tags.push({ label: 'NETTED', pts: 150, cls: 'gold' }); // under a fishing net (level.js Net)
     if (info.cause === 'fall') tags.push({ label: 'FALL', pts: 150, cls: 'gold' }); // knocked off a balcony (enemies.js fallOff)
     if (info.cause === 'bullet') {

@@ -1095,6 +1095,7 @@ export class Level {
     this.tools = [];
     this.fixtures = [];
     this.water = []; // { x, z, w, d } rectangles or { x, z, r } circles of water: bodies knocked in are gone, props sink
+    this.veils = []; // boxes sight does not pass (laundry hung out on a roof, rooms.js `laundry`): shots and bodies do
     this.props = [];
     this.pads = [];
     this.animators = [];
@@ -1132,6 +1133,7 @@ export class Level {
     }
     this.flocks = (map.flocks || []).map(([x, z]) => new Flock(x, z));
     this.water = (map.water || []).map((w) => ({ ...w }));
+    this.veils = (map.veils || []).map(([minX, minZ, maxX, maxZ]) => ({ minX, minZ, maxX, maxZ }));
     for (const [x, z, kind, angle = 0, variant] of map.tools || []) {
       // things to pick up and use (more kinds come with their cards)
       if (kind === 'extinguisher') this.tools.push(new Extinguisher(this, x, z));
@@ -1774,6 +1776,12 @@ export class Level {
       }
     }
     g.notes.log(n ? `白鴿驚起，打斷 ${n} 個敵人的瞄準` : '白鴿驚起');
+  }
+
+  /** The line from (x0, z0) to (x1, z1) passes through a veil (a sheet hung out to dry): an enemy cannot see down it, though a shot flies through. */
+  veiled(x0, z0, x1, z1) {
+    for (const v of this.veils) if (segAABB(x0, z0, x1, z1, v, _hit)) return true;
+    return false;
   }
 
   /** A flock just taken off (ENV.flockCloud) across the line from (x0, z0) to (x1, z1): a marksman cannot see down it (boss.js). */
