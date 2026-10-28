@@ -54,6 +54,7 @@ export class HUD {
     this.rankShown = 0;
     this.arrows = [];
     this.snipeWarns = []; // the edge glows of snipers taking aim
+    this.affixTags = []; // the names over affixed men's heads (F①)
     this.bannerTimer = 0;
     this.toastTimer = 0;
   }
@@ -210,6 +211,7 @@ export class HUD {
     this.updateLock();
     this.updateArrows();
     this.updateSnipers();
+    this.updateAffixTags();
   }
 
   /** Where (x, z), y over the ground there, is on the screen. */
@@ -260,6 +262,30 @@ export class HUD {
       a.classList.toggle('hot', en.aiming);
     }
     for (let i = used; i < this.arrows.length; i++) this.arrows[i].style.display = 'none';
+  }
+
+  /** A man wearing affixes (F① enemies.js AFFIXES): his name for them over his head (鐵頭打手), a diamond before it. */
+  updateAffixTags() {
+    const g = this.game;
+    let used = 0;
+    for (const en of g.enemies.list) {
+      if (!en.alive || !en.affixes.size) continue;
+      const s = this.project(en.x, (en.y || 0) + 2.35, en.z);
+      if (s.behind) continue;
+      let t = this.affixTags[used];
+      if (!t) {
+        t = document.createElement('div');
+        t.className = 'affix-tag';
+        this.el.indicators.appendChild(t);
+        this.affixTags.push(t);
+      }
+      used++;
+      const name = en.affixName;
+      if (t.textContent !== name) t.textContent = name;
+      t.style.display = 'block';
+      t.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -100%)`;
+    }
+    for (let i = used; i < this.affixTags.length; i++) this.affixTags[i].style.display = 'none';
   }
 
   /** A sniper taking aim at the player: a red glow on the screen's edge on his side, stronger as the shot comes. */

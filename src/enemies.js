@@ -2,7 +2,7 @@
 // brightens while they aim, so a quick read (or bullet time) lets you dodge.
 
 import * as THREE from 'three';
-import { AI, CARDS, ENEMY_HP, ENV, FIREPOWER, GUN_Y, HELL, LOGIC_HZ, PLAYER, RAMP } from './config.js';
+import { AFFIX, AI, CARDS, ENEMY_HP, ENV, FIREPOWER, GUN_Y, HELL, LOGIC_HZ, PLAYER, RAMP } from './config.js';
 import { animateRig, BODY, buildCharacter, buildDrone, deathPose, disposeRig, finishRig, keyPose, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { fireLines, safeSpot } from './gaps.js';
@@ -11,6 +11,7 @@ import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowar
 export const TYPES = {
   grunt: {
     label: 'THUG',
+    name: '打手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
     vault: true, // over low cover in his way (AI.vault)
     retreat: true, // falls back to cover when hurt (AI.retreat)
@@ -31,6 +32,7 @@ export const TYPES = {
   },
   shotgun: {
     label: 'SHOTGUNNER',
+    name: '散彈手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
     strafe: true, // sideways while he aims and fires (AI.strafe)
     vault: true,
@@ -51,6 +53,7 @@ export const TYPES = {
   },
   rifle: {
     label: 'RIFLEMAN',
+    name: '步槍手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
     strafe: true,
     vault: true,
@@ -72,6 +75,7 @@ export const TYPES = {
   },
   rusher: {
     label: 'BLADE',
+    name: '刀手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
     vault: true,
     hp: 2,
@@ -124,6 +128,7 @@ export const TYPES = {
   },
   brute: {
     label: 'BRUTE',
+    name: '大隻佬',
     hp: 20,
     speed: 2.1,
     holdWalk: 0.4, // held up as a human shield (彈幕 ② B①): the player walks at this of his pace, slower than with the others (PLAYER.humanShield.walkMul)
@@ -141,6 +146,7 @@ export const TYPES = {
   },
   shield: {
     label: 'SHIELD',
+    name: '盾牌手',
     model: 'grunt', // the thug's model behind a riot shield
     hp: 4,
     speed: 2.3, // walks in slowly behind the shield
@@ -159,6 +165,7 @@ export const TYPES = {
   },
   bomber: {
     label: 'BOMBER',
+    name: '炸彈客',
     model: 'rusher', // the blade's lean runner, in a vest of charges
     hp: 2,
     speed: 5.4, // slower than the player (7.4): you can outrun him, not ignore him
@@ -175,6 +182,7 @@ export const TYPES = {
   },
   grenadier: {
     label: 'GRENADIER',
+    name: '擲彈兵',
     model: 'rifle', // the rifleman's model, with a bag of grenades on his back
     hp: 3,
     speed: 3.0,
@@ -196,6 +204,7 @@ export const TYPES = {
   },
   sniper: {
     label: 'SNIPER',
+    name: '狙擊手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
     model: 'rifle', // the rifleman's model with a long rifle
     hp: 3,
@@ -215,6 +224,7 @@ export const TYPES = {
   },
   drone: {
     label: 'DRONE',
+    name: '無人機',
     hp: 3,
     speed: 4.4,
     radius: 0.42,
@@ -377,6 +387,20 @@ const WEAPONS = {
   blast: { pattern: 'blast', shots: 2, interval: 0.35, speed: 19, look: 'enemy', spreadV: 0.15, dmg: 8, count: 14, spread: 0.32, jitter: 0.02, range: 11, sound: 'shotgun' },
 };
 
+/**
+ * Affixes (F①): stackable, one switch each, put on a man as he comes in (waves.js: from AFFIX.fromFloor, a room's
+ * draw); `fits` says which men one makes sense on. Numbers in config.js AFFIX. A man wearing them is named for them
+ * over his head (hud.js): 鐵頭打手.
+ */
+export const AFFIXES = {
+  iron: { name: '鐵頭', note: '抓不到', fits: (c) => !c.fly }, // no human shield of him: kick him instead
+  vest: { name: '彈衣', note: '死時爆', fits: (c) => !c.fly && !c.bomb }, // a blast where he falls (AFFIX.vest): his side's and the player's alike
+  quick: { name: '快槍', note: '射速 ×1.5', fits: (c) => !!WEAPONS[c.weapon] }, // a gun's gap between shots ÷ AFFIX.quick.rate
+  blind: { name: '盲射', note: '沒有紅線', fits: (c) => !!WEAPONS[c.weapon] && !WEAPONS[c.weapon].pattern }, // no laser, only his glow
+  sticky: { name: '黐身', note: '追住你', fits: (c) => !c.fly && !c.bomb && !c.tumble && c.weapon !== 'blade' && c.tactic !== 'advance' }, // no post, no cover: close on the player
+};
+export const AFFIX_IDS = Object.keys(AFFIXES);
+
 const _aim = { x: 0, z: 0 };
 
 const LASER_COLOR = { ring: [0.6, 0.4, 1], spiral: [0.3, 1, 0.9], fan: [1, 0.6, 0.2], hose: [0.3, 0.6, 1], salvo: [0.6, 0.85, 0.2], blast: [1, 0.3, 0.55], pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05], sniper: [1, 0.02, 0.02], drone: [1, 0.15, 0.6], dual: [1, 0.72, 0.12] };
@@ -405,6 +429,7 @@ class Enemy {
     this.boomT = -1; // a shoved human shield going off with the card 人盾引爆 (cards.js): seconds left at the latest, or -1
     this.boomNow = false; // he met a man (bowl): off he goes next step
     this.bombT = -1; // a dead bomber's charges: seconds until they go off, or -1
+    this.affixes = new Set(); // F① (AFFIXES): put on as he comes in (giveAffix)
     this.turnT = 0; // a kicked bomber charges along (dashX, dashZ) this long
     this.dashX = this.dashZ = 0;
     if (cfg.bomb) this.buildVest();
@@ -514,11 +539,25 @@ class Enemy {
 
   /**
    * Can the player grab him as a human shield: on his feet, in the fight, not held already. Since 彈幕 ② B① nearly
-   * everyone (a riot shield, a brute, a heavy gun, a bomber whose vest is not lit); never a drone (it flies).
+   * everyone (a riot shield, a brute, a heavy gun, a bomber whose vest is not lit); never a drone (it flies), never an
+   * ironhead (F① AFFIXES iron).
    */
   get holdable() {
     const c = this.cfg;
-    return this.alive && !this.held && !this.aloft && !c.fly && !(c.bomb && this.fuseT >= 0) && this.state !== 'enter' && this.spawnLock <= 0;
+    return this.alive && !this.held && !this.aloft && !c.fly && !(c.bomb && this.fuseT >= 0) && this.state !== 'enter' && this.spawnLock <= 0 && !this.affixes.has('iron');
+  }
+
+  /** An affix (F① AFFIXES) put on him as he comes in: a vest is worn where it shows; the notes name him. */
+  giveAffix(id) {
+    if (this.affixes.has(id) || !AFFIXES[id]) return;
+    this.affixes.add(id);
+    if (id === 'vest' && !this.cfg.bomb) this.buildVest();
+    this.game.notes.log(`詞綴：${this.affixName}（${[...this.affixes].map((a) => `${AFFIXES[a].name}${AFFIXES[a].note}`).join('、')}）`);
+  }
+
+  /** His name with his affixes before it (鐵頭打手), or his type's alone. */
+  get affixName() {
+    return `${[...this.affixes].map((a) => AFFIXES[a].name).join('')}${this.cfg.name || this.cfg.label}`;
   }
 
   /** Shoved out by the player (letGo) and still flying: the rounds that meet him are his own side's, as when held (bullets.js). */
@@ -659,15 +698,15 @@ class Enemy {
     return !!this.game.waves.rules.floor;
   }
 
-  /** × the gap before he fires again: quicker each stage (`pace`), and quicker again in a room (HELL.fireMul). */
+  /** × the gap before he fires again: quicker each stage (`pace`), quicker again in a room (HELL.fireMul), and with a quick gun (AFFIX.quick). */
   get restMul() {
-    return this.pace * (this.inRoom ? HELL.fireMul : 1);
+    return (this.pace * (this.inRoom ? HELL.fireMul : 1)) / (this.affixes.has('quick') ? AFFIX.quick.rate : 1);
   }
 
-  /** He fights from the room's posts (level.js posts): a gun that reaches that far, on his feet, not rushing in, not a guard. */
+  /** He fights from the room's posts (level.js posts): a gun that reaches that far, on his feet, not rushing in, not a guard, not sticky (F①). */
   get postsFor() {
     const cfg = this.cfg;
-    return this.inRoom && this.game.level.posts.length > 0 && !this.rushes && !cfg.fly && cfg.tactic !== 'advance' && !this.sp.stay && !(this.escortOf && this.escortOf.alive) && cfg.range[1] >= HELL.postRange;
+    return this.inRoom && this.game.level.posts.length > 0 && !this.rushes && !cfg.fly && cfg.tactic !== 'advance' && !this.sp.stay && !(this.escortOf && this.escortOf.alive) && cfg.range[1] >= HELL.postRange && !this.affixes.has('sticky');
   }
 
   /** A captain stands (AI.captain): the others hide less and go round to the player's sides. */
@@ -1151,6 +1190,7 @@ class Enemy {
     if (this.cfg.captain) this.mgr.captainDown(this);
     if (info.cause === 'self') return; // his own fuse: no kill for anyone (goOff follows)
     if (this.cfg.bomb) this.bombT = this.cfg.bomb.delay; // killed: the charges go off a moment later
+    else if (this.affixes.has('vest')) this.bombT = AFFIX.vest.delay; // a vest (F①) as well
     g.onEnemyKilled(this, info);
   }
 
@@ -1208,7 +1248,7 @@ class Enemy {
     g.explode(this.x, this.z, CARDS.boomBlast, { chain: true, source: '人盾引爆' });
   }
 
-  /** The charges go off with a barrel's blast: his fuse ran out (he goes with them), or a moment after he was killed. */
+  /** The charges go off with a barrel's blast: his fuse ran out (he goes with them), or a moment after he was killed; a vest's (F①) a moment after. */
   goOff() {
     const g = this.game;
     if (this.alive) {
@@ -1217,7 +1257,11 @@ class Enemy {
     }
     this.bombT = -1;
     this.rig.root.visible = false; // nothing left of him
-    g.explode(this.x, this.z, this.cfg.bomb.blast, { chain: true, source: '炸彈客爆炸' });
+    if (this.cfg.bomb) g.explode(this.x, this.z, this.cfg.bomb.blast, { chain: true, source: '炸彈客爆炸' });
+    else {
+      g.notes.log(`${this.affixName}爆炸`);
+      g.explode(this.x, this.z, AFFIX.vest.blast, { chain: true, source: '彈衣爆炸' }); // a vest (F①): smaller than a bomber's
+    }
   }
 
   dropWeapon() {
@@ -1402,7 +1446,7 @@ class Enemy {
     if (this.sp.stay) return { x: this.sp.ex, z: this.sp.ez }; // a warm-up enemy keeps its post
     const g = this.game;
     const p = g.player;
-    const [rmin, rmax] = this.cfg.range;
+    const [rmin, rmax] = this.affixes.has('sticky') ? AFFIX.sticky.range : this.cfg.range; // a sticky man (F①) close by the player
     const C = AI.captain;
     const cap = this.bold ? this.mgr.captain : null;
     const capA = cap ? Math.atan2(cap.x - p.x, cap.z - p.z) : 0;
@@ -1824,7 +1868,7 @@ class Enemy {
             }
           }
           this.coverRest -= dt;
-          if (this.tactic === 'cover' && !this.sp.stay && !this.bold && !this.flanking && this.blindT <= 0 && this.coverRest <= 0 && this.mgr.aliveCount > 1) {
+          if (this.tactic === 'cover' && !this.sp.stay && !this.bold && !this.flanking && this.blindT <= 0 && this.coverRest <= 0 && this.mgr.aliveCount > 1 && !this.affixes.has('sticky')) {
             // a gunner with cover near goes there first, ducks, and fights by stepping out (peek); one holding
             // a post keeps it, the last man standing comes on instead of hiding, and so do all with a captain about
             this.coverCheck -= dt;
@@ -1880,7 +1924,7 @@ class Enemy {
           this.repath -= dt;
           if (this.repath <= 0 || !this.path || this.pathI >= this.path.length) {
             const by = this.escortOf && this.escortOf.alive ? this.escortSpot() : null; // a guard keeps by his captain
-            this.repath = by ? 0.5 : g.rng.range(1.4, 2.6);
+            this.repath = by ? 0.5 : this.affixes.has('sticky') ? AFFIX.sticky.repath : g.rng.range(1.4, 2.6); // a sticky man (F①) keeps up with the player
             const goal = by || this.pickGoal();
             this.path = g.level.nav.findPath(this.x, this.z, goal.x, goal.z);
             this.pathI = 0;
@@ -2399,8 +2443,8 @@ class Enemy {
 
   updateLaser() {
     const w = WEAPONS[this.cfg.weapon];
-    if (!w || w.pattern || (this.state !== 'aim' && this.state !== 'fire')) {
-      // a pattern's tell is his glow, not a line (彈幕試驗 ③)
+    if (!w || w.pattern || this.affixes.has('blind') || (this.state !== 'aim' && this.state !== 'fire')) {
+      // a pattern's tell is his glow, not a line (彈幕試驗 ③); so is a blind gun's (F①)
       this.laser.hide();
       return;
     }
