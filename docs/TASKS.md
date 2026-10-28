@@ -1396,7 +1396,7 @@
 - 驗收：
   - [x] 測試：五個詞綴各一個效果測試；第一層沒有詞綴、第二層起每房一兩個；同種子同詞綴（`test/affix.test.mjs` 八個：抽法、實戰中入場的人帶住抽到的詞綴、五個效果、頭頂名牌）
   - [x] 截圖：帶詞綴的人的標記（`docs/shots/hell/affix.jpg`）
-  - [ ] npm run lint && npm test 通過
+  - [x] npm run lint && npm test 通過（lint 本機過；本機相關的 15 個檔 74 個測試過；CI 在 88362d7 六個 check 全綠）
 - 這次不做：詞綴解鎖、頭目詞綴、詞綴與卡的組合卡
 - 做了：`enemies.js` `AFFIXES`（五個，每個一個開關加 `fits`：邊種敵人帶得上），`giveAffix` 入場時套上、`affixName`（鐵頭打手）；效果：鐵頭 `holdable` 為假（E 抓唔到，踢照踢得）；彈衣死後 0.08 秒爆，半徑 2 米（同炸彈客一樣用 `bombT`、`goOff`，個個都炸，連自己人和玩家），身上掛炸藥背心；快槍 `restMul` ÷ 1.5；盲射冇紅線（`updateLaser`），只有發光；黐身唔去開火位、唔躲掩體，`pickGoal` 揀離玩家 2–4 米的位、每 0.5 秒再揀。`waves.js` `affixesFor(stage)`：第二層起每房由該房自己的流（`rng.fork('affix', stage)`）抽一兩個、唔重複，每個定好喺房的第幾波、第幾個入場（`placeAffixes`：嗰個人帶唔上就順延到下一個帶得上的）；頭目房全部落第一波。數字在 `config.js` `AFFIX`。`hud.js` 頭頂名牌（◆ 加名）；事件記錄記「詞綴：鐵頭打手（鐵頭抓不到）」，殺敵一行加名。敵人種類補中文名（打手、散彈手、步槍手、刀手、大隻佬、盾牌手、炸彈客、擲彈兵、狙擊手、無人機）。`maps.js` `PLAY_REV` 8 → 9（舊重播寫「遊戲已改版」）
 
