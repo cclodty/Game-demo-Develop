@@ -61,6 +61,10 @@
 //   laundry: { lines: [[x0, z0, x1, z1]], sheet, gap }: washing hung out on bamboo poles, each line along x or z, sheets
 //   `sheet` m wide `gap` m apart along it (level.js veils: an enemy cannot see the player through a sheet, a shot goes
 //   through it, a kill through one is LAUNDRY DAY), dress 'roof' (E⑥),
+//   blackout: { bpm, every, dark }: the club's beat lights (level.js beatAt, on world time from the room's start): the
+//   lights out for the last `dark` beats of every `every`, the whole room dark (level.js darkAt: nobody aims, a kill
+//   then is a BLACKOUT), the dance floor flashing white the beat before; danceFloor: { at: [x, z], tiles: [cols, rows] }
+//   its light tiles, a metre each; dress 'disco' (E⑦),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
 //   towards the player }, dist } }
 
@@ -127,6 +131,7 @@ export function room(t) {
     flocks: t.flocks || [], // pigeons (E①)
     water: [...(t.pool ? [{ x: t.pool[0], z: t.pool[1], r: t.pool[2] - 0.35 }] : []), ...(t.water || [])], // the pool's water, inside its rim; the quay's sea
     veils: t.laundry ? laundrySheets(t).map((q) => q.box) : [], // the roof's washing: sight stops at a sheet (E⑥)
+    blackout: t.blackout || null, // the club's beat lights (E⑦)
     race: t.track ? { first: t.track.first, every: t.track.every, lanes: t.track.lanes, line: bendLine(t.track) } : null, // the racing cars (E②)
     ground: t.steps ? profileGround(t.steps.profile) : null, // the steps' two levels (E③)
     slope: t.steps ? profileSlope(t.steps.profile) : null,
@@ -159,6 +164,7 @@ function decorateRoom(L, t, entry, exit) {
   else if (t.dress === 'shops') dressStreet(L, t, std, merged, posts, gold);
   else if (t.dress === 'quay') dressQuay(L, t, std, merged, posts, gold);
   else if (t.dress === 'roof') dressRoof(L, t, std, merged, posts, gold);
+  else if (t.dress === 'disco') dressDisco(L, t, std, merged, posts, gold);
   else dressTea(L, t, exit, std, merged, posts, gold);
 }
 
@@ -273,6 +279,61 @@ function dressRoof(L, t, std, merged, posts, gold) {
   city.name = 'towers';
   L.add(city);
 }
+
+/**
+ * The club (E⑦): the dance floor's light tiles and the room's lights on the room's beat (level.js beatAt: the logic's,
+ * so what is shown is what the gunners see): a pattern pulsing on each beat, every tile white the beat before the
+ * lights go out, then the tiles and the lamps (to 5%) out for the dark beat; a mirror ball over the floor.
+ */
+function dressDisco(L, t, std, merged, posts, gold) {
+  merged(posts, gold, false);
+  const [cols, rows] = t.danceFloor.tiles;
+  const [x0, z0] = [t.danceFloor.at[0] - cols / 2, t.danceFloor.at[1] - rows / 2];
+  const tiles = new THREE.InstancedMesh(L.own(new THREE.PlaneGeometry(0.92, 0.92).rotateX(-Math.PI / 2)), L.own(new THREE.MeshBasicMaterial()), cols * rows);
+  tiles.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cols * rows * 3), 3);
+  const m = new THREE.Matrix4();
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) tiles.setMatrixAt(r * cols + c, m.makeTranslation(x0 + 0.5 + c, 0.008, z0 + 0.5 + r));
+  tiles.name = 'dance-floor';
+  L.add(tiles);
+  const ball = new THREE.Mesh(L.own(new THREE.IcosahedronGeometry(0.45, 1)), std({ color: 0xd8d8e8, roughness: 0.15, metalness: 0.9, flatShading: true }));
+  ball.position.set(t.danceFloor.at[0], 3, t.danceFloor.at[1]);
+  ball.name = 'mirror-ball';
+  L.add(ball);
+  merged([new THREE.CylinderGeometry(0.015, 0.015, 0.4, 4).translate(t.danceFloor.at[0], 3.4, t.danceFloor.at[1])], L.mat.darkMetal, false, 'ball-wire');
+  const pal = [
+    [1, 0.12, 0.55],
+    [0.1, 0.85, 1],
+    [0.55, 0.25, 1],
+    [1, 0.55, 0.1],
+  ];
+  const { every, dark } = t.blackout;
+  L.animators.push((realDt) => {
+    const [b, f] = L.beatAt();
+    const k = b % every;
+    const out = k >= every - dark;
+    const warn = k === every - dark - 1;
+    const fade = 0.3 + 0.7 * (1 - f) * (1 - f);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const i = r * cols + c;
+        if (out) tiles.setColorAt(i, _tile.setRGB(0, 0, 0));
+        else if (warn) tiles.setColorAt(i, _tile.setRGB(fade, fade, fade));
+        else {
+          const on = (r + c + b) % 2 === 0;
+          const [cr, cg, cb] = pal[(Math.floor(b / 2) + (c >> 1)) % pal.length];
+          const v = on ? fade : 0.08;
+          tiles.setColorAt(i, _tile.setRGB(cr * v, cg * v, cb * v));
+        }
+      }
+    }
+    tiles.instanceColor.needsUpdate = true;
+    for (const p of L.points) p.light.intensity = p.intensity * (out ? 0.05 : 1);
+    L.hemi.intensity = t.theme.hemi[2] * (out ? 0.3 : 1);
+    L.moon.intensity = t.theme.moon[1] * (out ? 0.3 : 1);
+    ball.rotation.y += realDt * 0.6;
+  });
+}
+const _tile = new THREE.Color();
 
 /**
  * The street's row of shophouses (rooms.js `shops`) as data: each one's front, two pieces either side of its opening,
@@ -1276,7 +1337,56 @@ export const ROOF = room({
   budget: ROOM_BUDGET,
 });
 
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, shopstreet: STREET, quay: QUAY, roof: ROOF, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
+/**
+ * The club (夜店, 彈幕 ② E⑦): a dance floor of light tiles in the middle, the DJ booth to the north with a speaker
+ * either side, the gunners' posts along the front of it. The lights keep the beat (`blackout`): on the last beat of
+ * every two bars they go out, the whole room in the dark, and nobody aims (level.js darkAt: an aim breaks off, a kill
+ * then is a BLACKOUT); the beat before, every tile flashes white. Learn the beat and move on the dark one. 22 × 15 m,
+ * in at the south, out by the north-east door.
+ */
+export const DISCO = room({
+  id: 'disco',
+  rev: 1,
+  name: '夜店',
+  en: 'NIGHTCLUB',
+  desc: '夜店：燈跟住節拍，每兩小節最後一拍燈滅，嗰一拍冇人瞄得準你。',
+  color: '#9b6bff',
+  size: [22, 15],
+  walls: [3.2, 'clubWall', 'neonPink'],
+  low: [0.9, ['s', 'w']],
+  edges: { s: [0.9, 'clubWall', 'neonCyan'], w: [0.9, 'clubWall', 'neonCyan'] },
+  doors: [['n', -7.5], ['e', -2], ['e', 3]], // the back of house's doors
+  tables: [[-7, 2, 0.55], [6.5, 2.8, 0.55]], // cocktail tables at the dance floor's edge
+  solids: [[0, -6.5, 3.6, 1.2, 1.3, 'dj'], [-2.6, -6.9, 1.0, 1.0, 2.0, 'speaker'], [2.6, -6.9, 1.0, 1.0, 2.0, 'speaker']], // the DJ booth and its speakers
+  barrels: [[-9.5, -3.8]],
+  blackout: { bpm: 124, every: 8, dark: 1 }, // the music's tempo; out on the last beat of every two bars
+  danceFloor: { at: [0, 0], tiles: [10, 6] },
+  dress: 'disco',
+  entry: ['s', -6],
+  exit: ['n', 7.5],
+  posts: [[-8.5, -5.2], [-4.5, -4.6], [0, -4.6], [4.5, -4.6], [8.5, -5.2]],
+  floor: 'club',
+  theme: {
+    bg: 0x07040c,
+    fog: [0x0a0612, 0.004],
+    hemi: [0x7a4aa0, 0x120a1c, 0.9],
+    moon: [0xb090ff, 0.5],
+    sunDir: [6, 30, 10],
+    // the booth's pink and cyan, the bar's amber, a violet wash over the floor
+    points: [
+      [0xff3fa4, -5, 4, -4, 24, 16],
+      [0x3fe6ff, 5, 4, -4, 24, 16],
+      [0xffa040, -6, 3.5, 5, 18, 14],
+      [0x9b6bff, 6, 4, 4, 20, 14],
+    ],
+    rain: false,
+    bloom: { strength: 0.6, threshold: 0.85 },
+  },
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, shopstreet: STREET, quay: QUAY, roof: ROOF, disco: DISCO, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
 
 /**
  * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of
