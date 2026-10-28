@@ -5,10 +5,13 @@ stylised present-day Macau. Plain JavaScript + three.js (vendored, no
 bundler, no framework). One developer plus Claude; the developer plays and
 judges feel, Claude builds.
 
-Read before starting any task: this file, `docs/ROADMAP.md` (the plan, third edition 2026-10-26: the bullet-hell direction, and the
-four design pillars), `docs/TASKS.md` (the current checklist), and
+Read before starting any task: this file, `docs/ROADMAP.md` (the plan, fourth edition 2026-10-27: the second generation —
+Steam, Godot 4, anime look — and the four design pillars; the third edition `docs/ROADMAP-2026-10-26.md` holds the
+bullet-hell gameplay spec it refers to), `docs/REDESIGN.md` (the second-generation brief: art bible, world, enemies,
+assets, the Godot project plan), `docs/TASKS.md` (the current checklist), and
 `docs/DECISIONS.md` (why things are the way they are). Add to the last two as
-you go.
+you go. This JavaScript repo is the prototype: the design is finished here (TASKS groups E and F), then ported to
+Godot (group G); no new models are made for the JS version.
 
 ## Talking to the developer
 
@@ -90,7 +93,7 @@ backend/                     the leaderboard Cloudflare Worker (worker.js), its 
 scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, itch.mjs (+ itch-cover.mjs), serve.mjs, senado-extract.mjs, measure.mjs (bot runs, wave by wave)
 test/                        node:test + playwright; helpers.mjs has the bot; fixtures/ holds a short recorded clip
 assets/                      SPEC.md, PROMPTS.md, START_HERE.md, asset-list.*, maps/*.json, source/ (masters), models/ (web)
-docs/                        ROADMAP.md (third edition; ROADMAP-2026-10-22.md is the second, kept for its § numbers), TASKS.md, DECISIONS.md, BACKEND.md (deploying the back end); shots/ holds the screenshots PR descriptions show; itch/ the itch.io page
+docs/                        ROADMAP.md (fourth edition; ROADMAP-2026-10-26.md is the third with the gameplay spec, ROADMAP-2026-10-22.md the second, kept for its § numbers), REDESIGN.md (second generation: art, world, enemies, assets, Godot), TASKS.md, DECISIONS.md, BACKEND.md (deploying the back end); shots/ holds the screenshots PR descriptions show; itch/ the itch.io page
 senado/                      the Largo do Senado city-model sub-project (own README, tests, scripts); don't edit from game tasks
 vendor/three/                three.js r186 + the addons we use; never modify
 ```
@@ -148,8 +151,8 @@ Conventions that matter:
    day is two cards. The PR body follows `.github/pull_request_template.md`
    and ticks the card's criteria one by one.
 2. **Check the pillars** (ROADMAP.md): style over body count; bullet time is a
-   tool, not a crutch; real Macau is the selling point; a run is ten minutes
-   and always leaves something behind. A feature that fits none is a no.
+   tool, not a crutch; a barrage is a puzzle with a gap; a run is ten minutes,
+   always leaves something behind, and the next run has something new. A feature that fits none is a no.
 3. **Keep it data-driven.** Maps, enemies, weapons and waves are data; new
    content goes in the data, new behaviour goes in the systems. Anything that
    another engine would need must be exportable (see `assets/SPEC.md` §8).
@@ -168,8 +171,10 @@ Conventions that matter:
    messages, push with `git push -u origin <branch>`. Never force-push, never
    rebase shared history, never create a PR unless asked. No model names in
    commit messages or code.
-8. **Sensitive content:** real Macau places, fictional everything else — no
-   real shop names, brands, people or events. Enemies are a fictional gang.
+8. **Sensitive content:** a fictional city with a Hong Kong / Macau flavour
+   (decided 2026-10-27; the seven real-place maps are legacy), fictional
+   everything — no real shop names, brands, people or events. Enemies are a
+   fictional gang.
 
 ## Asset pipeline (short)
 
