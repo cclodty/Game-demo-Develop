@@ -1646,8 +1646,9 @@ class Enemy {
     this.losT -= dt;
     if (this.losT <= 0) {
       this.losT = 0.12;
-      // 同一水平: the player on another level (up or down 大三巴's steps) is out of his reach, whatever is between
-      this.los = p.alive && g.level.sameLevel(this.x, this.z, p.x, p.z) && g.level.hasLOS(this.x, this.z, p.x, p.z, this.over);
+      // 同一水平: the player on another level (up or down 大三巴's steps) is out of his reach, whatever is between; behind a
+      // sheet hung out to dry (level.js veils) he is out of sight, though a shot would go through it
+      this.los = p.alive && g.level.sameLevel(this.x, this.z, p.x, p.z) && g.level.hasLOS(this.x, this.z, p.x, p.z, this.over) && !g.level.veiled(this.x, this.z, p.x, p.z);
     }
     // in the dark under a lamp shot out (fixtures.js) or in an extinguisher's cloud: no aiming from there
     if (g.level.darkAt(this.x, this.z) || g.level.smokeAt(this.x, this.z)) {
