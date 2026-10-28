@@ -45,7 +45,7 @@ export const MODES = {
     waves: 6,
     perStage: 2,
     graded: true,
-    floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong', 'plaza', 'racebend'], floors: 3, rooms: [3, 4], boss: ['arena', 'backhall', 'strongroom', 'fronthall'] }, // a boss room a floor, drawn (D①–D④); the plaza (E①) and the track bend (E②) in the draw
+    floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong', 'plaza', 'racebend', 'steps'], floors: 3, rooms: [3, 4], boss: ['arena', 'backhall', 'strongroom', 'fronthall'] }, // a boss room a floor, drawn (D①–D④); the plaza (E①), the track bend (E②) and the steps (E③) in the draw
     floorBoss: { segments: 4, bonus: 1500 }, // a floor's boss fight but the last floor's, in full (boss.js cfg)
     finale: { size: 1.5, brutes: 1, maxAlive: 12 }, // the run's last wave, bigger like a floor's end (C①)
     graze: true,

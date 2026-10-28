@@ -42,6 +42,12 @@
 //   its middle, `road` m across, in at one wall and out at the other; the racing cars (race.js) sweep it on the room's
 //   timetable (`first` s after the room loads, then every `every` s, in world time) on their own `lanes`, the lights red
 //   and a line along the road RACE.warn s before (a man run down: GRAND PRIX); dress 'track' (E②),
+//   steps: { profile: [[z, y], …], flight: [x0, x1], treads, planter }: the ground's height from south to north (level.js
+//   groundY; level beyond the profile's ends), its rise under LEVELS.tol so the room is still one level (同一水平: a
+//   gunner on the low ground fires up at the player as anywhere); where it slopes, a barrel shot or kicked over rolls
+//   down (level.js Barrel tip: ROLLING); across the slope either side of the flight [x0, x1] a planter `planter` m over
+//   the higher ground (low: shots and sight pass over it, bodies and the nav stop at it), so the flight is the one way
+//   between the levels; `treads` steps drawn on it; dress 'steps' (E③),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
 //   towards the player }, dist } }
 
@@ -106,6 +112,8 @@ export function room(t) {
     flocks: t.flocks || [], // pigeons (E①)
     water: t.pool ? [{ x: t.pool[0], z: t.pool[1], r: t.pool[2] - 0.35 }] : [], // the pool's water, inside its rim
     race: t.track ? { first: t.track.first, every: t.track.every, lanes: t.track.lanes, line: bendLine(t.track) } : null, // the racing cars (E②)
+    ground: t.steps ? profileGround(t.steps.profile) : null, // the steps' two levels (E③)
+    slope: t.steps ? profileSlope(t.steps.profile) : null,
     camera: t.camera,
     budget: t.budget,
     room: t, // the template itself (tests)
@@ -131,7 +139,91 @@ function decorateRoom(L, t, entry, exit) {
   if (t.dress === 'stall') dressStall(L, t, std, merged, posts, gold);
   else if (t.dress === 'plaza') dressPlaza(L, t, std, merged, posts, gold);
   else if (t.dress === 'track') dressTrack(L, t, std, merged, posts, gold);
+  else if (t.dress === 'steps') dressSteps(L, t, std, merged, posts, gold);
   else dressTea(L, t, exit, std, merged, posts, gold);
+}
+
+/** The ground's height at z along a profile [[z, y], …] given from south to north (rooms.js `steps`): level beyond its ends. */
+function profileGround(P) {
+  return (x, z) => {
+    if (z >= P[0][0]) return P[0][1];
+    for (let i = 1; i < P.length; i++) {
+      const [z0, y0] = P[i - 1];
+      const [z1, y1] = P[i];
+      if (z >= z1) return y0 + ((y1 - y0) * (z0 - z)) / (z0 - z1);
+    }
+    return P[P.length - 1][1];
+  };
+}
+
+/** Where a profile slopes, its rise per metre [east, south] (level.js slopeAt); null where it is level. */
+function profileSlope(P) {
+  return (x, z) => {
+    for (let i = 1; i < P.length; i++) {
+      const [z0, y0] = P[i - 1];
+      const [z1, y1] = P[i];
+      if (z < z0 && z > z1 && y1 !== y0) return [0, (y0 - y1) / (z0 - z1)];
+    }
+    return null;
+  };
+}
+
+/**
+ * The stone steps (E③): the raised ground a slab wall to wall; on each sloping stretch of the profile `treads` steps
+ * across the flight, each as high as the ground at its middle (what stands on them stands within a few centimetres of
+ * the tread), a pale edge on each so they read from above; either side of the flight a stone planter with a hedge on
+ * it, its solid low (shots and sight over it) and added here as the plaza's rim is; a lamp at the top of each planter.
+ */
+function dressSteps(L, t, std, merged, posts, gold) {
+  merged(posts, gold, false);
+  const { profile: P, flight: [fx0, fx1], treads, planter } = t.steps;
+  const halfW = t.size[0] / 2;
+  const halfD = t.size[1] / 2;
+  /** A box from (x0, ya, z0) to (x1, yb, z1). */
+  const box = (x0, x1, z0, z1, ya, yb) => new THREE.BoxGeometry(x1 - x0, yb - ya, z1 - z0).translate((x0 + x1) / 2, (ya + yb) / 2, (z0 + z1) / 2);
+  const slabs = [];
+  const [zs, ys] = P[0];
+  const [zn, yn] = P[P.length - 1];
+  if (ys > 0) slabs.push(box(-halfW, halfW, zs, halfD, 0, ys)); // the raised ground south of the profile
+  if (yn > 0) slabs.push(box(-halfW, halfW, -halfD, zn, 0, yn)); // or north of it
+  const steps = [];
+  const edges = [];
+  const beds = [];
+  const hedges = [];
+  const lampPosts = [];
+  const lampHeads = [];
+  for (let i = 1; i < P.length; i++) {
+    const [z0, y0] = P[i - 1];
+    const [z1, y1] = P[i];
+    if (y0 === y1) continue;
+    for (let k = 0; k < treads; k++) {
+      const za = z0 - ((z0 - z1) * k) / treads;
+      const zb = z0 - ((z0 - z1) * (k + 1)) / treads;
+      const y = L.groundY(0, (za + zb) / 2);
+      steps.push(box(fx0, fx1, zb, za, 0, y));
+      const drop = y0 > y1 ? zb : za; // its edge on the lower side
+      edges.push(box(fx0, fx1, drop - 0.05, drop + 0.05, y - 0.02, y + 0.012));
+    }
+    const top = Math.max(y0, y1) + planter;
+    for (const [xa, xb] of [[-halfW, fx0], [fx1, halfW]]) {
+      L.addBox((xa + xb) / 2, (z0 + z1) / 2, xb - xa, z0 - z1, top, null, 'wall', { visible: false }).low = true; // bodies stop, shots and sight pass over
+      beds.push(box(xa, xb, z1, z0, 0, top - 0.2));
+      hedges.push(box(xa + 0.15, xb - 0.15, z1 + 0.15, z0 - 0.15, top - 0.2, top + 0.1));
+      // a lamp on the planter's end by the flight, at the top of the steps
+      const lx = xa === -halfW ? xb - 0.45 : xa + 0.45;
+      const lz = y0 > y1 ? z0 - 0.45 : z1 + 0.45;
+      lampPosts.push(box(lx - 0.07, lx + 0.07, lz - 0.07, lz + 0.07, top - 0.2, top + 2.4));
+      lampHeads.push(new THREE.SphereGeometry(0.22, 12, 8).translate(lx, top + 2.55, lz));
+    }
+  }
+  const stone = std({ color: 0x3e3c44, roughness: 0.85 });
+  merged(slabs, stone, true, 'raised-ground');
+  merged(steps, std({ color: 0x4a4752, roughness: 0.85 }), true, 'steps');
+  merged(edges, std({ color: 0x9a948a, roughness: 0.8 }), false, 'step-edges');
+  merged(beds, L.mat.slope, true, 'planters');
+  merged(hedges, L.mat.bush, true, 'hedges');
+  merged(lampPosts, L.mat.streetlamp, true, 'lamp-posts');
+  merged(lampHeads, L.own(new THREE.MeshBasicMaterial({ color: 0xffe2a8 })), false, 'lamps');
 }
 
 /**
@@ -296,7 +388,7 @@ function entryGate(L, [nx, nz, nf], std, merged) {
   const posts = [];
   const leaves = [];
   const gateLamps = [];
-  const gate = (g) => g.rotateY((nf * Math.PI) / 180).translate(nx, 0, nz);
+  const gate = (g) => g.rotateY((nf * Math.PI) / 180).translate(nx, L.groundY(nx, nz), nz); // on the ground there (the steps' upper level: E③)
   for (const s of [-1, 1]) {
     posts.push(gate(new THREE.BoxGeometry(0.16, 1.3, 0.16).translate(s * 0.88, 0.65, 0.08)));
     gateLamps.push(gate(new THREE.BoxGeometry(0.2, 0.14, 0.2).translate(s * 0.88, 1.37, 0.08)));
@@ -796,7 +888,59 @@ export const RACEBEND = room({
   budget: ROOM_BUDGET,
 });
 
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
+/**
+ * The stone steps (石階, 彈幕 ② E③): an old quarter's steps remade as a room. The player comes in on the upper level in
+ * the south; four steps down the middle, 9 m across between two planters, lead to the lower level in the north where
+ * the gunners hold their posts and the exit is. Three oil drums stand on the top step: shot or kicked over, one rolls
+ * down the flight, faster as it goes, and bowls over the men coming up it (ROLLING), on across the lower level. The rise
+ * is 0.56 m, under LEVELS.tol: one level still, so both sides shoot at each other. 22 × 15 m, in at the south, out at
+ * the north.
+ */
+export const STEPS = room({
+  id: 'steps',
+  rev: 1,
+  name: '石階',
+  en: 'STONE STEPS',
+  desc: '老區的石階：守住石階頂，衝上來的人排成一行，就射倒油桶滾落去。',
+  color: '#ffb35a',
+  size: [22, 15],
+  walls: [3.2, 'brick', null],
+  low: [0.9, ['s', 'w']],
+  doors: [['n', -6], ['n', 6], ['e', -3], ['e', -6]], // all onto the lower level
+  tables: [[-7.5, -4.5, 0.7], [7.5, -4.5, 0.7]], // on the lower level, the gunners' cover
+  tableLook: 'folding',
+  // the upper level the south, down four steps to the lower in the north; the planters either side of the flight
+  steps: { profile: [[1.5, 0.56], [-1.5, 0]], flight: [-4.5, 4.5], treads: 4, planter: 0.45 },
+  // on the upper level two stone planters for the player's cover (their heights count from the floor: 0.56 of it is the level)
+  solids: [[-7, 4.5, 1.8, 1, 1.5, 'planter'], [7, 4.5, 1.8, 1, 1.5, 'planter']],
+  barrels: [[-3, 1.1], [0, 1.1], [3, 1.1]], // on the top step: shot or kicked over, down they roll
+  dress: 'steps',
+  entry: ['s', 0],
+  exit: ['n', 0],
+  // the far side: the lower level, behind its two tables and either side of the way off the steps
+  posts: [[-7.5, -6.2, -7.5, -4.5], [7.5, -6.2, 7.5, -4.5], [-3.5, -5.8], [3.5, -5.8], [-9.5, -2.5]],
+  floor: 'concrete',
+  theme: {
+    bg: 0x0b0a10,
+    fog: [0x120e14, 0.004],
+    hemi: [0xffd9b8, 0x14100c, 0.8],
+    moon: [0xb8c0ff, 0.45],
+    sunDir: [-8, 30, 12],
+    // four warm street lamps, two over each level
+    points: [
+      [0xffc890, -6, 5, -4, 22, 16],
+      [0xffc890, 6, 5, -4, 22, 16],
+      [0xffd9a0, -6, 5.5, 4, 22, 16],
+      [0xffd9a0, 6, 5.5, 4, 22, 16],
+    ],
+    rain: false,
+    bloom: { strength: 0.6, threshold: 0.85 },
+  },
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
 
 /**
  * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of
