@@ -54,7 +54,7 @@
 //   a man walking into it pushes it open) or by a roller shutter over one `shutter` m wide (fixtures.js 'shutter': shot
 //   or kicked at its lock post it drops, SHUTTER, and shuts the opening till the wave is down); a door in each wall
 //   between two shops, so the row is a way through the houses (as 福隆新街's shops are: maps.js felicidadeWalls);
-//   cutaway: the camera's see-through hole round the player (main.js), for a room with rooms in it; dress 'street' (E④),
+//   cutaway: the camera's see-through hole round the player (main.js), for a room with rooms in it; dress 'shops' (E④),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
 //   towards the player }, dist } }
 
@@ -149,7 +149,7 @@ function decorateRoom(L, t, entry, exit) {
   else if (t.dress === 'plaza') dressPlaza(L, t, std, merged, posts, gold);
   else if (t.dress === 'track') dressTrack(L, t, std, merged, posts, gold);
   else if (t.dress === 'steps') dressSteps(L, t, std, merged, posts, gold);
-  else if (t.dress === 'street') dressStreet(L, t, std, merged, posts, gold);
+  else if (t.dress === 'shops') dressStreet(L, t, std, merged, posts, gold);
   else dressTea(L, t, exit, std, merged, posts, gold);
 }
 
@@ -1012,7 +1012,7 @@ export const STEPS = room({
  * at the south, out at the north.
  */
 export const STREET = room({
-  id: 'street',
+  id: 'shopstreet',
   rev: 1,
   name: '直街',
   en: 'SHOP STREET',
@@ -1026,7 +1026,7 @@ export const STREET = room({
   tableLook: 'folding',
   shops: { depth: 4.5, wall: 0.3, h: 2.8, door: 2, shutter: 3.2, list: [{ x: [-11, -3.75], front: 'door' }, { x: [-3.75, 3.75], front: 'shutter' }, { x: [3.75, 11], front: 'door' }] },
   cutaway: true,
-  dress: 'street',
+  dress: 'shops',
   entry: ['s', 0],
   exit: ['n', 0], // in the middle shop's back wall
   // the far side: the street before the shops, either side of their openings and behind the two north tables
@@ -1052,7 +1052,7 @@ export const STREET = room({
   budget: ROOM_BUDGET,
 });
 
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, street: STREET, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, shopstreet: STREET, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
 
 /**
  * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of

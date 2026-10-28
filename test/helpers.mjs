@@ -257,6 +257,16 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
             const path = g.level.nav.findPath(p.x, p.z, at.x, at.z);
             chase = (path && path.find((q) => Math.hypot(q.x - p.x, q.z - p.z) > 0.5)) || at;
           }
+          // a shut door on its way (a shop's on the street, 彈幕 ② E④): the nav grid runs through doors, as the men
+          // push them open, but the player has to kick one; so the bot turns to it and kicks
+          if (chase) {
+            const shut = g.level.fixtures.find((f) => f.kind === 'door' && !f.open && Math.hypot(f.x - p.x, f.z - p.z) < 1.8 && (f.x - p.x) * (chase.x - p.x) + (f.z - p.z) * (chase.z - p.z) > 0);
+            if (shut) {
+              aimAt(shut.x, shut.z);
+              inp.mouse.left = false;
+              if (i % 15 === 0) inp.pressed.add('KeyF');
+            }
+          }
           let kx = wanderX;
           let kz = wanderZ;
           if (chase && !goal) {

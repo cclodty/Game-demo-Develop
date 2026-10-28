@@ -25,7 +25,7 @@ before(async () => {
       g.waves.state = 'done';
       g.enemies.clear();
       g.bullets.clear();
-      g.floors[0][1] = 'street';
+      g.floors[0][1] = 'shopstreet';
       g.floor = g.floors.flat();
       g.stage = 1;
       g.level.load(g.stageMap);
@@ -130,8 +130,8 @@ test('the street is in the floors’ draw; three shops along the north, the end 
     };
   });
   await page.screenshot({ path: new URL('street-quiet.png', OUT).pathname });
-  assert.ok(r.pool.includes('street'), `in the draw: ${r.pool}`);
-  assert.equal(r.id, 'street');
+  assert.ok(r.pool.includes('shopstreet'), `in the draw: ${r.pool}`);
+  assert.equal(r.id, 'shopstreet');
   assert.equal(r.fronts.length, 2, `two shop doors: ${JSON.stringify(r.fronts)}`);
   assert.equal(r.inner.length, 2, `two doors between the shops: ${JSON.stringify(r.inner)}`);
   assert.ok(r.shutter && r.shutter[2] > 3, `a shutter over the middle shop: ${r.shutter}`);
