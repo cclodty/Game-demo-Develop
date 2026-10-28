@@ -1096,6 +1096,8 @@ export class Level {
     this.fixtures = [];
     this.water = []; // { x, z, w, d } rectangles or { x, z, r } circles of water: bodies knocked in are gone, props sink
     this.veils = []; // boxes sight does not pass (laundry hung out on a roof, rooms.js `laundry`): shots and bodies do
+    this.blackout = null; // the club's beat lights (rooms.js `blackout`: { bpm, every, dark }): out on the bar's last beat, nobody aims
+    this.beatT = 0; // world seconds since the room's beat began (blackout)
     this.props = [];
     this.pads = [];
     this.animators = [];
@@ -1134,6 +1136,8 @@ export class Level {
     this.flocks = (map.flocks || []).map(([x, z]) => new Flock(x, z));
     this.water = (map.water || []).map((w) => ({ ...w }));
     this.veils = (map.veils || []).map(([minX, minZ, maxX, maxZ]) => ({ minX, minZ, maxX, maxZ }));
+    this.blackout = map.blackout || null;
+    this.beatT = 0;
     for (const [x, z, kind, angle = 0, variant] of map.tools || []) {
       // things to pick up and use (more kinds come with their cards)
       if (kind === 'extinguisher') this.tools.push(new Extinguisher(this, x, z));
@@ -1533,10 +1537,24 @@ export class Level {
     }
   }
 
-  /** In the dark pool of a lamp shot out (fixtures.js): nobody aims from there. */
+  /** In the dark pool of a lamp shot out (fixtures.js), or anywhere while the club's lights are out (blackoutNow): nobody aims from there. */
   darkAt(x, z) {
+    if (this.blackoutNow()) return true;
     for (const f of this.fixtures) if (f.darkAt(x, z)) return true;
     return false;
+  }
+
+  /** The club's beat (`blackout`, on world time: bullet time stretches it as it does the music): the beat it is in, counted from the room's start, and how far through it (0–1). */
+  beatAt() {
+    const b = (this.beatT * this.blackout.bpm) / 60;
+    return [Math.floor(b), b - Math.floor(b)];
+  }
+
+  /** The club's lights are out: the last `dark` beats of every `every`. */
+  blackoutNow() {
+    if (!this.blackout) return false;
+    const { every, dark } = this.blackout;
+    return this.beatAt()[0] % every >= every - dark;
   }
 
   /** Over water (the docks' harbour, the Senado fountain's pool). */
@@ -1792,6 +1810,7 @@ export class Level {
 
   resetProps() {
     for (const p of this.props) p.reset();
+    this.beatT = 0;
     if (this.race) this.race.reset();
     for (const f of this.flocks) f.reset();
     for (const s of this.crates) {
@@ -1847,6 +1866,7 @@ export class Level {
 
   updateProps(dt) {
     this.time += dt;
+    if (this.blackout) this.beatT += dt;
     this.updateFlocks(dt);
     if (this.race) this.race.update(dt);
     const props = this.props;
