@@ -55,6 +55,9 @@
 //   or kicked at its lock post it drops, SHUTTER, and shuts the opening till the wave is down); a door in each wall
 //   between two shops, so the row is a way through the houses (as 福隆新街's shops are: maps.js felicidadeWalls);
 //   cutaway: the camera's see-through hole round the player (main.js), for a room with rooms in it; dress 'shops' (E④),
+//   edges: { side: [height, material, trim] } a side's edge other than its wall (the quay's curb: E⑤), water: [{ x, z, w,
+//   d }] water beyond it (level.js: a man knocked into it is gone, SPLASH), trolleyLook: the trolleys' (fixtures' Trolley
+//   variant: 'dimsum', the teahouse's, by default; 'trolley' the docks' hand trolley), dress 'quay' (E⑤),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
 //   towards the player }, dist } }
 
@@ -109,17 +112,17 @@ export function room(t) {
     entry: [nx, nz, nf], // the gate in, on its wall (drawn only: shut behind the player)
     theme: t.theme,
     floor: t.floor,
-    edges: { n: wall('n'), s: wall('s'), w: wall('w'), e: wall('e') },
+    edges: { n: wall('n'), s: wall('s'), w: wall('w'), e: wall('e'), ...(t.edges || {}) },
     solids: [...(t.solids || []), ...(t.stall ? [[...t.stall, 1.0, 'counter']] : []), ...shops.solids],
     barrels: t.barrels || [],
-    tools: (t.trolleys || []).map(([x, z, angle]) => [x, z, 'trolley', angle, 'dimsum']),
+    tools: (t.trolleys || []).map(([x, z, angle]) => [x, z, 'trolley', angle, t.trolleyLook || 'dimsum']),
     fixtures: [...t.tables.map(([x, z, r]) => [x, z, 'table', 0, r, t.tableLook || 'cloth']), [ex, ez, 'exit', ef, ...EXIT_DOOR], ...shops.fixtures],
     cutaway: !!t.cutaway,
     spawns: t.doors.map(([side, at]) => doorSpawn(side, at, halfW, halfD)),
     posts: t.posts || [],
     boss: t.boss || null, // its boss, on its last wave (D①)
     flocks: t.flocks || [], // pigeons (E①)
-    water: t.pool ? [{ x: t.pool[0], z: t.pool[1], r: t.pool[2] - 0.35 }] : [], // the pool's water, inside its rim
+    water: [...(t.pool ? [{ x: t.pool[0], z: t.pool[1], r: t.pool[2] - 0.35 }] : []), ...(t.water || [])], // the pool's water, inside its rim; the quay's sea
     race: t.track ? { first: t.track.first, every: t.track.every, lanes: t.track.lanes, line: bendLine(t.track) } : null, // the racing cars (E②)
     ground: t.steps ? profileGround(t.steps.profile) : null, // the steps' two levels (E③)
     slope: t.steps ? profileSlope(t.steps.profile) : null,
@@ -150,7 +153,46 @@ function decorateRoom(L, t, entry, exit) {
   else if (t.dress === 'track') dressTrack(L, t, std, merged, posts, gold);
   else if (t.dress === 'steps') dressSteps(L, t, std, merged, posts, gold);
   else if (t.dress === 'shops') dressStreet(L, t, std, merged, posts, gold);
+  else if (t.dress === 'quay') dressQuay(L, t, std, merged, posts, gold);
   else dressTea(L, t, exit, std, merged, posts, gold);
+}
+
+/**
+ * The quay (E⑤): the sea beyond the north curb, a dark plane well below it with the quay's stone face down to it and
+ * a line of foam where they meet, bollards along the curb (only drawn: the curb is what stops bodies), the quay's
+ * lamps broken into streaks on the water, and the lights of a far shore across it.
+ */
+function dressQuay(L, t, std, merged, posts, gold) {
+  merged(posts, gold, false);
+  const halfW = t.size[0] / 2;
+  const halfD = t.size[1] / 2;
+  const seaY = -1.4;
+  const sea = new THREE.Mesh(L.own(new THREE.PlaneGeometry(halfW * 2 + 40, 30)), std({ color: 0x0c2436, emissive: 0x04101a, roughness: 0.12, metalness: 0.5 }));
+  sea.rotation.x = -Math.PI / 2;
+  sea.position.set(0, seaY, -halfD - 15.6);
+  sea.name = 'sea';
+  L.add(sea);
+  merged([new THREE.BoxGeometry(halfW * 2 + 1.2, 1.45, 0.4).translate(0, -0.725, -halfD - 0.8)], L.mat.curb, false, 'quay-face');
+  merged([new THREE.BoxGeometry(halfW * 2 + 1.2, 0.04, 0.3).translate(0, seaY + 0.03, -halfD - 1.15)], L.own(new THREE.MeshBasicMaterial({ color: 0x6f9fb0 })), false, 'foam');
+  const bollards = [];
+  for (let x = -halfW + 2; x <= halfW - 2; x += 4) bollards.push(new THREE.CylinderGeometry(0.16, 0.2, 0.5, 8).translate(x, 0.45 + 0.25, -halfD - 0.3));
+  merged(bollards, L.mat.darkMetal, true, 'bollards');
+  // each lamp over the quay and each far light as a column of short streaks on the water, broken up the further out
+  const streak = (x, z0, z1, wide) => {
+    const out = [];
+    for (let z = z0, k = 0; z > z1; z -= 0.55 + k * 0.08, k++) out.push(new THREE.BoxGeometry(wide * (1 - k * 0.06) * (k % 2 ? 0.6 : 1), 0.02, 0.16).translate(x + (k % 3) * 0.12 - 0.12, seaY + 0.02, z));
+    return out;
+  };
+  const glints = [];
+  for (const [, x, , z] of t.theme.points) if (z < 0) glints.push(...streak(x, -halfD - 1.6, -halfD - 7.5, 1.1));
+  const lights = [];
+  for (let x = -halfW - 6, k = 0; x <= halfW + 6; x += 3.7, k++) {
+    const lx = x + (k % 2) * 0.9;
+    lights.push(new THREE.SphereGeometry(0.18, 8, 6).translate(lx, 0.3 + (k % 3) * 0.4, -halfD - 14));
+    if (k % 2 === 0) glints.push(...streak(lx, -halfD - 13.2, -halfD - 9.4, 0.5));
+  }
+  merged(glints, L.own(new THREE.MeshBasicMaterial({ color: 0x9a6a3a })), false, 'glints');
+  merged(lights, L.own(new THREE.MeshBasicMaterial({ color: 0xffc070 })), false, 'far-shore');
 }
 
 /**
@@ -1052,7 +1094,59 @@ export const STREET = room({
   budget: ROOM_BUDGET,
 });
 
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, shopstreet: STREET, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
+/**
+ * The quay (碼頭, 彈幕 ② E⑤): the docks remade as a room. Its north side is the quay's edge, a knee-high curb with
+ * the harbour beyond it; the gunners' posts are along it, their backs to the sea, so a man kicked north goes over the
+ * curb and into the water (SPLASH), and a hand trolley kicked at a row of them bowls them over (BOWLING) and into it.
+ * Wooden crates for cover, the men in by a warehouse's doors in the east wall. 22 × 15 m, in at the south, out at the
+ * east.
+ */
+export const QUAY = room({
+  id: 'quay',
+  rev: 1,
+  name: '碼頭',
+  en: 'QUAYSIDE',
+  desc: '碼頭邊：開火位背住個海，一腳踢落海；手推車撞倒成排人。',
+  color: '#3fe6ff',
+  size: [22, 15],
+  walls: [3.2, 'warehouse', null],
+  low: [0.9, ['s', 'w']],
+  edges: { n: [0.45, 'curb', null] }, // the quay's edge: the sea beyond (`water`)
+  water: [{ x: 0, z: -9.5, w: 26, d: 4 }], // from the curb's inner face out: a body knocked over it lands in it
+  doors: [['e', -1.5], ['e', 2.5], ['e', 6]], // a warehouse's doors
+  tables: [[-6.5, 3.5, 0.65], [2.5, 5, 0.65]], // folding tables of the dockers', on the player's side
+  tableLook: 'folding',
+  trolleys: [[-3, 1.5, Math.PI], [6, 1, Math.PI]], // hand trolleys, laid towards the quay: kicked north they roll at the posts
+  trolleyLook: 'trolley',
+  solids: [[-9, -1.5, 1.2, 1.2, 1.2, 'crate'], [-1, -2.4, 1.2, 1.2, 1.2, 'crate'], [5.5, -2.6, 1.2, 1.2, 1.2, 'crate'], [7.2, 4.2, 1.4, 1.0, 1.2, 'metal']], // wooden crates (break apart, ENV.crateHits; the made crate is 7,760 triangles, so three) and a steel bin
+  barrels: [[-5.5, -4.8]],
+  dress: 'quay',
+  entry: ['s', -4],
+  exit: ['e', -5.5], // at the warehouse's north end, by the quay
+  // the far side: along the quay, the men's backs to the sea
+  posts: [[-9.5, -5.6], [-5.5, -6.1], [-1.5, -5.6], [2.5, -6.1], [6.5, -5.6]],
+  floor: 'concrete',
+  theme: {
+    bg: 0x05080d,
+    fog: [0x070b12, 0.004],
+    hemi: [0x9ab0d0, 0x0c0e12, 0.75],
+    moon: [0xa8c0ff, 0.55],
+    sunDir: [10, 30, -14],
+    // sodium lamps over the quay and the yard
+    points: [
+      [0xffb060, -6, 5, -4, 22, 16],
+      [0xffb060, 5, 5, -4, 22, 16],
+      [0xffc890, -5, 5, 4, 22, 16],
+      [0x9fd0ff, 6, 5, 4, 22, 16],
+    ],
+    rain: false,
+    bloom: { strength: 0.6, threshold: 0.85 },
+  },
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, shopstreet: STREET, quay: QUAY, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
 
 /**
  * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of
