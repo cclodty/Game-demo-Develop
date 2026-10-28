@@ -38,6 +38,10 @@
 //   bursts them up, an enemy aiming within ENV.flockReach loses his aim, PIGEON STRIKE), pool: [x, z, r] a round
 //   fountain pool, a solid knee-high rim with water in it (level.js `water`: a man knocked over its rim is gone, SPLASH),
 //   dress 'plaza' (E①),
+//   track: { at: [x, z], r, road, first, every, lanes }: a quarter bend of road about the room's corner (x, z), r m to
+//   its middle, `road` m across, in at one wall and out at the other; the racing cars (race.js) sweep it on the room's
+//   timetable (`first` s after the room loads, then every `every` s, in world time) on their own `lanes`, the lights red
+//   and a line along the road RACE.warn s before (a man run down: GRAND PRIX); dress 'track' (E②),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
 //   towards the player }, dist } }
 
@@ -101,6 +105,7 @@ export function room(t) {
     boss: t.boss || null, // its boss, on its last wave (D①)
     flocks: t.flocks || [], // pigeons (E①)
     water: t.pool ? [{ x: t.pool[0], z: t.pool[1], r: t.pool[2] - 0.35 }] : [], // the pool's water, inside its rim
+    race: t.track ? { first: t.track.first, every: t.track.every, lanes: t.track.lanes, line: bendLine(t.track) } : null, // the racing cars (E②)
     camera: t.camera,
     budget: t.budget,
     room: t, // the template itself (tests)
@@ -125,7 +130,116 @@ function decorateRoom(L, t, entry, exit) {
   const posts = entryGate(L, entry, std, merged);
   if (t.dress === 'stall') dressStall(L, t, std, merged, posts, gold);
   else if (t.dress === 'plaza') dressPlaza(L, t, std, merged, posts, gold);
+  else if (t.dress === 'track') dressTrack(L, t, std, merged, posts, gold);
   else dressTea(L, t, exit, std, merged, posts, gold);
+}
+
+/**
+ * A quarter bend about the room's corner (cx, cz): the point `a` (0 to π/2) along it, `r` m from the corner. At 0 it is
+ * on the corner's north or south wall, at π/2 on its east or west wall; `sx`, `sz` turn it into the room.
+ */
+function bendAt([cx, cz], r, a) {
+  const sx = -Math.sign(cx);
+  const sz = -Math.sign(cz);
+  return [cx + sx * r * Math.cos(a), cz + sz * r * Math.sin(a)];
+}
+
+/** Where a flat ring piece (THREE.RingGeometry, laid on the ground) starts for the bend about corner `at`: the arc's angle from 0 to π/2. */
+function bendTheta([cx, cz]) {
+  const t0 = Math.atan2(0, -Math.sign(cx)); // the bend's start, on the north or south wall
+  const t1 = Math.atan2(Math.sign(cz), 0); // its end (a ring's angles run the other way round on the ground)
+  return ((t1 - t0 + Math.PI * 4) % (Math.PI * 2)) < Math.PI ? t0 : t1;
+}
+
+const BEND_RUN = 3; // m the racing line runs on beyond each wall: the cars come in through it, not out of it
+
+/** The racing line round a room's bend (rooms.js `track`): in through the one wall, round, out through the other. */
+function bendLine(track) {
+  const { at, r } = track;
+  const [cx, cz] = at;
+  const round = (v) => +v.toFixed(3);
+  const line = [];
+  const [x0] = bendAt(at, r, 0);
+  line.push([round(x0), round(cz + Math.sign(cz) * BEND_RUN)]);
+  for (let i = 0; i <= 16; i++) line.push(bendAt(at, r, ((Math.PI / 2) * i) / 16).map(round));
+  const [, z1] = bendAt(at, r, Math.PI / 2);
+  line.push([round(cx + Math.sign(cx) * BEND_RUN), round(z1)]);
+  return line;
+}
+
+/** Tyre stacks (solids, the Guia circuit's 'tyres': 0.9 m, cover a man crouches behind) along the bend `r` m from its corner, from a0 to a1 (degrees along it), 0.75 m apart. */
+function tyreArc(at, r, a0, a1) {
+  const out = [];
+  const n = Math.max(1, Math.round((((a1 - a0) * Math.PI) / 180) * r / 0.75));
+  for (let i = 0; i <= n; i++) {
+    const [x, z] = bendAt(at, r, ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180);
+    out.push([+x.toFixed(2), +z.toFixed(2), 0.9, 0.9, 0.9, 'tyres']);
+  }
+  return out;
+}
+
+/**
+ * The track bend (E②): the road round the bend, a little darker than the run-off's asphalt, white lines at its edges,
+ * red-and-white kerbs on its inside, grass in the infield; the tyre walls as stacks of blue and white tyres (two
+ * instanced meshes, as on the circuit); a dark mouth in each wall the road comes through, a light bar over it.
+ */
+function dressTrack(L, t, std, merged, posts, gold) {
+  merged(posts, gold, false);
+  const { at, r, road } = t.track;
+  const [cx, cz] = at;
+  const rIn = r - road / 2;
+  const rOut = r + road / 2;
+  const t0 = bendTheta(at);
+  const Q = Math.PI / 2;
+  const flat = (geo) => geo.rotateX(-Math.PI / 2).translate(cx, 0, cz);
+  const ring = (r0, r1, a0 = 0, len = Q) => flat(new THREE.RingGeometry(r0, r1, 24, 1, t0 + a0, len));
+  const ground = (geos, mat, y, name) => {
+    const mesh = new THREE.Mesh(L.own(mergeGeometries(geos)), mat);
+    mesh.position.y = y;
+    mesh.receiveShadow = true;
+    mesh.name = name;
+    L.add(mesh);
+  };
+  ground([ring(rIn, rOut)], std({ color: 0x17191e, roughness: 0.9 }), 0.004, 'road');
+  ground([flat(new THREE.CircleGeometry(rIn - 0.55, 24, t0, Q))], std({ color: 0x1b3320, roughness: 1 }), 0.006, 'infield');
+  ground([ring(rIn + 0.1, rIn + 0.24), ring(rOut - 0.24, rOut - 0.1)], std({ color: 0xe8ecf2, roughness: 0.6, emissive: 0xe8ecf2, emissiveIntensity: 0.06 }), 0.012, 'road-lines');
+  const kerbs = [[], []];
+  for (let i = 0; i < 12; i++) kerbs[i % 2].push(ring(rIn - 0.55, rIn, (i * Q) / 12, Q / 12));
+  ground(kerbs[0], std({ color: 0xc81e28, roughness: 0.7 }), 0.014, 'kerbs');
+  ground(kerbs[1], std({ color: 0xe8ecf2, roughness: 0.7 }), 0.014, 'kerbs');
+
+  // the tyre walls: every 'tyres' solid drawn as a stack of three tyres, blue and white by turns
+  const layers = [[], []];
+  let k = 0;
+  for (const sd of L.solids) {
+    if (sd.matKey !== 'tyres') continue;
+    sd.mesh.visible = false;
+    const x = (sd.minX + sd.maxX) / 2;
+    const z = (sd.minZ + sd.maxZ) / 2;
+    for (let j = 0; j < 3; j++) layers[(k + j) % 3 === 1 ? 1 : 0].push([x, j * 0.3, z]);
+    k++;
+  }
+  const tyreGeo = L.own(new THREE.CylinderGeometry(0.42, 0.42, 0.29, 12).translate(0, 0.145, 0));
+  const m4 = new THREE.Matrix4();
+  layers.forEach((list, i) => {
+    if (!list.length) return;
+    const im = new THREE.InstancedMesh(tyreGeo, std({ color: i ? 0xe8ecf2 : 0x1d4fd0, roughness: 0.7 }), list.length);
+    list.forEach(([x, y, z], j) => im.setMatrixAt(j, m4.makeTranslation(x, y, z)));
+    im.computeBoundingSphere();
+    im.castShadow = true;
+    im.receiveShadow = true;
+    im.name = 'tyres';
+    L.add(im);
+  });
+
+  // where the road comes through the walls: a dark mouth on each wall's inner face, a light bar over it
+  const [x0] = bendAt(at, r, 0);
+  const [, z1] = bendAt(at, r, Q);
+  const w = road + 0.4;
+  const inX = -Math.sign(cx) * 0.03; // off the east or west wall's face, into the room
+  const inZ = -Math.sign(cz) * 0.03;
+  merged([new THREE.BoxGeometry(w, 2.6, 0.06).translate(x0, 1.3, cz + inZ), new THREE.BoxGeometry(0.06, 2.6, w).translate(cx + inX, 1.3, z1)], std({ color: 0x030405, roughness: 1 }), false, 'track-mouths');
+  merged([new THREE.BoxGeometry(w, 0.12, 0.08).translate(x0, 2.75, cz + inZ * 2), new THREE.BoxGeometry(0.08, 0.12, w).translate(cx + inX * 2, 2.75, z1)], L.own(new THREE.MeshBasicMaterial({ color: 0xf2f6ff })), false, 'track-lights');
 }
 
 /**
@@ -628,7 +742,61 @@ export const PLAZA = room({
   budget: ROOM_BUDGET,
 });
 
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
+/**
+ * The track bend (跑道彎, 彈幕 ② E②): the circuit remade as a room. A quarter bend of road comes in through the north
+ * wall, round the north-east corner and out through the east wall; now and then the racing cars sweep it kerb to kerb
+ * (race.js), the lights red and a line along the road two seconds before: a man on the road is run down (GRAND PRIX),
+ * the player on it is hurt hard, a barrel on it is sent flying. The exit is in the infield, so the way on is across the
+ * road. Tyre walls along its outside with a gap where the run-off meets it and a short one inside by the north wall,
+ * two marshals' folding tables in the run-off. 22 × 15 m, in at the south, out at the north.
+ */
+const BEND = { at: [11, -7.5], r: 11, road: 4.4 };
+
+export const RACEBEND = room({
+  id: 'racebend',
+  rev: 1,
+  name: '跑道彎',
+  en: 'TRACK BEND',
+  desc: '賽道彎：賽車定時掠過，紅燈一亮就離開賽道；把人踢上賽道等車到。',
+  color: '#4fb4ff',
+  size: [22, 15],
+  walls: [3.2, 'concrete', null],
+  low: [0.9, ['s', 'w']],
+  doors: [['n', -6], ['n', 9], ['e', -4], ['e', 6.8]], // two on the run-off's side, two in the infield
+  tables: [[-6, 2, 0.65], [-1, 5, 0.65]],
+  tableLook: 'folding',
+  // the tyre walls: the outside of the bend either side of the run-off's way onto it; its inside by the north wall, between
+  // the road and the way to the exit (one in front of the infield's posts would hide most of the room from them)
+  solids: [...tyreArc(BEND.at, BEND.r + BEND.road / 2 + 0.8, 16, 30), ...tyreArc(BEND.at, BEND.r + BEND.road / 2 + 0.8, 60, 74), ...tyreArc(BEND.at, BEND.r - BEND.road / 2 - 0.9, 4, 14)],
+  barrels: [[-1.5, 1.5], [5.2, -1.6, 'lpg']], // a drum by the road on the run-off's side, a cylinder by it in the infield: kicked on, sent flying
+  track: { ...BEND, first: 10, every: 15, lanes: [-1.1, 1.1] }, // two lanes: the pack (RACE.cars) covers the 4.4 m road kerb to kerb
+  dress: 'track',
+  entry: ['s', -5],
+  exit: ['n', 6], // in the infield: the way on is across the road
+  // the far side: the run-off's north-west, and the infield across the road
+  posts: [[-8.5, -5], [-4.5, -5.5], [-9.5, -0.5], [5.5, -3.5], [8.5, -1.5]],
+  floor: 'asphalt',
+  theme: {
+    bg: 0x05070d,
+    fog: [0x070a14, 0.004],
+    hemi: [0x8a9abc, 0x0a0c12, 0.75],
+    moon: [0xb8c8ff, 0.5],
+    sunDir: [12, 34, 16],
+    // four floodlights over the run-off and the infield, white as the circuit's
+    points: [
+      [0xe8f0ff, -6, 5, -3, 22, 16],
+      [0xe8f0ff, 5, 5, -3, 22, 16],
+      [0xffe2b8, -6, 5, 4, 22, 16],
+      [0xe8f0ff, 5, 5, 4, 22, 16],
+    ],
+    rain: false,
+    bloom: { strength: 0.7, threshold: 0.85 },
+  },
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
 
 /**
  * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of

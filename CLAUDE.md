@@ -75,7 +75,7 @@ src/asset-manifest.js        catalogue of every asset we want as a real model (s
 src/cutaway.js  postfx.js    camera→player cut-away shader and the map fades (maps.js `fade`: past the play area; `follow`: whole buildings between camera and player); bloom + bullet-time grading
 src/fx.js  hud.js  audio.js  particles/decals/lasers; DOM HUD; WebAudio synth SFX and music
 src/music.js                 the songs as data (tempo, chords, step patterns, layers by level, a boss section), played by audio.js; config.js MUSIC.playlist gives one a stage, ?music=<id> plays just one
-src/race.js                  the Guia circuit's racing cars: a pack sweeps the track on the map's timetable (maps.js `race`), warned by red lights; GRAND PRIX
+src/race.js                  the Guia circuit's racing cars: a pack sweeps the track on the map's timetable (maps.js `race`; the track bend room's from rooms.js `track`), warned by red lights; GRAND PRIX
 src/boss.js                  each map's boss, the last wave of every arcade stage there (maps.js `boss.kind`; waves 4 and 8 shorter, waves.js `midBoss`): helicopter (rooftop), blade queen (club), heavy gunner (docks), taxi convoy (Senado), with the DJ and the armoured truck as spare kinds; what they share (health bar, banners, BOSS bonus, clip) is Boss
 src/ambient.js               pigeons: Flock (logic: where a flock rests, when it bursts up) and the birds that follow it
 src/tutorial.js              the 60-second warm-up on a first run (three enemies: bullet time against the laser, a human shield, a flipped table)

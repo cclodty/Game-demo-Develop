@@ -3,8 +3,9 @@
 // pass and the gap between passes, in world seconds since the stage began); config.js RACE the cars and the warning.
 // RACE.warn seconds before each pass the track's lights turn red and a line glows along the road, then the cars come
 // along it in world time (so bullet time slows them as it does everything else). An enemy run down dies (main.js:
-// GRAND PRIX); the player is hurt hard and no move saves him, not a slide, a spin or a dive: only being off the
-// track. A barrel on the road is sent flying and goes off where it lands. The teams are made up.
+// GRAND PRIX); the player is hurt hard, once a pass whichever cars go over him, and no move saves him, not a slide,
+// a spin or a dive: only being off the track. A barrel on the road is sent flying and goes off where it lands. The teams are made up. A room's road (rooms.js,
+// 彈幕 ② E②) is narrower: its race gives its own `lanes`.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RACE } from './config.js';
@@ -12,7 +13,7 @@ import { RACE } from './config.js';
 const RED = new THREE.Color(1, 0.12, 0.08);
 
 export class Race {
-  /** `def`: the map's race ({ line: [[x, z], …], first, every }); built when the map loads (level.js). */
+  /** `def`: the map's race ({ line: [[x, z], …], first, every, lanes? }); built when the map loads (level.js). */
   constructor(level, def) {
     this.level = level;
     this.def = def;
@@ -40,6 +41,7 @@ export class Race {
     this.next = this.def.first;
     this.passT = -1;
     this.warned = false;
+    this.struck = false; // the player hurt on this pass
     for (const c of this.cars) c.group.visible = false;
     this.showWarning(false);
   }
@@ -65,8 +67,10 @@ export class Race {
         this.showWarning(true);
         this.level.game.notes.log('賽車將至');
       }
-      if (this.t >= this.next) this.passT = 0;
-      else return;
+      if (this.t >= this.next) {
+        this.passT = 0;
+        this.struck = false;
+      } else return;
     }
     this.passT += dt;
     let onRoad = 0;
@@ -80,8 +84,9 @@ export class Race {
       }
       onRoad++;
       const p = this.at(s);
-      // each car on a line of its own across the road (RACE.lanes): the pack covers it kerb to kerb
-      const off = RACE.lanes[i % RACE.lanes.length];
+      // each car on a line of its own across the road (RACE.lanes, or the race's own): the pack covers it kerb to kerb
+      const lanes = this.def.lanes || RACE.lanes;
+      const off = lanes[i % lanes.length];
       c.x = p.x - p.dz * off;
       c.z = p.z + p.dx * off;
       c.group.position.set(c.x, 0, c.z);
@@ -113,9 +118,11 @@ export class Race {
       e.die(dx, dz, { cause: 'race' });
     }
     const p = g.player;
-    if (p.alive && p.invuln <= 0 && under(p.x, p.z, 0.35)) {
-      // no dodge gets under a racing car: the hurt is a blast's, which a spin or a dive does not turn
-      p.hurt(RACE.damage, dx, dz, true, '賽車');
+    if (!this.struck && p.alive && p.invuln <= 0 && under(p.x, p.z, 0.35)) {
+      // no dodge gets under a racing car: the hurt is a blast's, which a spin or a dive does not turn. Once a pass: the
+      // cars' lanes overlap (a room's two lanes take three cars), and a second car 0.2 s on would make where he stood
+      // on the road a matter of life and death
+      if (p.hurt(RACE.damage, dx, dz, true, '賽車')) this.struck = true;
     }
     for (const b of this.level.barrels) {
       if (!b.alive || b.carried || b.thrown || (b.y || 0) > 0.6 || !under(b.x, b.z, b.r)) continue;
