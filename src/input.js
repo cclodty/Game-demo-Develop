@@ -17,6 +17,7 @@ export const BUTTONS = [
   'Digit1', 'Digit2', 'Mouse0', 'Mouse2', 'WheelUp', 'WheelDown', 'Escape',
   'Digit3', // the third style card (cards.js, 彈幕 ② C②); new controls go at the end, so older records read the same
   'KeyY', // a room's challenge taken on (challenge.js, F②a): a pad's d-pad down and the sign itself make the press (main.js)
+  'Digit4', // the fourth style card, when 不開槍's prize offers four (challenge.js, F②b)
 ];
 const BIT = new Map(BUTTONS.map((c, i) => [c, 1 << i]));
 

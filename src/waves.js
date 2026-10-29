@@ -608,6 +608,9 @@ export class Waves {
           // the floor is done (C②): the style cards first, the exit opens on the pick
           this.state = 'cards';
           this.game.cards.show(this.stageIndex);
+        } else if (this.game.cards.pending) {
+          // a challenge's prize cards on the screen (不開槍: challenge.js roomClear): the exit opens on the pick
+          this.state = 'cards';
         } else {
           this.state = 'exit';
           exit.unlock();

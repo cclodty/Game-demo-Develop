@@ -4,7 +4,7 @@
 // both kinds among them; a card held is never offered again. The pick is a press of 1, 2 or 3 in the step's input
 // (input.js BUTTONS Digit1–3), so a replay picks the same card; the card screen's buttons, a touch and a pad make
 // that press (main.js). The numbers are in config.js CARDS.
-import { CARDS as NUM } from './config.js';
+import { CARDS as NUM, CHALLENGE } from './config.js';
 
 /** The first batch: three action cards, three slow-mo cards. `name` and `en` show on the card, `text` says what it does. */
 export const CARDS = {
@@ -71,10 +71,26 @@ export class Cards {
     return this.offer;
   }
 
-  /** The step's input (a press of 1, 2 or 3) read while an offer is up: the card kept, or null. */
+  /**
+   * 不開槍's prize (challenge.js, F②b): CHALLENGE.cards on the screen to keep one, from room `stage`'s own stream
+   * (the same seed, the same cards); false when none is left to offer.
+   */
+  showPrize(stage) {
+    const g = this.game;
+    const offer = drawOffer(g.rng.fork('challenge-cards', stage), this.held, CHALLENGE.cards);
+    if (!offer.length) return false;
+    this.offer = offer;
+    this.offerFloor = -1;
+    const n = ['', '一', '二', '三', '四', '五', '六'][offer.length];
+    g.notes.log(`風格卡${n}選一（挑戰獎勵）：${offer.map((id) => CARDS[id].name).join(' / ')}`);
+    g.showCards(offer, `挑戰獎勵 · 風格卡${n}選一  CHALLENGE PRIZE`);
+    return true;
+  }
+
+  /** The step's input (a press of 1, 2, 3 or 4) read while an offer is up: the card kept, or null. */
   read(cmd) {
     if (!this.offer) return null;
-    const i = cmd.hit('Digit1') ? 0 : cmd.hit('Digit2') ? 1 : cmd.hit('Digit3') ? 2 : -1;
+    const i = cmd.hit('Digit1') ? 0 : cmd.hit('Digit2') ? 1 : cmd.hit('Digit3') ? 2 : cmd.hit('Digit4') ? 3 : -1;
     if (i < 0 || i >= this.offer.length) return null;
     return this.pick(i);
   }

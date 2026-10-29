@@ -1450,12 +1450,12 @@
 - 這次不做：不開槍、不用慢鏡（F②b）、頭目房的挑戰、局外獎勵（解鎖）、難度分級
 
 ### F②b：房內自選挑戰——不開槍、不用慢鏡（估計：一天；2026-10-29 由 F② 拆出）
-- 目標：F②a 的牌加兩個挑戰：**不開槍**（成間房冇開過槍：獎勵一張卡，四選一，`cards.js` 照用、多一個 `Digit4`）、**不用慢鏡**（冇入過子彈時間：專注上限 +1 格，專注條跟住長）；條件由現有事件計數（開槍、慢鏡開）
+- 目標：F②a 的牌加兩個挑戰：**不開槍**（接受到清房冇開過槍：獎勵一張風格卡，四選一，由該房的流抽（`rng.fork('challenge-cards', 第幾間房)`），清房出卡、揀咗先開門，`cards.js` 照用、多一個 `Digit4`；卡已經揀晒就淨係 Style）、**不用慢鏡**（接受到清房玩家冇開過子彈時間；卡「擊殺慢鏡」自己開嗰半秒唔計：獎勵專注上限 +1 格，一格係原本專注表嘅四分一（`CHALLENGE.focusStep`），成局有效，專注條跟住長、分格顯示）；條件由現有事件計數（開槍、按慢鏡）。無槍變體冇不開槍，沒有慢鏡變體冇不用慢鏡
 - 漂亮的解法：不開槍也能打——踢、人盾、環境殺
-- 涉及：`src/challenge.js`、`src/cards.js`（四張）、`src/input.js`（`Digit4` 喺 `BUTTONS` 末尾）、`src/main.js`（專注上限）、`src/hud.js`、`test/challenge.test.mjs`
+- 涉及：`src/challenge.js`、`src/cards.js`（`showPrize`、`Digit4`）、`src/input.js`（`Digit4` 喺 `BUTTONS` 末尾）、`src/main.js`（專注上限、選卡畫面標題、按慢鏡）、`src/player.js`（開槍）、`src/waves.js`（清房出卡）、`src/hud.js`／`style.css`（專注條）、`src/config.js`（`CHALLENGE.cards`、`focusStep`）、`src/maps.js`（`PLAY_REV`）、`test/challenge.test.mjs`
 - 驗收：
-  - [ ] 測試：兩個挑戰各一個做到、一個做唔到；四選一的卡喺重播裏揀同一張；專注上限 +1 格生效、跨房保留、新一局還原
-  - [ ] 截圖：四選一的卡、加長咗的專注條
+  - [x] 測試：兩個挑戰各一個做到、一個做唔到；四選一的卡喺重播裏揀同一張（第四張）；專注上限 +1 格生效（專注表充得過一格、條長一格）、跨房保留、新一局還原；卡「擊殺慢鏡」自己開嘅慢鏡唔算犯規；卡揀晒就淨係 Style；十六個種子四個挑戰都抽到（`test/challenge.test.mjs`）
+  - [x] 截圖：四選一的卡、加長咗的專注條（`docs/shots/hell/challenge-prizes.jpg`）
   - [ ] npm run lint && npm test 通過
 - 這次不做：局外獎勵（解鎖）、挑戰的難度分級
 
