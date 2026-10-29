@@ -3,9 +3,10 @@
 // maps.js's are: the walls round it (the camera's side low), a door on a wall
 // for each way in (the spawns), round tables (fixtures.js 'table': low, shots
 // fly over them until the player's kick flips one into a wall), dim-sum trolleys (the hand trolley, a steamer stack on its deck: kicked, it
-// rolls and bowls men over). The whole room is on the screen at once (the
-// camera holds its middle, `camera.room`; test/rooms.test.mjs) and its floor
-// is dark and grey, so bullets stand out on it.
+// rolls and bowls men over). The camera follows the player most of the way from
+// the room's middle (`camera.room` with `follow`, config.js CAMERA.roomDist and
+// roomLean; test/rooms.test.mjs): since 試玩回饋 ⑥a the room is bigger than the
+// screen (it was all on it before). Its floor is dark and grey, so bullets stand out on it.
 //
 // A run is a floor of rooms (彈幕試驗 ⑤, drawFloor; test/floor.test.mjs): the
 // player comes in at a room's entry (a gate in a low wall, shut behind him) and
@@ -66,7 +67,7 @@
 //   then is a BLACKOUT), the dance floor flashing white the beat before; danceFloor: { at: [x, z], tiles: [cols, rows] }
 //   its light tiles, a metre each; dress 'disco' (E⑦),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
-//   towards the player }, dist } }
+//   towards the player, or follow: CAMERA.roomLean of the way, from CAMERA.roomDist }, dist } }
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -103,7 +104,7 @@ const ROOM_SCALE = (() => {
 /**
  * Template `t` drawn `k` × as big (試玩回饋 ⑥a): every place in it spread out from the room's middle, side by side
  * (doors, the entry and the exit, tables, trolleys, barrels, cover, posts, flocks, the pool, the stall, the bend, the
- * steps, the shops, the washing, the dance floor, the boss's spots, the lamps, the camera); what stands there keeps its
+ * steps, the shops, the washing, the dance floor, the boss's spots, the lamps); what stands there keeps its
  * size (a table's radius, a crate's box, a door's width), but for what covers ground (the water, a shop's depth, the
  * steps' slope, the bend's radius, the dance floor's tiles). The lamps reach as much farther and shine k² as strong.
  */
@@ -144,7 +145,6 @@ function scaled(t, k) {
     danceFloor: t.danceFloor && { at: at(t.danceFloor.at), tiles: t.danceFloor.tiles.map((n) => Math.round(n * k)) },
     boss: boss(t.boss),
     theme: { ...th, fog: [th.fog[0], th.fog[1] / k], points: th.points.map(([c, x, y, z, i, d]) => [c, S(x), y, S(z), Math.round(i * k * k * 10) / 10, S(d)]) },
-    camera: t.camera && { ...t.camera, dist: S(t.camera.dist), room: t.camera.room && { ...t.camera.room, at: t.camera.room.at.map(S), back: S(t.camera.room.back) } },
   };
 }
 
@@ -794,7 +794,7 @@ function teaTheme(at) {
   };
 }
 
-const ROOM_CAMERA = { room: { at: [0, 0], back: 5, lean: 0.1 }, dist: 28 };
+const ROOM_CAMERA = { room: { at: [0, 0], back: 1.5, follow: true } }; // follows the player (config.js CAMERA.roomDist, roomLean: 試玩回饋 ⑥a); before, it held the middle from 28 m (back 5, lean 0.1) with the whole room on the screen
 const ROOM_BUDGET = { tris: 120000, calls: 400 }; // rendered per frame, all passes; indoor: 400 (test/maps.test.mjs at the start: the teahouse 51,147 and 132, the banquet room 50,023 and 123, the side hall 49,373 and 99, the dai pai dong 66,804 and 111; the tables and the exit, fixtures, are their own meshes)
 
 /**

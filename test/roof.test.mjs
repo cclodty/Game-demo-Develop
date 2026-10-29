@@ -69,6 +69,22 @@ before(async () => {
       g.input.pressed.clear();
       g.input.mouse.left = false;
     };
+    /**
+     * The west line's east sheet (the northmost line's last: rooms.js ROOF `laundry`, level.js veils, at the rooms'
+     * scale): its middle, the middle of the gap west of it, and where the line ends to the east.
+     */
+    window.sheetA = () => {
+      const V = g.level.veils;
+      const z = Math.min(...V.map((v) => (v.minZ + v.maxZ) / 2));
+      const row = V.filter((v) => Math.abs((v.minZ + v.maxZ) / 2 - z) < 0.01).sort((a, b) => a.minX - b.minX);
+      const [prev, last] = row.slice(-2);
+      return { x: (last.minX + last.maxX) / 2, z, gap: (prev.maxX + last.minX) / 2, end: last.maxX };
+    };
+    /** How many sheets the room's lines hold (rooms.js laundrySheets: as many as fit, `gap` apart). */
+    window.sheetCount = () => {
+      const { lines, sheet, gap } = g.level.map.room.laundry;
+      return lines.reduce((n, [x0, z0, x1, z1]) => n + Math.floor((Math.hypot(x1 - x0, z1 - z0) + gap) / (sheet + gap)), 0);
+    };
     /** The tags of each kill from now on. */
     window.tags = () => {
       const seen = [];
@@ -91,6 +107,7 @@ test('the roof is in the floors’ draw; washing on three lines across the middl
     window.toRoof();
     const L = g.level;
     const room = L.map;
+    const sh = window.sheetA();
     g.updateCamera(1, true);
     g.hud.update(1 / 60);
     g.render();
@@ -99,9 +116,10 @@ test('the roof is in the floors’ draw; washing on three lines across the middl
       pool: g.waves.rules.floor.pool,
       id: room.id,
       sheets: L.veils.length,
-      across: L.veiled(-4.6, -5, -4.6, 0), // through the east sheet of the west line
-      gap: L.veiled(-5.55, -5, -5.55, 0), // through the gap beside it
-      shotsPass: L.hasLOS(-4.6, -5, -4.6, 0), // a sheet is no solid: shots (and the posts' test) go through
+      fit: window.sheetCount(),
+      across: L.veiled(sh.x, sh.z - 3, sh.x, sh.z + 2), // through the east sheet of the west line
+      gap: L.veiled(sh.gap, sh.z - 3, sh.gap, sh.z + 2), // through the gap beside it
+      shotsPass: L.hasLOS(sh.x, sh.z - 3, sh.x, sh.z + 2), // a sheet is no solid: shots (and the posts' test) go through
       lpg: L.barrels.filter((b) => b.variant === 'lpg').map((b) => [b.x, b.z]),
       edges: [room.edges.s, room.edges.w],
       rain: L.rain.lines.visible,
@@ -115,7 +133,7 @@ test('the roof is in the floors’ draw; washing on three lines across the middl
   await page.screenshot({ path: new URL('roof-quiet.png', OUT).pathname });
   assert.ok(r.pool.includes('roof'), `in the draw: ${r.pool}`);
   assert.equal(r.id, 'roof');
-  assert.equal(r.sheets, 10, 'ten sheets on three lines');
+  assert.ok(r.sheets >= 10 && r.sheets === r.fit, `a sheet for each place on the three lines (${r.sheets})`);
   assert.equal(r.across, true, 'sight stops at a sheet');
   assert.equal(r.gap, false, 'and goes through a gap');
   assert.equal(r.shotsPass, true, 'a shot goes through a sheet');
@@ -132,16 +150,17 @@ test('the roof is in the floors’ draw; washing on three lines across the middl
 test('a gunner beyond a sheet cannot see the player behind it and fires nothing; stepped out past the line’s end, he sees him and aims', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    window.toRoof(-4.6, 0);
+    window.toRoof();
+    const sh = window.sheetA();
     const p = g.player;
-    const e = window.post('grunt', -4.6, -5, true); // north of the west line's east sheet, the player south of it
+    const e = window.post('grunt', sh.x, sh.z - 3, true); // north of the west line's east sheet, the player south of it
     const shots0 = g.bullets.list.filter((b) => b.owner !== 'player').length;
     let saw = false;
     let aimed = false;
     for (let i = 0; i < 240; i++) {
-      window.play(1, { aim: [-4.6, -5] });
-      p.x = -4.6;
-      p.z = 0;
+      window.play(1, { aim: [sh.x, sh.z - 3] });
+      p.x = sh.x;
+      p.z = sh.z + 2;
       saw ||= e.los;
       aimed ||= e.state === 'aim' || e.state === 'fire';
     }
@@ -149,16 +168,16 @@ test('a gunner beyond a sheet cannot see the player behind it and fires nothing;
     // out past the line's end: nothing between them
     let seen = -1;
     for (let i = 0; i < 240 && seen < 0; i++) {
-      window.play(1, { aim: [-4.6, -5] });
-      p.x = -2.4;
-      p.z = 0;
+      window.play(1, { aim: [sh.x, sh.z - 3] });
+      p.x = sh.end + 1.5;
+      p.z = sh.z + 2;
       if (e.los) seen = i;
     }
     let aimedOut = false;
     for (let i = 0; i < 480 && !aimedOut; i++) {
-      window.play(1, { aim: [-4.6, -5] });
-      p.x = -2.4;
-      p.z = 0;
+      window.play(1, { aim: [sh.x, sh.z - 3] });
+      p.x = sh.end + 1.5;
+      p.z = sh.z + 2;
       aimedOut = e.state === 'aim' || e.state === 'fire' || g.bullets.list.some((b) => b.owner !== 'player');
     }
     return { hidden, seen, aimedOut };
@@ -172,18 +191,20 @@ test('a gunner beyond a sheet cannot see the player behind it and fires nothing;
 test('a shot through a sheet kills the gunner beyond it, who could not see the player: LAUNDRY DAY', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    window.toRoof(-4.6, 0);
+    window.toRoof();
+    const sh = window.sheetA();
     const p = g.player;
-    const e = window.post('grunt', -4.6, -5);
+    [p.x, p.z] = [sh.x, sh.z + 2];
+    const e = window.post('grunt', sh.x, sh.z - 3);
     const tags = window.tags();
-    window.play(2, { aim: [-4.6, -5] }); // turned to him
+    window.play(2, { aim: [sh.x, sh.z - 3] }); // turned to him
     let n = 0;
     while (e.alive && n++ < 600) {
-      window.play(1, { aim: [-4.6, -5], fire: true });
-      p.x = -4.6;
-      p.z = 0;
+      window.play(1, { aim: [sh.x, sh.z - 3], fire: true });
+      p.x = sh.x;
+      p.z = sh.z + 2;
     }
-    return { alive: e.alive, veiled: g.level.veiled(-4.6, 0, -4.6, -5), tags, s: n / 120 };
+    return { alive: e.alive, veiled: g.level.veiled(sh.x, sh.z + 2, sh.x, sh.z - 3), tags, s: n / 120 };
   });
   assert.equal(r.veiled, true, 'a sheet between them');
   assert.equal(r.alive, false, `shot through it (${r.s.toFixed(2)} s)`);
@@ -196,8 +217,8 @@ test('an LPG cylinder kicked north jets off across the roof and bursts on the gu
     const g = window.game;
     window.toRoof();
     const L = g.level;
-    const lpg = L.barrels.find((b) => b.variant === 'lpg' && Math.abs(b.x - 0.5) < 0.01); // the middle one
-    const post = L.posts.find((q) => Math.abs(q.x - lpg.x) < 0.01); // the post north of it
+    const lpg = L.barrels.filter((b) => b.variant === 'lpg').sort((a, b) => Math.abs(a.x) - Math.abs(b.x))[0]; // the middle one
+    const post = L.posts.slice().sort((a, b) => Math.abs(a.x - lpg.x) - Math.abs(b.x - lpg.x))[0]; // the post north of it
     const p = g.player;
     p.x = lpg.x;
     p.z = lpg.z + 1.1;
@@ -219,20 +240,20 @@ test('an LPG cylinder kicked north jets off across the roof and bursts on the gu
 test('screenshot: the player behind the washing shooting through a sheet at the gunners beyond, an LPG cylinder jetting off', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    window.toRoof(-4.6, 0.2);
+    window.toRoof();
+    const sh = window.sheetA();
     const L = g.level;
     const p = g.player;
-    window.post('grunt', -4.6, -5);
-    window.post('rifle', 4.5, -6);
-    window.post('grunt', 0.5, -5.6);
-    window.post('grunt', 8.6, -5.4);
-    const lpg = L.barrels.find((b) => b.variant === 'lpg' && Math.abs(b.x - 5.5) < 0.01);
+    [p.x, p.z] = [sh.x, sh.z + 2.2];
+    window.post('grunt', sh.x, sh.z - 3);
+    for (const [k, q] of L.posts.slice(2).entries()) window.post(k ? 'grunt' : 'rifle', q.x, q.z);
+    const lpg = L.barrels.filter((b) => b.variant === 'lpg').sort((a, b) => b.x - a.x)[0]; // the east one
     lpg.rocket(-0.1, -1);
-    window.play(2, { aim: [-4.6, -5] });
+    window.play(2, { aim: [sh.x, sh.z - 3] });
     for (let i = 0; i < 20; i++) {
-      window.play(1, { aim: [-4.6, -5], fire: true });
-      p.x = -4.6;
-      p.z = 0.2;
+      window.play(1, { aim: [sh.x, sh.z - 3], fire: true });
+      p.x = sh.x;
+      p.z = sh.z + 2.2;
     }
     g.updateCamera(1, true);
     g.hud.update(1 / 60);

@@ -159,11 +159,11 @@ test('a hand trolley kicked north at two men in its road bowls them both over: B
     const trolley = L.props.find((q) => q.kind === 'trolley');
     // rolled nearer the quay first (as test/tools4.test.mjs moves the docks' one into the open): two men in its road,
     // 2 m apart and a little off one line (the first one knocked flies on ahead of it), the second by the curb
-    [trolley.x, trolley.z, trolley.vx, trolley.vz] = [trolley.x, -2, 0, 0];
+    [trolley.x, trolley.z, trolley.vx, trolley.vz] = [trolley.x, -L.bounds.halfD + 5.5, 0, 0];
     const p = g.player;
     p.x = trolley.x;
     p.z = trolley.z + 1;
-    const men = [window.post('grunt', trolley.x, -4.1), window.post('grunt', trolley.x + 0.2, -6.1)];
+    const men = [window.post('grunt', trolley.x, -L.bounds.halfD + 3.4), window.post('grunt', trolley.x + 0.2, -L.bounds.halfD + 1.4)];
     const styles = window.styles();
     window.play(2, { aim: [trolley.x, trolley.z - 5] });
     window.play(1, { press: ['KeyF'], aim: [trolley.x, trolley.z - 5] });
@@ -188,16 +188,16 @@ test('screenshot: a trolley rolling into the men on the quay, one going over the
     window.toQuay();
     const L = g.level;
     const trolley = L.props.find((q) => q.kind === 'trolley');
-    [trolley.x, trolley.z, trolley.vx, trolley.vz] = [trolley.x, -2, 0, 0];
+    [trolley.x, trolley.z, trolley.vx, trolley.vz] = [trolley.x, -L.bounds.halfD + 5.5, 0, 0];
     const p = g.player;
     p.x = trolley.x;
     p.z = trolley.z + 1;
-    const men = [window.post('grunt', trolley.x, -4.1), window.post('grunt', trolley.x + 0.2, -6.1)];
-    window.post('rifle', 2.5, -6.1);
-    window.post('grunt', -9.5, -5.6);
+    const men = [window.post('grunt', trolley.x, -L.bounds.halfD + 3.4), window.post('grunt', trolley.x + 0.2, -L.bounds.halfD + 1.4)];
+    window.post('rifle', L.posts[3].x, L.posts[3].z);
+    window.post('grunt', L.posts[0].x, L.posts[0].z);
     window.play(2, { aim: [trolley.x, trolley.z - 5] });
     window.play(1, { press: ['KeyF'], aim: [trolley.x, trolley.z - 5] });
-    for (let i = 0; i < 240 && !(men[1].stunT > 0 && men[1].z < L.map.size[1] * -1 + 0.8); i++) window.play(1, { aim: [trolley.x, trolley.z - 5] });
+    for (let i = 0; i < 240 && !(men[1].stunT > 0 && men[1].z < -L.bounds.halfD + 0.8); i++) window.play(1, { aim: [trolley.x, trolley.z - 5] });
     g.updateCamera(1, true);
     g.hud.update(1 / 60);
     g.render();

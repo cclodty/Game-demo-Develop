@@ -2235,13 +2235,14 @@ class Game {
       zoom = 0.82 + Math.sin(this.time * 0.25) * 0.03;
     }
     // a room (rooms.js): the camera holds its middle, set back `back` m towards itself (in the 45° views a corner is
-    // near it), and leans only part of the way to the player; nothing zooms in (bullet time, a kill) while the room is
-    // played: all of it stays on the screen
+    // near it), and leans part of the way to the player (since 試玩回饋 ⑥a, `follow`: most of the way, CAMERA.roomLean,
+    // from CAMERA.roomDist: the room is bigger than the screen); nothing zooms in (bullet time, a kill) while it is played
     const held = this.level.map.camera?.room;
     if (held && this.state === 'playing') {
       const yaw = (VIEWS[this.view].yaw ?? 0) * (Math.PI / 180);
-      tx = lerp(held.at[0], tx, held.lean) + Math.sin(yaw) * held.back;
-      tz = lerp(held.at[1], tz, held.lean) + Math.cos(yaw) * held.back;
+      const lean = held.follow ? CAMERA.roomLean : held.lean; // a room bigger than the screen (試玩回饋 ⑥a): it follows the player
+      tx = lerp(held.at[0], tx, lean) + Math.sin(yaw) * held.back;
+      tz = lerp(held.at[1], tz, lean) + Math.cos(yaw) * held.back;
       zoom = 1;
     }
     this.zoom = snap ? zoom : damp(this.zoom, zoom, 4, realDt);
@@ -2268,7 +2269,7 @@ class Game {
     // ease between views so pressing V swings the camera rather than cutting
     this.camPitch = snap ? pitch : damp(this.camPitch, pitch, 6, realDt);
     this.camYaw = snap ? yaw : damp(this.camYaw, yaw, 6, realDt);
-    const dist = (lens.dist ?? CAMERA.dist) * this.zoom;
+    const dist = (held && held.follow ? CAMERA.roomDist : (lens.dist ?? CAMERA.dist)) * this.zoom; // a room's: closer, the player bigger (試玩回饋 ⑥a)
     const hor = Math.cos(this.camPitch) * dist;
     this.camera.position.set(c.x + Math.sin(this.camYaw) * hor + sx, c.y + Math.sin(this.camPitch) * dist, c.z + Math.cos(this.camYaw) * hor + sz);
     this.camera.lookAt(c.x + sx * 0.4, c.y, c.z + sz * 0.4);

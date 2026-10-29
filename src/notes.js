@@ -42,6 +42,8 @@ export const TUNABLES = [
   { path: 'PLAYER.regenDelay', label: '回血延遲 s', step: 0.1, min: 0, max: 10 },
   { path: 'PLAYER.regenRate', label: '回血速度 / 秒', step: 1, min: 0, max: 100 },
   { path: 'CAMERA.focusZoom', label: '慢鏡鏡頭拉近', step: 0.01, min: 0.5, max: 1.2 },
+  { path: 'CAMERA.roomDist', label: '房內：鏡頭距離 m', step: 0.5, min: 12, max: 40 },
+  { path: 'CAMERA.roomLean', label: '房內：鏡頭跟人', step: 0.05, min: 0, max: 1 },
   { path: 'HELL.fireMul', label: '房內：開火間隔倍率', step: 0.05, min: 0.1, max: 2 },
   { path: 'HELL.maxAlive', label: '房內：同場人數上限', step: 1, min: 1, max: 30 },
   { path: 'HELL.postClose', label: '房內：迫近換位 m', step: 0.5, min: 0, max: 12 },

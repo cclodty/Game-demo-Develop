@@ -4,7 +4,7 @@
 // doors: its exit (fixtures.js 'exit', a double door in a tall wall) stays locked until the room's waves (`perStage`)
 // are down, then opens and lights; walking into it the screen fades and the next room stands, nobody and nothing
 // flying in it, the player just inside its entry (a gate in the low wall the camera looks over, shut behind him).
-// The last room's last wave ends the run. Every room is on one screen, as the teahouse is (test/rooms.test.mjs). The
+// The last room's last wave ends the run. In every room the camera follows the player, as in the teahouse (test/rooms.test.mjs). The
 // replay's revision byte counts the rooms' revisions as it counts the maps'.
 // Run: npm test
 import { after, before, test } from 'node:test';
@@ -238,7 +238,7 @@ test('walking out of the open exit: the floor’s next room, nobody and no bulle
   assert.equal(r.lastLocked, true, 'the last room’s exit stays shut (the floor ends there)');
 });
 
-test('one screen in every room: its four inner corners on the screen in every view, the player at its entry, at its exit or in a corner, in bullet time or not; the exit reachable from the start', async () => {
+test('the camera follows the player in every room (試玩回饋 ⑥a): near the middle of the screen in every view, with him at its entry, at its exit or in a corner, in bullet time or not; the exit reachable from the start', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toFloor();
@@ -263,13 +263,11 @@ test('one screen in every room: its four inner corners on the screen in every vi
             g.focusAmt = focus;
             g.updateCamera(1, true);
             g.camera.updateMatrixWorld();
-            for (const [x, z] of corners) {
-              const v = new V(x, 0, z).project(g.camera);
-              const m = Math.max(Math.abs(v.x), Math.abs(v.y));
-              if (m > worst) {
-                worst = m;
-                where = `view ${view}, the player at ${px.toFixed(1)},${pz.toFixed(1)}${focus ? ', bullet time' : ''}`;
-              }
+            const v = new V(px, 0, pz).project(g.camera);
+            const m = Math.max(Math.abs(v.x), Math.abs(v.y));
+            if (m > worst) {
+              worst = m;
+              where = `view ${view}, the player at ${px.toFixed(1)},${pz.toFixed(1)}${focus ? ', bullet time' : ''}`;
             }
           }
         }
@@ -284,7 +282,7 @@ test('one screen in every room: its four inner corners on the screen in every vi
   });
   assert.ok(r.length >= 3, `${r.length} rooms`);
   for (const o of r) {
-    assert.ok(o.worst <= 0.97, `${o.id}: a corner at ${o.worst.toFixed(2)} of the screen’s half (${o.where})`);
+    assert.ok(o.worst <= 0.45, `${o.id}: the player at ${o.worst.toFixed(2)} of the screen’s half (${o.where})`);
     assert.equal(o.path, true, `${o.id}: a way from its start to its exit`);
   }
   assert.equal(new Set(r.map((o) => o.tables)).size, r.length, `each room its own tables: ${r.map((o) => `${o.id}: ${o.tables}`).join(' | ')}`);

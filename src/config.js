@@ -480,6 +480,11 @@ export const CAMERA = {
   focusZoom: 0.86,
   bossZoom: 1.4, // a boss in the air (boss.js): the view pulls back this much
   bossPull: 0.35, // and leans this far from the player towards it
+  // in a room (rooms.js, 試玩回饋 ⑥a, 2026-10-29: the developer, "the rooms are bigger but the player looks no bigger:
+  // follow the player and come closer"): the camera this far off (28 held the whole room before, at 1×), leaning this
+  // much of the way from the room's middle to the player (0.1 before: it held the middle)
+  roomDist: 22,
+  roomLean: 0.85,
 };
 
 /**
