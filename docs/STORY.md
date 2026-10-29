@@ -26,7 +26,7 @@
 
 | 角色 | 身份 | 同 9527 的關係 | 口頭禪 |
 |---|---|---|---|
-| **9527**（主角） | 臨記，專演死人，「全腥港死得最靚」。片場個個都只叫佢的臨記編號，冇人知佢真名；片尾字幕寫「屍體：9527」。死嗰晚着住戲服白西裝（全場唯一白色） | — | 「死，我專業㗎。」 |
+| **9527**（主角） | 臨記，專演死人，「全腥港死得最靚」。片場個個都只叫佢的臨記編號，冇人知佢真名；片尾字幕寫「屍體：9527」。死嗰晚着住戲服白西裝（全場唯一白色）。**個樣呆、無辜**：圓面、眼瞓眼、成日一臉茫然，西裝大一個碼；打得幾勁個樣都好似唔知發生乜事（§12） | — | 「死，我專業㗎。」 |
 | **晶晶** | 新晉女星，金爺要捧佢 | 晶晶第一部戲的殉情場，9527 演佢身邊條屍，死得太靚：導演用咗 9527 嗰個 take，剪走晶晶的特寫。片段爆紅，晶晶被笑「俾條屍搶戲」。佢其實都係被逼（這一段要先試畫，§12） | 「我唔想咁樣紅。」 |
 | **金爺**（老大，最終頭目） | 金牙幫話事人，一口金牙；開影業公司洗錢，《一夜成名》的監製兼莊家 | 揀中 9527：一嚟幫晶晶出氣，二嚟佢死得好睇，賭盤收得 | 「呢一鋪，我做莊。」 |
 | **刀姐**（頭目：刀后） | 動作指導 | 今晚 9527 的每一個死法都係佢度 | 「你點死，我度好晒。」 |
@@ -306,42 +306,62 @@
 
 ## 12. 試畫：交 ChatGPT 的提示詞
 
-開發者 10-29：「死得太靚」有周星馳無厘頭的味道，但真係畫出嚟好難；先用 ChatGPT 試畫睇效果。次序：先出兩張人物設定（之後每格都附上，張張先似同一個人），再試最難嗰一頁，最後試地府的語氣。
+**畫風（開發者 10-29 試咗兩款之後揀）：** 日式動畫風（唔要港漫的重墨）。**畫面 16:9 橫向**，漫畫格喺黑色底上逐格彈出，最後成個畫面砌滿幾格。**9527 要呆、要無辜**：第一稿的提示詞令佢個樣太兇，唔似會俾黑幫玩死的人；佢應該成日一臉茫然，打得幾勁個樣都好似唔知發生乜事，反差就係笑位。
 
-**共用（每張都放喺前面）：**
+**用法：** 每張都先貼「共用風格」；有 9527 的，再將「9527 的樣」嗰段貼喺 `[9527]` 嗰度。先出 1、2 兩張人物設定，之後每張都附上，人物先會似同一個人。出嚟的圖係「全部格彈晒之後」嗰一刻；遊戲入面每格係一張分開的圖，逐格彈入。ChatGPT 唔一定出到 16:9（例如出咗 3:2），試感覺嗰陣冇所謂，正式出圖再叫佢重出或者自己裁。
+
+**共用風格：**
 
 ```text
-Comic art in an anime urban style: bold flat colours, cel shading, clean black ink lines, light screentone, dynamic camera angles; the mood of a Hong Kong action-comedy film with black humour. Original characters that do not resemble any real person or actor. No text, no speech bubbles, no letters, numbers or logos anywhere: the game adds the words.
+A 16:9 widescreen landscape image (wider than tall) showing a game cutscene made of comic panels: several panels laid out across a dark textured background, with slanted, angled borders and thick black gutters, slightly overlapping as if each one has just popped onto the screen. Modern Japanese anime style: bold flat colours, clean two-tone cel shading, crisp black ink outlines, halftone screentone in the shadows, dynamic camera angles, speed lines on action. Neon night city with a Hong Kong / Macau flavour, black-humour action-comedy mood. Original characters that do not resemble any real person or actor. Empty white speech bubbles where dialogue will go; no letters, words, numbers or logos anywhere.
+```
+
+**9527 的樣（貼喺 `[9527]`）：**
+
+```text
+9527, a skinny, harmless-looking film extra in his late twenties: soft round face, sleepy droopy eyes, a blank, dazed, slightly lost expression with his mouth a little open, messy black hair with a cowlick sticking up, slightly hunched, a cheap white suit one size too big with sleeves too long. He looks innocent and bewildered, like someone things just happen to; never fierce, never cool, never frowning.
 ```
 
 **1. 9527 人物設定**
 
 ```text
-Character sheet of a bit-part film extra in his late twenties whose job is always playing corpses: lean, messy black hair, tired but kind eyes, a cheap white suit that is his costume. Front, side and back views, full body, plus three head shots: deadpan, smug, terrified. Plain light grey background.
+A 16:9 widescreen character sheet of [9527]. Left half: front, side and back views, full body, standing awkwardly. Right half: six head shots: blank stare, confused, startled, teary-eyed, relieved, a dazed half-smile. Modern Japanese anime style, flat colours, clean two-tone cel shading, crisp black outlines, plain light grey background. Original character, not resembling any real actor. No text.
 ```
 
 **2. 晶晶人物設定**
 
 ```text
-Character sheet of a newly famous film actress in her early twenties: glamorous but uneasy, long dark hair, an elegant evening dress inspired by a qipao in deep purple. Front, side and back views, full body, plus three head shots: forced smile, crying, angry. Plain light grey background.
+A 16:9 widescreen character sheet of a newly famous film actress in her early twenties: glamorous but uneasy, long dark hair, an elegant evening dress inspired by a qipao in deep purple. Left half: front, side and back views, full body. Right half: four head shots: forced smile, crying, angry, quietly scared. Modern Japanese anime style, flat colours, clean two-tone cel shading, crisp black outlines, plain light grey background. Original character, not resembling any real actress. No text.
 ```
 
-**3. 最難的一頁：「死得太靚」（附上 1、2 兩張設定）**
+**3. 地府櫃位（開場；試分格同語氣）**
 
 ```text
-A four-panel comic page using the two attached characters. Panel 1: on a film set, the actress kneels in a dramatic close-up, crying over her dead lover, cameras and crew around her. Panel 2: behind her, the extra in the cheap white suit, playing a corpse who has just been shot, performs an absurdly beautiful slow-motion death: a ballet spin in mid-air, rose petals and confetti, golden backlight, hair and jacket flowing, far more beautiful than the actress. Panel 3: the whole crew in tears, the director on his feet applauding, the camera swung round onto the extra; the forgotten actress glares from the corner. Panel 4: the finished film poster: the extra's death pose fills the frame, the actress cropped to a thin sliver at its edge.
+Five panels. Left third, one tall panel: the underworld's reincarnation counter drawn like a dull government office, plastic chairs, a glowing queue-number display, ghostly blue light. Middle, two stacked panels: top, the King of the Underworld as a bored clerk in black official robes with a paper party hat on top of his official hat, leaning on the counter, one empty speech bubble; bottom, [9527] with a small cartoon bullet hole on his forehead, holding a paper queue ticket and staring at it blankly, one empty speech bubble. Right third, two stacked panels: top, confetti bursts, the clerk suddenly grinning, a heavenly emperor in gold robes on a big wall TV holding up a giant novelty cheque, 9527 blinking in confusion; bottom, an old woman offers a steaming bowl of soup and 9527 timidly pushes it away with one finger.
 ```
 
-**4. 語氣測試：地府櫃位**
+**4. 金爺入場（試大畫面同人物的反差）**
 
 ```text
-One wide comic panel: the underworld's reincarnation counter drawn like a government office, plastic chairs, a ticket queue and a queue-number display; the King of the Underworld as a bored clerk in official robes wearing a paper party hat, confetti bursting; a heavenly emperor on a big wall TV holding up a giant novelty cheque; an old woman offering a bowl of soup; the young man in the cheap white suit, a small cartoon bullet hole on his forehead, staring at his queue ticket.
+Two panels. A large panel covering the left two thirds of the screen, its right edge slanted: a gang boss in his fifties sits at a gambling table like a casino banker, black suit, gold chains, cigar smoke, a mouthful of gold teeth flashing in a grin, a huge glowing betting screen behind him, his gang standing in the shadows, seen from a low angle so he looms; the gold is dark and brassy, used only as accents; one empty speech bubble. A narrow panel on the right third: [9527] looking up at him, small and lost, a drop of sweat on his temple, one empty speech bubble.
 ```
 
-**點樣判：** 一、第 3 張一眼睇得出「條屍靚過女主角」？二、四格入面兩個人似唔似同一個人？三、第 4 張的黑色幽默啱唔啱？第一項唔得，就用後備。
+**5. 茶樓槍戰（試動作同子彈時間）**
+
+```text
+Three panels. Across the top, a long slanted strip the full width of the screen: an old Chinese tea house at night, orange-red paper lanterns on the walls, round tables with tablecloths, a line of gangsters in dark clothes opening fire. Bottom left, the biggest panel, diagonal: [9527] slides on his knees between the tables in slow motion, firing two pistols, bullets frozen in the air around him as yellow-white streaks, a kicked table flipping up as a shield, cyan afterimages trailing behind him; his face is still blank and dazed, as if he cannot believe he is doing this. Bottom right, a close-up inset overlapping the big panel: his wide-eyed, startled face, a bullet passing an inch from his cheek, one empty speech bubble.
+```
+
+**6. 最難的一段：「死得太靚」（附上 1、2 兩張設定）**
+
+```text
+Four panels from left to right, using the two attached characters. Panel 1: on a film set, the actress kneels in a dramatic close-up, crying over her dead lover, cameras and crew around her. Panel 2, the biggest: behind her, [9527], playing a corpse who has just been shot, performs an absurdly beautiful slow-motion death: a ballet spin in mid-air, rose petals and confetti, golden backlight, hair and oversized jacket flowing, far more beautiful than the actress, while his face stays completely blank. Panel 3: the whole crew in tears, the director on his feet applauding, the camera swung round onto the extra; the forgotten actress glares from the corner. Panel 4: the finished film poster: the extra's death pose fills it, the actress cropped to a thin sliver at its edge.
+```
+
+**點樣判：** 一、9527 夠唔夠呆、夠唔夠無辜？二、第 6 張一眼睇得出「條屍靚過女主角」？三、幾張入面人物似唔似同一個人？四、地府嗰張的黑色幽默啱唔啱？五、子彈喺畫面入面清唔清楚？第二項唔得，就用後備。
 
 **後備：「詐屍」**（一格就講完，易畫好多）：晶晶最好嗰個喊位，背景條屍 9527 打咗個乞嚏，成個 take 報銷；NG 片段爆紅，人人叫晶晶「詐屍女主角」。故事其他部份照用，只係檔案頁第 2、9、10 頁同選角陳嗰句要跟住改。
 
 ```text
-One comic panel using the two attached characters: on a film set, the actress in a tearful close-up at her most moving moment; behind her the extra in the white suit, lying as a corpse, sneezes hugely, sitting halfway up; the crew behind the camera frozen in horror.
+Two panels using the two attached characters. A large panel on the left: on a film set, the actress in a tearful close-up at her most moving moment; behind her [9527], lying as a corpse, sneezes hugely and sits halfway up. A panel on the right: the crew behind the camera frozen in horror, the director's script falling from his hands.
 ```
