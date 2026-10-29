@@ -2856,6 +2856,28 @@ body.playing #debug {
   color: var(--dim);
 }
 
+/* what a card plays with (cards.js TAGS, F④a): small chips under its text */
+#cards .card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+#cards .card-tags i {
+  padding: 1px 6px;
+  font-size: 12px;
+  font-style: normal;
+  letter-spacing: 1px;
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+}
+
+#cards .card-tags small {
+  font-size: 9px;
+  color: var(--dim);
+}
+
 #cards .card kbd {
   align-self: flex-end;
 }

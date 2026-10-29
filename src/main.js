@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
-import { Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS } from './cards.js';
+import { Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS, TAGS as CARD_TAGS } from './cards.js';
 import { Challenges } from './challenge.js';
 import { drawPrizes, givePrize, PRIZES } from './prizes.js';
 import { buildCharacter, disposeRig } from './characters.js';
@@ -1685,16 +1685,23 @@ class Game {
     this.ripple = 0;
   }
 
+  /**
+   * Bullet time that costs nothing for `s` s of real time (the cards 擊殺慢鏡, 滑鏟慢鏡: cards.js), put on if it is off;
+   * put on so, it goes off when they are up (logic). Not where bullet time is off (a variant) or the player is down.
+   */
+  freeFocus(s) {
+    if (!this.player.alive || !this.ruleset.slowmo || this.state !== 'playing') return;
+    this.focusFree = Math.max(this.focusFree, s);
+    if (!this.focusActive) {
+      this.focusAuto = true;
+      this.setFocus(true);
+    }
+  }
+
   onEnemyKilled(e, info) {
     const p = this.player;
-    if (this.cards.has('killSlow') && p.alive && this.ruleset.slowmo && this.state === 'playing') {
-      // the card (cards.js 擊殺慢鏡): CARDS.killSlow s of bullet time on every kill, costing nothing; a hand on the key keeps it
-      this.focusFree = Math.max(this.focusFree, CARDS.killSlow);
-      if (!this.focusActive) {
-        this.focusAuto = true;
-        this.setFocus(true);
-      }
-    }
+    // the card (cards.js 擊殺慢鏡): CARDS.killSlow s of bullet time on every kill, costing nothing; a hand on the key keeps it
+    if (this.cards.has('killSlow')) this.freeFocus(CARDS.killSlow);
     const d = Math.hypot(e.x - p.x, e.z - p.z);
     const tags = [{ label: e.cfg.label, pts: e.cfg.score }];
     let refill = FOCUS.killRefill;
@@ -1949,13 +1956,13 @@ class Game {
   }
 
   /** Once a display frame: read the gamepad; Start pauses and resumes; the hints follow whether one is connected. */
-  /** The style cards on the screen (cards.js): three to pick from, or four (a challenge's prize); the buttons make the press the logic reads. */
+  /** The style cards on the screen (cards.js): three to pick from, or four (a challenge's prize), each with its tags; the buttons make the press the logic reads. */
   showCards(ids, title = '風格卡 · 三選一  STYLE CARD') {
     const el = $('cards');
     el.dataset.title = title;
     el.innerHTML = ids.map((id, i) => {
       const c = CARD_DATA[id];
-      return `<button type="button" class="card ${c.kind}${i === this.cardSel ? ' sel' : ''}" data-card="${i}"><span class="card-kind">${CARD_KINDS[c.kind].name} <small>${CARD_KINDS[c.kind].en}</small></span><span class="card-en">${c.en}</span><span class="card-name">${c.name}</span><span class="card-text">${c.text}</span><kbd>${i + 1}</kbd></button>`;
+      return `<button type="button" class="card ${c.kind}${i === this.cardSel ? ' sel' : ''}" data-card="${i}"><span class="card-kind">${CARD_KINDS[c.kind].name} <small>${CARD_KINDS[c.kind].en}</small></span><span class="card-en">${c.en}</span><span class="card-name">${c.name}</span><span class="card-text">${c.text}</span><span class="card-tags">${c.tags.map((t) => `<i>${CARD_TAGS[t].name} <small>${CARD_TAGS[t].en}</small></i>`).join('')}</span><kbd>${i + 1}</kbd></button>`;
     }).join('');
     this.cardSel = 0;
     el.classList.remove('hidden');
@@ -2168,9 +2175,10 @@ class Game {
     const cmd = this.cmd;
     if (this.state === 'playing' && cmd.hit('ShiftLeft', 'ShiftRight', 'KeyQ')) this.toggleFocus();
     const deep = this.cards.has('deepSlow'); // the card (cards.js 深慢鏡): a slower world, a faster drain (CARDS)
+    if (this.player.sliding && this.cards.has('slideSlow')) this.freeFocus(2 * h); // the card 滑鏟慢鏡 (F④a): free bullet time while the slide lasts
     if (this.focusActive) {
       if (this.focusFree > 0) {
-        // the card 擊殺慢鏡's half second costs nothing; put on by the card, it goes off with it
+        // the cards' free bullet time (擊殺慢鏡's half second, 滑鏟慢鏡's slide) costs nothing; put on by a card, it goes off with it
         this.focusFree -= h;
         if (this.focusFree <= 0 && this.focusAuto) {
           this.focusAuto = false;

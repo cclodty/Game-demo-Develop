@@ -122,7 +122,7 @@ export class Bullets {
 
   /**
    * o: { x, z, dx, dz, speed, owner: 'player'|'enemy', damage, range, split, source,
-   *      look, trail, pierce, knock, weapon, spinShot, diveShot }
+   *      look, trail, pierce, lastRound, knock, weapon, spinShot, diveShot }
    */
   spawn(o) {
     const b = this.acquire(o.look || (o.owner === 'player' ? 'player' : 'enemy'));
@@ -137,6 +137,7 @@ export class Bullets {
     b.range = o.range ?? BULLET.maxRange;
     b.trailMax = o.trail || (o.owner === 'player' ? BULLET.playerTrail : BULLET.enemyTrail);
     b.pierce = o.pierce || 0;
+    b.lastRound = o.lastRound || false; // a magazine's last, through men (the card 最後一發: player.js fire)
     b.knock = o.knock || 1;
     b.weapon = o.weapon || null;
     b.spinShot = !!o.spinShot;
@@ -401,6 +402,7 @@ export class Bullets {
         if (b.pierce > 0) {
           b.pierce--;
           b.hits.push(hit.enemy);
+          if (b.lastRound && hit.enemy.alive === false) game.score.style('LAST ROUND', 60, true); // through a man it killed
         } else b.alive = false;
         return;
       case 'boss':
@@ -412,6 +414,11 @@ export class Bullets {
         return;
       case 'hostage':
         hit.enemy.shieldHit(b);
+        if (hit.enemy === game.player.hostage && game.cards.has('shieldReturn')) {
+          // the card (cards.js 人盾反彈, F④a): the round the man held took goes back, the player's own
+          this.turnBack(b, -b.dx, -b.dz, 'SHIELD RETURN', '人盾彈回子彈');
+          return;
+        }
         b.alive = false;
         return;
       case 'player':
@@ -596,6 +603,8 @@ export class Bullets {
         else this.game.onCloseCall(b.dodgedSpin);
         // the card (cards.js 擦彈反彈): grazed in bullet time, the round turns round
         if (graze && this.game.focusActive && this.game.cards.has('grazeReflect')) this.turnBack(b, -b.dx, -b.dz, 'GRAZE RETURN', '擦彈反彈');
+        // the card (cards.js 擦彈上膛, F④a): grazed in bullet time, a round back in the magazine
+        if (graze && this.game.focusActive && this.game.cards.has('grazeReload')) this.game.player.grazeReload();
       }
     }
   }
