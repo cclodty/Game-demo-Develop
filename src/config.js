@@ -130,6 +130,15 @@ export const HELL = {
   gapReach: 3, // at 2 a lone shotgun's fan from 6 m closed every spot and the gate held him for good; at 3 six shotgunners firing together still make the gate speak (test/gap.test.mjs)
   gapRange: 6,
   beat: 0.5,
+  // 試玩回饋 ⑤ (2026-10-28, the developer: "speed and reaction twice as fast; most of them stand idle a while after
+  // coming in, so a room is wiped quickly"): in a room a man walks `moveMul` × his type's speed, never faster than
+  // `speedCap` × the player's (PLAYER.speed: he can still be outrun), aims in `aimMul` × the time, has `firstMul` × the
+  // wait before his first shot, and with `walkFire` aims and fires on his way to his post when he sees the player
+  moveMul: 2,
+  speedCap: 0.9,
+  aimMul: 0.5,
+  firstMul: 0.5,
+  walkFire: true,
 };
 
 /**
