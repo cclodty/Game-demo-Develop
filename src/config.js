@@ -155,6 +155,14 @@ export const AFFIX = {
   sticky: { range: [2, 4], repath: 0.5 },
 };
 
+/**
+ * How big the rooms are (試玩回饋 ⑥a, 2026-10-29, the developer: "all the maps are too small and too regular"): every
+ * room (rooms.js) `scale` × the size it was drawn at, side by side; where things stand spreads out with it, the things
+ * themselves (tables, crates, doors, men) keep their size, and the camera stands as much farther off, so the whole room
+ * is still on one screen. `?roomscale=1.4` in the address tries another for a run.
+ */
+export const ROOM_SIZE = { scale: 1.2 };
+
 /** The plaza room (rooms.js PLAZA, 彈幕 ② E①): the fountain's rim height (a solid shots fly over) and how many pigeons it keeps. */
 export const PLAZA_ROOM = { rim: 0.45, birds: 18 };
 

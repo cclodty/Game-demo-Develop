@@ -71,7 +71,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Pigeons } from './ambient.js';
-import { PLAZA_ROOM } from './config.js';
+import { PLAZA_ROOM, ROOM_SIZE } from './config.js';
 import { corrugatedTexture, windowTexture } from './textures.js';
 
 /** A door on side `side`, `at` m along it from its middle: where a man comes in (the wall's inner face) and the spot 2.2 m in. */
@@ -94,8 +94,63 @@ function wallPoint(side, at, halfW, halfD) {
 const EXIT_DOOR = [1.8, 2.5]; // the exit's width and height (m)
 const ENTRY_IN = 1.4; // m inside its entry the player starts
 
-/** What level.js loads for room template `t`. */
-export function room(t) {
+/** The rooms' scale (config.js ROOM_SIZE): `?roomscale=` in the address for a run, else the config's. */
+const ROOM_SCALE = (() => {
+  const q = Number(new URLSearchParams(globalThis.location ? globalThis.location.search : '').get('roomscale'));
+  return q > 0 ? q : ROOM_SIZE.scale;
+})();
+
+/**
+ * Template `t` drawn `k` × as big (試玩回饋 ⑥a): every place in it spread out from the room's middle, side by side
+ * (doors, the entry and the exit, tables, trolleys, barrels, cover, posts, flocks, the pool, the stall, the bend, the
+ * steps, the shops, the washing, the dance floor, the boss's spots, the lamps, the camera); what stands there keeps its
+ * size (a table's radius, a crate's box, a door's width), but for what covers ground (the water, a shop's depth, the
+ * steps' slope, the bend's radius, the dance floor's tiles). The lamps reach as much farther and shine k² as strong.
+ */
+function scaled(t, k) {
+  if (k === 1) return t;
+  const S = (v) => Math.round(v * k * 100) / 100;
+  const at = ([x, z, ...rest]) => [S(x), S(z), ...rest];
+  const side = ([sd, a]) => [sd, S(a)];
+  const spots = (v) => (Array.isArray(v) ? (Array.isArray(v[0]) ? v.map(at) : at(v)) : v);
+  const boss = (b) => {
+    if (!b || typeof b !== 'object') return b;
+    const out = Array.isArray(b) ? b.map(boss) : { ...b };
+    if (!Array.isArray(b)) for (const key of ['perches', 'posts', 'from', 'at', 'pad']) if (out[key]) out[key] = spots(out[key]);
+    if (out.pair) out.pair = out.pair.map(boss);
+    return out;
+  };
+  const th = t.theme;
+  return {
+    ...t,
+    size: t.size.map(S),
+    doors: t.doors.map(side),
+    entry: side(t.entry),
+    exit: side(t.exit),
+    tables: t.tables.map(at),
+    trolleys: t.trolleys && t.trolleys.map(at),
+    barrels: t.barrels && t.barrels.map(at),
+    solids: t.solids && t.solids.map(at),
+    posts: t.posts && t.posts.map((p) => p.map(S)),
+    flocks: t.flocks && t.flocks.map(at),
+    benches: t.benches && t.benches.map(at),
+    pool: t.pool && at(t.pool),
+    stall: t.stall && at(t.stall),
+    water: t.water && t.water.map((w) => ({ ...w, x: S(w.x), z: S(w.z), w: S(w.w), d: S(w.d) })),
+    track: t.track && { ...t.track, at: at(t.track.at), r: S(t.track.r) },
+    steps: t.steps && { ...t.steps, profile: t.steps.profile.map(([z, y]) => [S(z), y]), flight: t.steps.flight.map(S) },
+    shops: t.shops && { ...t.shops, depth: S(t.shops.depth), list: t.shops.list.map((q) => ({ ...q, x: q.x.map(S) })) },
+    laundry: t.laundry && { ...t.laundry, lines: t.laundry.lines.map((l) => l.map(S)) },
+    danceFloor: t.danceFloor && { at: at(t.danceFloor.at), tiles: t.danceFloor.tiles.map((n) => Math.round(n * k)) },
+    boss: boss(t.boss),
+    theme: { ...th, fog: [th.fog[0], th.fog[1] / k], points: th.points.map(([c, x, y, z, i, d]) => [c, S(x), y, S(z), Math.round(i * k * k * 10) / 10, S(d)]) },
+    camera: t.camera && { ...t.camera, dist: S(t.camera.dist), room: t.camera.room && { ...t.camera.room, at: t.camera.room.at.map(S), back: S(t.camera.room.back) } },
+  };
+}
+
+/** What level.js loads for room template `t`, at the rooms' scale (ROOM_SCALE). */
+export function room(template) {
+  const t = scaled(template, ROOM_SCALE);
   const halfW = t.size[0] / 2;
   const halfD = t.size[1] / 2;
   const [h, mat, trim] = t.walls;
