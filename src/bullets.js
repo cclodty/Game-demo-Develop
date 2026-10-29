@@ -160,6 +160,8 @@ export class Bullets {
     b.dodgedSpin = false;
     b.source = o.source || null;
     b.homeRun = false; // set by batBack: a bullet of the pool keeps nothing from its last life
+    b.turnedBack = false; // set by turnBack (a card's)
+    b.chained = false; // set by the card 連環反彈 (F④b): one hop on to another man
     b.hostageFire = o.hostageFire || false; // a held heavy gun's round, the player's own (player.js hostageFire): a kill is HOSTAGE FIRE
     this.list.push(b);
     this.updateVisual(b);
@@ -399,6 +401,7 @@ export class Bullets {
           b.alive = false;
           return;
         }
+        if (b.turnedBack && !b.chained && game.cards.has('chainBounce') && this.chain(b, hit.enemy)) return;
         if (b.pierce > 0) {
           b.pierce--;
           b.hits.push(hit.enemy);
@@ -448,6 +451,37 @@ export class Bullets {
    * An enemy round turned back by a style card (cards.js): the player's own now, at the nearest man in sight, else
    * along (nx, nz), at least as fast as it came, CARDS.reflectDamage. `tag` is the style the first of a step's earns.
    */
+  /**
+   * The card 連環反彈 (cards.js, F④b): a round a card turned back, having hit `from`, hops on to the nearest other man
+   * it can see; false when there is none.
+   */
+  chain(b, from) {
+    const game = this.game;
+    let to = null;
+    let bd = 32 * 32;
+    for (const e of game.enemies.list) {
+      if (e === from || !e.alive || e.spawnLock > 0 || e.held) continue;
+      const d = (e.x - b.x) ** 2 + (e.z - b.z) ** 2;
+      if (d < bd && game.level.hasLOS(b.x, b.z, e.x, e.z)) {
+        bd = d;
+        to = e;
+      }
+    }
+    if (!to) return false;
+    const l = Math.hypot(to.x - b.x, to.z - b.z) || 1;
+    b.dx = (to.x - b.x) / l;
+    b.dz = (to.z - b.z) / l;
+    b.chained = true;
+    b.hits.push(from);
+    b.trailLen = 0;
+    b.range = b.traveled + 40;
+    game.fx.sparks(b.x, GUN_Y, b.z, b.dx, b.dz, 8, [7, 7, 5], 8, 0.8);
+    game.audio.ricochet(game.panFor(b.x));
+    game.score.style('CHAIN BOUNCE', 60, true);
+    game.notes.log('連環反彈');
+    return true;
+  }
+
   turnBack(b, nx, nz, tag, note) {
     const game = this.game;
     const target = game.enemies.nearestVisible(b.x, b.z, 32);

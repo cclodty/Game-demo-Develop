@@ -2878,6 +2878,34 @@ body.playing #debug {
   color: var(--dim);
 }
 
+/* what it plays with among the cards held (F④b): a combo card's needs, a card's partners */
+#cards .card-syn {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+#cards .card-syn b {
+  font-weight: 700;
+}
+
+#cards .card-syn .ok {
+  color: #7dffa8;
+}
+
+#cards .card-syn .no {
+  color: #ff7a7a;
+}
+
+/* a combo card and a cost card (F④b): their top edge says so */
+#cards .card.combo {
+  border-top-color: #7dffa8;
+}
+
+#cards .card.cost {
+  border-top-color: var(--gold);
+}
+
 #cards .card kbd {
   align-self: flex-end;
 }

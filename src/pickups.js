@@ -109,7 +109,7 @@ export class Pickups {
         }
         q.group.visible = q.ttl > 4 || Math.floor(q.ttl * 8) % 2 === 0;
       }
-      if (!player.alive) continue;
+      if (!player.alive || this.game.cards.has('pistolsOnly')) continue; // the cost card 淨係手槍・慢鏡無限 (F④b): none taken
       const d = Math.hypot(q.x - player.x, q.z - player.z);
       if (d > 1.15) continue;
       // nothing in slot 2, an emptied gun there, or more ammo for the same gun: just take it
