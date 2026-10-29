@@ -44,6 +44,17 @@
 
 **9527 這個名：** 致敬周星馳電影裏的僕人編號，華語觀眾一睇就知。一個數字唔係真人的名，冇問題；但只係借個編號：唔用嗰套戲的其他角色名、對白、場口，9527 的樣都唔可以似任何真實演員（CLAUDE.md 第 8 條）。外地玩家睇唔出都唔緊要：臨記冇名、得個編號，本身已經講得通。
 
+**9527 的成長（開發者 10-29 定）：** 無辜臉撐唔到成個遊戲，所以佢跟住輪迴變。佢享受的係**跳舞**，即係子彈芭蕾本身，唔係殺人：佢仍然係嗰個無辜的人，只係發現自己原來好叻。
+
+| 階段 | 幾時 | 樣 | 語氣 |
+|---|---|---|---|
+| 呆 | 未通關 | 眼瞓眼、一臉茫然 | 「咁我算邊樣？」 |
+| 熟手 | 第一次通關之後 | 仲係冇乜表情，但眼神定咗；領呔鬆咗 | 「冇所謂，我有得 NG。」 |
+| 享受（轉捩點，§7.10） | 第一次打出 SSS | 第一次笑：跳舞跳得開心 | 「……好似幾好玩。」 |
+| 心甘命抵 | 第三次通關 | 平靜、滿足、自信 | 「呢個 take，一次過。」 |
+
+**戲服跟住變（可選，表達類解鎖，`docs/ROADMAP.md` §3）：** 俯視鏡頭睇唔到塊面，所以遊戲畫面裏的成長靠戲服：第一次通關之後領呔鬆咗，打出 SSS 之後捲起衫袖。由上面望落去都睇得到。
+
 ## 4. 幫派
 
 **金牙幫**（開發者 10-29 定，取代暫定的 24K）。老大金爺一口金牙，成個幫跟佢叫。
@@ -234,7 +245,15 @@
 8. 【地府櫃位】閻王：「抵你死。」
 9. 【9527 聳聳膊頭】9527：「都算心甘。」
 
-**格數：** 開場 10、第一晚 4、層卡 6、死亡 1（七個版本）、頭目 26、三次通關 6 + 8 + 12、結局 B 9，合共約 82 格。
+### 7.10 轉捩點：第一次笑（第一次打出 SSS）· 3 格
+
+1. 【慢鏡入面，9527 喺半空轉身，嘴角第一次向上】9527：「……咦？」
+2. 【佢個樣大特寫，眼神發亮，有啲尷尬咁笑】9527：「好似……幾好玩。」
+3. 【監視器後面，Action 叔企咗起身；金爺放低雪茄、皺眉】Action 叔：「呢個表情！收視爆燈！」
+
+金爺皺眉係伏筆：條屍開始唔受控。
+
+**格數：** 開場 10、第一晚 4、層卡 6、死亡 1（七個版本）、頭目 26、三次通關 6 + 8 + 12、結局 B 9、轉捩點 3，合共約 85 格。
 
 ## 8. 檔案頁（十五頁）
 
@@ -275,6 +294,8 @@
 | 環境互動 | 刀姐度好的死法：翻枱、油桶、石油氣、招牌，9527 拎嚟反過嚟用 |
 | 檔案頁 | 片場文件：分鏡、通告單、保險單、賭盤、合約 |
 | 全場唯一白色 | 戲服白西裝；佢係鬼 |
+| Style 即時評級 SSS | 第一次打到：9527 第一次笑（轉捩點，§7.10） |
+| 戲服變化（可選） | 9527 的成長：鬆領呔、捲衫袖（§3） |
 
 ## 10. 未定
 
@@ -297,6 +318,7 @@
 | 頭目倒下 | 第一次打低嗰個頭目 | 2 | 之後有檔案頁先出一格（掉頁） |
 | 結局 A 第 1、2、3 段 | 非極難通關，按已經通關幾多次出下一段 | 6、8、12 | 三段睇完之後再通關：只出天光一格、閻王一格 |
 | 結局 B | 極難通關 | 9 | 每次極難通關都出 |
+| 轉捩點：第一次笑 | 第一次 Style 評級去到 SSS，嗰間房清完先出（唔打斷打鬥） | 3 | 只出一次；放映室重睇 |
 
 - **節奏：** 每格 0.25 秒彈入；停留 1.2 秒，再加每個字 0.1 秒（十個字約 2.2 秒）。按任何掣去下一格，長按跳過成段。
 - **死亡要快：** 死亡那一格最多 1.5 秒，按掣即刻重新開始；輪迴遊戲重新開始越快越好。
@@ -308,12 +330,14 @@
 
 **畫風（開發者 10-29 試咗兩款之後揀）：** 日式動畫風（唔要港漫的重墨）。**畫面 16:9 橫向**，漫畫格喺黑色底上逐格彈出，最後成個畫面砌滿幾格。**9527 要呆、要無辜**：第一稿的提示詞令佢個樣太兇，唔似會俾黑幫玩死的人；佢應該成日一臉茫然，打得幾勁個樣都好似唔知發生乜事，反差就係笑位。
 
+**試畫結果（開發者 10-29）：** 呆版 9527 的人物設定、地府、金爺入場、茶樓槍戰四張都啱方向（「幾符合我對 9527 的想像」）。要改的一處：金爺嗰張背景出咗一棟似真實酒店的地標，所以共用風格加咗「唔要真實地標」一句。
+
 **用法：** 每張都先貼「共用風格」；有 9527 的，再將「9527 的樣」嗰段貼喺 `[9527]` 嗰度。先出 1、2 兩張人物設定，之後每張都附上，人物先會似同一個人。出嚟的圖係「全部格彈晒之後」嗰一刻；遊戲入面每格係一張分開的圖，逐格彈入。ChatGPT 唔一定出到 16:9（例如出咗 3:2），試感覺嗰陣冇所謂，正式出圖再叫佢重出或者自己裁。
 
 **共用風格：**
 
 ```text
-A 16:9 widescreen landscape image (wider than tall) showing a game cutscene made of comic panels: several panels laid out across a dark textured background, with slanted, angled borders and thick black gutters, slightly overlapping as if each one has just popped onto the screen. Modern Japanese anime style: bold flat colours, clean two-tone cel shading, crisp black ink outlines, halftone screentone in the shadows, dynamic camera angles, speed lines on action. Neon night city with a Hong Kong / Macau flavour, black-humour action-comedy mood. Original characters that do not resemble any real person or actor. Empty white speech bubbles where dialogue will go; no letters, words, numbers or logos anywhere.
+A 16:9 widescreen landscape image (wider than tall) showing a game cutscene made of comic panels: several panels laid out across a dark textured background, with slanted, angled borders and thick black gutters, slightly overlapping as if each one has just popped onto the screen. Modern Japanese anime style: bold flat colours, clean two-tone cel shading, crisp black ink outlines, halftone screentone in the shadows, dynamic camera angles, speed lines on action. Neon night city with a Hong Kong / Macau flavour, black-humour action-comedy mood. Original characters that do not resemble any real person or actor. No real-world landmarks or recognisable buildings; the skyline is fictional. Empty white speech bubbles where dialogue will go; no letters, words, numbers or logos anywhere.
 ```
 
 **9527 的樣（貼喺 `[9527]`）：**
@@ -356,6 +380,18 @@ Three panels. Across the top, a long slanted strip the full width of the screen:
 
 ```text
 Four panels from left to right, using the two attached characters. Panel 1: on a film set, the actress kneels in a dramatic close-up, crying over her dead lover, cameras and crew around her. Panel 2, the biggest: behind her, [9527], playing a corpse who has just been shot, performs an absurdly beautiful slow-motion death: a ballet spin in mid-air, rose petals and confetti, golden backlight, hair and oversized jacket flowing, far more beautiful than the actress, while his face stays completely blank. Panel 3: the whole crew in tears, the director on his feet applauding, the camera swung round onto the extra; the forgotten actress glares from the corner. Panel 4: the finished film poster: the extra's death pose fills it, the actress cropped to a thin sliver at its edge.
+```
+
+**7. 轉捩點「第一次笑」（§7.10；附上 9527 的設定）**
+
+```text
+Three panels. Left, a tall panel: in slow motion in an old Chinese tea house, [9527] spins in mid-air between frozen yellow-white bullets, firing two pistols, cyan afterimages behind him; for the first time the corner of his mouth lifts in a small, surprised smile, as if he has just discovered he is good at something. Middle, the biggest panel, a close-up of his face: his sleepy eyes now bright, a shy, delighted grin, a drop of sweat, gangsters falling out of focus behind him; it reads as the joy of dancing, not cruelty. Right, a narrow panel: behind a bank of monitors, a scruffy film director with a megaphone jumps to his feet, and behind him the gold-toothed gang boss lowers his cigar, frowning; one empty speech bubble each.
+```
+
+**8. 後期的 9527（成長之後；附上 9527 的設定）**
+
+```text
+A 16:9 widescreen character sheet of [9527] later in the story, after many loops: the same face and build, but his eyes are now half-lidded and steady with a small easy smile; tie pulled loose, top button undone, the sleeves of the oversized white suit rolled up to the elbows, a few scuffs and scorch marks on the suit. Left half: front, side and back views, full body, a relaxed stance with two pistols held low. Right half: four head shots: calm, quietly amused, focused, a big carefree grin. Same character and style as the attached sheet. Plain light grey background. No text.
 ```
 
 **點樣判：** 一、9527 夠唔夠呆、夠唔夠無辜？二、第 6 張一眼睇得出「條屍靚過女主角」？三、幾張入面人物似唔似同一個人？四、地府嗰張的黑色幽默啱唔啱？五、子彈喺畫面入面清唔清楚？第二項唔得，就用後備。
