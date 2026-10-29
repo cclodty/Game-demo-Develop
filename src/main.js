@@ -1593,7 +1593,7 @@ class Game {
   }
 
   addFocus(v) {
-    this.focusMeter = Math.min(1, this.focusMeter + v);
+    this.focusMeter = Math.min(this.challenge.focusMax, this.focusMeter + v);
   }
 
   toggleFocus() {
@@ -1601,11 +1601,14 @@ class Game {
     if (this.focusAuto) {
       // the key during the card 擊殺慢鏡's half second: it keeps bullet time on, and pays for it once the half second is up
       this.focusAuto = false;
+      this.challenge.slowmo(); // his own now (不用慢鏡 broken: challenge.js)
       return;
     }
     if (this.focusActive) this.setFocus(false);
-    else if (this.focusMeter >= FOCUS.minToEnter) this.setFocus(true);
-    else this.audio.denied();
+    else if (this.focusMeter >= FOCUS.minToEnter) {
+      this.setFocus(true);
+      this.challenge.slowmo();
+    } else this.audio.denied();
   }
 
   setFocus(on) {
@@ -1889,9 +1892,10 @@ class Game {
   }
 
   /** Once a display frame: read the gamepad; Start pauses and resumes; the hints follow whether one is connected. */
-  /** The style cards on the screen (cards.js): three to pick from; the buttons make the press the logic reads. */
-  showCards(ids) {
+  /** The style cards on the screen (cards.js): three to pick from, or four (a challenge's prize); the buttons make the press the logic reads. */
+  showCards(ids, title = '風格卡 · 三選一  STYLE CARD') {
     const el = $('cards');
+    el.dataset.title = title;
     el.innerHTML = ids.map((id, i) => {
       const c = CARD_DATA[id];
       return `<button type="button" class="card ${c.kind}${i === this.cardSel ? ' sel' : ''}" data-card="${i}"><span class="card-kind">${CARD_KINDS[c.kind].name} <small>${CARD_KINDS[c.kind].en}</small></span><span class="card-en">${c.en}</span><span class="card-name">${c.name}</span><span class="card-text">${c.text}</span><kbd>${i + 1}</kbd></button>`;
@@ -2126,7 +2130,7 @@ class Game {
         this.audio.heartbeat();
       }
     } else {
-      this.focusMeter = Math.min(1, this.focusMeter + FOCUS.regen * h);
+      this.focusMeter = Math.min(this.challenge.focusMax, this.focusMeter + FOCUS.regen * h);
     }
 
     this.focusAmt = damp(this.focusAmt, this.focusActive ? 1 : 0, 9, h);

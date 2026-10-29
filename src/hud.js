@@ -91,9 +91,16 @@ export class HUD {
       e.hp.style.transform = `scaleX(${Math.max(0, v) / PLAYER.hp})`;
       e.hpBar.classList.toggle('low', v < 35);
     });
-    this.set('focus', Math.round(g.focusMeter * 200) / 200, (v) => {
+    // the meter's cap (不用慢鏡's prize, challenge.js): the bar as much longer, marked in segments of CHALLENGE.focusStep
+    const focusMax = g.challenge.focusMax;
+    this.set('focusMax', focusMax, (v) => {
+      e.focusBar.style.width = `${100 * v}%`;
+      e.focusBar.style.setProperty('--seg', `${100 * (CHALLENGE.focusStep / v)}%`);
+      e.focusBar.classList.toggle('segs', v > 1);
+    });
+    this.set('focus', Math.round((g.focusMeter / focusMax) * 200) / 200, (v) => {
       e.focus.style.transform = `scaleX(${v})`;
-      e.focusBar.classList.toggle('empty', v < FOCUS.minToEnter);
+      e.focusBar.classList.toggle('empty', g.focusMeter < FOCUS.minToEnter);
     });
     this.set('focusOff', !g.ruleset.slowmo, (v) => e.focusBar.classList.toggle('off', v));
     this.set('focusOn', g.focusActive, (v) => {
