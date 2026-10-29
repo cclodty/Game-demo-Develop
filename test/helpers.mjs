@@ -245,6 +245,19 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
               if (path) chase = path.find((q) => Math.hypot(q.x - p.x, q.z - p.z) > 0.75) || null;
             }
           }
+          // a riot shield turned on it (enemies.js shield): its shots glance off, so it walks up to him and kicks the
+          // shield aside (down for a moment), as a player does, instead of firing into it
+          const sd = target ? Math.hypot(target.x - p.x, target.z - p.z) : 0;
+          if (target && !goal && !door && !heli && sd > 0.01 && target.blocks((target.x - p.x) / sd, (target.z - p.z) / sd)) {
+            inp.mouse.left = false;
+            if (sd < 2) {
+              aimAt(target.x, target.z);
+              if (i % 15 === 0) inp.pressed.add('KeyF');
+            } else if (!chase) {
+              const path = g.level.nav.findPath(p.x, p.z, target.x, target.z);
+              chase = (path && path.find((q) => Math.hypot(q.x - p.x, q.z - p.z) > 0.75)) || { x: target.x, z: target.z };
+            }
+          }
           lootT -= dt;
           if (!loot || goal || door || heli || (p.special && !p.special.empty)) lootTo = null;
           else if (lootT <= 0) {
