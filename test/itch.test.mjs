@@ -63,7 +63,8 @@ test('npm run itch: a zip with just index.html, under itch.io’s limits; unpack
       const g = window.game;
       g.frame = () => {};
       g.startRun(0);
-      for (let i = 0; i < 240; i++) g.updatePlay(1 / 60);
+      // the first room's first wave: after its wait (with a challenge sign up, CHALLENGE.window s: F②a), well inside 10 s
+      for (let i = 0; i < 600 && g.waves.wave < 1; i++) g.updatePlay(1 / 60);
       return { state: g.state, wave: g.waves.wave, models: Object.keys(window.BULLET_BALLET_MODELS || {}).length };
     });
     assert.equal(r.state, 'playing');

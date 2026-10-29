@@ -152,6 +152,97 @@ body.playing * {
   font-size: 12px;
 }
 
+/* F②a (challenge.js, hud.js updateChallenge): lives in hand, the room's challenge under way */
+#lives,
+#challenge-on {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+#lives {
+  color: var(--red);
+}
+
+#challenge-on {
+  display: inline-block;
+  padding: 2px 8px;
+  white-space: nowrap;
+  color: var(--gold);
+  border: 1px solid rgba(255, 200, 97, 0.5);
+  background: rgba(12, 8, 18, 0.6);
+}
+
+#challenge-on.failed {
+  color: var(--dim);
+  border-color: rgba(255, 255, 255, 0.14);
+  text-decoration: line-through;
+}
+
+#lives.hidden,
+#challenge-on.hidden,
+#challenge-sign.hidden {
+  display: none;
+}
+
+/* the sign over a room's entry: a button, so a click or a tap takes the challenge on */
+#challenge-sign {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 190px;
+  padding: 8px 14px 9px;
+  font-family: var(--body);
+  color: var(--ink);
+  text-shadow: none;
+  background: rgba(14, 9, 22, 0.88);
+  border: 2px solid var(--gold);
+  border-radius: 4px;
+  box-shadow: 0 0 18px rgba(255, 200, 97, 0.45);
+  cursor: pointer;
+}
+
+#challenge-sign .ch-head {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--gold);
+}
+
+#challenge-sign .ch-name {
+  font-family: var(--display);
+  font-size: 26px;
+  letter-spacing: 3px;
+  line-height: 1.1;
+}
+
+#challenge-sign .ch-name small {
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--dim);
+}
+
+#challenge-sign .ch-text,
+#challenge-sign .ch-prize {
+  font-size: 13px;
+}
+
+#challenge-sign .ch-prize {
+  color: var(--gold);
+}
+
+#challenge-sign .ch-key {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--dim);
+}
+
 .slot {
   padding: 2px 8px;
   border: 1px solid rgba(255, 255, 255, 0.14);

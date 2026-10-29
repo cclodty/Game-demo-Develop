@@ -163,6 +163,14 @@ export const AFFIX = {
  */
 export const ROOM_SIZE = { scale: 1.2 };
 
+/**
+ * The room challenges (F②a, challenge.js): a fight room's sign is up for `window` s at least before its first wave;
+ * 限時 is `time` s of fighting (a wave under way, in real time: bullet time does not stretch it); one done scores
+ * `style` Style; a life (無傷's prize) stands the player up whole and untouchable for `lifeInvuln` s; 限時's prize is
+ * one of `weapons`, full, at the player's feet for `weaponTtl` s. First version, to be confirmed in play.
+ */
+export const CHALLENGE = { window: 4, time: 20, style: 500, lifeInvuln: 2, weapons: ['smg', 'shotgun', 'rifle', 'launcher', 'minigun'], weaponTtl: 60 };
+
 /** The plaza room (rooms.js PLAZA, 彈幕 ② E①): the fountain's rim height (a solid shots fly over) and how many pigeons it keeps. */
 export const PLAZA_ROOM = { rim: 0.45, birds: 18 };
 
