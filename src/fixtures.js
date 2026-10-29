@@ -25,7 +25,9 @@
 //                                  facing into the room, its sign over it; locked (shut, the sign dull red) while
 //                                  the room is fought, unlock() opens it (the leaves swing in, the sign green, an
 //                                  arrow on the floor); the player walking into it (reached, ENV.exit.reach m of
-//                                  the wall) goes on to the floor's next room (waves.js 'exit')
+//                                  the wall) goes on to the floor's next room (waves.js 'exit'); a fight room's second
+//                                  (rooms.js `exit2`, F③a) is `spare` (hidden, never opening) till main.js setExits
+//                                  gives it a room to go on to (`to`)
 
 import * as THREE from 'three';
 import { ENV, GUN_Y } from './config.js';
@@ -255,6 +257,16 @@ export class Fixture {
     this.mesh.add(this.arrow);
   }
 
+  /** An exit with no room to go on to (F③a): hidden, and it never opens; given one, it shows and works as the first. */
+  setSpare(on) {
+    this.spare = on;
+    this.mesh.visible = !on;
+    if (on) {
+      this.locked = true;
+      this.arrow.visible = false;
+    }
+  }
+
   /** Where the player stands to go on: just inside the doorway. */
   get at() {
     const { x: dx, z: dz } = this.dir;
@@ -263,7 +275,7 @@ export class Fixture {
 
   /** The room is cleared: the exit opens (the sign green, the arrow on). */
   unlock() {
-    if (!this.locked) return;
+    if (!this.locked || this.spare) return;
     this.locked = false;
     this.signMat.color.setHex(0x7dffa8);
     this.arrow.visible = true;

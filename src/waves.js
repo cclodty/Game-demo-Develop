@@ -542,14 +542,16 @@ export class Waves {
       // the floor's end (C②): three style cards on the screen; the pick (a press of 1, 2 or 3) opens the exit
       if (this.game.cards.read(this.game.cmd)) {
         this.state = 'exit';
-        this.game.level.exit.unlock();
+        for (const x of this.game.level.exits) x.unlock(); // a spare one stays shut (fixtures.js)
       }
       return;
     }
     if (this.state === 'exit') {
-      // a cleared room's exit is open (彈幕試驗): the player walking into it goes on to the floor's next room
+      // a cleared room's exits are open (彈幕試驗): the player walking into one goes on to the room it leads to (F③a: two doors)
       const p = this.game.player;
-      if (p.alive && this.game.level.exit.reached(p.x, p.z)) {
+      const way = p.alive && this.game.level.exits.find((x) => x.reached(p.x, p.z));
+      if (way) {
+        this.game.takeExit(way);
         this.state = 'transition';
         this.game.beginStageTransition();
       }
@@ -613,7 +615,7 @@ export class Waves {
           this.state = 'cards';
         } else {
           this.state = 'exit';
-          exit.unlock();
+          for (const x of this.game.level.exits) x.unlock();
         }
       }
       this.game.onWaveClear(this.wave, this.stageNext || !!exit);
