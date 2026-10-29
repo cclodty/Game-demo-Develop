@@ -758,6 +758,7 @@ export class Player {
     }
     if (!fired) return;
     g.waves.shots++;
+    g.challenge.shot(); // 不開槍 broken (challenge.js)
     g.level.noise(this.x, this.z, 11);
     g.audio.shot(w.sound, g.panFor(this.x));
     g.shake(w.shake);

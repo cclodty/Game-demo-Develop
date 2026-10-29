@@ -120,6 +120,19 @@ body.playing * {
   box-shadow: none;
 }
 
+/* the meter's cap a segment up or more (不用慢鏡's prize, F②b: hud.js): the bar longer, marked in segments */
+#focus-bar {
+  position: relative;
+}
+
+#focus-bar.segs::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(var(--seg) - 2px), rgba(10, 8, 22, 0.85) calc(var(--seg) - 2px) var(--seg));
+  pointer-events: none;
+}
+
 /* a variant turned bullet time off */
 #focus-bar.off {
   opacity: 0.25;
@@ -2731,7 +2744,7 @@ body.playing #debug {
 }
 
 #cards::before {
-  content: '風格卡 · 三選一  STYLE CARD';
+  content: attr(data-title); /* main.js showCards: 風格卡 · 三選一, or a challenge's prize */
   position: absolute;
   top: 18%;
   left: 0;

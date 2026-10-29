@@ -1,22 +1,25 @@
-// The room challenges (F②a, REDESIGN §6): before a fight room's first wave, a sign over its entry offers one
+// The room challenges (F②a, F②b, REDESIGN §6): before a fight room's first wave, a sign over its entry offers one
 // challenge, drawn from the room's own stream (rng.fork('challenge', stage): the same seed, the same challenge). A
 // press of Y (input.js BUTTONS; the sign is a button too, and a pad's d-pad down makes the press: main.js) takes it
 // on, so a replay takes it on the same step; the room's first wave starting closes the sign unanswered. Taken on, the
 // HUD shows it under way; done when the room is cleared, it scores CHALLENGE Style and gives its reward for the rest
 // of the run; broken, it says so at once, and costs nothing. A boss room has none. Each challenge is data: what
-// breaks it is counted from the game's own events (a hit taken, the fighting clock), its reward is one switch or
-// number the game reads (`lives`, a weapon dropped). The numbers are in config.js CHALLENGE.
+// breaks it is counted from the game's own events (a hit taken, the fighting clock, a shot fired, bullet time put on),
+// its reward is one switch or number the game reads (`lives`, a weapon dropped, a style card picked, `focusMax`). The
+// numbers are in config.js CHALLENGE.
 import { CHALLENGE, PLAYER } from './config.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
 /**
  * The challenges: `name` and `en` on the sign, `text()` what it asks (from config.js, read when shown), `prize` the
  * reward's name; `fits` whether it can be offered under the run's rules (a weapon is no prize where no gun is handed
- * out: rules.js `drops`).
+ * out: rules.js `drops`; no shot is nothing to ask with no gun in hand, no bullet time with none to put on).
  */
 export const CHALLENGES = {
   nohit: { name: '無傷', en: 'NO HIT', text: () => '成間房冇中過', prize: '一條命', reward: 'life', fits: () => true },
   clock: { name: '限時', en: 'TIME LIMIT', text: () => `打鬥 ${CHALLENGE.time} 秒內清房`, prize: '一支特別武器', reward: 'weapon', fits: (g) => g.ruleset.drops !== false && g.ruleset.pads !== false },
+  noshot: { name: '不開槍', en: 'NO SHOTS', text: () => '成間房一槍都唔開', prize: `一張風格卡（${CHALLENGE.cards} 選一）`, reward: 'card', fits: (g) => g.ruleset.startWeapon !== 'none' },
+  noslow: { name: '不用慢鏡', en: 'NO SLOW-MO', text: () => '成間房唔開子彈時間', prize: '專注上限 +1 格', reward: 'focus', fits: (g) => g.ruleset.slowmo !== false },
 };
 export const CHALLENGE_IDS = Object.keys(CHALLENGES);
 
@@ -31,7 +34,13 @@ export class Challenges {
     this.active = null; // the one taken on: { id, stage, t: fighting seconds, failed }
     this.openedFor = -1; // the room (stage) whose sign has been put up
     this.lives = 0; // lives in hand (無傷's prize): an HP of nothing spends one instead of ending the run
+    this.focusUp = 0; // focus segments won (不用慢鏡's prize): the meter's cap is focusMax
     this.won = 0;
+  }
+
+  /** How full the focus meter can be (main.js): one meter, and CHALLENGE.focusStep more for each segment won. */
+  get focusMax() {
+    return 1 + this.focusUp * CHALLENGE.focusStep;
   }
 
   /**
@@ -84,6 +93,16 @@ export class Challenges {
     if (this.active && !this.active.failed && this.active.id === 'nohit') this.fail('中咗');
   }
 
+  /** The player fires (player.js): 不開槍 is broken. */
+  shot() {
+    if (this.active && !this.active.failed && this.active.id === 'noshot') this.fail('開咗槍');
+  }
+
+  /** The player puts bullet time on (main.js toggleFocus; the card 擊殺慢鏡's own half second is not his): 不用慢鏡 is broken. */
+  slowmo() {
+    if (this.active && !this.active.failed && this.active.id === 'noslow') this.fail('開咗慢鏡');
+  }
+
   fail(why) {
     const c = CHALLENGES[this.active.id];
     this.active.failed = true;
@@ -103,7 +122,10 @@ export class Challenges {
     this.won++;
     g.score.style('CHALLENGE', CHALLENGE.style);
     if (c.reward === 'life') this.lives++;
+    if (c.reward === 'focus') this.focusUp++;
     let prize = c.prize;
+    // the cards to pick one from, on the card screen, the exit opening on the pick (waves.js 'cards'); none left to offer, the Style alone
+    if (c.reward === 'card' && !g.cards.showPrize(a.stage)) prize = '（風格卡已經揀晒）';
     if (c.reward === 'weapon') {
       // a special weapon at the player's feet, full, drawn from the room's stream after the challenge
       const r = g.rng.fork('challenge', a.stage);
