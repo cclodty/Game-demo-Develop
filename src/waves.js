@@ -281,7 +281,10 @@ export class Waves {
     }
     // affixes (F①): the room's drawn at its first wave, each put on a man of the wave it falls in
     const stage = Math.floor((this.wave - 1) / this.rules.perStage);
-    if ((this.wave - 1) % this.rules.perStage === 0) this.roomAffixes = this.affixesFor(stage);
+    if ((this.wave - 1) % this.rules.perStage === 0) {
+      this.roomAffixes = this.affixesFor(stage);
+      if (this.rules.floor) g.challenge.waveStarts(); // a sign nobody answered comes down (F②a)
+    }
     this.waveAffixes = this.placeAffixes((this.wave - 1) % this.rules.perStage);
     this.spawnedN = 0;
     this.order = g.level.spawns.map((_, i) => i);
@@ -587,6 +590,7 @@ export class Waves {
       if (this.wave % this.rules.perStage === 0 && this.rules.floor) {
         if (!this.roomHurt) this.cleanRooms++;
         this.roomHurt = false;
+        this.game.challenge.roomClear(); // a challenge taken on and kept: its Style and its prize (F②a)
       }
       if (this.isFinal) {
         this.state = 'done';
