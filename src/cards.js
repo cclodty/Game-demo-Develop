@@ -87,6 +87,18 @@ export class Cards {
     return true;
   }
 
+  /** A door's prize (prizes.js, F③b): three on the screen before room `stage`'s first wave, from its stream; false when none is left. */
+  showDoor(stage) {
+    const g = this.game;
+    const offer = drawOffer(g.rng.fork('door-cards', stage), this.held);
+    if (!offer.length) return false;
+    this.offer = offer;
+    this.offerFloor = -1;
+    g.notes.log(`風格卡三選一（門的獎勵）：${offer.map((id) => CARDS[id].name).join(' / ')}`);
+    g.showCards(offer, '門的獎勵 · 風格卡三選一  DOOR PRIZE');
+    return true;
+  }
+
   /** The step's input (a press of 1, 2, 3 or 4) read while an offer is up: the card kept, or null. */
   read(cmd) {
     if (!this.offer) return null;

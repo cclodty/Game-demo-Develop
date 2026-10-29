@@ -1116,6 +1116,14 @@ body:not(.pad) .pad-only {
   opacity: 0.8;
 }
 
+/* the door's prize (F③b) on a line of its own under the room's name */
+#indicators .exit-tag b {
+  display: block;
+  font-weight: 700;
+  color: #ffd166;
+  text-align: center;
+}
+
 #indicators .exit-tag.open {
   color: #7dffa8;
   border-color: rgba(125, 255, 168, 0.7);

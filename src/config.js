@@ -173,6 +173,14 @@ export const ROOM_SIZE = { scale: 1.2 };
  */
 export const CHALLENGE = { window: 4, time: 20, style: 500, lifeInvuln: 2, weapons: ['smg', 'shotgun', 'rifle', 'launcher', 'minigun'], weaponTtl: 60, cards: 4, focusStep: 0.25 };
 
+/**
+ * The doors' prizes (F③b, prizes.js): a heal gives `heal` of a full meter of HP, and at full HP a life instead while
+ * fewer than `maxLives` are in hand (the developer 10-29); a gun is one of `weapons`, full, on the floor `gunIn` m in
+ * from the next room's entry for `gunTtl` s; an elite room has `eliteAffixes` more affixes. First version, to be
+ * confirmed in play.
+ */
+export const DOORS = { heal: 0.5, maxLives: 2, weapons: ['smg', 'shotgun', 'rifle', 'launcher', 'minigun'], gunIn: 1.8, gunTtl: 90, eliteAffixes: 1 };
+
 /** The plaza room (rooms.js PLAZA, 彈幕 ② E①): the fountain's rim height (a solid shots fly over) and how many pigeons it keeps. */
 export const PLAZA_ROOM = { rim: 0.45, birds: 18 };
 

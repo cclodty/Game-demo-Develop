@@ -1,4 +1,4 @@
-// F③a: two doors (rooms.js exit2, drawBranches; main.js setExits, takeExit). Every fight room has a second exit in a
+// F③a, F③b: two doors (rooms.js exit2, drawBranches; main.js setExits, takeExit) and their prizes (prizes.js). Every fight room has a second exit in a
 // tall wall; for each room of a floor but its first and its boss's the run draws a second room (its own stream, so the
 // floors stay as drawn), and the room before it opens both doors when it is cleared, each with the room it leads to
 // over it (hud.js updateExits). Walking into one goes to its room, and the floor holds that room from then on; a floor
@@ -29,14 +29,17 @@ before(async () => {
       g.input.mouse.left = g.input.mouse.right = false;
     };
     /** 120 Hz steps, the player kept whole. */
-    window.play = (n) => {
+    window.play = (n, { press = [] } = {}) => {
       for (let i = 0; i < n; i++) {
         g.killcamT = 0;
         g.hitstopT = 0;
         g.player.hp = 100;
         g.player.invuln = 0;
+        g.input.pressed.clear();
+        if (i === 0) for (const k of press) g.input.pressed.add(k);
         g.updatePlay(1 / 120);
       }
+      g.input.pressed.clear();
     };
     /** The room's waves down at once, its exits open. */
     window.clearRoom = () => {
@@ -206,5 +209,127 @@ test('screenshot: the plaza cleared, its two doors open side by side, each named
     g.render();
   });
   await page.screenshot({ path: new URL('doors.png', OUT).pathname });
+  assert.deepEqual(problems(logs), []);
+});
+
+// F③b: the doors' prizes (src/prizes.js). Where there is a choice, each door carries a prize from the room's stream,
+// the two different; the one walked through comes with the next room as it begins.
+
+test('the prizes: two different on a room’s two doors, from its stream (the same seed the same), named on the signs; none on a lone door', async () => {
+  const r = await page.evaluate(async () => {
+    const { PRIZE_IDS } = await import('./src/prizes.js');
+    const g = window.game;
+    const runs = [];
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+      window.toStart(seed);
+      runs.push({ seed, prizes: g.level.exits.map((x) => x.prize) });
+    }
+    window.toStart(4);
+    const again = g.level.exits.map((x) => x.prize);
+    window.play(1);
+    g.hud.update(1 / 60);
+    const tags = [...document.querySelectorAll('#indicators .exit-tag')].filter((t) => t.style.display === 'block').map((t) => t.textContent);
+    // the floor's last fight room: one door, no prize
+    g.stage = g.floors[0].length - 2;
+    g.level.load(g.stageMap);
+    g.setExits();
+    const lone = g.level.exits.map((x) => x.prize);
+    return { runs, again, tags, lone, ids: PRIZE_IDS };
+  });
+  for (const run of r.runs) {
+    assert.equal(run.prizes.length, 2, `seed ${run.seed}`);
+    assert.ok(run.prizes.every((p) => r.ids.includes(p)), `seed ${run.seed}: ${run.prizes}`);
+    assert.notEqual(run.prizes[0], run.prizes[1], `seed ${run.seed}: two different`);
+  }
+  assert.deepEqual(r.again, r.runs[3].prizes, 'the same seed, the same prizes');
+  assert.deepEqual([...new Set(r.runs.flatMap((x) => x.prizes))].sort(), [...r.ids].sort(), 'every prize over the seeds');
+  assert.ok(r.tags.length === 2 && r.tags.every((t) => t.includes(' · ')), `on the signs: ${r.tags}`);
+  assert.ok(r.lone.every((p) => p === null), `a lone door has none: ${r.lone}`);
+  assert.deepEqual(problems(logs), []);
+});
+
+test('each prize comes with the next room: a full gun before its entry; three cards before its first wave, which waits for the pick; an elite room with an affix more and its clears scoring twice; a heal of DOORS.heal, at full HP a life, at DOORS.maxLives none', async () => {
+  const r = await page.evaluate(async () => {
+    const { DOORS, PLAYER } = await import('./src/config.js');
+    const { PLAYER_WEAPONS } = await import('./src/weapons.js');
+    const g = window.game;
+    /** The teahouse cleared, its second door's prize made `prize`, `before(p)` done to the player, and through it; steps that leave him as he is. */
+    const through = (prize, before = () => {}) => {
+      window.toStart(6);
+      window.clearRoom();
+      const x = g.level.exits[1];
+      x.prize = prize;
+      const p = g.player;
+      before(p);
+      p.x = x.at.x;
+      p.z = x.at.z;
+      for (let i = 0; i < 120 * 3 && (g.stage === 0 || g.transition); i++) {
+        g.killcamT = 0;
+        g.updatePlay(1 / 120);
+      }
+      return g.level;
+    };
+    const out = {};
+    // a gun
+    const L1 = through('gun');
+    const guns = g.pickups.list.filter((q) => !q.pad).map((q) => ({ kind: q.kind, full: q.ammo === PLAYER_WEAPONS[q.kind].ammo, from: Math.hypot(q.x - L1.start.x, q.z - L1.start.z) }));
+    out.gun = { guns, weapons: DOORS.weapons, gunIn: DOORS.gunIn };
+    // a card
+    through('card');
+    const offer = g.cards.offer && g.cards.offer.slice();
+    const wave0 = g.waves.wave;
+    window.play(120 * 8);
+    const waited = { wave: g.waves.wave, state: g.waves.state };
+    window.play(1, { press: ['Digit2'] });
+    let started = -1;
+    for (let i = 0; i < 120 * 6 && started < 0; i++) {
+      window.play(1);
+      if (g.waves.wave > wave0) started = i / 120;
+    }
+    out.card = { offer, wave0, waited, held: g.cards.held.slice(), started, title: document.getElementById('cards').dataset.title };
+    // an elite room (on the first floor, which has no affixes of itself)
+    through('elite');
+    const bonuses = [];
+    const bonus0 = g.score.bonus.bind(g.score);
+    g.score.bonus = (label, pts) => {
+      bonuses.push(`${label}:${pts}`);
+      return bonus0(label, pts);
+    };
+    for (let i = 0; i < 120 * 10 && g.waves.state !== 'active'; i++) window.play(1);
+    const affixes = g.waves.roomAffixes.length;
+    g.waves.queue.length = 0;
+    g.waves.pending.length = 0;
+    g.enemies.clear();
+    window.play(2);
+    g.score.bonus = bonus0;
+    out.elite = { stage: g.stage, eliteStage: g.eliteStage, affixes, bonuses };
+    // a heal: hurt, at full HP, at full HP with two lives
+    through('heal', (p) => {
+      p.hp = 40; // just hit: no regeneration yet (PLAYER.regenDelay)
+      p.sinceHurt = 0;
+    });
+    out.healHurt = { hp: g.player.hp, lives: g.challenge.lives };
+    through('heal');
+    out.healFull = { hp: g.player.hp, lives: g.challenge.lives };
+    through('heal', () => (g.challenge.lives = DOORS.maxLives));
+    out.healMax = { lives: g.challenge.lives };
+    return { out, heal: DOORS.heal, max: DOORS.maxLives, hp: PLAYER.hp };
+  });
+  const { gun, card, elite, healHurt, healFull, healMax } = r.out;
+  assert.equal(gun.guns.length, 1, `a gun on the floor: ${JSON.stringify(gun.guns)}`);
+  assert.ok(gun.weapons.includes(gun.guns[0].kind) && gun.guns[0].full, `a full special weapon: ${JSON.stringify(gun.guns)}`);
+  assert.ok(Math.abs(gun.guns[0].from - gun.gunIn) < 0.01, `${gun.guns[0].from.toFixed(2)} m in from the start`);
+  assert.equal(card.offer.length, 3, `three cards: ${card.offer}`);
+  assert.match(card.title, /門的獎勵/);
+  assert.deepEqual(card.waited, { wave: card.wave0, state: 'intermission' }, 'eight seconds on, no wave: it waits for the pick');
+  assert.deepEqual(card.held, [card.offer[1]], '2 keeps the second');
+  assert.ok(card.started >= 0, `then the wave comes (${card.started} s)`);
+  assert.equal(elite.eliteStage, elite.stage, 'the room is elite');
+  assert.equal(elite.affixes, 1, 'an affix on the first floor, which has none of itself');
+  const clear = elite.bonuses.find((b) => b.startsWith('WAVE CLEAR'));
+  assert.ok(clear && elite.bonuses.includes(`ELITE ×2:${clear.split(':')[1]}`), `the clear scores twice: ${elite.bonuses}`);
+  assert.deepEqual(healHurt, { hp: 40 + r.hp * r.heal, lives: 0 }, 'hurt: HP up by DOORS.heal of a full meter');
+  assert.deepEqual(healFull, { hp: r.hp, lives: 1 }, 'at full HP: a life instead');
+  assert.deepEqual(healMax, { lives: r.max }, `at ${r.max} lives: none more`);
   assert.deepEqual(problems(logs), []);
 });

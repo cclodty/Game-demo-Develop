@@ -3,6 +3,7 @@ import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
 import { Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS } from './cards.js';
 import { Challenges } from './challenge.js';
+import { drawPrizes, givePrize, PRIZES } from './prizes.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
@@ -787,6 +788,8 @@ class Game {
     this.floor = this.floors ? this.floors.flat() : null;
     this.cards.reset();
     this.challenge.reset();
+    this.doorPrize = null; // the prize of the door walked out by, for the room it leads to (F③b: prizes.js)
+    this.eliteStage = -1; // the room an elite door led to (F③b)
     // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
     const warmup = this.fixedWarmup ?? wantWarmup();
     // the rules hold for the whole run (a replay brings its own: fixedRules)
@@ -1357,6 +1360,9 @@ class Game {
       x.to = alt;
       x.setSpare(!alt);
     }
+    // where there is a choice, a prize on each door, the two different (F③b: prizes.js); none on a lone door
+    const prizes = alt ? drawPrizes(this, this.stage) : [];
+    L.exits.forEach((x, i) => (x.prize = prizes[i] || null));
   }
 
   /** The player walks out by exit `x` (waves.js 'exit'): the floor goes on by the room it leads to (F③a). */
@@ -1372,7 +1378,8 @@ class Game {
       this.floors[f][this.stage + 1 - start] = x.to;
       this.floor = this.floors.flat();
     }
-    this.notes.log(`揀咗門：${ROOMS[this.floor[this.stage + 1]].name}（另一道係 ${ROOMS[x === L.exit ? alt : L.exits[0].to].name}）`);
+    this.notes.log(`揀咗門：${ROOMS[this.floor[this.stage + 1]].name}${x.prize ? `，獎勵${PRIZES[x.prize].name}` : ''}（另一道係 ${ROOMS[x === L.exit ? alt : L.exits[0].to].name}）`);
+    this.doorPrize = x.prize ? { id: x.prize, stage: this.stage + 1 } : null; // given as that room begins (updateTransition)
   }
 
   /** A daily run's layout for stage `stage` (level.js dealProps): a stream of the run's seed of its own; null in any other mode. */
@@ -1484,6 +1491,8 @@ class Game {
       this.waves.state = 'intermission';
       this.waves.timer = 2.6;
       this.challenge.before(this.stage, this.waves); // the room's challenge sign, before its first wave (F②a)
+      if (this.doorPrize && this.doorPrize.stage === this.stage) givePrize(this, this.doorPrize.id, this.stage); // the door's prize (F③b)
+      this.doorPrize = null;
     }
   }
 
@@ -1830,6 +1839,7 @@ class Game {
     this.achievements.wave(!this.waves.hurt, this.waves.shots);
     this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt, shots: this.waves.shots });
     this.score.bonus('WAVE CLEAR', bonus);
+    if (this.eliteStage === this.stage) this.score.bonus('ELITE ×2', bonus); // an elite room's clears score twice (F③b)
     this.level.waveEnd(); // shutters roll back up
     this.addFocus(0.35);
     this.player.hp = PLAYER.hp;
