@@ -13,9 +13,21 @@ import { buildFixtures } from './fixtures.js';
 import { NavGrid } from './nav.js';
 import { Race } from './race.js';
 import { clamp, pointSegDist2, rand, resolveCircleAABB, resolveCirclePoly, segAABB, segCircle, segPoly, TAU } from './utils.js';
-import { asphaltTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenceTexture, floorTexture, teahouseFloorTexture } from './textures.js';
+import { asphaltTexture, boardTexture, clubFloorTexture, corrugatedTexture, crateTexture, fenceTexture, floorTexture, teahouseFloorTexture } from './textures.js';
 
 const _hit = { t: 0, nx: 0, nz: 0 };
+
+/**
+ * Cover that breaks (breakSolid), by its material: the solid's `kind`, the list the level keeps them in, the bullets it
+ * takes (read where used: config.js ENV), its splinters' colour and how many fly when it goes, its name and the line in the notes,
+ * and whether the men's rounds wear it too. A crate takes anyone's; the maze's boards (rooms.js MAZE, 試玩回饋 ⑥b) only
+ * the player's, so the maze stays a maze through a barrage and which walls go is his choice; a kick or a blast brings
+ * a board down at once (kickBoards, main.js explode).
+ */
+const BREAKABLE = {
+  crate: { kind: 'crate', list: 'crates', hits: () => ENV.crateHits, debris: [0.42, 0.29, 0.17], bits: 12, name: '木箱', note: '木箱碎裂', anyShot: true },
+  partition: { kind: 'board', list: 'boards', hits: () => ENV.crateHits, debris: [0.75, 0.57, 0.35], bits: 24, name: '薄牆', note: '薄牆被打爛', anyShot: false },
+};
 
 class Barrel {
   /** `block`: the built barrel even when a model is loaded (cheaper: three parts instead of the model's seven). */
@@ -945,6 +957,9 @@ export class Level {
       parapet: std({ color: 0x3c3a46, roughness: 0.9 }),
       pillar: std({ color: 0x4a4756, roughness: 0.85 }),
       crate: std({ map: crateTexture(), roughness: 0.85 }),
+      // the maze (rooms.js MAZE): its concrete walls lighter than the floor, its boards light plywood (they break)
+      mazeWall: std({ color: 0x77737e, roughness: 0.95 }),
+      partition: std({ map: boardTexture(), roughness: 0.9 }),
       metal: std({ color: 0x8c93a0, roughness: 0.45, metalness: 0.6 }),
       unit: std({ color: 0x8c93a0, roughness: 0.45, metalness: 0.6 }),
       darkMetal: std({ color: 0x2c2f38, roughness: 0.5, metalness: 0.6 }),
@@ -1090,6 +1105,7 @@ export class Level {
     this.solids = [];
     this.glass = [];
     this.crates = [];
+    this.boards = []; // the maze's board walls (BREAKABLE partition)
     this.barrels = [];
     this.pans = [];
     this.tools = [];
@@ -1120,6 +1136,12 @@ export class Level {
       else this.addSolid(...s);
     }
     for (const g of map.glass || []) this.addGlass(...g);
+    // the maze room's walls (rooms.js mazeWalls, 試玩回饋 ⑥b), drawn for this room of this run from the run's seed: the
+    // same seed walks the same maze. A board shot or kicked down stays down for the run (resetProps stands it up again
+    // for the next), and the room is loaded once a run
+    this.maze = map.maze ? map.maze(this.game.rng.fork('maze', this.game.stage)) : null;
+    this.mazeKey = map.maze ? `${this.game.rng.seed}/${this.game.stage}` : ''; // which maze stands (main.js resetWorld draws afresh for another)
+    if (this.maze) this.addMaze(this.maze.solids);
     this.tables = this.solids.filter((s) => s.matKey === 'mahjong'); // tiles to throw (thrown.js throwTiles; resetProps refills them)
     for (const t of this.tables) t.tiles = ENV.tiles.handfuls;
     const groups = { barrels: [], pans: [], tools: [] }; // what was built from each list, for a daily to deal out (dealProps)
@@ -1242,6 +1264,29 @@ export class Level {
     return s;
   }
 
+  /**
+   * The maze's walls (rooms.js mazeWalls): each board a solid of its own, drawn on its own (it breaks and goes);
+   * the concrete walls and posts, which never break, solids drawn as one merged mesh.
+   */
+  addMaze(walls) {
+    const parts = [];
+    for (const [x, z, w, d, h, matKey] of walls) {
+      if (BREAKABLE[matKey]) {
+        this.addSolid(x, z, w, d, h, matKey);
+        continue;
+      }
+      this.addBox(x, z, w, d, h, null, 'wall', { visible: false }).matKey = matKey;
+      parts.push(new THREE.BoxGeometry(w, h, d).translate(x, h / 2, z));
+    }
+    if (!parts.length) return;
+    const mesh = new THREE.Mesh(this.own(mergeGeometries(parts)), this.mat.mazeWall);
+    for (const g of parts) g.dispose();
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.name = 'maze walls';
+    this.add(mesh);
+  }
+
   /** Decorative box (no collision); returns the mesh. */
   deco(x, y, z, w, h, d, mat, cast = false) {
     const m = new THREE.Mesh(this.geo.unit, mat);
@@ -1255,12 +1300,13 @@ export class Level {
   /** face: optional direction (degrees) a made model's front points: 0 south, 90 east, 180 north, 270 west. */
   addSolid(x, z, w, d, h, matKey, face) {
     const M = this.mat;
-    const s = this.addBox(x, z, w, d, h, M[matKey], matKey === 'crate' ? 'crate' : 'wall');
+    const breaks = BREAKABLE[matKey];
+    const s = this.addBox(x, z, w, d, h, M[matKey], breaks ? breaks.kind : 'wall');
     s.matKey = matKey; // what it is drawn as (a map's decorate can find its own walls by it)
-    if (matKey === 'crate') {
-      // wooden crates break apart after ENV.crateHits bullets (breakCrate)
-      Object.assign(s, { x, z, w, d, hp: ENV.crateHits });
-      this.crates.push(s);
+    if (breaks) {
+      // wooden crates and the maze's boards break apart after so many bullets (breakSolid)
+      Object.assign(s, { x, z, w, d, hp: breaks.hits(), breaks });
+      this[breaks.list].push(s);
     }
     const base = this.groundY(x, z); // on raised ground (大三巴's landings) its height counts from there
     const model = propModel(matKey, this.map.id, w, d, h - base, face);
@@ -1741,20 +1787,47 @@ export class Level {
     this.nav.buildRect(this.solids, 0.5, s.minX - 1, s.minZ - 1, s.maxX + 1, s.maxZ + 1);
   }
 
-  /** A crate takes its last bullet: it bursts into planks and stops being cover. */
-  breakCrate(s, dx, dz) {
+  /**
+   * Cover that breaks (BREAKABLE: a crate, a board of the maze's) takes its last bullet, a kick or a blast: it bursts
+   * into planks and stops being cover, and the way through it opens. `how` for the notes: 'kick', 'blast' or a shot.
+   */
+  breakSolid(s, dx, dz, how = 'shot') {
     if (!s.alive) return;
     s.alive = false;
+    s.hp = 0;
     (s.model || s.mesh).visible = false;
     const fx = this.game.fx;
-    for (let i = 0; i < 12; i++) {
-      fx.debris(s.x + rand(-s.w, s.w) / 2, rand(0.2, s.h), s.z + rand(-s.d, s.d) / 2, dx + rand(-0.7, 0.7), dz + rand(-0.7, 0.7), 3, [0.42, 0.29, 0.17], 0.16);
+    const b = s.breaks;
+    for (let i = 0; i < b.bits; i++) {
+      fx.debris(s.x + rand(-s.w, s.w) / 2, rand(0.2, s.h), s.z + rand(-s.d, s.d) / 2, dx + rand(-0.7, 0.7), dz + rand(-0.7, 0.7), 3, b.debris, 0.16);
     }
     this.game.audio.impact(this.game.panFor(s.x));
     this.game.shake(0.15);
-    this.game.notes.log('木箱碎裂');
+    this.game.notes.log(how === 'kick' ? `踢爛${b.name}` : how === 'blast' ? `${b.name}被炸爛` : b.note);
     this.noise(s.x, s.z, 6);
     this.nav.buildRect(this.solids, 0.5, s.minX - 1, s.minZ - 1, s.maxX + 1, s.maxZ + 1);
+  }
+
+  /**
+   * The player's kick or a pan's swing (player.js hitFixtures): the nearest of the maze's boards in front, its nearest
+   * point within `reach`, goes down at once. True if one did.
+   */
+  kickBoards(inCone, reach) {
+    const p = this.game.player;
+    let best = null;
+    let bestD = Infinity;
+    let dir = null;
+    for (const s of this.boards) {
+      if (!s.alive) continue;
+      const cx = clamp(p.x, s.minX, s.maxX);
+      const cz = clamp(p.z, s.minZ, s.maxZ);
+      const way = inCone(cx, cz, reach);
+      const d = Math.hypot(cx - p.x, cz - p.z);
+      if (way && d < bestD) [best, bestD, dir] = [s, d, way];
+    }
+    if (!best) return false;
+    this.breakSolid(best, dir.x, dir.z, 'kick');
+    return true;
   }
 
   // ------------------------------------------------------------- pigeons (logic)
@@ -1813,9 +1886,9 @@ export class Level {
     this.beatT = 0;
     if (this.race) this.race.reset();
     for (const f of this.flocks) f.reset();
-    for (const s of this.crates) {
+    for (const s of [...this.crates, ...this.boards]) {
       s.alive = true;
-      s.hp = ENV.crateHits;
+      s.hp = s.breaks.hits();
       (s.model || s.mesh).visible = true;
     }
     for (const s of this.glass) {

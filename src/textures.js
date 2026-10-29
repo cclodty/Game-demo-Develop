@@ -109,6 +109,22 @@ export function crateTexture() {
   return finish(c);
 }
 
+/** A board partition (rooms.js MAZE, 試玩回饋 ⑥b): light plywood sheets nailed up side by side, dark seams between, so it reads apart from concrete. */
+export function boardTexture() {
+  const [c, g] = canvas(256, 128);
+  g.fillStyle = '#c0935a';
+  g.fillRect(0, 0, 256, 128);
+  for (let i = 0; i < 48; i++) {
+    g.fillStyle = `rgba(110, 68, 30, ${rand(0.08, 0.22)})`; // the grain, up the sheet
+    g.fillRect(rand(0, 256), 0, rand(1, 3), 128);
+  }
+  g.fillStyle = '#4a2e14';
+  for (let x = 0; x <= 256; x += 64) g.fillRect(x - 3, 0, 6, 128);
+  g.fillStyle = 'rgba(40, 24, 10, 0.6)';
+  for (let x = 16; x < 256; x += 32) for (const y of [10, 64, 118]) g.fillRect(x - 1, y - 1, 3, 3); // the nails
+  return finish(c);
+}
+
 export function windowTexture(lit = 0.35) {
   const [c, g] = canvas(128, 512);
   g.fillStyle = '#05050a';
