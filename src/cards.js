@@ -1,4 +1,4 @@
-// The style cards (彈幕 ② C②): at the end of a floor the player is shown three and keeps one for the rest of the run.
+// The style cards (彈幕 ② C②, F④a): at the end of a floor the player is shown three and keeps one for the rest of the run.
 // Each card is one switch its system reads (`game.cards.has(id)`): the action cards change what a move does, the
 // slow-mo cards what bullet time does. Which three come is drawn from the run's seed (rng.fork('cards', floor)), with
 // both kinds among them; a card held is never offered again. The pick is a press of 1, 2 or 3 in the step's input
@@ -6,17 +6,35 @@
 // that press (main.js). The numbers are in config.js CARDS.
 import { CARDS as NUM, CHALLENGE } from './config.js';
 
-/** The first batch: three action cards, three slow-mo cards. `name` and `en` show on the card, `text` says what it does. */
+/**
+ * The cards: `name` and `en` show on the card, `text` says what it does, `tags` what it plays with (TAGS: shown on the
+ * card; F④b's combo cards count them). The first batch (C②) and the second (F④a), each one switch.
+ */
 export const CARDS = {
-  slideReflect: { kind: 'action', name: '滑鏟反彈', en: 'SLIDE DEFLECT', text: '滑鏟時本來飛過頭頂的子彈彈回去，算你開的槍' },
-  shoveBoom: { kind: 'action', name: '人盾引爆', en: 'SHOVE BLAST', text: '推出去的人盾撞到人或落地就爆' },
-  tableBounce: { kind: 'action', name: '枱面反彈', en: 'TABLE BOUNCE', text: '翻起的枱把敵人的子彈彈回去' },
-  grazeReflect: { kind: 'slowmo', name: '擦彈反彈', en: 'GRAZE RETURN', text: '慢鏡中擦過的子彈掉頭飛回去' },
-  killSlow: { kind: 'slowmo', name: '擊殺慢鏡', en: 'KILL SLOW-MO', text: '每次擊殺自動入慢鏡半秒，不耗表' },
-  deepSlow: { kind: 'slowmo', name: '深慢鏡', en: 'DEEP SLOW-MO', text: '慢鏡時世界慢一倍，表耗快六成' },
+  slideReflect: { kind: 'action', tags: ['slide', 'bounce'], name: '滑鏟反彈', en: 'SLIDE DEFLECT', text: '滑鏟時本來飛過頭頂的子彈彈回去，算你開的槍' },
+  shoveBoom: { kind: 'action', tags: ['shield'], name: '人盾引爆', en: 'SHOVE BLAST', text: '推出去的人盾撞到人或落地就爆' },
+  tableBounce: { kind: 'action', tags: ['bounce'], name: '枱面反彈', en: 'TABLE BOUNCE', text: '翻起的枱把敵人的子彈彈回去' },
+  grazeReflect: { kind: 'slowmo', tags: ['slowmo', 'bounce'], name: '擦彈反彈', en: 'GRAZE RETURN', text: '慢鏡中擦過的子彈掉頭飛回去' },
+  killSlow: { kind: 'slowmo', tags: ['slowmo'], name: '擊殺慢鏡', en: 'KILL SLOW-MO', text: '每次擊殺自動入慢鏡半秒，不耗表' },
+  deepSlow: { kind: 'slowmo', tags: ['slowmo'], name: '深慢鏡', en: 'DEEP SLOW-MO', text: '慢鏡時世界慢一倍，表耗快六成' },
+  kickReturn: { kind: 'action', tags: ['kick', 'bounce'], name: '踢彈', en: 'KICK RETURN', text: '踢出去嗰下，面前的子彈掉頭飛回去' },
+  slideTrip: { kind: 'action', tags: ['slide', 'kick'], name: '滑鏟絆倒', en: 'SLIDE TRIP', text: '滑鏟撞到敵人就絆倒佢，暈住可以處決' },
+  shieldReturn: { kind: 'action', tags: ['shield', 'bounce'], name: '人盾反彈', en: 'SHIELD RETURN', text: '射中你手上人盾的子彈彈回去' },
+  lastRound: { kind: 'action', tags: ['gun'], name: '最後一發', en: 'LAST ROUND', text: '彈匣最後一粒子彈穿過人繼續飛' },
+  slideSlow: { kind: 'slowmo', tags: ['slide', 'slowmo'], name: '滑鏟慢鏡', en: 'SLIDE SLOW-MO', text: '滑鏟期間自動入慢鏡，不耗表' },
+  grazeReload: { kind: 'slowmo', tags: ['slowmo', 'gun'], name: '擦彈上膛', en: 'GRAZE RELOAD', text: '慢鏡中每擦一粒子彈，彈匣加返一粒' },
 };
 export const CARD_IDS = Object.keys(CARDS);
 export const KINDS = { action: { name: '動作', en: 'ACTION' }, slowmo: { name: '慢鏡', en: 'SLOW-MO' } };
+/** What a card plays with (F④a), on the card under its text. */
+export const TAGS = {
+  slide: { name: '滑鏟', en: 'SLIDE' },
+  shield: { name: '人盾', en: 'SHIELD' },
+  slowmo: { name: '慢鏡', en: 'SLOW-MO' },
+  bounce: { name: '反彈', en: 'BOUNCE' },
+  gun: { name: '槍', en: 'GUN' },
+  kick: { name: '踢', en: 'KICK' },
+};
 
 /**
  * `n` cards to offer, none of `held`, from `rng`: one of each kind first (where one is left), the rest from
