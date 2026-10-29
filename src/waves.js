@@ -4,7 +4,7 @@
 // one spot, quiet, then the next; endless trickles them in.
 
 import { BOSSES } from './boss.js';
-import { AFFIX, BEATS, FIREPOWER, HELL, RAMP } from './config.js';
+import { AFFIX, BEATS, DOORS, FIREPOWER, HELL, RAMP } from './config.js';
 import { AFFIX_IDS, AFFIXES, TYPES } from './enemies.js';
 import { clamp } from './utils.js';
 
@@ -229,12 +229,14 @@ export class Waves {
    */
   affixesFor(stage) {
     const g = this.game;
-    if (!this.rules.floor || !g.floors || g.floorOf(stage) < AFFIX.fromFloor) return [];
+    const elite = g.eliteStage === stage ? DOORS.eliteAffixes : 0; // an elite room (a door's prize, F③b): more, on any floor
+    const due = g.floors && g.floorOf(stage) >= AFFIX.fromFloor;
+    if (!this.rules.floor || !g.floors || (!due && !elite)) return [];
     const map = g.mapAt(stage);
     const lastBoss = !!(map.boss && BOSSES[map.boss.kind]);
     const r = g.rng.fork('affix', stage);
     const ids = AFFIX_IDS.slice();
-    const n = r.int(AFFIX.perRoom[0], AFFIX.perRoom[1]);
+    const n = (due ? r.int(AFFIX.perRoom[0], AFFIX.perRoom[1]) : 0) + elite;
     const plan = [];
     for (let k = 0; k < n && ids.length; k++) {
       const id = ids.splice(r.int(0, ids.length - 1), 1)[0];
@@ -525,6 +527,11 @@ export class Waves {
     this.clock += dt;
     if (this.state === 'warmup') return;
     if (this.state === 'intermission') {
+      // a door's prize card on the screen (F③b, cards.js showDoor): the room's first wave waits for the pick
+      if (this.game.cards.pending) {
+        this.game.cards.read(this.game.cmd);
+        return;
+      }
       this.timer -= realDt;
       if (this.timer <= 0 && this.game.player.alive) {
         if (this.stageNext) {
@@ -542,14 +549,16 @@ export class Waves {
       // the floor's end (C②): three style cards on the screen; the pick (a press of 1, 2 or 3) opens the exit
       if (this.game.cards.read(this.game.cmd)) {
         this.state = 'exit';
-        this.game.level.exit.unlock();
+        for (const x of this.game.level.exits) x.unlock(); // a spare one stays shut (fixtures.js)
       }
       return;
     }
     if (this.state === 'exit') {
-      // a cleared room's exit is open (彈幕試驗): the player walking into it goes on to the floor's next room
+      // a cleared room's exits are open (彈幕試驗): the player walking into one goes on to the room it leads to (F③a: two doors)
       const p = this.game.player;
-      if (p.alive && this.game.level.exit.reached(p.x, p.z)) {
+      const way = p.alive && this.game.level.exits.find((x) => x.reached(p.x, p.z));
+      if (way) {
+        this.game.takeExit(way);
         this.state = 'transition';
         this.game.beginStageTransition();
       }
@@ -613,7 +622,7 @@ export class Waves {
           this.state = 'cards';
         } else {
           this.state = 'exit';
-          exit.unlock();
+          for (const x of this.game.level.exits) x.unlock();
         }
       }
       this.game.onWaveClear(this.wave, this.stageNext || !!exit);

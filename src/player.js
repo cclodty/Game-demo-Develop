@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GUN_Y, PAN, PLAYER, UMBRELLA } from './config.js';
+import { CARDS, GUN_Y, PAN, PLAYER, UMBRELLA } from './config.js';
 import { aimArm, animateRig, attachWeapon, BODY, buildCharacter, deathPose, finishRig, HOLDS, holdBoth, holdInHand, keyPose, MUZZLE_Z, SHOULDER_X, setFlash } from './characters.js';
 import { Laser } from './fx.js';
 import { carryHands } from './thrown.js';
@@ -557,6 +557,7 @@ export class Player {
 
     // --- kick; by an enemy still dazed from a kick or a throw, F is an execution instead
     if (this.kickT > 0) this.kickT -= dt;
+    if (this.kickT > KICK_TIME - CARDS.kickWindow && g.cards.has('kickReturn')) this.kickBack(); // the card 踢彈 (F④a)
     if (this.throwT > 0) this.throwT -= dt;
     if (this.swingT > 0) {
       this.swingT -= dt;
@@ -630,6 +631,12 @@ export class Player {
       const d2 = dx * dx + dz * dz;
       if (d2 >= rr * rr || d2 < 1e-8) continue;
       const d = Math.sqrt(d2);
+      if (this.slideT > 0 && e.stunT <= 0 && g.cards.has('slideTrip')) {
+        // the card (cards.js 滑鏟絆倒, F④a): a slide into a man takes his feet, dazed as from a kick (F finishes him)
+        e.kick(dx / d, dz / d, CARDS.tripKnock, 'kick', 0);
+        g.score.style('SLIDE TRIP', 40, true);
+        g.notes.log(`滑鏟絆倒 ${e.cfg.label}`);
+      }
       const push = (rr - d) / 2;
       e.x += (dx / d) * push;
       e.z += (dz / d) * push;
@@ -683,6 +690,8 @@ export class Player {
     for (const s of shots) {
       if (!this.useAmmo()) break;
       fired = true;
+      // the card (cards.js 最後一發, F④a): the magazine's last round goes through men
+      const last = g.cards.has('lastRound') && (this.slot === 'special' ? this.special.ammo : this.ammo) <= 0;
       let origin;
       let m;
       let armAngle = this.facing;
@@ -730,7 +739,8 @@ export class Player {
             split: s.split,
             look: w.look,
             trail: w.trail,
-            pierce: w.pierce,
+            pierce: last ? Math.max(w.pierce || 0, CARDS.lastPierce) : w.pierce,
+            lastRound: last,
             knock: w.knock,
             range: w.range,
             weapon: w.id,
@@ -923,6 +933,7 @@ export class Player {
     this.kickCd = PLAYER.kickCooldown;
     this.kickT = KICK_TIME;
     const inCone = this.cone(PLAYER.kickArc);
+    if (g.cards.has('kickReturn')) this.kickBack(); // the card 踢彈: from the kick itself on (and its first steps: update)
     let hit = this.hitFixtures(inCone, PLAYER.kickRange);
     for (const e of g.enemies.list) {
       if (!e.alive || e.spawnLock > 0 || e.aloft) continue;
@@ -955,6 +966,28 @@ export class Player {
       g.hitstop(0.05);
       g.fx.sparks(this.x + Math.sin(this.facing), 0.8, this.z + Math.cos(this.facing), Math.sin(this.facing), Math.cos(this.facing), 8, [4, 4, 4], 6);
     }
+  }
+
+  /** The card 踢彈 (cards.js, F④a): for a kick's first CARDS.kickWindow s, enemy rounds in its arc turn back, the player's own. */
+  kickBack() {
+    const g = this.game;
+    const inCone = this.cone(PLAYER.kickArc);
+    for (const b of g.bullets.list) {
+      if (!b.alive || b.owner !== 'enemy' || !inCone(b.x, b.z, PLAYER.kickRange)) continue;
+      g.bullets.turnBack(b, -b.dx, -b.dz, 'KICK RETURN', '踢彈');
+    }
+  }
+
+  /** The card 擦彈上膛 (cards.js, F④a): a round grazed in bullet time puts one back in the magazine, never past a full one. */
+  grazeReload() {
+    if (this.slot === 'special') {
+      if (this.special.ammo >= PLAYER_WEAPONS[this.special.id].ammo) return;
+      this.special.ammo++;
+    } else {
+      if (this.reloadT > 0 || this.ammo >= PLAYER_WEAPONS.pistols.mag) return;
+      this.ammo++;
+    }
+    this.game.notes.log('擦彈上膛');
   }
 
   hurt(dmg, dx = 0, dz = 0, explosion = false, source = '') {

@@ -28,7 +28,8 @@
 //   dress: 'tea' (stools, gold rails, lanterns) or 'stall' (plastic stools, the stall's iron roof over `stall`: [x, z,
 //   w, d] its cooking counter, a solid 1 m high of the 'counter' material), theme (four point lights, as every map), floor, budget,
 //   entry: [side, at]: the gate the player comes in by, in a low wall (he starts 1.4 m inside it),
-//   exit: [side, at]: the door he goes on by, in a tall wall,
+//   exit: [side, at]: the door he goes on by, in a tall wall, exit2: [side, at] a fight room's second (F③a: the run's
+//   other way on, main.js setExits; hidden where there is none to choose),
 //   posts: [[x, z, coverX?, coverZ?]]: the far side's firing posts (彈幕 ② A①, config.js HELL): where the room's gunners
 //   go to stand and fire from, at least four, all in the half of the room away from the entry, each walkable and
 //   seeing most of the room (test/hell.test.mjs); with the middle of the table a post stands behind, when it does:
@@ -133,6 +134,7 @@ function scaled(t, k) {
     doors: t.doors.map(side),
     entry: side(t.entry),
     exit: side(t.exit),
+    exit2: t.exit2 && side(t.exit2),
     tables: t.tables.map(at),
     trolleys: t.trolleys && t.trolleys.map(at),
     barrels: t.barrels && t.barrels.map(at),
@@ -162,6 +164,7 @@ export function room(template) {
   const [lowH, lowSides] = t.low;
   const wall = (side) => [lowSides.includes(side) ? lowH : h, mat, trim];
   const [ex, ez, ef] = wallPoint(...t.exit, halfW, halfD);
+  const exit2 = t.exit2 ? wallPoint(...t.exit2, halfW, halfD) : null; // a fight room's other way on (F③a)
   const [nx, nz, nf] = wallPoint(...t.entry, halfW, halfD);
   const round = (v) => Math.round(v * 100) / 100;
   const start = [round(nx + Math.sin((nf * Math.PI) / 180) * ENTRY_IN), round(nz + Math.cos((nf * Math.PI) / 180) * ENTRY_IN)];
@@ -183,7 +186,7 @@ export function room(template) {
     solids: [...(t.solids || []), ...(t.stall ? [[...t.stall, 1.0, 'counter']] : []), ...shops.solids],
     barrels: t.barrels || [],
     tools: (t.trolleys || []).map(([x, z, angle]) => [x, z, 'trolley', angle, t.trolleyLook || 'dimsum']),
-    fixtures: [...t.tables.map(([x, z, r]) => [x, z, 'table', 0, r, t.tableLook || 'cloth']), [ex, ez, 'exit', ef, ...EXIT_DOOR], ...shops.fixtures],
+    fixtures: [...t.tables.map(([x, z, r]) => [x, z, 'table', 0, r, t.tableLook || 'cloth']), [ex, ez, 'exit', ef, ...EXIT_DOOR], ...(exit2 ? [[exit2[0], exit2[1], 'exit', exit2[2], ...EXIT_DOOR]] : []), ...shops.fixtures],
     cutaway: !!t.cutaway,
     spawns: t.doors.map(([side, at]) => doorSpawn(side, at, halfW, halfD)),
     posts: t.posts || [],
@@ -895,6 +898,7 @@ export const TEAHOUSE = room({
   trolleys: [[-9, 5.5, 0], [9, -5.5, Math.PI]],
   entry: ['s', 0],
   exit: ['n', 0], // between its two north doors, a table before it
+  exit2: ['e', 0], // between the east doors (F③a)
   // the far side: behind the north row's three tables, and the north ends of the two side aisles
   posts: [[-6, -5.2, -6, -3], [0, -5.2, 0, -3], [6, -5.2, 6, -3], [-9.5, -1], [9.5, -1]],
   floor: 'teahouse',
@@ -929,6 +933,7 @@ export const BANQUET = room({
   trolleys: [[-3, 5.6, 0], [-8, -5.6, Math.PI]],
   entry: ['w', 0],
   exit: ['e', 0],
+  exit2: ['n', 0], // between the north doors (F③a)
   // the far side is the east: behind its two small tables, by the east wall, and either side of the big table's far end
   posts: [[8, -3.5, 6, -3.5], [8, 3.5, 6, 3.5], [3, -5.8], [3, 5.8], [8.5, 0]],
   floor: 'teahouse',
@@ -961,6 +966,7 @@ export const SIDEHALL = room({
   trolleys: [[-3.5, -4.8, 0], [9.5, -5.2, Math.PI]],
   entry: ['s', 7],
   exit: ['n', -7],
+  exit2: ['n', -4], // beside it (F③a)
   // the far side is the north: behind its two north tables, the north-west corner by the exit, and the middle
   posts: [[-7.5, -4.6, -7.5, -2.5], [2.5, -4.6, 2.5, -2.5], [-9.8, -1.5], [-3.5, -2.6]],
   floor: 'teahouse',
@@ -997,6 +1003,7 @@ export const DAIPAIDONG = room({
   dress: 'stall',
   entry: ['s', -6],
   exit: ['e', -3],
+  exit2: ['e', -6], // by the north-east corner, clear of the stall (F③a)
   // the far side is the north: behind the three tables nearest the stall, and the lane's two far corners
   posts: [[-1, -5, -1, -3], [4, -2.4, 4, -0.5], [-6, -2.4, -6, -0.5], [-9.6, -2.5], [9.5, -3]],
   floor: 'asphalt',
@@ -1188,6 +1195,7 @@ export const PLAZA = room({
   benches: [[-6, -6.6], [6, -6.6], [-9.9, 3], [9.9, -3]],
   entry: ['s', 0],
   exit: ['n', 0],
+  exit2: ['n', 3], // between it and a north door (F③a)
   // the far side: the north ends of the aisles, and the north side of the pool
   posts: [[-8.5, -5], [8.5, -5], [0, -4.2], [-9.5, -1], [9.5, -1]],
   dress: 'plaza',
@@ -1243,6 +1251,7 @@ export const RACEBEND = room({
   dress: 'track',
   entry: ['s', -5],
   exit: ['n', 6], // in the infield: the way on is across the road
+  exit2: ['e', -1], // in the infield too (F③a)
   // the far side: the run-off's north-west, and the infield across the road
   posts: [[-8.5, -5], [-4.5, -5.5], [-9.5, -0.5], [5.5, -3.5], [8.5, -1.5]],
   floor: 'asphalt',
@@ -1295,6 +1304,7 @@ export const STEPS = room({
   dress: 'steps',
   entry: ['s', 0],
   exit: ['n', 0],
+  exit2: ['n', 3], // F③a
   // the far side: the lower level, behind its two tables and either side of the way off the steps
   posts: [[-7.5, -6.2, -7.5, -4.5], [7.5, -6.2, 7.5, -4.5], [-3.5, -5.8], [3.5, -5.8], [-9.5, -2.5]],
   floor: 'concrete',
@@ -1344,6 +1354,7 @@ export const STREET = room({
   dress: 'shops',
   entry: ['s', 0],
   exit: ['n', 0], // in the middle shop's back wall
+  exit2: ['n', 5], // in the east shop's (F③a): in by its door
   // the far side: the street before the shops, either side of their openings and behind the two north tables
   posts: [[-9.5, -1.4], [-5.5, -1.7, -5.5, 0.3], [-2.4, -1.6], [2.4, -1.6], [5.5, -1.7, 5.5, 0.3], [9.5, -1.4]],
   floor: 'concrete',
@@ -1396,6 +1407,7 @@ export const QUAY = room({
   dress: 'quay',
   entry: ['s', -4],
   exit: ['e', -5.5], // at the warehouse's north end, by the quay
+  exit2: ['e', 0.5], // between two of its doors (F③a)
   // the far side: along the quay, the men's backs to the sea
   posts: [[-9.5, -5.6], [-5.5, -6.1], [-1.5, -5.6], [2.5, -6.1], [6.5, -5.6]],
   floor: 'concrete',
@@ -1448,6 +1460,7 @@ export const ROOF = room({
   cutaway: true, // the player behind a sheet stays in sight
   entry: ['s', -5],
   exit: ['n', 7], // the stair hut's other door
+  exit2: ['n', 3.5], // F③a
   posts: [[-9.2, -5.6], [-4, -6], [0.5, -5.6], [4.5, -6], [8.6, -5.4]],
   floor: 'concrete',
   theme: {
@@ -1497,6 +1510,7 @@ export const DISCO = room({
   dress: 'disco',
   entry: ['s', -6],
   exit: ['n', 7.5],
+  exit2: ['n', 4.5], // beside the speaker (F③a)
   posts: [[-8.5, -5.2], [-4.5, -4.6], [0, -4.6], [4.5, -4.6], [8.5, -5.2]],
   floor: 'club',
   theme: {
@@ -1547,6 +1561,7 @@ export const MAZE = room({
   cutaway: true, // the player behind a wall stays in sight
   entry: ['s', -6],
   exit: ['n', 6],
+  exit2: ['n', 10], // the next cell's (F③a)
   posts: [],
   floor: 'concrete',
   theme: {
@@ -1596,6 +1611,27 @@ export function drawFloors(spec, rng) {
     floors.push(rooms);
   }
   return floors;
+}
+
+/**
+ * Each floor's other ways on (F③a, two doors): for every room of a floor but its first and its boss's, a second room
+ * the room before it can go on to by its other exit (rooms.js `exit2`), drawn from `rng` (a stream of the run's own,
+ * so the floors drawFloors draws stay as they were) among the floor's fight rooms not on it already, so a floor never
+ * has a room twice whichever way it is walked. Arrays like the floors', null where there is no choice; one an floor.
+ */
+export function drawBranches(spec, floors, rng) {
+  const all = [spec.first, ...spec.pool];
+  return floors.map((ids) => {
+    const used = new Set(ids);
+    return ids.map((id, k) => {
+      if (k === 0 || k >= ids.length - (spec.boss ? 1 : 0)) return null;
+      const left = all.filter((r) => !used.has(r));
+      if (!left.length) return null;
+      const alt = left[rng.int(0, left.length - 1)];
+      used.add(alt);
+      return alt;
+    });
+  });
 }
 
 /** The floors as one run of rooms, in order (main.js `floor`). */

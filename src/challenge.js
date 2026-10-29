@@ -33,7 +33,7 @@ export class Challenges {
     this.offer = null; // the sign up: { id, stage }
     this.active = null; // the one taken on: { id, stage, t: fighting seconds, failed }
     this.openedFor = -1; // the room (stage) whose sign has been put up
-    this.lives = 0; // lives in hand (無傷's prize): an HP of nothing spends one instead of ending the run
+    this.lives = 0; // lives in hand (無傷's prize, a door's heal): an HP of nothing spends one instead of ending the run
     this.focusUp = 0; // focus segments won (不用慢鏡's prize): the meter's cap is focusMax
     this.won = 0;
   }
@@ -121,9 +121,9 @@ export class Challenges {
     const c = CHALLENGES[a.id];
     this.won++;
     g.score.style('CHALLENGE', CHALLENGE.style);
-    if (c.reward === 'life') this.lives++;
     if (c.reward === 'focus') this.focusUp++;
     let prize = c.prize;
+    if (c.reward === 'life' && !this.addLife()) prize = `（命已經有 ${CHALLENGE.maxLives} 條）`;
     // the cards to pick one from, on the card screen, the exit opening on the pick (waves.js 'cards'); none left to offer, the Style alone
     if (c.reward === 'card' && !g.cards.showPrize(a.stage)) prize = '（風格卡已經揀晒）';
     if (c.reward === 'weapon') {
@@ -137,6 +137,13 @@ export class Challenges {
     }
     g.notes.log(`挑戰成功：${c.name}${a.id === 'clock' ? `（${a.t.toFixed(1)} 秒）` : ''}，獎勵${prize}`);
     g.hud.banner('CHALLENGE CLEAR', `挑戰成功 · ${c.name} · ${prize}`, 'clear');
+  }
+
+  /** A life won (無傷, a door's heal: prizes.js), while fewer than CHALLENGE.maxLives are in hand; false at the cap. */
+  addLife() {
+    if (this.lives >= CHALLENGE.maxLives) return false;
+    this.lives++;
+    return true;
   }
 
   /**

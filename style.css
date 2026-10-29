@@ -1092,6 +1092,44 @@ body:not(.pad) .pad-only {
   font-size: 10px;
 }
 
+/* the room a room's exit leads to (hud.js updateExits, F③a): dim while the room is fought, lit once the way is open */
+#indicators .exit-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: none;
+  padding: 2px 8px;
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  color: var(--dim);
+  background: rgba(12, 8, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+#indicators .exit-tag small {
+  font-size: 10px;
+  letter-spacing: 1px;
+  opacity: 0.8;
+}
+
+/* the door's prize (F③b) on a line of its own under the room's name */
+#indicators .exit-tag b {
+  display: block;
+  font-weight: 700;
+  color: #ffd166;
+  text-align: center;
+}
+
+#indicators .exit-tag.open {
+  color: #7dffa8;
+  border-color: rgba(125, 255, 168, 0.7);
+  box-shadow: 0 0 10px rgba(125, 255, 168, 0.35);
+}
+
 /* a sniper taking aim (hud.js updateSnipers): a red glow on the screen's edge on his side */
 #indicators .snipe-warn {
   position: absolute;
@@ -2815,6 +2853,28 @@ body.playing #debug {
   flex: 1;
   font-size: 14px;
   line-height: 1.5;
+  color: var(--dim);
+}
+
+/* what a card plays with (cards.js TAGS, F④a): small chips under its text */
+#cards .card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+#cards .card-tags i {
+  padding: 1px 6px;
+  font-size: 12px;
+  font-style: normal;
+  letter-spacing: 1px;
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+}
+
+#cards .card-tags small {
+  font-size: 9px;
   color: var(--dim);
 }
 

@@ -169,9 +169,18 @@ export const ROOM_SIZE = { scale: 1.2 };
  * `style` Style; a life (無傷's prize) stands the player up whole and untouchable for `lifeInvuln` s; 限時's prize is
  * one of `weapons`, full, at the player's feet for `weaponTtl` s; 不開槍's (F②b) is `cards` style cards to pick one
  * from; 不用慢鏡's a segment more of the focus meter, `focusStep` of the meter it starts with, for the rest of the run.
- * First version, to be confirmed in play.
+ * No more than `maxLives` lives are held at once, from 無傷 or a door's heal (F③b; the developer 10-29). First version,
+ * to be confirmed in play.
  */
-export const CHALLENGE = { window: 4, time: 20, style: 500, lifeInvuln: 2, weapons: ['smg', 'shotgun', 'rifle', 'launcher', 'minigun'], weaponTtl: 60, cards: 4, focusStep: 0.25 };
+export const CHALLENGE = { window: 4, time: 20, style: 500, lifeInvuln: 2, weapons: ['smg', 'shotgun', 'rifle', 'launcher', 'minigun'], weaponTtl: 60, cards: 4, focusStep: 0.25, maxLives: 2 };
+
+/**
+ * The doors' prizes (F③b, prizes.js): a heal gives `heal` of a full meter of HP, and at full HP a life instead while
+ * fewer than CHALLENGE.maxLives are in hand (the developer 10-29); a gun is one of `weapons`, full, on the floor `gunIn` m in
+ * from the next room's entry for `gunTtl` s; an elite room has `eliteAffixes` more affixes. First version, to be
+ * confirmed in play.
+ */
+export const DOORS = { heal: 0.5, weapons: ['smg', 'shotgun', 'rifle', 'launcher', 'minigun'], gunIn: 1.8, gunTtl: 90, eliteAffixes: 1 };
 
 /** The plaza room (rooms.js PLAZA, 彈幕 ② E①): the fountain's rim height (a solid shots fly over) and how many pigeons it keeps. */
 export const PLAZA_ROOM = { rim: 0.45, birds: 18 };
@@ -181,7 +190,9 @@ export const PLAZA_ROOM = { rim: 0.45, birds: 18 };
  * The numbers each card plays by: `reflectDamage` is what a round turned back (a slide, a flipped table, a graze in
  * bullet time) does to a man (a thug has 3); a human shield shoved goes off on the first man he meets, where he lands or `boomFuse` s out at the
  * latest, with a barrel's blast of `boomBlast` m; `killSlow` s of bullet time a kill brings, costing nothing; the deep slow-mo's world
- * speed (FOCUS.worldScale otherwise) and what it multiplies the meter's drain by.
+ * speed (FOCUS.worldScale otherwise) and what it multiplies the meter's drain by. The second batch (F④a): a kick turns
+ * rounds back for its first `kickWindow` s (踢彈); a slide trips a man with a kick of `tripKnock` m/s (滑鏟絆倒); a
+ * magazine's last round goes through `lastPierce` men more (最後一發). First version, to be confirmed in play.
  */
 export const CARDS = {
   offer: 3,
@@ -191,6 +202,9 @@ export const CARDS = {
   killSlow: 0.5,
   deepScale: 0.1,
   deepDrain: 1.6,
+  kickWindow: 0.12,
+  tripKnock: 6,
+  lastPierce: 3,
 };
 
 export const BULLET = {

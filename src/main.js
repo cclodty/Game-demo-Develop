@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
-import { Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS } from './cards.js';
+import { Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS, TAGS as CARD_TAGS } from './cards.js';
 import { Challenges } from './challenge.js';
+import { drawPrizes, givePrize, PRIZES } from './prizes.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
@@ -13,7 +14,7 @@ import { HUD } from './hud.js';
 import { ACTIONS, Input, keyName, padButtonName, padLabel, StepInput } from './input.js';
 import { Level } from './level.js';
 import { MAPS, MAPS_REV } from './maps.js';
-import { drawFloors, ROOMS } from './rooms.js';
+import { drawBranches, drawFloors, ROOMS } from './rooms.js';
 import { nightRoute, NightStore } from './night.js';
 import { loadedCharacters, loadModels } from './models.js';
 import { Notes } from './notes.js';
@@ -783,9 +784,12 @@ class Game {
     // 彈幕試驗: the run's floor of rooms, drawn from its seed (the same seed, the same floor)
     const spec = MODES[this.mode].floor;
     this.floors = spec ? drawFloors(spec, this.rng.fork('floor')) : null; // C①: three floors of rooms, each an array of room ids
+    this.branches = spec ? drawBranches(spec, this.floors, this.rng.fork('branch')) : null; // F③a: each room's other way on (null where none)
     this.floor = this.floors ? this.floors.flat() : null;
     this.cards.reset();
     this.challenge.reset();
+    this.doorPrize = null; // the prize of the door walked out by, for the room it leads to (F③b: prizes.js)
+    this.eliteStage = -1; // the room an elite door led to (F③b)
     // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
     const warmup = this.fixedWarmup ?? wantWarmup();
     // the rules hold for the whole run (a replay brings its own: fixedRules)
@@ -806,7 +810,7 @@ class Game {
     this.hud.reset();
     this.notes.reset(first);
     if (MODES[this.mode].night) this.nightLine(MAPS[mapIndex]);
-    if (this.floors) for (const [f, ids] of this.floors.entries()) this.notes.log(`第 ${f + 1} 層：${ids.map((id) => ROOMS[id].name).join(' → ')}`);
+    if (this.floors) for (const [f, ids] of this.floors.entries()) this.notes.log(`第 ${f + 1} 層：${ids.map((id, k) => (this.branches[f][k] ? `${ROOMS[id].name}／${ROOMS[this.branches[f][k]].name}` : ROOMS[id].name)).join(' → ')}`);
     if (this.ruleset.label) this.notes.log(`規則：${this.ruleset.label}`);
     // the music: the first stage's song from its start, on its base (audio.js)
     this.audio.setStage(0, true);
@@ -1254,6 +1258,7 @@ class Game {
     } else {
       this.level.resetProps();
     }
+    this.setExits(); // a room's two doors (F③a)
     this.player.reset();
     // the camera looks ahead toward the aim: start every run aiming the same way, not where the last one ended
     this.aimPoint.set(this.player.x, GUN_Y, this.player.z - 5);
@@ -1318,7 +1323,7 @@ class Game {
       // floors of rooms (C①): the first floor opens in `first`, the rest draw from all the rooms in an order each run's seed draws; each floor ends in the boss room (D①)
       const arenas = [].concat(r.floor.boss || []).map((id) => ROOMS[id]).filter((a) => a && a.boss && BOSSES[a.boss.kind]);
       const boss = arenas.length ? `，層尾${arenas.map((a) => `${a.name}：${BOSSES[a.boss.kind].cfg.short}`).join('或')}（每層抽）` : '';
-      return `${ROOMS[r.floor.first].name}起，${[r.floor.first, ...r.floor.pool].map((id) => ROOMS[id].name).join('、')}輪流（每層抽，次序每局不同）${boss}`;
+      return `${ROOMS[r.floor.first].name}起，${[r.floor.first, ...r.floor.pool].map((id) => ROOMS[id].name).join('、')}輪流（每層抽，次序每局不同；每間房出口兩道門，揀下一間）${boss}`;
     }
     // 澳門一夜 from where it starts to its end, each map at its hour; any other the maps after the one picked
     const maps = r.night ? NIGHT.slice(Math.max(0, NIGHT.indexOf(start))).map((i) => MAPS[i]) : Array.from({ length: Math.ceil(r.waves / r.perStage) }, (_, i) => MAPS[(start + i) % MAPS.length]);
@@ -1328,6 +1333,53 @@ class Game {
       .map((m, i) => (r.midBoss || i === stages - 1) && m.boss && BOSSES[m.boss.kind] && named(m.boss))
       .filter(Boolean);
     return `${maps.map((m) => (r.night ? `${m.hour} ${m.name}` : m.name)).join(' → ')}${bosses.length ? `（頭目：${bosses.join('、')}）` : ''}`;
+  }
+
+  /** The room drawn as stage `stage`'s other one (rooms.js drawBranches, F③a): the second exit of the room before it goes there; null where there is none. */
+  altAt(stage) {
+    if (!this.branches || !this.floors) return null;
+    let start = 0;
+    for (let f = 0; f < this.floors.length; f++) {
+      const n = this.floors[f].length;
+      if (stage < start + n) return this.branches[f][stage - start] || null;
+      start += n;
+    }
+    return null;
+  }
+
+  /**
+   * The room's ways on (F③a): its first exit to the floor's next room, its second, where the room after has another
+   * drawn (altAt), to that one; with none, the second stays spare (hidden, shut). Each names its room (hud.js).
+   */
+  setExits() {
+    const L = this.level;
+    if (!L.exits || !L.exits.length || !this.floor) return;
+    L.exits[0].to = this.floor[this.stage + 1] || null;
+    const alt = this.altAt(this.stage + 1);
+    for (const x of L.exits.slice(1)) {
+      x.to = alt;
+      x.setSpare(!alt);
+    }
+    // where there is a choice, a prize on each door, the two different (F③b: prizes.js); none on a lone door
+    const prizes = alt ? drawPrizes(this, this.stage) : [];
+    L.exits.forEach((x, i) => (x.prize = prizes[i] || null));
+  }
+
+  /** The player walks out by exit `x` (waves.js 'exit'): the floor goes on by the room it leads to (F③a). */
+  takeExit(x) {
+    const L = this.level;
+    const alt = this.altAt(this.stage + 1);
+    if (!alt) return;
+    if (x !== L.exit && x.to) {
+      // the other way: the room it leads to takes the next place on the floor
+      const f = this.floorOf(this.stage + 1);
+      let start = 0;
+      for (let k = 0; k < f; k++) start += this.floors[k].length;
+      this.floors[f][this.stage + 1 - start] = x.to;
+      this.floor = this.floors.flat();
+    }
+    this.notes.log(`揀咗門：${ROOMS[this.floor[this.stage + 1]].name}${x.prize ? `，獎勵${PRIZES[x.prize].name}` : ''}（另一道係 ${ROOMS[x === L.exit ? alt : L.exits[0].to].name}）`);
+    this.doorPrize = x.prize ? { id: x.prize, stage: this.stage + 1 } : null; // given as that room begins (updateTransition)
   }
 
   /** A daily run's layout for stage `stage` (level.js dealProps): a stream of the run's seed of its own; null in any other mode. */
@@ -1402,6 +1454,7 @@ class Game {
       this.thrown.clear();
       this.fx.clear();
       this.level.load(this.stageMap, this.layoutFor(this.stage));
+      this.setExits(); // its two doors, if it has a choice (F③a)
       const floor = MODES[this.mode].floor;
       if (floor) {
         // the floor's next room: its doors shut behind the player; one song for the floor, the next floor's at its first room (C①)
@@ -1438,6 +1491,8 @@ class Game {
       this.waves.state = 'intermission';
       this.waves.timer = 2.6;
       this.challenge.before(this.stage, this.waves); // the room's challenge sign, before its first wave (F②a)
+      if (this.doorPrize && this.doorPrize.stage === this.stage) givePrize(this, this.doorPrize.id, this.stage); // the door's prize (F③b)
+      this.doorPrize = null;
     }
   }
 
@@ -1630,16 +1685,23 @@ class Game {
     this.ripple = 0;
   }
 
+  /**
+   * Bullet time that costs nothing for `s` s of real time (the cards 擊殺慢鏡, 滑鏟慢鏡: cards.js), put on if it is off;
+   * put on so, it goes off when they are up (logic). Not where bullet time is off (a variant) or the player is down.
+   */
+  freeFocus(s) {
+    if (!this.player.alive || !this.ruleset.slowmo || this.state !== 'playing') return;
+    this.focusFree = Math.max(this.focusFree, s);
+    if (!this.focusActive) {
+      this.focusAuto = true;
+      this.setFocus(true);
+    }
+  }
+
   onEnemyKilled(e, info) {
     const p = this.player;
-    if (this.cards.has('killSlow') && p.alive && this.ruleset.slowmo && this.state === 'playing') {
-      // the card (cards.js 擊殺慢鏡): CARDS.killSlow s of bullet time on every kill, costing nothing; a hand on the key keeps it
-      this.focusFree = Math.max(this.focusFree, CARDS.killSlow);
-      if (!this.focusActive) {
-        this.focusAuto = true;
-        this.setFocus(true);
-      }
-    }
+    // the card (cards.js 擊殺慢鏡): CARDS.killSlow s of bullet time on every kill, costing nothing; a hand on the key keeps it
+    if (this.cards.has('killSlow')) this.freeFocus(CARDS.killSlow);
     const d = Math.hypot(e.x - p.x, e.z - p.z);
     const tags = [{ label: e.cfg.label, pts: e.cfg.score }];
     let refill = FOCUS.killRefill;
@@ -1784,10 +1846,12 @@ class Game {
     this.achievements.wave(!this.waves.hurt, this.waves.shots);
     this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt, shots: this.waves.shots });
     this.score.bonus('WAVE CLEAR', bonus);
+    if (this.eliteStage === this.stage) this.score.bonus('ELITE ×2', bonus); // an elite room's clears score twice (F③b)
     this.level.waveEnd(); // shutters roll back up
     this.addFocus(0.35);
     this.player.hp = PLAYER.hp;
-    const next = stageEnd ? (room ? ` · 門開了：下一間 ${this.mapAt(this.stage + 1).name}` : ` · 下一站：${this.mapAt(this.stage + 1).name}`) : '';
+    const alt = room && this.altAt(this.stage + 1);
+    const next = stageEnd ? (room ? ` · 門開了：下一間 ${this.mapAt(this.stage + 1).name}${alt ? ` 或 ${ROOMS[alt].name}` : ''}` : ` · 下一站：${this.mapAt(this.stage + 1).name}`) : '';
     if (stageEnd && MODES[this.mode].night && !this.replay) this.night.cleared(this.routeAt + this.stage, NIGHT.length); // kept: the next night starts after it
     this.hud.banner(stageEnd ? (room ? 'ROOM CLEAR' : 'STAGE CLEAR') : 'WAVE CLEAR', `+${bonus.toLocaleString('en-US')} · 生命值回滿${next}`, 'clear');
     this.audio.waveClear();
@@ -1892,13 +1956,13 @@ class Game {
   }
 
   /** Once a display frame: read the gamepad; Start pauses and resumes; the hints follow whether one is connected. */
-  /** The style cards on the screen (cards.js): three to pick from, or four (a challenge's prize); the buttons make the press the logic reads. */
+  /** The style cards on the screen (cards.js): three to pick from, or four (a challenge's prize), each with its tags; the buttons make the press the logic reads. */
   showCards(ids, title = '風格卡 · 三選一  STYLE CARD') {
     const el = $('cards');
     el.dataset.title = title;
     el.innerHTML = ids.map((id, i) => {
       const c = CARD_DATA[id];
-      return `<button type="button" class="card ${c.kind}${i === this.cardSel ? ' sel' : ''}" data-card="${i}"><span class="card-kind">${CARD_KINDS[c.kind].name} <small>${CARD_KINDS[c.kind].en}</small></span><span class="card-en">${c.en}</span><span class="card-name">${c.name}</span><span class="card-text">${c.text}</span><kbd>${i + 1}</kbd></button>`;
+      return `<button type="button" class="card ${c.kind}${i === this.cardSel ? ' sel' : ''}" data-card="${i}"><span class="card-kind">${CARD_KINDS[c.kind].name} <small>${CARD_KINDS[c.kind].en}</small></span><span class="card-en">${c.en}</span><span class="card-name">${c.name}</span><span class="card-text">${c.text}</span><span class="card-tags">${c.tags.map((t) => `<i>${CARD_TAGS[t].name} <small>${CARD_TAGS[t].en}</small></i>`).join('')}</span><kbd>${i + 1}</kbd></button>`;
     }).join('');
     this.cardSel = 0;
     el.classList.remove('hidden');
@@ -2111,9 +2175,10 @@ class Game {
     const cmd = this.cmd;
     if (this.state === 'playing' && cmd.hit('ShiftLeft', 'ShiftRight', 'KeyQ')) this.toggleFocus();
     const deep = this.cards.has('deepSlow'); // the card (cards.js 深慢鏡): a slower world, a faster drain (CARDS)
+    if (this.player.sliding && this.cards.has('slideSlow')) this.freeFocus(2 * h); // the card 滑鏟慢鏡 (F④a): free bullet time while the slide lasts
     if (this.focusActive) {
       if (this.focusFree > 0) {
-        // the card 擊殺慢鏡's half second costs nothing; put on by the card, it goes off with it
+        // the cards' free bullet time (擊殺慢鏡's half second, 滑鏟慢鏡's slide) costs nothing; put on by a card, it goes off with it
         this.focusFree -= h;
         if (this.focusFree <= 0 && this.focusAuto) {
           this.focusAuto = false;
