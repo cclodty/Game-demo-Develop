@@ -3,10 +3,10 @@
 // different. The one walked through comes with the next room as it begins (main.js takeExit, updateTransition): a gun
 // on the floor before its entry, a style card picked before its first wave, an elite room (an affix more, its wave
 // clears scoring twice: waves.js affixesFor, main.js onWaveClear), or a heal (DOORS.heal of a full meter; at full HP a
-// life instead, while fewer than DOORS.maxLives are in hand). Each is data: its name on the door's sign, whether it
+// life instead, while fewer than CHALLENGE.maxLives are in hand). Each is data: its name on the door's sign, whether it
 // fits the run's rules. The numbers are in config.js DOORS.
 import { CARD_IDS } from './cards.js';
-import { DOORS, PLAYER } from './config.js';
+import { CHALLENGE, DOORS, PLAYER } from './config.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
 /** `name` and `en` on the door's sign; `fits` whether it can be offered (a gun is none where no gun is handed out: rules.js `drops`). */
@@ -49,11 +49,10 @@ export function givePrize(g, id, stage) {
       const before = Math.ceil(p.hp);
       p.hp = Math.min(PLAYER.hp, p.hp + PLAYER.hp * DOORS.heal);
       g.notes.log(`門的獎勵：回血 HP ${before} → ${Math.ceil(p.hp)}`);
-    } else if (g.challenge.lives < DOORS.maxLives) {
-      // at full HP a heal is nothing: a life instead (the developer 10-29), while fewer than DOORS.maxLives are in hand
-      g.challenge.lives++;
+    } else if (g.challenge.addLife()) {
+      // at full HP a heal is nothing: a life instead (the developer 10-29), while fewer than CHALLENGE.maxLives are in hand
       g.notes.log(`門的獎勵：血滿，改為多一條命（共 ${g.challenge.lives}）`);
       g.hud.banner('EXTRA LIFE', '血滿 · 改為多一條命', 'clear');
-    } else g.notes.log(`門的獎勵：血滿，命已經有 ${DOORS.maxLives} 條`);
+    } else g.notes.log(`門的獎勵：血滿，命已經有 ${CHALLENGE.maxLives} 條`);
   }
 }

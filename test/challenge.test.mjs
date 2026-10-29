@@ -143,12 +143,13 @@ test('a fight room’s sign goes up before its first wave, from the room’s str
   assert.deepEqual(problems(logs), []);
 });
 
-test('無傷 kept from Y to the room cleared: CHALLENGE +500 Style, a life, on the HUD; a hit breaks it at once (crossed out on the HUD) and the room cleared gives nothing', async () => {
+test('無傷 kept from Y to the room cleared: CHALLENGE +500 Style, a life, on the HUD (none past CHALLENGE.maxLives); a hit breaks it at once (crossed out on the HUD) and the room cleared gives nothing', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    const run = (hit) => {
+    const run = (hit, lives = 0) => {
       window.toStart(3);
       window.play(1);
+      g.challenge.lives = lives;
       g.challenge.offer.id = 'nohit';
       window.play(1, { press: ['KeyY'] });
       const taken = g.challenge.active && g.challenge.active.id;
@@ -166,7 +167,8 @@ test('無傷 kept from Y to the room cleared: CHALLENGE +500 Style, a life, on t
       g.hud.update(1 / 60);
       return { taken, tag, failedTag, state, lives: g.challenge.lives, styles: seen.filter((s) => s.startsWith('CHALLENGE')), livesTag: document.getElementById('lives').textContent, livesShown: !document.getElementById('lives').classList.contains('hidden'), notes: g.notes.events.map((e) => e.text).filter((t) => t.includes('挑戰')) };
     };
-    return { kept: run(false), broken: run(true), style: window.cfg.CHALLENGE.style };
+    const max = window.cfg.CHALLENGE.maxLives;
+    return { kept: run(false), broken: run(true), full: run(false, max), max, style: window.cfg.CHALLENGE.style };
   });
   assert.equal(r.kept.taken, 'nohit', 'Y takes it on');
   assert.match(r.kept.tag, /挑戰中 · 無傷/, `the HUD: ${r.kept.tag}`);
@@ -180,6 +182,10 @@ test('無傷 kept from Y to the room cleared: CHALLENGE +500 Style, a life, on t
   assert.deepEqual(r.broken.styles, [], 'no Style');
   assert.equal(r.broken.lives, 0, 'no life');
   assert.ok(r.broken.notes.some((t) => t.startsWith('挑戰失敗：無傷')), r.broken.notes.join(' / '));
+  // the developer 10-29: no more than CHALLENGE.maxLives lives held, from 無傷 as from a door's heal
+  assert.deepEqual(r.full.styles, [`CHALLENGE:${r.style}`], 'at the cap: the Style still');
+  assert.equal(r.full.lives, r.max, `at the cap: no life more (${r.max})`);
+  assert.ok(r.full.notes.some((t) => t.startsWith('挑戰成功：無傷') && t.includes(`命已經有 ${r.max} 條`)), r.full.notes.join(' / '));
   assert.deepEqual(problems(logs), []);
 });
 

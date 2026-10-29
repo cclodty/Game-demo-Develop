@@ -85,7 +85,7 @@ src/achievements.js          achievements as data, counted from the game's event
 src/clip.js                  the best-kill clip: overlapping MediaRecorder recordings of a small copy of the screen, played on the end screen
 src/telemetry.js             local play records: one row per run (start, waves, end and cause, time, played again), carried by the feedback export
 src/cards.js                 the style cards (彈幕 ② C②): six as data, three offered at a floor's end, the pick a 1/2/3 press in the input record; each is one switch its system reads (game.cards.has)
-src/challenge.js             the room challenges (F②a, F②b): one offered on a fight room's entry before its first wave (drawn from the room's stream), taken on by a Y press in the input record; 無傷 gives a life, 限時 a special weapon, 不開槍 a style card of four, 不用慢鏡 a focus segment (config.js CHALLENGE)
+src/challenge.js             the room challenges (F②a, F②b): one offered on a fight room's entry before its first wave (drawn from the room's stream), taken on by a Y press in the input record; 無傷 gives a life (no more than CHALLENGE.maxLives held), 限時 a special weapon, 不開槍 a style card of four, 不用慢鏡 a focus segment (config.js CHALLENGE)
 src/prizes.js                the doors' prizes (F③b): where a room's two doors give a choice, a prize on each from the room's stream (a gun, a style card, an elite room, a heal: at full HP a life), given as the next room begins (config.js DOORS)
 src/rules.js                 run rules: difficulties and variants as data (one switch or number each), read by their systems as game.ruleset
 src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export

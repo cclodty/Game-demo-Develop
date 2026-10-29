@@ -217,7 +217,7 @@ test('screenshot: the plaza cleared, its two doors open side by side, each named
 
 test('the prizes: two different on a room’s two doors, from its stream (the same seed the same), named on the signs; none on a lone door', async () => {
   const r = await page.evaluate(async () => {
-    const { PRIZE_IDS } = await import('./src/prizes.js');
+    const { PRIZE_IDS, PRIZES } = await import('./src/prizes.js');
     const g = window.game;
     const runs = [];
     for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
@@ -228,13 +228,15 @@ test('the prizes: two different on a room’s two doors, from its stream (the sa
     const again = g.level.exits.map((x) => x.prize);
     window.play(1);
     g.hud.update(1 / 60);
-    const tags = [...document.querySelectorAll('#indicators .exit-tag')].filter((t) => t.style.display === 'block').map((t) => t.textContent);
+    // each sign's second line, under the room's name (hud.js updateExits), and the name of its door's prize
+    const tags = [...document.querySelectorAll('#indicators .exit-tag')].filter((t) => t.style.display === 'block').map((t) => t.querySelector('b')?.textContent);
+    const named = g.level.exits.filter((x) => x.prize).map((x) => `${PRIZES[x.prize].name} ${PRIZES[x.prize].en}`);
     // the floor's last fight room: one door, no prize
     g.stage = g.floors[0].length - 2;
     g.level.load(g.stageMap);
     g.setExits();
     const lone = g.level.exits.map((x) => x.prize);
-    return { runs, again, tags, lone, ids: PRIZE_IDS };
+    return { runs, again, tags, named, lone, ids: PRIZE_IDS };
   });
   for (const run of r.runs) {
     assert.equal(run.prizes.length, 2, `seed ${run.seed}`);
@@ -243,14 +245,14 @@ test('the prizes: two different on a room’s two doors, from its stream (the sa
   }
   assert.deepEqual(r.again, r.runs[3].prizes, 'the same seed, the same prizes');
   assert.deepEqual([...new Set(r.runs.flatMap((x) => x.prizes))].sort(), [...r.ids].sort(), 'every prize over the seeds');
-  assert.ok(r.tags.length === 2 && r.tags.every((t) => t.includes(' · ')), `on the signs: ${r.tags}`);
+  assert.deepEqual(r.tags.sort(), r.named.sort(), 'each sign names its door’s prize, on a line under the room’s');
   assert.ok(r.lone.every((p) => p === null), `a lone door has none: ${r.lone}`);
   assert.deepEqual(problems(logs), []);
 });
 
-test('each prize comes with the next room: a full gun before its entry; three cards before its first wave, which waits for the pick; an elite room with an affix more and its clears scoring twice; a heal of DOORS.heal, at full HP a life, at DOORS.maxLives none', async () => {
+test('each prize comes with the next room: a full gun before its entry; three cards before its first wave, which waits for the pick; an elite room with an affix more and its clears scoring twice; a heal of DOORS.heal, at full HP a life, at CHALLENGE.maxLives none', async () => {
   const r = await page.evaluate(async () => {
-    const { DOORS, PLAYER } = await import('./src/config.js');
+    const { CHALLENGE, DOORS, PLAYER } = await import('./src/config.js');
     const { PLAYER_WEAPONS } = await import('./src/weapons.js');
     const g = window.game;
     /** The teahouse cleared, its second door's prize made `prize`, `before(p)` done to the player, and through it; steps that leave him as he is. */
@@ -311,9 +313,9 @@ test('each prize comes with the next room: a full gun before its entry; three ca
     out.healHurt = { hp: g.player.hp, lives: g.challenge.lives };
     through('heal');
     out.healFull = { hp: g.player.hp, lives: g.challenge.lives };
-    through('heal', () => (g.challenge.lives = DOORS.maxLives));
+    through('heal', () => (g.challenge.lives = CHALLENGE.maxLives));
     out.healMax = { lives: g.challenge.lives };
-    return { out, heal: DOORS.heal, max: DOORS.maxLives, hp: PLAYER.hp };
+    return { out, heal: DOORS.heal, max: CHALLENGE.maxLives, hp: PLAYER.hp };
   });
   const { gun, card, elite, healHurt, healFull, healMax } = r.out;
   assert.equal(gun.guns.length, 1, `a gun on the floor: ${JSON.stringify(gun.guns)}`);
