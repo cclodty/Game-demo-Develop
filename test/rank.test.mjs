@@ -16,7 +16,8 @@ import { gameHarness, problems, snap } from './helpers.mjs';
 /** A Score with the game around it stubbed out. */
 function score() {
   const logs = [];
-  const game = { mode: 'arcade', ruleset: rulesFor(), hud: { feedKill() {}, feed() {} }, audio: { combo() {} }, notes: { log: (t) => logs.push(t) } };
+  // no style card held (score.js reads cards.has: 冇慢鏡・雙倍, F④b)
+  const game = { mode: 'arcade', ruleset: rulesFor(), cards: { has: () => false }, hud: { feedKill() {}, feed() {} }, audio: { combo() {} }, notes: { log: (t) => logs.push(t) } };
   const s = new Score(game);
   s.logs = logs;
   return s;

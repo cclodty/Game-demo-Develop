@@ -11,7 +11,7 @@ import { PLAYER_WEAPONS } from './weapons.js';
 
 /** `name` and `en` on the door's sign; `fits` whether it can be offered (a gun is none where no gun is handed out: rules.js `drops`). */
 export const PRIZES = {
-  gun: { name: '一支槍', en: 'GUN', fits: (g) => g.ruleset.drops !== false && g.ruleset.pads !== false },
+  gun: { name: '一支槍', en: 'GUN', fits: (g) => g.ruleset.drops !== false && g.ruleset.pads !== false && !g.cards.has('pistolsOnly') },
   card: { name: '一張卡', en: 'CARD', fits: (g) => CARD_IDS.length - g.cards.held.length >= 3 },
   elite: { name: '精英房', en: 'ELITE', fits: () => true },
   heal: { name: '回血', en: 'HEAL', fits: () => true },

@@ -1,6 +1,7 @@
-// The style cards (彈幕 ② C②, F④a): at the end of a floor the player is shown three and keeps one for the rest of the run.
-// Each card is one switch its system reads (`game.cards.has(id)`): the action cards change what a move does, the
-// slow-mo cards what bullet time does. Which three come is drawn from the run's seed (rng.fork('cards', floor)), with
+// The style cards (彈幕 ② C②, F④a, F④b): at the end of a floor the player is shown three and keeps one for the rest of
+// the run. Each card is one switch its system reads (`game.cards.has(id)`): the action cards change what a move does,
+// the slow-mo cards what bullet time does; a combo card (`needs`) is on only while the other cards held carry the tags
+// it needs; a cost card (`cost`) gives one thing and takes another. Which three come is drawn from the run's seed (rng.fork('cards', floor)), with
 // both kinds among them; a card held is never offered again. The pick is a press of 1, 2 or 3 in the step's input
 // (input.js BUTTONS Digit1–3), so a replay picks the same card; the card screen's buttons, a touch and a pad make
 // that press (main.js). The numbers are in config.js CARDS.
@@ -8,7 +9,9 @@ import { CARDS as NUM, CHALLENGE } from './config.js';
 
 /**
  * The cards: `name` and `en` show on the card, `text` says what it does, `tags` what it plays with (TAGS: shown on the
- * card; F④b's combo cards count them). The first batch (C②) and the second (F④a), each one switch.
+ * card; the combo cards count them). The first batch (C②), the second (F④a), the combo and cost cards (F④b): each one
+ * switch. A combo card's `needs` are tags the other cards held must carry (one card each; a tag named twice wants two),
+ * and its own tags are those; a cost card's `text` says both what it gives and what it takes.
  */
 export const CARDS = {
   slideReflect: { kind: 'action', tags: ['slide', 'bounce'], name: '滑鏟反彈', en: 'SLIDE DEFLECT', text: '滑鏟時本來飛過頭頂的子彈彈回去，算你開的槍' },
@@ -23,9 +26,18 @@ export const CARDS = {
   lastRound: { kind: 'action', tags: ['gun'], name: '最後一發', en: 'LAST ROUND', text: '彈匣最後一粒子彈穿過人繼續飛' },
   slideSlow: { kind: 'slowmo', tags: ['slide', 'slowmo'], name: '滑鏟慢鏡', en: 'SLIDE SLOW-MO', text: '滑鏟期間自動入慢鏡，不耗表' },
   grazeReload: { kind: 'slowmo', tags: ['slowmo', 'gun'], name: '擦彈上膛', en: 'GRAZE RELOAD', text: '慢鏡中每擦一粒子彈，彈匣加返一粒' },
+  slideGrab: { kind: 'action', tags: ['slide', 'shield'], needs: ['slide', 'shield'], name: '滑鏟抓人', en: 'SLIDE GRAB', text: '滑鏟撞到人就順手抓佢做人盾' },
+  chainBounce: { kind: 'action', tags: ['bounce'], needs: ['bounce', 'bounce'], name: '連環反彈', en: 'CHAIN BOUNCE', text: '彈回去的子彈打中人之後，再彈去下一個' },
+  kickReload: { kind: 'action', tags: ['kick', 'gun'], needs: ['kick', 'gun'], name: '踢出彈匣', en: 'KICK RELOAD', text: '踢倒或者絆倒一個人，雙槍彈匣即刻補滿' },
+  noSlow: { kind: 'slowmo', tags: ['slowmo'], cost: true, name: '冇慢鏡・雙倍', en: 'NO SLOW-MO', text: 'Style 雙倍；代價：成局冇子彈時間（連飛撲）' },
+  pistolsOnly: { kind: 'slowmo', tags: ['gun', 'slowmo'], cost: true, name: '淨係手槍・慢鏡無限', en: 'PISTOLS ONLY', text: '慢鏡唔耗表；代價：執唔到特別武器' },
+  oneHit: { kind: 'action', tags: [], cost: true, name: '一條命・四選一', en: 'ONE HIT', text: '之後揀卡四選一；代價：中一下就死（贏返嚟的命照救）' },
 };
 export const CARD_IDS = Object.keys(CARDS);
 export const KINDS = { action: { name: '動作', en: 'ACTION' }, slowmo: { name: '慢鏡', en: 'SLOW-MO' } };
+/** The badge a combo card and a cost card carry over their kind's (F④b). */
+export const SORTS = { combo: { name: '組合', en: 'COMBO' }, cost: { name: '代價', en: 'COST' } };
+const NUMERAL = ['', '一', '二', '三', '四', '五', '六'];
 /** What a card plays with (F④a), on the card under its text. */
 export const TAGS = {
   slide: { name: '滑鏟', en: 'SLIDE' },
@@ -35,6 +47,34 @@ export const TAGS = {
   gun: { name: '槍', en: 'GUN' },
   kick: { name: '踢', en: 'KICK' },
 };
+
+/**
+ * The tags combo card `id` needs, each with whether the cards in `held` carry it: the combo cards among them do not
+ * count, each card counts once for each tag it carries, a tag named twice wants two cards.
+ */
+export function comboNeeds(id, held) {
+  const count = {};
+  for (const h of held) if (h !== id && !CARDS[h].needs) for (const t of CARDS[h].tags) count[t] = (count[t] || 0) + 1;
+  return CARDS[id].needs.map((tag) => {
+    const ok = count[tag] > 0;
+    if (ok) count[tag]--;
+    return { tag, ok };
+  });
+}
+
+/**
+ * What card `id` would play with among those `held` (the card screen, F④b): `with`, the cards held sharing one of its
+ * tags; `completes`, the combo cards held that it would put on; for a combo card, `needs` (comboNeeds).
+ */
+export function synergy(id, held) {
+  const c = CARDS[id];
+  if (c.needs) return { needs: comboNeeds(id, held), with: [], completes: [] };
+  const on = (k, hand) => comboNeeds(k, hand).every((n) => n.ok);
+  return {
+    with: held.filter((h) => !CARDS[h].needs && CARDS[h].tags.some((t) => c.tags.includes(t))),
+    completes: held.filter((h) => CARDS[h].needs && !on(h, held) && on(h, [...held, id])),
+  };
+}
 
 /**
  * `n` cards to offer, none of `held`, from `rng`: one of each kind first (where one is left), the rest from
@@ -71,8 +111,14 @@ export class Cards {
     this.game.hideCards();
   }
 
+  /** Card `id` in play: held, and for a combo card (F④b) its needs met by the other cards held. */
   has(id) {
-    return this.held.includes(id);
+    return this.held.includes(id) && (!CARDS[id].needs || comboNeeds(id, this.held).every((n) => n.ok));
+  }
+
+  /** How many cards a floor's end or a door offers: three, four with 一條命・四選一 (F④b). */
+  get offerSize() {
+    return this.has('oneHit') ? 4 : NUM.offer;
   }
 
   get pending() {
@@ -82,10 +128,11 @@ export class Cards {
   /** The end of floor `floor` (0-based): three cards on the screen, from the run's seed. */
   show(floor) {
     const g = this.game;
-    this.offer = drawOffer(g.rng.fork('cards', floor), this.held);
+    this.offer = drawOffer(g.rng.fork('cards', floor), this.held, this.offerSize);
     this.offerFloor = floor;
-    g.notes.log(`風格卡三選一：${this.offer.map((id) => CARDS[id].name).join(' / ')}`);
-    g.showCards(this.offer);
+    const n = NUMERAL[this.offer.length];
+    g.notes.log(`風格卡${n}選一：${this.offer.map((id) => CARDS[id].name).join(' / ')}`);
+    g.showCards(this.offer, `風格卡 · ${n}選一  STYLE CARD`);
     return this.offer;
   }
 
@@ -99,7 +146,7 @@ export class Cards {
     if (!offer.length) return false;
     this.offer = offer;
     this.offerFloor = -1;
-    const n = ['', '一', '二', '三', '四', '五', '六'][offer.length];
+    const n = NUMERAL[offer.length];
     g.notes.log(`風格卡${n}選一（挑戰獎勵）：${offer.map((id) => CARDS[id].name).join(' / ')}`);
     g.showCards(offer, `挑戰獎勵 · 風格卡${n}選一  CHALLENGE PRIZE`);
     return true;
@@ -108,12 +155,13 @@ export class Cards {
   /** A door's prize (prizes.js, F③b): three on the screen before room `stage`'s first wave, from its stream; false when none is left. */
   showDoor(stage) {
     const g = this.game;
-    const offer = drawOffer(g.rng.fork('door-cards', stage), this.held);
+    const offer = drawOffer(g.rng.fork('door-cards', stage), this.held, this.offerSize);
     if (!offer.length) return false;
     this.offer = offer;
     this.offerFloor = -1;
-    g.notes.log(`風格卡三選一（門的獎勵）：${offer.map((id) => CARDS[id].name).join(' / ')}`);
-    g.showCards(offer, '門的獎勵 · 風格卡三選一  DOOR PRIZE');
+    const n = NUMERAL[offer.length];
+    g.notes.log(`風格卡${n}選一（門的獎勵）：${offer.map((id) => CARDS[id].name).join(' / ')}`);
+    g.showCards(offer, `門的獎勵 · 風格卡${n}選一  DOOR PRIZE`);
     return true;
   }
 

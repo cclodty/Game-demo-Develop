@@ -1,6 +1,6 @@
 // Score, combo multiplier and "style" bonuses.
 
-import { COMBO_WINDOW, RANK, RATING } from './config.js';
+import { CARDS, COMBO_WINDOW, RANK, RATING } from './config.js';
 
 const KEY = 'bullet-ballet.best';
 
@@ -139,6 +139,7 @@ export class Score {
 
   /** A non-kill style bonus (close call, deflect, ...). */
   style(label, pts, refresh = true) {
+    if (this.game.cards.has('noSlow')) pts *= CARDS.noSlowStyle; // the cost card 冇慢鏡・雙倍 (F④b)
     const m = this.mult * this.game.ruleset.styleMul;
     this.score += pts * m;
     this.raise(label, pts * RANK.perPoint);
