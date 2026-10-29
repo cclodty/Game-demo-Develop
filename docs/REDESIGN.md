@@ -121,9 +121,11 @@
 | 玩家 | 1（外套可換色） | 8k 三角形、2 材質 | 設定圖 → Meshy → 自動 rig → Mixamo |
 | 敵人 | 12 | 5k、1–2 材質 | 同上，同一個 prompt 模板 |
 | 頭目 | 6 | 10k、2 材質 | 同上 |
-| 每間房的道具 | 約 10 件 × 9 房 | 1–3k、1 材質 | Meshy 或現成 |
-| 武器 | 12 | 1k、1 材質 | Meshy |
+| 每間房的道具 | 約 10 件 × 9 房 | 1–3k、1 材質 | ChatGPT 先試（設定圖、Blender 腳本），唔得轉 Meshy（2026-10-29） |
+| 武器 | 12 | 1k、1 材質 | 同上 |
 | 房的殼 | 9 | 20k、3 材質 | Godot 內用 CSG／積木加貼圖 |
+
+**逐件清單（2026-10-29，TASKS H⓪）：** [`docs/art/PROPS.md`](art/PROPS.md)：場景、道具、武器、人物配件、貼圖，每件尺寸、預算、做法、英文 prompt，整段交得給 ChatGPT（模型 91 件、貼圖 22 張）；[`docs/art/CHARACTERS.md`](art/CHARACTERS.md)：主角以外的人物 18 個（敵人 12、頭目 5、最終頭目 1；候選 3），動作、prompt 和 Meshy／Tripo 的費用。
 
 **Meshy prompt 模板（第一版）：** `anime style, cel shaded, [職業] of a Hong Kong–Macau street gang at night, [主色] [衣物], [一件識別物], clean silhouette, flat colors, no text, T-pose, game character` ；每種敵人只改方括號。
 
