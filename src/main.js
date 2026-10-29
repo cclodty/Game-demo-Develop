@@ -5,7 +5,7 @@ import { Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS } from './cards.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
-import { CAMERA, CARDS, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
+import { CAMERA, CARDS, ENV, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
@@ -1237,7 +1237,7 @@ class Game {
     this.style.clearGhosts();
     this.fx.clear();
     const layout = this.layoutFor(0);
-    if (this.level.map !== map || this.level.glassUpTo !== this.ruleset.glassUpTo || this.level.pansAsBarrels !== this.ruleset.pansAsBarrels || this.level.layoutKey !== (layout ? layout.key : '')) {
+    if (this.level.map !== map || this.level.glassUpTo !== this.ruleset.glassUpTo || this.level.pansAsBarrels !== this.ruleset.pansAsBarrels || this.level.layoutKey !== (layout ? layout.key : '') || this.level.mazeKey !== (map.maze ? `${this.rng.seed}/${this.stage}` : '')) {
       this.level.load(map, layout);
       this.applyMapView();
       this.renderer.compile(this.scene, this.camera);
@@ -1396,6 +1396,7 @@ class Game {
       if (floor) {
         // the floor's next room: its doors shut behind the player; one song for the floor, the next floor's at its first room (C①)
         this.notes.log(`第 ${this.stage + 1} 間房：${this.stageMap.name}（入房鎖門，打完 ${MODES[this.mode].perStage} 波開門）`);
+        if (this.level.maze) this.notes.log(`迷宮：實牆 ${this.level.maze.solids.length - this.level.boards.length - this.level.maze.posts.length} 道、薄牆 ${this.level.boards.length} 道`);
         if (this.floors && this.roomOnFloor(this.stage)[0] === 1) {
           this.audio.setStage(this.floorOf(this.stage));
           this.notes.log(`音樂：${this.audio.upcoming.name}`);
@@ -1842,6 +1843,14 @@ class Game {
       const cz = clamp(z, s.minZ, s.maxZ);
       const d = Math.hypot(cx - x, cz - z);
       if (d < r + 0.5) this.level.breakGlass(s, (cx - x) / (d || 1), (cz - z) / (d || 1));
+    }
+    for (const s of this.level.boards) {
+      // the maze's boards (試玩回饋 ⑥b): a blast against one brings it down
+      if (!s.alive) continue;
+      const cx = clamp(x, s.minX, s.maxX);
+      const cz = clamp(z, s.minZ, s.maxZ);
+      const d = Math.hypot(cx - x, cz - z);
+      if (d < r * ENV.boardBlast) this.level.breakSolid(s, (cx - x) / (d || 1), (cz - z) / (d || 1), 'blast');
     }
   }
 

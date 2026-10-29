@@ -812,9 +812,9 @@ export class Player {
     };
   }
 
-  /** A door in front swings open on whoever is behind it; a shutter's lock post gives (fixtures.js). True if anything did. */
+  /** A door in front swings open on whoever is behind it; a shutter's lock post gives (fixtures.js); a board of the maze's goes down (level.js). True if anything did. */
   hitFixtures(inCone, reach) {
-    let hit = false;
+    let hit = this.game.level.kickBoards(inCone, reach);
     for (const f of this.game.level.fixtures) {
       if (f.kind === 'door' && !f.open && inCone(f.x, f.z, reach + f.w / 2)) hit = f.kick(this.x, this.z) || hit;
       else if (f.kind === 'shutter' && inCone(f.x, f.z, reach + f.r)) hit = f.drop('kick') || hit;

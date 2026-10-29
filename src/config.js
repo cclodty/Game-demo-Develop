@@ -158,8 +158,8 @@ export const AFFIX = {
 /**
  * How big the rooms are (試玩回饋 ⑥a, 2026-10-29, the developer: "all the maps are too small and too regular"): every
  * room (rooms.js) `scale` × the size it was drawn at, side by side; where things stand spreads out with it, the things
- * themselves (tables, crates, doors, men) keep their size, and the camera stands as much farther off, so the whole room
- * is still on one screen. `?roomscale=1.4` in the address tries another for a run.
+ * themselves (tables, crates, doors, men) keep their size; the camera follows the player (CAMERA.roomDist, roomLean),
+ * so the room is bigger than the screen. `?roomscale=1.4` in the address tries another for a run.
  */
 export const ROOM_SIZE = { scale: 1.2 };
 
@@ -347,7 +347,8 @@ export const RACE = {
 };
 
 export const ENV = {
-  crateHits: 6, // bullets a wooden crate takes before it breaks apart
+  crateHits: 6, // bullets a wooden crate takes before it breaks apart (and a board of the maze's, the player's only: level.js BREAKABLE)
+  boardBlast: 0.5, // a board of the maze's (rooms.js MAZE) within this share of a blast's radius goes down with it
   flockReach: 2, // metres: an aiming enemy this close to a flock that takes off loses his aim
   flockBlind: 0.5, // world seconds before he can aim again (a kill meanwhile is a PIGEON STRIKE)
   flockScare: 1.5, // metres: a player bullet passing this close to a resting flock startles it

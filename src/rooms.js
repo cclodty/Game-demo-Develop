@@ -66,6 +66,11 @@
 //   lights out for the last `dark` beats of every `every`, the whole room dark (level.js darkAt: nobody aims, a kill
 //   then is a BLACKOUT), the dance floor flashing white the beat before; danceFloor: { at: [x, z], tiles: [cols, rows] }
 //   its light tiles, a metre each; dress 'disco' (E⑦),
+//   maze: { cols, rows, extra, thin, thick, h, board, post }: the room cut into `cols` × `rows` cells with walls between
+//   them drawn afresh for every run (mazeWalls: a way through every cell, then `extra` more openings); of the walls
+//   left a share `thin` are boards (`board` m high: shots and a kick break them, level.js BREAKABLE), the rest concrete
+//   `h` m high, `thick` m thick; a concrete post `post` m square where cells meet; no posts to fire from (`posts` empty:
+//   the men fight as in the arcade); dress 'maze' (試玩回饋 ⑥b),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
 //   towards the player, or follow: CAMERA.roomLean of the way, from CAMERA.roomDist }, dist } }
 
@@ -188,6 +193,7 @@ export function room(template) {
     veils: t.laundry ? laundrySheets(t).map((q) => q.box) : [], // the roof's washing: sight stops at a sheet (E⑥)
     blackout: t.blackout || null, // the club's beat lights (E⑦)
     race: t.track ? { first: t.track.first, every: t.track.every, lanes: t.track.lanes, line: bendLine(t.track) } : null, // the racing cars (E②)
+    maze: t.maze ? (rng) => mazeWalls(t, rng) : null, // the maze's walls, drawn for a run by level.js load (⑥b)
     ground: t.steps ? profileGround(t.steps.profile) : null, // the steps' two levels (E③)
     slope: t.steps ? profileSlope(t.steps.profile) : null,
     camera: t.camera,
@@ -220,7 +226,79 @@ function decorateRoom(L, t, entry, exit) {
   else if (t.dress === 'quay') dressQuay(L, t, std, merged, posts, gold);
   else if (t.dress === 'roof') dressRoof(L, t, std, merged, posts, gold);
   else if (t.dress === 'disco') dressDisco(L, t, std, merged, posts, gold);
+  else if (t.dress === 'maze') dressMaze(L, t, std, merged, posts, gold);
   else dressTea(L, t, exit, std, merged, posts, gold);
+}
+
+/**
+ * The maze's walls for one run (試玩回饋 ⑥b), drawn from `rng` (level.js load: the run's seed and the room's place in
+ * it, so the same seed walks the same maze). The room is cut into `cols` × `rows` cells. First a way through every cell
+ * (Kruskal's: the walls between cells in a drawn order, each taken down when it parts two groups of cells not yet
+ * joined), so any cell can be walked to from any other, the entry and the exit among them, without breaking a wall;
+ * then `extra` more of those left taken down, so there is more than one way round; of the walls still standing, a share
+ * `thin` boards and the rest concrete. A concrete post at every corner where four cells meet, the walls between them.
+ * Returns the walls and the posts as cover ([x, z, w, d, h, material]: 'mazeWall' or 'partition'), the posts alone, and
+ * the cells' edges, each open or not (tests).
+ */
+function mazeWalls(t, rng) {
+  const { cols, rows, extra, thin, thick, h, board, post } = t.maze;
+  const [W, D] = t.size;
+  const cw = W / cols;
+  const cd = D / rows;
+  const x0 = -W / 2;
+  const z0 = -D / 2;
+  const round = (v) => Math.round(v * 1000) / 1000;
+  // every wall between two cells: `v` the one east of cell (c, r), else the one south of it
+  const edges = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols - 1; c++) edges.push({ a: r * cols + c, b: r * cols + c + 1, c, r, v: true, open: false });
+  for (let r = 0; r < rows - 1; r++) for (let c = 0; c < cols; c++) edges.push({ a: r * cols + c, b: (r + 1) * cols + c, c, r, v: false, open: false });
+  const order = edges.slice();
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = rng.int(0, i);
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  const group = Array.from({ length: cols * rows }, (_, i) => i);
+  const find = (i) => (group[i] === i ? i : (group[i] = find(group[i])));
+  const left = [];
+  for (const e of order) {
+    const [ga, gb] = [find(e.a), find(e.b)];
+    if (ga !== gb) {
+      group[ga] = gb;
+      e.open = true;
+    } else left.push(e);
+  }
+  for (const e of left.slice(0, extra)) e.open = true;
+  const solids = [];
+  for (const e of edges) {
+    if (e.open) continue;
+    const kind = rng.next() < thin ? 'partition' : 'mazeWall';
+    const tall = kind === 'partition' ? board : h;
+    // from post to post: where a wall meets the room's own wall it runs on to it
+    if (e.v) {
+      const z1 = z0 + e.r * cd + (e.r > 0 ? post / 2 : 0);
+      const z2 = z0 + (e.r + 1) * cd - (e.r + 1 < rows ? post / 2 : 0);
+      solids.push([round(x0 + (e.c + 1) * cw), round((z1 + z2) / 2), thick, round(z2 - z1), tall, kind]);
+    } else {
+      const xa = x0 + e.c * cw + (e.c > 0 ? post / 2 : 0);
+      const xb = x0 + (e.c + 1) * cw - (e.c + 1 < cols ? post / 2 : 0);
+      solids.push([round((xa + xb) / 2), round(z0 + (e.r + 1) * cd), round(xb - xa), thick, tall, kind]);
+    }
+  }
+  const posts = [];
+  for (let c = 1; c < cols; c++) for (let r = 1; r < rows; r++) posts.push([round(x0 + c * cw), round(z0 + r * cd), post, post, h, 'mazeWall']);
+  return { solids: [...solids, ...posts], posts, edges, cells: { cols, rows, w: cw, d: cd, x0, z0 } };
+}
+
+/**
+ * The maze (⑥b): a strip light along the top of every concrete post, so the corners read in the dark; the walls are
+ * the level's (level.js addMaze: the concrete merged into one mesh, each board its own, as it breaks).
+ */
+function dressMaze(L, t, std, merged, posts, gold) {
+  merged(posts, gold, false);
+  const tube = L.own(new THREE.MeshBasicMaterial({ color: new THREE.Color(1.4, 1.5, 1.6) }));
+  const caps = [];
+  for (const [x, z, w, d, h] of L.maze ? L.maze.posts : []) caps.push(new THREE.BoxGeometry(w + 0.04, 0.06, d + 0.04).translate(x, h + 0.03, z));
+  merged(caps, tube, false, 'maze post lights');
 }
 
 /**
@@ -1441,7 +1519,57 @@ export const DISCO = room({
   budget: ROOM_BUDGET,
 });
 
-export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, shopstreet: STREET, quay: QUAY, roof: ROOF, disco: DISCO, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
+/**
+ * The maze (迷宮, 試玩回饋 ⑥b, the developer 10-29: "a maze open every which way, some of its walls you can shoot
+ * through and some you can't"): an old industrial building's floor partitioned into units, 6 × 4 cells, the walls
+ * between them drawn afresh every run (`maze`, mazeWalls): concrete ones nothing breaks, and plywood boards that a few
+ * of the player's rounds or one kick bring down, for the rest of the run, a new way through or round behind a man.
+ * No posts to fire from: the men come in by the doors on the north and east walls and hunt the player through it as in
+ * the arcade, taking cover at the walls. 24 × 16 m drawn (28.8 × 19.2 at the rooms' scale), in at the south-west, out at
+ * the north-east.
+ */
+export const MAZE = room({
+  id: 'maze',
+  rev: 1,
+  name: '迷宮',
+  en: 'MAZE',
+  desc: '迷宮：舊工廈間成一格格，間法每局不同；木板牆射幾槍或者踢一腳就爛，石屎牆就打唔爛。',
+  color: '#ffb347',
+  size: [24, 16],
+  walls: [3.2, 'concrete', null],
+  low: [0.9, ['s', 'w']],
+  maze: { cols: 6, rows: 4, extra: 3, thin: 0.5, thick: 0.3, h: 2.6, board: 2.3, post: 0.5 },
+  doors: [['n', -10], ['n', -2], ['e', -6], ['e', 2]], // each at a cell's middle
+  tables: [[-2, 2, 0.6], [6, -2, 0.6]], // folding tables in two of the units, at the middle of their cells
+  tableLook: 'folding',
+  barrels: [[2, 6], [-6, -2], [10, 6, 'lpg']],
+  dress: 'maze',
+  cutaway: true, // the player behind a wall stays in sight
+  entry: ['s', -6],
+  exit: ['n', 6],
+  posts: [],
+  floor: 'concrete',
+  theme: {
+    bg: 0x07080c,
+    fog: [0x0a0b10, 0.005],
+    hemi: [0x9aa4b8, 0x101016, 0.85],
+    moon: [0xc8d4ff, 0.6],
+    sunDir: [-10, 30, 12],
+    // fluorescent tubes, cold over the far units, a warmer one over the near
+    points: [
+      [0xe4ecff, -7, 4, -3, 22, 16],
+      [0xe4ecff, 7, 4, -3, 22, 16],
+      [0xffd09a, -7, 4, 4, 20, 14],
+      [0xb8d8ff, 7, 4, 4, 20, 14],
+    ],
+    rain: false,
+    bloom: { strength: 0.55, threshold: 0.85 },
+  },
+  camera: ROOM_CAMERA,
+  budget: ROOM_BUDGET,
+});
+
+export const ROOMS = { teahouse: TEAHOUSE, banquet: BANQUET, sidehall: SIDEHALL, daipaidong: DAIPAIDONG, plaza: PLAZA, racebend: RACEBEND, steps: STEPS, shopstreet: STREET, quay: QUAY, roof: ROOF, disco: DISCO, maze: MAZE, arena: ARENA, backhall: BACKHALL, strongroom: STRONGROOM, fronthall: FRONTHALL };
 
 /**
  * A run's floors (waves.js MODES `floor`: { first, pool, floors, rooms: [least, most], boss: a room id or ids }, 彈幕 ② C①): `floors` of

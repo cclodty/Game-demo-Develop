@@ -98,7 +98,7 @@ after(async () => {
   await h.close();
 });
 
-test('every room has at least four posts, all in the half away from its entry, walkable, apart, and each seeing most of the room', async () => {
+test('every room has at least four posts (the maze none), all in the half away from its entry, walkable, apart, and each seeing most of the room', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom();
@@ -122,11 +122,16 @@ test('every room has at least four posts, all in the half away from its entry, w
         coverStands: !p.cover || L.solids.some((s) => s.alive && Math.hypot((s.minX + s.maxX) / 2 - p.cover[0], (s.minZ + s.maxZ) / 2 - p.cover[1]) < 1.5),
         nearest: Math.min(...L.posts.filter((o) => o !== p).map((o) => Math.hypot(o.x - p.x, o.z - p.z))),
       }));
-      out.push({ id, entry: t.entry, posts });
+      out.push({ id, entry: t.entry, posts, maze: !!t.maze });
     }
     return out;
   });
   for (const room of r) {
+    if (room.maze) {
+      // the maze (試玩回饋 ⑥b): none, the men fight through it as in the arcade (test/maze.test.mjs)
+      assert.equal(room.posts.length, 0, `${room.id}: no posts in a maze`);
+      continue;
+    }
     assert.ok(room.posts.length >= 4, `${room.id}: ${room.posts.length} posts`);
     for (const p of room.posts) {
       const at = `${room.id} (${p.x}, ${p.z})`;
