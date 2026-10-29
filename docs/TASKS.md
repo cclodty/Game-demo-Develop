@@ -1406,7 +1406,7 @@
 - 涉及：`src/config.js`（`HELL`）、`src/enemies.js`（速度、瞄準、行去開火位時開火）、`src/notes.js`（面板）、`scripts/measure.mjs`（`--mode`）、`test/pace.test.mjs`（新）
 - 驗收：
   - [x] 測試：每種敵人的行路速度、瞄準時間照倍數（近身的封頂）；同一間房、同一個種子，由入門到第一次瞄準的時間改前改後（目標減一半或更多）；行去開火位途中會瞄準開槍；面板改倍數即時生效（`test/pace.test.mjs` 四個）
-  - [x] 量度：機械人 5 局改前改後：每波用時、主角受傷（`npm run measure -- --mode danmaku --god`：一局 19.3 → 20.1 分鐘，受傷 3,276 → 4,132，+26%；每層數字見 DECISIONS 2026-10-29）；死在第幾波：見下
+  - [x] 量度：機械人 5 局改前改後：每波用時、主角受傷（`npm run measure -- --mode danmaku --god`：一局 19.3 → 20.1 分鐘，受傷 3,276 → 4,132，+26%；每層數字見 DECISIONS 2026-10-29）；唔開無敵，死在第幾波：19、1、16、19、19 → 7、16、12、10、14（平均 14.8 → 11.8；改前那局第 1 波就死，機械人自己的事）
   - [ ] npm run lint && npm test && npm run test:game 通過
 - 這次不做：開火間隔（彈幕密度，`HELL.fireMul`）、血量、新動作、頭目
 
