@@ -87,7 +87,7 @@ after(async () => {
   await h.close();
 });
 
-test('a floor’s last wave cleared offers three cards, both kinds among them, the same three for the same seed; the exit stays shut until the pick, a press of 2 keeps the second; the next floor offers three others', async () => {
+test('a floor’s last wave cleared offers three cards, both kinds among them, the same three for the same seed; the exit stays shut until the pick, a press of 2 keeps the second; the next floor offers three others (four after 一條命・四選一)', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toFloorEnd();
@@ -125,7 +125,9 @@ test('a floor’s last wave cleared offers three cards, both kinds among them, t
   assert.deepEqual(r.held, [r.offer[1]], 'a press of 2 keeps the second');
   assert.equal(r.weapon, 'pistols', 'the press picked a card, not a weapon');
   assert.ok(r.open && r.hidden, 'the exit opens on the pick, the screen goes');
-  assert.ok(r.offer2 && r.offer2.length === 3 && !r.offer2.includes(r.held[0]), `the second floor offers three others: ${r.offer2}`);
+  // three others, four after 一條命・四選一 (F④b: cards.js offerSize)
+  const n2 = r.held[0] === 'oneHit' ? 4 : 3;
+  assert.ok(r.offer2 && r.offer2.length === n2 && !r.offer2.includes(r.held[0]), `the second floor offers ${n2} others: ${r.offer2}`);
   assert.deepEqual(r.held2, [r.held[0], r.offer2[0]]);
   assert.deepEqual(r.again, r.offer, 'the same seed, the same three');
   assert.ok(r.notes.some((t) => t.startsWith('風格卡三選一')) && r.notes.some((t) => t === `風格卡：${CARDS[r.held[0]].name}`), `the notes: ${r.notes}`);
