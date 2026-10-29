@@ -4,8 +4,8 @@
 // one spot, quiet, then the next; endless trickles them in.
 
 import { BOSSES } from './boss.js';
-import { BEATS, FIREPOWER, HELL, RAMP } from './config.js';
-import { TYPES } from './enemies.js';
+import { AFFIX, BEATS, FIREPOWER, HELL, RAMP } from './config.js';
+import { AFFIX_IDS, AFFIXES, TYPES } from './enemies.js';
 import { clamp } from './utils.js';
 
 /**
@@ -86,6 +86,9 @@ export class Waves {
     this.order = []; // this wave's spawn points, in the order its stream drew them (indices into level.spawns)
     this.orderI = 0;
     this.wr = null; // this wave's stream
+    this.roomAffixes = []; // the room's affixes (F①, affixesFor): { id, wave: its place in the room, at: 0–1 along that wave's line }
+    this.waveAffixes = new Map(); // this wave's: the place in its line (the n-th man in) → the affix ids he wears
+    this.spawnedN = 0; // men of this wave's line sent in so far
     this.hurt = false; // the player took damage this wave
     this.shots = 0; // the player's shots this wave (player.js fire; none is 赤手空拳)
     this.cleanWaves = 0;
@@ -218,6 +221,45 @@ export class Waves {
     return list;
   }
 
+  /**
+   * The affixes of the run's room at `stage` (F①, config.js AFFIX): in a run of rooms, from floor AFFIX.fromFloor,
+   * AFFIX.perRoom of them, none twice, from the room's own stream (the same for every run with the seed, however it is
+   * played); each with the wave of the room it comes in (the first, when the last is the room's boss) and where along
+   * that wave's line (0–1).
+   */
+  affixesFor(stage) {
+    const g = this.game;
+    if (!this.rules.floor || !g.floors || g.floorOf(stage) < AFFIX.fromFloor) return [];
+    const map = g.mapAt(stage);
+    const lastBoss = !!(map.boss && BOSSES[map.boss.kind]);
+    const r = g.rng.fork('affix', stage);
+    const ids = AFFIX_IDS.slice();
+    const n = r.int(AFFIX.perRoom[0], AFFIX.perRoom[1]);
+    const plan = [];
+    for (let k = 0; k < n && ids.length; k++) {
+      const id = ids.splice(r.int(0, ids.length - 1), 1)[0];
+      plan.push({ id, wave: lastBoss ? 0 : r.int(0, this.rules.perStage - 1), at: r.next() });
+    }
+    return plan;
+  }
+
+  /** Who in this wave's line wears the room's affixes due in it (its place in the room `offset`): the man at each one's place, or the next after him it fits (AFFIXES fits). */
+  placeAffixes(offset) {
+    const out = new Map();
+    const q = this.queue;
+    for (const a of this.roomAffixes) {
+      if (a.wave !== offset || !q.length) continue;
+      const start = Math.floor(a.at * q.length);
+      for (let k = 0; k < q.length; k++) {
+        const i = (start + k) % q.length;
+        if (!AFFIXES[a.id].fits(TYPES[q[i]])) continue;
+        out.set(i, [...(out.get(i) || []), a.id]);
+        break;
+      }
+    }
+    return out;
+  }
+
   startWave() {
     const g = this.game;
     this.wave++;
@@ -237,6 +279,11 @@ export class Waves {
       this.queue = [];
       g.level.restock(); // what the boss is fought with (the barrels the helicopter fears) is back where it began
     }
+    // affixes (F①): the room's drawn at its first wave, each put on a man of the wave it falls in
+    const stage = Math.floor((this.wave - 1) / this.rules.perStage);
+    if ((this.wave - 1) % this.rules.perStage === 0) this.roomAffixes = this.affixesFor(stage);
+    this.waveAffixes = this.placeAffixes((this.wave - 1) % this.rules.perStage);
+    this.spawnedN = 0;
     this.order = g.level.spawns.map((_, i) => i);
     for (let i = this.order.length - 1; i > 0; i--) {
       const j = wr.int(0, i);
@@ -513,7 +560,8 @@ export class Waves {
       p.t -= dt;
       p.sp.heat = 1;
       if (p.t <= 0) {
-        enemies.spawn(p.type, p.sp);
+        const e = enemies.spawn(p.type, p.sp);
+        for (const id of p.affix || []) e.giveAffix(id);
         this.pending.splice(i, 1);
       }
     }
@@ -526,7 +574,7 @@ export class Waves {
       const coming = this.pending.reduce((n, p) => n + room(p.type), 0);
       if (this.queue.length && this.spawnCd <= 0 && enemies.aliveCount + coming + room(this.queue[0]) <= this.maxAlive) {
         const type = this.queue.shift();
-        this.pending.push({ type, sp: this.pickSpawn(type), t: 0.9 });
+        this.pending.push({ type, sp: this.pickSpawn(type), t: 0.9, affix: this.waveAffixes.get(this.spawnedN++) });
         this.spawnCd = this.rules.floor ? this.wr.range(HELL.entry[0], HELL.entry[1]) : this.wr.range(0.5, 1.3); // a room fills faster (config.js HELL)
       }
     }

@@ -961,6 +961,33 @@ body:not(.pad) .pad-only {
   border-bottom: 8px solid transparent;
 }
 
+/* a man wearing affixes (hud.js updateAffixTags, F①): his name for them over his head */
+#indicators .affix-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 1px 6px 1px 17px;
+  font-family: var(--body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  color: #ffd75a;
+  background: rgba(12, 8, 18, 0.72);
+  border: 1px solid rgba(255, 200, 80, 0.55);
+  border-radius: 3px;
+  display: none;
+}
+
+#indicators .affix-tag::before {
+  content: '◆';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  color: #ff5a3a;
+  font-size: 10px;
+}
+
 /* a sniper taking aim (hud.js updateSnipers): a red glow on the screen's edge on his side */
 #indicators .snipe-warn {
   position: absolute;

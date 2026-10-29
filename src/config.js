@@ -132,6 +132,20 @@ export const HELL = {
   beat: 0.5,
 };
 
+/**
+ * Enemy affixes (F①, enemies.js AFFIXES): from floor `fromFloor` (0 the first) each room draws `perRoom` [least, most]
+ * of them (waves.js, the room's own stream), each onto one of the room's men; they stack. A vest goes off `delay` s
+ * after he falls with a blast `blast` m round (his side's as much as the player's); a quick gun's gap between shots is
+ * ÷ `rate`; a sticky man keeps `range` [least, most] m from the player, looking again every `repath` s.
+ */
+export const AFFIX = {
+  fromFloor: 1,
+  perRoom: [1, 2],
+  vest: { blast: 2, delay: 0.08 },
+  quick: { rate: 1.5 },
+  sticky: { range: [2, 4], repath: 0.5 },
+};
+
 /** The plaza room (rooms.js PLAZA, 彈幕 ② E①): the fountain's rim height (a solid shots fly over) and how many pigeons it keeps. */
 export const PLAZA_ROOM = { rim: 0.45, birds: 18 };
 

@@ -1929,9 +1929,10 @@ export const MAPS = [rooftop, club, docks, senado, felicidade, guia, ruins];
  * 2: thicker enemies, more each stage (ENEMY_HP). 3: quicker each stage, 正常 and 芭蕾 aim faster (RAMP, rules.js).
  * 4: gunmen and blades roll aside from the player's fire (AI.dodge). 5: riflemen and shotgunners strafe, men vault low
  * cover, the hurt fall back (AI.strafe, vault, retreat). 6: the tumbler, from wave 5 (enemies.js TYPES, AI.tumble).
- * 7: the captain and his two guards, from wave 7 (AI.captain).
+ * 7: the captain and his two guards, from wave 7 (AI.captain). 8: the bullet hell's room fights (彈幕 ② A①: the arcade's
+ * men, no aim tokens, posts).
  */
-export const PLAY_REV = 8; // 8: the bullet hell's room fights (彈幕 ② A①: the arcade's men, no aim tokens, posts)
+export const PLAY_REV = 9; // 9: enemy affixes from a run's second floor (F①: enemies.js AFFIXES, config.js AFFIX)
 
 /**
  * The game's revision as one byte, for the input record (replay.js): the sum of every map's `rev`, every room's

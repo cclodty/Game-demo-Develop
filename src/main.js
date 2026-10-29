@@ -1690,7 +1690,7 @@ class Game {
       gunless,
     );
     this.clip.kill(this.score.score - before);
-    this.notes.log(`擊殺 ${e.cfg.label}${dive ? '（飛撲擊殺）' : ''}：${tags.map((t) => t.label).join(' + ')} ×${this.score.mult}`);
+    this.notes.log(`擊殺 ${e.cfg.label}${e.affixes.size ? `（${e.affixName}）` : ''}${dive ? '（飛撲擊殺）' : ''}：${tags.map((t) => t.label).join(' + ')} ×${this.score.mult}`); // an affixed man by his name too (F①)
     this.addFocus(refill);
     this.hud.hitMarker(true);
     this.audio.kill(this.panFor(e.x));
