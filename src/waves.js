@@ -525,8 +525,6 @@ export class Waves {
     this.clock += dt;
     if (this.state === 'warmup') return;
     if (this.state === 'intermission') {
-      // before a room's first wave (彈幕試驗: a room's waves end in its exit, so a wait between rooms is only this): its challenge's sign (F②a)
-      if (this.rules.floor && this.wave % this.rules.perStage === 0) this.game.challenge.before(this.wave / this.rules.perStage, this);
       this.timer -= realDt;
       if (this.timer <= 0 && this.game.player.alive) {
         if (this.stageNext) {

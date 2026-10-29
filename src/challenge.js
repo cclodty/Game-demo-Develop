@@ -35,11 +35,12 @@ export class Challenges {
   }
 
   /**
-   * Before room `stage`'s first wave (waves.js, while it waits to start): once a room, its sign goes up, if it is a
-   * fight room (no boss) and a challenge fits; the wait is CHALLENGE.window at least, so it can be read.
+   * Room `stage` begins (main.js: a run's first room, or the room walked into), its first wave to come after `waves`'
+   * wait: once a room, in a mode of rooms, its sign goes up, if it is a fight room (no boss) and a challenge fits;
+   * the wait is CHALLENGE.window at least, so it can be read.
    */
   before(stage, waves) {
-    if (this.openedFor === stage) return;
+    if (this.openedFor === stage || !waves.rules.floor) return;
     this.openedFor = stage;
     const g = this.game;
     const map = g.mapAt(stage);

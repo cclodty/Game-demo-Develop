@@ -821,7 +821,7 @@ class Game {
     if (warmup) {
       this.waves.startWarmup();
       this.tutorial.start();
-    }
+    } else this.challenge.before(0, this.waves); // the first room's challenge sign (F②a; after the warm-up, wave 1 comes at once)
     this.endClip();
     this.clip.start();
     this.achievements.startRun();
@@ -1437,6 +1437,7 @@ class Game {
       if (MODES[this.mode].night) this.nightLine(m);
       this.waves.state = 'intermission';
       this.waves.timer = 2.6;
+      this.challenge.before(this.stage, this.waves); // the room's challenge sign, before its first wave (F②a)
     }
   }
 
