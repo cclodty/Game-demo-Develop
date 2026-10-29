@@ -15,14 +15,15 @@
 ## 點樣讀呢份分鏡
 
 - **頁：** 一個 16:9 畫面，幾格喺黑色底上逐格彈出（`docs/STORY.md` §11 的節奏）。
-- **格：** 鏡頭（遠景／中景／近景／特寫）、畫面、表情、字或對白、停。「長停」係冇字或者得聲效的格，停 2 秒，俾人吸收。
+- **格：** 鏡頭（遠景／中景／近景／特寫）、畫面、表情、字或對白、停。「長停」係冇字、得聲效、或者要俾人笑或者吸收的格，停最少 2 秒。
+- **表情：** 9527 呆呆哋只係預設的樣。佢有其他表情（驚、笑、定）的格，畫面同提示詞都要寫明，唔係 ChatGPT 會照人物設定圖畫返個呆樣（開發者 10-29：佢逃走時要驚）。
 - **字：** 字幕（黑底白字的斜框）、對白（遊戲畫氣泡）、聲效（大字）。**全部由遊戲出，圖入面唔畫氣泡、唔畫字。**
 - **新角色：**
   - **選角陳：** 四十幾歲，瘦，油頭，茶色眼鏡，啡色皮褸，手套，成日揸住一疊試鏡相（佢就係之後的頭目散彈手，`docs/art/CHARACTERS.md`）。
   - **Action 叔：** 真人秀導演兼司儀，五十幾歲，大肚，花恤衫，鴨舌帽，頸掛耳筒，手揸大聲公。
   - **場務姐：** 四十幾歲，戴鴨舌帽，揸住文件夾，好攰，望都唔望人。
-  - **賭客：** 着晒西裝晚裝，戴住面具（唔俾人認出），手揸賭票同電話。
-  - **戲棚：** 傳統竹棚戲院，竹枝搭成、鐵皮頂、紅金色裝飾、燈籠，起喺唐樓之間的空地；竹架上綁住大螢幕。
+  - **賭客：** 着晒西裝晚裝，戴住面具（唔俾人認出），手揸賭票同電話。**佢哋唔會去戲棚**：喺自己的豪宅、遊艇、私人會所隔住直播睇同落注，只會喺螢幕的視像格仔入面出現（開發者 10-29：落注的人唔會肉身走入危險）。
+  - **戲棚：** 傳統竹棚戲院，竹枝搭成、鐵皮頂、紅金色裝飾、燈籠，起喺唐樓之間的空地；竹架上綁住大螢幕。**棚入面一個觀眾都冇，張張凳都空**，只有直播攝影機、電線同睇場的打手。
 
 ---
 
@@ -79,15 +80,15 @@
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 1 | 大遠景 | 唐樓之間的空地上一座巨大戲棚，竹枝、鐵皮頂、紅金燈籠；竹架綁住大螢幕；戴面具、着晚裝的賭客排隊入場 | 字幕：「黃昏・開機」 | 標準 |
-| 2 | 中景 | 戲棚台上，Action 叔揸住大聲公對住台下；台下坐滿戴面具的賭客，第一行空晒 | Action 叔：「各位觀眾！《一夜成名》第一晚！」 | 標準 |
-| 3 | 中景 | 射燈打落台中間的 9527，佢揸住劇本，好有禮貌咁微微鞠躬 | 9527：「大、大家好……」 | 標準 |
+| 1 | 大遠景 | 唐樓之間的空地上一座巨大戲棚，竹枝、鐵皮頂、紅金燈籠；竹架綁住大螢幕；冇人入場，只有直播攝影機、地上一條條電線、一架衛星車，同幾個睇場的打手 | 字幕：「黃昏・開機」 | 標準 |
+| 2 | 中景 | 戲棚台上，Action 叔揸住大聲公，唔係對住台下，係對住一部亮住紅燈的直播攝影機；台下一排排凳全部空晒 | Action 叔：「各位屏幕前的觀眾！《一夜成名》第一晚！」 | 標準 |
+| 3 | 中景 | 射燈打落台中間的 9527，佢揸住劇本，對住空晒的凳好有禮貌咁微微鞠躬 | 9527：「大、大家好……」 | 長停 |
 | 4 | 近景 | Action 叔指住 9527，笑得好開心 | Action 叔：「今晚的主角——」 | 標準 |
 
-台下第一行空晒：盂蘭節的神功戲，第一行凳係留俾鬼坐的。序章唔講破，留做伏筆（可以留俾真結局：9527 最後坐喺第一行）。
+台下張張凳都空：賭客隔住直播睇，唔會親身入嚟。一個冇觀眾的戲棚，似盂蘭節做俾鬼睇的神功戲（神功戲留俾鬼坐的係第一行；呢度係成個場）。序章唔講破，留做伏筆（可以留俾真結局：9527 最後坐喺台下）。9527 對住空凳鞠躬，係呢頁的笑位。
 
 ```text
-[共用風格] Four panels. Left half, one big panel: a huge traditional Cantonese opera bamboo theatre (bamboo scaffolding, a corrugated iron roof, red and gold decorations, paper lanterns) standing on an empty lot between old tenement blocks at dusk, giant video screens lashed to its bamboo frame, wealthy people in evening wear and masquerade masks queuing to go in. Right half, three panels stacked top to bottom with slanted borders: top, on the stage a scruffy, heavy-set director in his fifties in a loud floral shirt, a cap and headphones around his neck shouting into a megaphone at the masked audience; the front row of seats is left completely empty. Middle, a spotlight on [9527] in the middle of the stage, holding a script, bowing politely and shyly. Bottom, the director pointing at him, grinning. Leave calm space near the top of each panel for dialogue.
+[共用風格] Four panels. Left half, one big panel: a huge traditional Cantonese opera bamboo theatre (bamboo scaffolding, a corrugated iron roof, red and gold decorations, paper lanterns) standing alone on an empty lot between old tenement blocks at dusk, giant video screens lashed to its bamboo frame; nobody is arriving: only broadcast cameras on tripods, cables snaking across the ground, a satellite van and a few gangsters in dark suits guarding the entrance. Right half, three panels stacked top to bottom with slanted borders: top, inside the theatre, rows and rows of completely empty seats; on the stage a scruffy, heavy-set director in his fifties in a loud floral shirt, a cap and headphones around his neck shouts into a megaphone, not at the seats but at a broadcast camera with a red recording light. Middle, a spotlight on [9527] in the middle of the stage, holding a script, bowing politely and shyly to the empty seats. Bottom, the director pointing at him, grinning, a camera lens in the foreground. There is no audience anywhere in the theatre. Leave calm space near the top of each panel for dialogue.
 ```
 
 ## 第 5 頁：獵物（4 格）
@@ -97,12 +98,12 @@
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
 | 1 | 近景 | Action 叔笑容變咗，射燈由下照上去 | Action 叔：「亦都係——今晚的獵物！」 | 標準 |
-| 2 | 遠景 | 竹架上的大螢幕亮起賭盤（數字由遊戲出），台下賭客揮住賭票歡呼 | 字幕：「全腥港，落注。」 | 標準 |
+| 2 | 遠景 | 竹架上的大螢幕亮起：一幅係賭盤（數字由遊戲出），一幅係一格格視像窗口，入面係戴面具的賭客喺豪宅、遊艇、私人會所揸住電話歡呼；螢幕下面的凳仍然全部空晒 | 字幕：「全腥港，落注。」 | 標準 |
 | 3 | 中景 | 戲台兩邊衣邊行出一排金牙幫打手，同時上膛；高處的貴賓位，一個人影金牙閃一閃 | 聲效：「咔嚓。」 | 標準 |
 | 4 | 特寫 | 9527 笑容凍結，劇本跌落地 | 9527：「獵……物？」 | 長停 |
 
 ```text
-[共用風格] Four panels. Top row, left to right: panel 1, small, the director's grin turning sinister, lit from below by the stage lights; panel 2, large, the giant screens on the bamboo frame lighting up with a betting board (left blank for numbers to be added later), the masked audience cheering and waving betting slips. Bottom row, left to right: panel 3, large, from both wings of the stage a line of gangsters in dark suits step out and cock their pistols at the same moment; high above in a private box, a shadowy figure's gold teeth glint. Panel 4, small, a close-up of [9527] with his polite smile frozen, the script slipping from his hands. Leave calm space near the top of panels 1 and 4 for dialogue.
+[共用風格] Four panels. Top row, left to right: panel 1, small, the director's grin turning sinister, lit from below by the stage lights; panel 2, large, the giant screens on the bamboo frame lighting up: one shows a betting board (left blank for numbers to be added later), the other a grid of video-call windows in which masked gamblers in their own luxury rooms, yachts and private clubs cheer and wave their phones and betting slips; below the screens every seat in the theatre is empty. Bottom row, left to right: panel 3, large, from both wings of the stage a line of gangsters in dark suits step out and cock their pistols at the same moment; high above in a private box, a shadowy figure's gold teeth glint. Panel 4, small, a close-up of [9527] with his polite smile frozen, the script slipping from his hands. Leave calm space near the top of panels 1 and 4 for dialogue.
 ```
 
 ## 第 6 頁：第一晚（5 格）
@@ -111,14 +112,14 @@
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 1 | 中景 | 9527 由台上跑走，褲腳太長絆住自己；子彈打爆身邊的竹枝 | 聲效：「砰！砰！」 | 標準 |
-| 2 | 中景 | 佢撞穿戲棚後面的帆布，碌咗出去後巷，燈籠光 | 聲效：「嘶啦——」 | 標準 |
-| 3 | 特寫（打直） | 慢鏡：前景一粒子彈喺半空，後面係 9527 茫然的臉 | ——（冇字） | 長停 |
+| 1 | 中景 | 9527 由台上跑走，褲腳太長絆住自己；子彈打爆身邊的竹枝。**表情：驚到失魂**，眼擘到好大、眼珠縮細、眉飛起、口大大嗌、眼淚汗水飛（動畫式的大驚，唔係嬲、唔係勇） | 聲效：「砰！砰！」 | 標準 |
+| 2 | 中景 | 佢撞穿戲棚後面的帆布，碌咗出去後巷，燈籠光。**表情：仲係驚**，口仲嗌緊、手腳亂揮 | 聲效：「嘶啦——」 | 標準 |
+| 3 | 特寫（打直） | 慢鏡：前景一粒子彈喺半空，後面係 9527 的臉。**表情：嚇到僵咗**，眼瞪大、眼珠縮成一點，汗珠定喺半空 | ——（冇字） | 長停 |
 | 4 | 全黑細格 | 乜都冇 | 聲效：「砰。」 | 長停 |
 | 5 | 遠景 | 9527 倒喺濕地上，姿勢靚到似擺好甫士；一個打手放低槍，望住佢，有啲意外、有啲失望（成晚的騷，咁快就完） | 打手：「……咁快收工？」 | 長停 |
 
 ```text
-[共用風格] Five panels. Panels 1 and 2 are two long slanted strips stacked on the left: panel 1, [9527] running clumsily off the stage, tripping over his too-long trousers, bullets splintering the bamboo poles around him; panel 2, him bursting through the canvas at the back of the theatre and tumbling into a back alley lit by paper lanterns. Panel 3, a tall panel on the right: slow motion, a single bullet in the foreground in sharp focus, behind it [9527]'s blank, dazed face. Bottom row: panel 4, a small panel that is completely black; panel 5, wide, [9527] lying dead on the wet ground in an absurdly elegant pose like a posed photograph, a gangster lowering his pistol and looking at him, surprised and a little let down that it ended so fast. Leave calm space near the top of panel 5 for dialogue.
+[共用風格] Five panels. Panels 1 and 2 are two long slanted strips stacked on the left: panel 1, [9527] running clumsily off the stage in blind panic, tripping over his too-long trousers, bullets splintering the bamboo poles around him, the theatre's seats empty behind him; his face is terrified: eyes huge with tiny pupils, eyebrows shot up, mouth wide open in a scream, tears and sweat flying (an exaggerated comic anime panic face, not angry, not brave). Panel 2, him bursting through the canvas at the back of the theatre and tumbling into a back alley lit by paper lanterns, still screaming, arms flailing, terrified. Panel 3, a tall panel on the right: slow motion, a single bullet in the foreground in sharp focus, behind it [9527]'s face frozen in terror: eyes wide, pupils shrunk to dots, beads of sweat hanging in the air. Bottom row: panel 4, a small panel that is completely black; panel 5, wide, [9527] lying dead on the wet ground in an absurdly elegant pose like a posed photograph, a gangster lowering his pistol and looking at him, surprised and a little let down that it ended so fast. Leave calm space near the top of panel 5 for dialogue.
 ```
 
 ## 第 7 頁：地府（6 格）

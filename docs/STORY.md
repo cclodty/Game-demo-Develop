@@ -20,7 +20,7 @@
 - **天光：** 嗰晚收工，返櫃位等閻王判：心甘未？抵未？兩樣都係，輪迴先完。
 - **記憶：** 9527 冇飲孟婆湯，所以記得每一晚。金牙幫啲人唔記得，但重拍得越多（階梯越高），佢哋越「似曾相識」：開始收埋殺氣（冇紅線）、加裝備（詞綴）。
 - **點解一個臨記識打：** 因為真人秀輪迴咗好多次（開發者 10-29）。第一晚佢乜都唔識：新手熱身就係第一晚，學慢鏡、抓人擋子彈、翻枱。之後每死一次，就學識一樣。觀眾唔記得，以為每晚都係新一集，所以收視一晚高過一晚。
-- **《一夜成名》的戲棚：** 真人秀喺一座戲棚開機（開發者 10-29）：全腥港的富豪戴住面具坐喺棚入面，睇竹架上的大螢幕直播、落注；開咗機，成個腥港就係 9527 的逃殺場（每間房）。台下第一行凳空晒：盂蘭節的神功戲，第一行係留俾鬼坐的（伏筆，序章唔講破）。
+- **《一夜成名》的戲棚：** 真人秀喺一座戲棚開機（開發者 10-29）：全腥港的富豪戴住面具，喺自己的豪宅、遊艇、私人會所**隔住直播**睇同落注，唔會肉身走入危險，只喺螢幕的視像格仔出現；開咗機，成個腥港就係 9527 的逃殺場（每間房）。戲棚入面一個觀眾都冇，張張凳都空，得攝影機同睇場的打手：好似盂蘭節做俾鬼睇的神功戲（伏筆，序章唔講破）。
 - **慢鏡：** 子彈時間係大禮附送的「慢鏡功能」，專注值就係套餐餘額。只係講法，玩法唔變。
 
 ## 3. 角色
@@ -309,7 +309,7 @@
 3. 9527 同晶晶結怨點樣畫：先用 §12 的提示詞試畫「死得太靚」，畫唔出就用後備的「詐屍」。
 4. 「極難」係邊一級：F⑥ 階梯做好之後定。
 5. 金爺的頭目房：F 組或 Godot 時再定。
-6. 戲棚第一行空凳（盂蘭留俾鬼坐）的伏筆點收：建議真結局最後一格，9527 坐喺第一行。
+6. 戲棚空凳（似盂蘭節做俾鬼睇的神功戲）的伏筆點收：建議真結局最後一格，9527 坐喺台下第一行。
 
 ## 11. 過場的出法（開發者 10-29：交 Claude 定）
 
@@ -349,7 +349,7 @@ A 16:9 widescreen landscape image (wider than tall) showing a game cutscene made
 **9527 的樣（貼喺 `[9527]`）：**
 
 ```text
-9527, a skinny, harmless-looking film extra in his late twenties: soft round face, sleepy droopy eyes, a blank, dazed, slightly lost expression with his mouth a little open, messy black hair with a cowlick sticking up, slightly hunched, a cheap white suit one size too big with sleeves too long. He looks innocent and bewildered, like someone things just happen to; never fierce, never cool, never frowning.
+9527, a skinny, harmless-looking film extra in his late twenties: soft round face, sleepy droopy eyes, a blank, dazed, slightly lost expression with his mouth a little open, messy black hair with a cowlick sticking up, slightly hunched, a cheap white suit one size too big with sleeves too long. He looks innocent and bewildered, like someone things just happen to; never fierce, never cool, never frowning. The blank, dazed look is only his resting face: when a panel names another expression (terror, a smile), draw that expression clearly instead.
 ```
 
 **1. 9527 人物設定**
