@@ -200,10 +200,10 @@ export class Player {
     return best;
   }
 
-  grab() {
+  /** Hold `best` up as a human shield (E: the one in front; the card 滑鏟抓人's slide: the one it meets). */
+  grab(best = this.grabTarget()) {
     const g = this.game;
     const H = PLAYER.humanShield;
-    const best = this.grabTarget();
     if (!best) return false;
     this.hostage = best;
     this.hostageT = H.hold;
@@ -631,11 +631,20 @@ export class Player {
       const d2 = dx * dx + dz * dz;
       if (d2 >= rr * rr || d2 < 1e-8) continue;
       const d = Math.sqrt(d2);
+      if (this.slideT > 0 && !this.hostage && e.holdable && g.cards.has('slideGrab')) {
+        // the combo card (cards.js 滑鏟抓人, F④b): a slide into a man ends in holding him up
+        this.slideT = 0;
+        this.slideCd = PLAYER.slideCooldown;
+        this.grab(e);
+        g.score.style('SLIDE GRAB', 60, true);
+        continue;
+      }
       if (this.slideT > 0 && e.stunT <= 0 && g.cards.has('slideTrip')) {
         // the card (cards.js 滑鏟絆倒, F④a): a slide into a man takes his feet, dazed as from a kick (F finishes him)
         e.kick(dx / d, dz / d, CARDS.tripKnock, 'kick', 0);
         g.score.style('SLIDE TRIP', 40, true);
         g.notes.log(`滑鏟絆倒 ${e.cfg.label}`);
+        this.kickRefill();
       }
       const push = (rr - d) / 2;
       e.x += (dx / d) * push;
@@ -941,6 +950,7 @@ export class Player {
       if (!dir) continue;
       e.kick(dir.x, dir.z, 14);
       hit = true;
+      this.kickRefill();
     }
     if (g.boss.melee(inCone, PLAYER.kickRange, 'kick')) hit = true;
     for (const p of g.level.props) {
@@ -978,6 +988,15 @@ export class Player {
     }
   }
 
+  /** The combo card 踢出彈匣 (cards.js, F④b): a man kicked down or tripped fills the pistols' magazine at once. */
+  kickRefill() {
+    if (!this.game.cards.has('kickReload') || (this.reloadT <= 0 && this.ammo >= PLAYER_WEAPONS.pistols.mag)) return;
+    this.ammo = PLAYER_WEAPONS.pistols.mag;
+    this.reloadT = 0;
+    this.spinReload = false;
+    this.game.notes.log('踢出彈匣');
+  }
+
   /** The card 擦彈上膛 (cards.js, F④a): a round grazed in bullet time puts one back in the magazine, never past a full one. */
   grazeReload() {
     if (this.slot === 'special') {
@@ -994,6 +1013,7 @@ export class Player {
     if (!this.alive || this.invuln > 0) return false;
     if ((this.spinning || this.diving) && !explosion) return false; // a bullet passes round a spin, under a dive
     const g = this.game;
+    if (g.cards.has('oneHit')) dmg = Math.max(dmg, this.hp); // the cost card 一條命・四選一 (F④b): one hit is all of it
     this.hp -= dmg;
     this.sinceHurt = 0;
     this.hurtFlash = 1;

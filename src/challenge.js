@@ -17,9 +17,9 @@ import { PLAYER_WEAPONS } from './weapons.js';
  */
 export const CHALLENGES = {
   nohit: { name: '無傷', en: 'NO HIT', text: () => '成間房冇中過', prize: '一條命', reward: 'life', fits: () => true },
-  clock: { name: '限時', en: 'TIME LIMIT', text: () => `打鬥 ${CHALLENGE.time} 秒內清房`, prize: '一支特別武器', reward: 'weapon', fits: (g) => g.ruleset.drops !== false && g.ruleset.pads !== false },
+  clock: { name: '限時', en: 'TIME LIMIT', text: () => `打鬥 ${CHALLENGE.time} 秒內清房`, prize: '一支特別武器', reward: 'weapon', fits: (g) => g.ruleset.drops !== false && g.ruleset.pads !== false && !g.cards.has('pistolsOnly') },
   noshot: { name: '不開槍', en: 'NO SHOTS', text: () => '成間房一槍都唔開', prize: `一張風格卡（${CHALLENGE.cards} 選一）`, reward: 'card', fits: (g) => g.ruleset.startWeapon !== 'none' },
-  noslow: { name: '不用慢鏡', en: 'NO SLOW-MO', text: () => '成間房唔開子彈時間', prize: '專注上限 +1 格', reward: 'focus', fits: (g) => g.ruleset.slowmo !== false },
+  noslow: { name: '不用慢鏡', en: 'NO SLOW-MO', text: () => '成間房唔開子彈時間', prize: '專注上限 +1 格', reward: 'focus', fits: (g) => g.ruleset.slowmo !== false && !g.cards.has('noSlow') },
 };
 export const CHALLENGE_IDS = Object.keys(CHALLENGES);
 

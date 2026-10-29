@@ -74,7 +74,7 @@ after(async () => {
   await h.close();
 });
 
-test('twelve cards, each tagged from TAGS, both kinds; every one is drawn over the seeds; a card on the screen shows its tags', async () => {
+test('the twelve cards (F④b adds more), each tagged from TAGS (a cost card may have none), both kinds; every one is drawn over the seeds; a card on the screen shows its tags', async () => {
   const r = await page.evaluate(async () => {
     const { CARDS, CARD_IDS, TAGS, drawOffer } = await import('./src/cards.js');
     const g = window.game;
@@ -87,6 +87,7 @@ test('twelve cards, each tagged from TAGS, both kinds; every one is drawn over t
     return {
       ids: CARD_IDS,
       tags: Object.fromEntries(CARD_IDS.map((id) => [id, CARDS[id].tags])),
+      cost: CARD_IDS.filter((id) => CARDS[id].cost),
       kinds: [...new Set(CARD_IDS.map((id) => CARDS[id].kind))].sort(),
       tagIds: Object.keys(TAGS),
       tagNames: Object.fromEntries(Object.entries(TAGS).map(([k, t]) => [k, t.name])),
@@ -95,8 +96,9 @@ test('twelve cards, each tagged from TAGS, both kinds; every one is drawn over t
       want: ['kickReturn', 'slideTrip', 'grazeReload'].map((id) => CARDS[id].tags),
     };
   });
-  assert.equal(r.ids.length, 12, `twelve cards: ${r.ids}`);
-  for (const id of r.ids) assert.ok(r.tags[id].length >= 1 && r.tags[id].every((t) => r.tagIds.includes(t)), `${id}: tags ${r.tags[id]}`);
+  const twelve = ['slideReflect', 'shoveBoom', 'tableBounce', 'grazeReflect', 'killSlow', 'deepSlow', 'kickReturn', 'slideTrip', 'shieldReturn', 'lastRound', 'slideSlow', 'grazeReload'];
+  assert.ok(twelve.every((id) => r.ids.includes(id)), `the twelve among them: ${r.ids}`);
+  for (const id of r.ids) assert.ok((r.tags[id].length >= 1 || r.cost.includes(id)) && r.tags[id].every((t) => r.tagIds.includes(t)), `${id}: tags ${r.tags[id]}`);
   assert.deepEqual(r.kinds, ['action', 'slowmo']);
   assert.deepEqual(r.seen, [...r.ids].sort(), 'every card drawn');
   r.faces.forEach((face, i) => r.want[i].forEach((t) => assert.ok(face.includes(r.tagNames[t]), `card ${i}: ${face} names ${t}`)));

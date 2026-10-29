@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
-import { Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS, TAGS as CARD_TAGS } from './cards.js';
+import { Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS, SORTS as CARD_SORTS, synergy as cardSynergy, TAGS as CARD_TAGS } from './cards.js';
 import { Challenges } from './challenge.js';
 import { drawPrizes, givePrize, PRIZES } from './prizes.js';
 import { buildCharacter, disposeRig } from './characters.js';
@@ -1652,7 +1652,7 @@ class Game {
   }
 
   toggleFocus() {
-    if (!this.ruleset.slowmo) return; // a variant turned bullet time off
+    if (!this.ruleset.slowmo || this.cards.has('noSlow')) return; // a variant turned bullet time off, or the cost card 冇慢鏡・雙倍 (F④b)
     if (this.focusAuto) {
       // the key during the card 擊殺慢鏡's half second: it keeps bullet time on, and pays for it once the half second is up
       this.focusAuto = false;
@@ -1690,7 +1690,7 @@ class Game {
    * put on so, it goes off when they are up (logic). Not where bullet time is off (a variant) or the player is down.
    */
   freeFocus(s) {
-    if (!this.player.alive || !this.ruleset.slowmo || this.state !== 'playing') return;
+    if (!this.player.alive || !this.ruleset.slowmo || this.cards.has('noSlow') || this.state !== 'playing') return;
     this.focusFree = Math.max(this.focusFree, s);
     if (!this.focusActive) {
       this.focusAuto = true;
@@ -1956,13 +1956,22 @@ class Game {
   }
 
   /** Once a display frame: read the gamepad; Start pauses and resumes; the hints follow whether one is connected. */
-  /** The style cards on the screen (cards.js): three to pick from, or four (a challenge's prize), each with its tags; the buttons make the press the logic reads. */
+  /** The style cards on the screen (cards.js): three to pick from, or four, each with its tags and what it plays with among those held; the buttons make the press the logic reads. */
   showCards(ids, title = '風格卡 · 三選一  STYLE CARD') {
     const el = $('cards');
     el.dataset.title = title;
     el.innerHTML = ids.map((id, i) => {
       const c = CARD_DATA[id];
-      return `<button type="button" class="card ${c.kind}${i === this.cardSel ? ' sel' : ''}" data-card="${i}"><span class="card-kind">${CARD_KINDS[c.kind].name} <small>${CARD_KINDS[c.kind].en}</small></span><span class="card-en">${c.en}</span><span class="card-name">${c.name}</span><span class="card-text">${c.text}</span><span class="card-tags">${c.tags.map((t) => `<i>${CARD_TAGS[t].name} <small>${CARD_TAGS[t].en}</small></i>`).join('')}</span><kbd>${i + 1}</kbd></button>`;
+      const sort = c.needs ? 'combo' : c.cost ? 'cost' : '';
+      const badge = sort ? ` · ${CARD_SORTS[sort].name} <small>${CARD_SORTS[sort].en}</small>` : '';
+      // what it plays with among the cards held (F④b): a combo card's needs, met or not; another's partners, the combos it would put on
+      const syn = cardSynergy(id, this.cards.held);
+      const lines = [];
+      if (syn.needs) lines.push(`要：${syn.needs.map((n) => `<b class="${n.ok ? 'ok' : 'no'}">${CARD_TAGS[n.tag].name} ${n.ok ? '✓' : '✗'}</b>`).join(' ＋ ')}`);
+      if (syn.with.length) lines.push(`配合：${syn.with.map((h) => CARD_DATA[h].name).join('、')}`);
+      if (syn.completes.length) lines.push(`<b class="ok">湊齊：${syn.completes.map((h) => CARD_DATA[h].name).join('、')}</b>`);
+      const tags = c.tags.map((t) => `<i>${CARD_TAGS[t].name} <small>${CARD_TAGS[t].en}</small></i>`).join('');
+      return `<button type="button" class="card ${c.kind}${sort ? ` ${sort}` : ''}${i === this.cardSel ? ' sel' : ''}" data-card="${i}"><span class="card-kind">${CARD_KINDS[c.kind].name} <small>${CARD_KINDS[c.kind].en}</small>${badge}</span><span class="card-en">${c.en}</span><span class="card-name">${c.name}</span><span class="card-text">${c.text}</span><span class="card-tags">${tags}</span>${lines.length ? `<span class="card-syn">${lines.join('<br>')}</span>` : ''}<kbd>${i + 1}</kbd></button>`;
     }).join('');
     this.cardSel = 0;
     el.classList.remove('hidden');
@@ -2176,6 +2185,7 @@ class Game {
     if (this.state === 'playing' && cmd.hit('ShiftLeft', 'ShiftRight', 'KeyQ')) this.toggleFocus();
     const deep = this.cards.has('deepSlow'); // the card (cards.js 深慢鏡): a slower world, a faster drain (CARDS)
     if (this.player.sliding && this.cards.has('slideSlow')) this.freeFocus(2 * h); // the card 滑鏟慢鏡 (F④a): free bullet time while the slide lasts
+    if (this.focusActive && this.cards.has('noSlow')) this.setFocus(false); // the cost card 冇慢鏡・雙倍 (F④b): none from its pick on
     if (this.focusActive) {
       if (this.focusFree > 0) {
         // the cards' free bullet time (擊殺慢鏡's half second, 滑鏟慢鏡's slide) costs nothing; put on by a card, it goes off with it
@@ -2184,7 +2194,7 @@ class Game {
           this.focusAuto = false;
           this.setFocus(false);
         }
-      } else this.focusMeter -= FOCUS.drain * (deep ? CARDS.deepDrain : 1) * h;
+      } else if (!this.cards.has('pistolsOnly')) this.focusMeter -= FOCUS.drain * (deep ? CARDS.deepDrain : 1) * h; // the cost card 淨係手槍・慢鏡無限 (F④b): no drain
       if (this.focusMeter <= 0) {
         this.focusMeter = 0;
         this.setFocus(false);

@@ -192,7 +192,8 @@ export const PLAZA_ROOM = { rim: 0.45, birds: 18 };
  * latest, with a barrel's blast of `boomBlast` m; `killSlow` s of bullet time a kill brings, costing nothing; the deep slow-mo's world
  * speed (FOCUS.worldScale otherwise) and what it multiplies the meter's drain by. The second batch (F④a): a kick turns
  * rounds back for its first `kickWindow` s (踢彈); a slide trips a man with a kick of `tripKnock` m/s (滑鏟絆倒); a
- * magazine's last round goes through `lastPierce` men more (最後一發). First version, to be confirmed in play.
+ * magazine's last round goes through `lastPierce` men more (最後一發). The cost card 冇慢鏡・雙倍 (F④b) multiplies Style by
+ * `noSlowStyle`. First version, to be confirmed in play.
  */
 export const CARDS = {
   offer: 3,
@@ -205,6 +206,7 @@ export const CARDS = {
   kickWindow: 0.12,
   tripKnock: 6,
   lastPierce: 3,
+  noSlowStyle: 2,
 };
 
 export const BULLET = {
