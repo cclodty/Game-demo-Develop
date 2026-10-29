@@ -60,6 +60,7 @@ export class HUD {
     this.arrows = [];
     this.snipeWarns = []; // the edge glows of snipers taking aim
     this.affixTags = []; // the names over affixed men's heads (F①)
+    this.exitTags = []; // the rooms over a room's exits (F③a)
     this.bannerTimer = 0;
     this.toastTimer = 0;
   }
@@ -225,6 +226,36 @@ export class HUD {
     this.updateSnipers();
     this.updateAffixTags();
     this.updateChallenge();
+    this.updateExits();
+  }
+
+  /** A room's ways on (main.js setExits, F③a): over each exit, the room it leads to; dim while the room is fought, lit once it opens. */
+  updateExits() {
+    const g = this.game;
+    let used = 0;
+    for (const x of g.level.exits || []) {
+      const r = x.to && !x.spare && g.rooms[x.to];
+      if (!r) continue;
+      const s = this.project(x.x, 3.3, x.z);
+      if (s.behind) continue;
+      let t = this.exitTags[used];
+      if (!t) {
+        t = document.createElement('div');
+        t.className = 'exit-tag';
+        this.el.indicators.appendChild(t);
+        this.exitTags.push(t);
+      }
+      used++;
+      const key = `${x.to}/${x.locked}`;
+      if (t.dataset.key !== key) {
+        t.dataset.key = key;
+        t.innerHTML = `${x.locked ? '' : '→ '}${r.name} <small>${r.en}</small>`;
+        t.classList.toggle('open', !x.locked);
+      }
+      t.style.display = 'block';
+      t.style.transform = `translate(${Math.round(s.x)}px, ${Math.round(s.y)}px) translate(-50%, -100%)`;
+    }
+    for (let i = used; i < this.exitTags.length; i++) this.exitTags[i].style.display = 'none';
   }
 
   /**

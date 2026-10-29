@@ -1,62 +1,61 @@
-// Doors and shutters (環境互動件 ②): a closed door blocks sight and bodies but
-// not paths; the player's kick swings it onto whoever stands behind it (SLAM),
-// an enemy walking into it pushes it open, and it swings shut again 4 s
-// later when nobody stands in it. A shutter drops when its lock post is shot
-// or kicked, crushes whoever is under it (SHUTTER), shuts the opening until
-// the wave is cleared, and rolls back up. Numbers in config.js ENV. Run: npm test
+// F③a: two doors (rooms.js exit2, drawBranches; main.js setExits, takeExit). Every fight room has a second exit in a
+// tall wall; for each room of a floor but its first and its boss's the run draws a second room (its own stream, so the
+// floors stay as drawn), and the room before it opens both doors when it is cleared, each with the room it leads to
+// over it (hud.js updateExits). Walking into one goes to its room, and the floor holds that room from then on; a floor
+// never has a room twice whichever way it is walked. The last fight room before the boss has one door. Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gameHarness, problems, snap } from './helpers.mjs';
+import { gameHarness, OUT, problems } from './helpers.mjs';
 
 let h;
 let page;
 let logs;
 before(async () => {
   h = await gameHarness();
-  ({ page, logs } = await h.open('?seed=6'));
+  ({ page, logs } = await h.open('?seed=73'));
   await page.evaluate(() => {
     const g = window.game;
     g.frame = () => {};
-    /** A quiet run on `map`; window.play(n, aim) steps n 60 Hz frames, the player still, aiming at `aim` ([x, z]) if given. */
-    window.begin = (map) => {
+    /** A 彈幕試驗 run (with `seed` the run's seed) at its start, the teahouse. */
+    window.toStart = (seed = null) => {
+      const keep = g.fixedSeed;
+      if (seed !== null) g.fixedSeed = seed;
       g.setRules('normal', []);
-      g.startRun(map);
-      g.waves.state = 'done';
-      g.enemies.clear();
-      g.setFocus(false);
+      g.setMode('danmaku');
+      g.startRun(0);
+      g.fixedSeed = keep;
+      g.input.keys.clear();
+      g.input.pressed.clear();
+      g.input.mouse.left = g.input.mouse.right = false;
     };
-    window.play = (n, aim = null, keys = []) => {
+    /** 120 Hz steps, the player kept whole. */
+    window.play = (n) => {
       for (let i = 0; i < n; i++) {
         g.killcamT = 0;
         g.hitstopT = 0;
-        g.player.vx = g.player.vz = 0;
-        g.input.pressed.clear();
-        if (i === 0) for (const k of keys) g.input.pressed.add(k);
-        if (aim) g.aimPoint.set(aim[0], g.aimPoint.y, aim[1]);
-        else g.aimPoint.set(g.player.x, g.aimPoint.y, g.player.z - 5);
-        g.aimFresh = true;
-        g.updatePlay(1 / 60);
+        g.player.hp = 100;
+        g.player.invuln = 0;
+        g.updatePlay(1 / 120);
       }
-      g.input.pressed.clear();
     };
-    window.shoot = (x, z, tx, tz) => {
-      const d = Math.hypot(tx - x, tz - z) || 1;
-      return g.bullets.spawn({ x, z, dx: (tx - x) / d, dz: (tz - z) / d, speed: 62, owner: 'player', damage: 1 });
+    /** The room's waves down at once, its exits open. */
+    window.clearRoom = () => {
+      for (let k = 0; k < 2; k++) {
+        for (let i = 0; i < 120 * 10 && g.waves.state !== 'active'; i++) window.play(1);
+        g.waves.queue.length = 0;
+        g.waves.pending.length = 0;
+        g.enemies.clear();
+        g.bullets.clear();
+        window.play(2);
+      }
+      return g.waves.state;
     };
-    window.post = (type, x, z, state = 'move') => {
-      const e = g.enemies.spawn(type, { x, z, ex: x, ez: z + 0.1, stay: true });
-      e.spawnLock = 0;
-      e.state = state;
-      return e;
-    };
-    window.tags = () => {
-      const tags = [];
-      const kill0 = g.score.kill.bind(g.score);
-      g.score.kill = (t) => {
-        tags.push(t.map((x) => x.label));
-        return kill0(t);
-      };
-      return tags;
+    /** The player into exit `x` and on through the change of room; the room he is in after. */
+    window.walkInto = (x) => {
+      g.player.x = x.at.x;
+      g.player.z = x.at.z;
+      for (let i = 0; i < 120 * 3 && !(g.transition === null && g.stage > 0 && g.level.exits.every((e) => e.locked)); i++) window.play(1);
+      return g.level.map.id;
     };
   });
 });
@@ -64,124 +63,148 @@ after(async () => {
   await h.close();
 });
 
-test('the rooftop gate: shut it blocks sight and bodies but not paths; kicked, it swings onto the blade behind it (SLAM) and shuts again 4 s later', { timeout: 120000 }, async () => {
+test('every fight room has a second exit in a tall wall, apart from its first and from the men’s doors, walkable to from the start; a boss room has one; loaded on its own, a room shows only the first', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    const L = g.level;
-    window.begin(0);
-    const door = L.fixtures.find((f) => f.kind === 'door'); // (0, -8) in the barrier, 1.4 m wide
-    const p = g.player;
-    const shut = { los: L.hasLOS(0, -6, 0, -10), ray: !!L.raycast(0, -6, 0, -10), walkable: L.nav.isWalkable(door.x, door.z), path: !!L.nav.findPath(0, -6, 0, -10), open: door.open };
-    // the player walks into it: he stops
-    p.x = 0;
-    p.z = -7.2;
-    p.vz = -6;
-    for (let i = 0; i < 10; i++) {
-      g.input.keys.add('KeyW');
-      window.play(1, [0, -12]);
+    window.toStart(1);
+    const out = [];
+    for (const id of Object.keys(g.rooms)) {
+      g.level.load(g.rooms[id]);
+      const L = g.level;
+      const t = L.map.room;
+      const st = L.start;
+      const [a, b] = L.exits;
+      const o = { id, boss: !!t.boss, exits: L.exits.length };
+      if (b) {
+        const along = (x) => (t.exit2[0] === 'n' || t.exit2[0] === 's' ? x.x : x.z);
+        o.low = t.low[1].includes(t.exit2[0]);
+        o.apart = Math.hypot(a.x - b.x, a.z - b.z);
+        o.spawnGap = Math.min(...L.spawns.filter((sp) => Math.hypot(sp.x - b.x, sp.z - b.z) < 3).map((sp) => Math.abs((t.exit2[0] === 'n' || t.exit2[0] === 's' ? sp.x : sp.z) - along(b))), 99);
+        o.path = !!L.nav.findPath(st.x, st.z, b.at.x, b.at.z);
+        o.spare = b.spare && !b.mesh.visible;
+      }
+      out.push(o);
     }
-    g.input.keys.clear();
-    const stopped = p.z > door.z + 0.3;
-    // a blade behind the door, then the kick
-    p.x = 0;
-    p.z = -6.6;
-    const e = window.post('rusher', 0, -8.9);
-    e.update = () => {};
-    const tags = window.tags();
-    window.play(1, [0, -12], ['KeyF']);
-    window.play(5, [0, -12]);
-    const kicked = { open: door.open, los: L.hasLOS(0, -6, 0, -10), dead: e.dead, swing: door.swing, log: g.notes.events.map((x) => x.text).filter((t) => t.includes('門')) };
-    // step out of the doorway: it shuts after ENV.doorOpen
-    p.z = -4;
-    window.play(60 * 3);
-    const at3 = door.open;
-    window.play(60 * 1.5);
-    const at45 = { open: door.open, los: L.hasLOS(0, -6, 0, -10) };
-    return { shut, stopped, kicked, tags, at3, at45 };
+    return out;
   });
-  assert.deepEqual(r.shut, { los: false, ray: true, walkable: true, path: true, open: false }, 'shut: no sight through it, a body stops, a path goes through');
-  assert.equal(r.stopped, true, 'the player stops at the shut door');
-  assert.equal(r.kicked.open, true, 'F opens it');
-  assert.equal(r.kicked.los, true, 'open: sight through');
-  assert.equal(r.kicked.swing, -1, 'it swung away from the kicker (north)');
-  assert.equal(r.kicked.dead, true, 'the blade behind it is dead');
-  assert.ok(r.tags[0].includes('SLAM'), `the kill tag: ${r.tags[0]}`);
-  assert.ok(r.kicked.log.some((t) => t.includes('踢開門')), r.kicked.log.join(' / '));
-  assert.equal(r.at3, true, 'still open after 3 s');
-  assert.deepEqual(r.at45, { open: false, los: false }, 'shut again after 4 s');
-  await snap(page, 'fixture-door.png');
+  for (const o of r) {
+    if (o.boss) {
+      assert.equal(o.exits, 1, `${o.id}: a boss room has one exit`);
+      continue;
+    }
+    assert.equal(o.exits, 2, `${o.id}: two exits`);
+    assert.equal(o.low, false, `${o.id}: the second in a tall wall`);
+    assert.ok(o.apart >= 2.5, `${o.id}: the two ${o.apart.toFixed(1)} m apart`);
+    assert.ok(o.spawnGap >= 2, `${o.id}: ${o.spawnGap.toFixed(1)} m from the nearest of the men’s doors`);
+    assert.equal(o.path, true, `${o.id}: walkable to from the start`);
+    assert.equal(o.spare, true, `${o.id}: loaded on its own, the second is hidden`);
+  }
   assert.deepEqual(problems(logs), []);
 });
 
-test('an enemy walking into a shut door pushes it open and comes through, no slam', { timeout: 120000 }, async () => {
+test('a run draws a second room for every place on a floor but its first and its boss’s: the same seed the same, the floors as before; no room twice on a floor counting both; the notes write the tree', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
-    const L = g.level;
-    window.begin(0);
-    const door = L.fixtures.find((f) => f.kind === 'door');
-    const p = g.player;
-    p.x = 0;
-    p.z = -4.5;
-    const e = window.post('rusher', 0, -11.5, 'chase');
-    let n = 0;
-    let opened = -1;
-    while (n++ < 60 * 4) {
-      p.hp = 100;
-      p.invuln = 1;
-      window.play(1, [0, -12]);
-      if (opened < 0 && door.open) opened = n / 60;
-      if (e.z > door.z + 0.6) break;
+    const runs = [];
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      window.toStart(seed);
+      runs.push({ seed, floors: g.floors.map((f) => f.slice()), branches: g.branches.map((f) => f.slice()), tree: g.notes.events.map((e) => e.text).filter((t) => /^第 \d 層：/.test(t)) });
     }
-    return { opened, through: e.z > door.z + 0.6, hp: p.hp, t: n / 60 };
+    window.toStart(5);
+    return { runs, again: { floors: g.floors, branches: g.branches }, boss: g.waves.rules.floor.boss };
   });
-  assert.ok(r.opened > 0 && r.opened < 3, `he pushed it open (${r.opened.toFixed(2)} s)`);
-  assert.equal(r.through, true, `and came through (${r.t.toFixed(2)} s)`);
+  for (const run of r.runs) {
+    run.floors.forEach((ids, f) => {
+      const alts = run.branches[f];
+      assert.equal(alts.length, ids.length, `seed ${run.seed}, floor ${f + 1}: a place each`);
+      assert.equal(alts[0], null, `seed ${run.seed}, floor ${f + 1}: none for its first room`);
+      assert.equal(alts[alts.length - 1], null, `seed ${run.seed}, floor ${f + 1}: none for the boss’s`);
+      assert.ok(alts.slice(1, -1).every((a) => a && !r.boss.includes(a)), `seed ${run.seed}, floor ${f + 1}: a fight room for each between (${alts})`);
+      const all = [...ids, ...alts.filter(Boolean)];
+      assert.equal(new Set(all).size, all.length, `seed ${run.seed}, floor ${f + 1}: no room twice (${ids} / ${alts})`);
+    });
+    assert.equal(run.tree.length, run.floors.length, 'a line a floor in the notes');
+    assert.ok(run.tree.every((t) => t.includes('／')), `the choices in it: ${run.tree[0]}`);
+  }
+  assert.deepEqual(r.again.floors, r.runs[4].floors, 'the same seed, the same floors');
+  assert.deepEqual(r.again.branches, r.runs[4].branches, 'and the same second rooms');
   assert.deepEqual(problems(logs), []);
 });
 
-test('the docks shutter: a bullet on the lock drops it on the thug under it (SHUTTER), the opening is shut to sight and paths, and the wave clear rolls it up; a kick on the post drops it too', { timeout: 120000 }, async () => {
+test('the teahouse cleared opens both doors, each named over it (dim before, lit after); the second goes to its room and the floor holds it; the first to the room drawn; the last fight room before the boss has one door', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
+    const tags = () => [...document.querySelectorAll('#indicators .exit-tag')].filter((t) => t.style.display === 'block').map((t) => ({ text: t.textContent, open: t.classList.contains('open') }));
+    // the second door
+    window.toStart(6);
+    const drawn = g.floors[0][1];
+    const alt = g.branches[0][1];
     const L = g.level;
-    window.begin(2);
-    const sh = L.fixtures.find((f) => f.kind === 'shutter'); // post (10.5, 7.2), 5 m east
-    const p = g.player;
-    const across = () => ({ ray: !!L.raycast(sh.midX, sh.midZ - 2, sh.midX, sh.midZ + 2), walkable: L.nav.isWalkable(sh.midX, sh.midZ) });
-    const up = across();
-    const e = window.post('grunt', sh.midX, sh.midZ);
-    e.update = () => {};
-    const tags = window.tags();
-    p.x = sh.x;
-    p.z = sh.z - 4;
-    window.shoot(p.x, p.z, sh.x, sh.z);
-    window.play(6);
-    const falling = sh.fallT >= 0;
-    window.play(40);
-    const down = { down: sh.down, dead: e.dead, ...across(), log: g.notes.events.map((x) => x.text).filter((t) => t.includes('鐵閘')) };
-    // the wave clears: the shutter rolls up
-    g.waves.wave = 1;
-    g.onWaveClear(1);
-    const after = { down: sh.down, ...across() };
-    // a kick on the post drops it as well, and the player under it is hurt
-    p.x = sh.x;
-    p.z = sh.z - 1.2;
-    window.play(1, [sh.x, sh.z], ['KeyF']);
-    const kicked = sh.fallT >= 0;
-    p.x = sh.midX;
-    p.z = sh.midZ;
-    p.hp = 100;
-    p.invuln = 0;
-    window.play(45, [sh.x, sh.z]);
-    return { up, falling, down, tags, after, kicked, hp: p.hp };
+    window.play(1);
+    g.hud.update(1 / 60);
+    const before = { tags: tags(), to: L.exits.map((x) => x.to), shown: L.exits.map((x) => x.mesh.visible) };
+    const state = window.clearRoom();
+    g.hud.update(1 / 60);
+    const open = { state, locked: L.exits.map((x) => x.locked), tags: tags(), banner: g.hud.el.banner.textContent };
+    const went = window.walkInto(L.exits[1]);
+    const held = { floor1: g.floors[0][1], flat: g.floor[1], notes: g.notes.events.map((e) => e.text).filter((t) => t.startsWith('揀咗門')) };
+    // the first door
+    window.toStart(6);
+    window.clearRoom();
+    const first = window.walkInto(g.level.exits[0]);
+    // the floor's last fight room
+    window.toStart(6);
+    g.stage = g.floors[0].length - 2;
+    g.level.load(g.stageMap);
+    g.setExits();
+    const last = { exits: g.level.exits.filter((x) => !x.spare).length, to: g.level.exit.to, boss: g.floors[0][g.floors[0].length - 1] };
+    return { drawn, alt, before, open, went, held, first, last, names: { drawn: g.rooms[drawn].name, alt: g.rooms[alt].name } };
   });
-  assert.deepEqual(r.up, { ray: false, walkable: true }, 'rolled up: open to sight and paths');
-  assert.equal(r.falling, true, 'the lock gave');
-  assert.deepEqual({ down: r.down.down, dead: r.down.dead, ray: r.down.ray, walkable: r.down.walkable }, { down: true, dead: true, ray: true, walkable: false }, 'down: he is under it, and the opening is shut');
-  assert.ok(r.tags[0].includes('SHUTTER'), `the kill tag: ${r.tags[0]}`);
-  assert.ok(r.down.log.some((t) => t.includes('鐵閘落下')), r.down.log.join(' / '));
-  assert.deepEqual(r.after, { down: false, ray: false, walkable: true }, 'the wave clear rolls it up');
-  assert.equal(r.kicked, true, 'a kick on the post drops it');
-  assert.equal(r.hp, 40, 'the player under it takes 60');
-  await snap(page, 'fixture-shutter.png');
+  assert.deepEqual(r.before.to, [r.drawn, r.alt], 'the first door to the room drawn, the second to the other');
+  assert.deepEqual(r.before.shown, [true, true], 'both drawn');
+  assert.equal(r.before.tags.length, 2, `a name over each: ${JSON.stringify(r.before.tags)}`);
+  assert.ok(r.before.tags.every((t) => !t.open), 'dim while the room is fought');
+  assert.ok(r.before.tags.some((t) => t.text.includes(r.names.drawn)) && r.before.tags.some((t) => t.text.includes(r.names.alt)), JSON.stringify(r.before.tags));
+  assert.equal(r.open.state, 'exit');
+  assert.deepEqual(r.open.locked, [false, false], 'both open');
+  assert.ok(r.open.tags.every((t) => t.open && t.text.startsWith('→ ')), `lit: ${JSON.stringify(r.open.tags)}`);
+  assert.ok(r.open.banner.includes(r.names.drawn) && r.open.banner.includes(r.names.alt), `the banner names both: ${r.open.banner}`);
+  assert.equal(r.went, r.alt, 'the second door: its room');
+  assert.deepEqual([r.held.floor1, r.held.flat], [r.alt, r.alt], 'the floor holds it');
+  assert.ok(r.held.notes.some((t) => t.includes(r.names.alt)), r.held.notes.join(' / '));
+  assert.equal(r.first, r.drawn, 'the first door: the room drawn');
+  assert.deepEqual([r.last.exits, r.last.to], [1, r.last.boss], 'before the boss: one door, to the boss room');
+  assert.deepEqual(problems(logs), []);
+});
+
+test('screenshot: the plaza cleared, its two doors open side by side, each named', async () => {
+  await page.evaluate(() => {
+    const g = window.game;
+    window.toStart(6);
+    g.waves.state = 'done';
+    g.enemies.clear();
+    g.floors[0][1] = 'plaza';
+    g.floor = g.floors.flat();
+    g.stage = 1;
+    g.level.load(g.stageMap);
+    g.setExits();
+    g.applyMapView();
+    const L = g.level;
+    g.waves.state = 'exit';
+    for (const x of L.exits) x.unlock();
+    g.challenge.offer = null; // the teahouse's sign, from the run's start
+    g.player.x = (L.exits[0].x + L.exits[1].x) / 2;
+    g.player.z = L.exits[0].z + 3.5;
+    g.aimPoint.set(g.player.x, g.aimPoint.y, g.player.z - 5);
+    g.aimFresh = true;
+    window.play(120); // the leaves swing open; the player stands
+    g.view = 0;
+    g.hud.el.banner.className = '';
+    g.updateCamera(1, true);
+    g.camera.updateMatrixWorld();
+    g.hud.update(1 / 60);
+    g.render();
+  });
+  await page.screenshot({ path: new URL('doors.png', OUT).pathname });
   assert.deepEqual(problems(logs), []);
 });

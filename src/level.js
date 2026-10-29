@@ -1171,7 +1171,9 @@ export class Level {
     if (layout) dealProps(groups, map.spots, layout.rng);
     this.layoutKey = layout ? layout.key : ''; // which layout stands (main.js resetWorld builds afresh when another is wanted)
     this.fixtures = buildFixtures(this, map.fixtures); // lamps and signs: fixed props that play along (fixtures.js)
-    this.exit = this.fixtures.find((f) => f.kind === 'exit') || null; // a room's way on (彈幕試驗 ⑤: waves.js 'exit')
+    this.exits = this.fixtures.filter((f) => f.kind === 'exit'); // a room's ways on (彈幕試驗 ⑤: waves.js 'exit'; two doors: F③a)
+    this.exit = this.exits[0] || null;
+    for (const x of this.exits.slice(1)) x.setSpare(true); // the second waits for main.js setExits to give it a room
     this.props = [...this.barrels, ...this.pans, ...this.tools, ...this.fixtures];
     for (const [x, z] of map.pads || []) this.addPad(x, z);
     this.buildSpawns(map.spawns);
