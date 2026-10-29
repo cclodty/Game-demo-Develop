@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
 import { Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS } from './cards.js';
+import { Challenges } from './challenge.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
@@ -163,6 +164,7 @@ class Game {
     this.score = new Score(this);
     this.waves = new Waves(this);
     this.cards = new Cards(this); // the style cards (彈幕 ② C②): held for the run, picked at a floor's end
+    this.challenge = new Challenges(this); // a room's challenge (F②a): offered before its first wave, its prize for the run
     this.cardSel = 0; // the card a pad has marked on the card screen (showCards)
     this.hud = new HUD(this);
     // the settings (settings.js): volumes and bindings, applied to the input, the audio and the hints
@@ -191,6 +193,13 @@ class Game {
       this.input.enableTouch($('touch'), $('touch-focus'));
       $('touch-pause').addEventListener('click', () => this.setPaused(true));
     }
+    // a room's challenge sign (challenge.js, F②a): a click or a tap on it is the press of Y the logic reads and records
+    const sign = $('challenge-sign');
+    for (const ev of ['mousedown', 'pointerdown']) sign.addEventListener(ev, (e) => e.stopPropagation()); // not a shot, not a stick
+    sign.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.challenge.offer) this.input.pressed.add('KeyY');
+    });
     const start = this.level.start;
     this.aimPoint = new THREE.Vector3(start.x, GUN_Y, start.z - 5);
     this.camTarget = new THREE.Vector3(start.x, 0, start.z);
@@ -776,6 +785,7 @@ class Game {
     this.floors = spec ? drawFloors(spec, this.rng.fork('floor')) : null; // C①: three floors of rooms, each an array of room ids
     this.floor = this.floors ? this.floors.flat() : null;
     this.cards.reset();
+    this.challenge.reset();
     // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
     const warmup = this.fixedWarmup ?? wantWarmup();
     // the rules hold for the whole run (a replay brings its own: fixedRules)
@@ -1744,6 +1754,7 @@ class Game {
     this.notes.log(`被${source}打中 −${dmg}（HP ${Math.max(0, Math.ceil(this.player.hp))}）`);
     this.score.breakCombo();
     this.score.rank.hit();
+    this.challenge.hurt();
     this.waves.hurt = true;
     this.waves.beatHurt = true;
     this.hurtFx = Math.min(1, this.hurtFx + 0.45 + dmg / 60);
@@ -1906,6 +1917,8 @@ class Game {
 
   pollPad() {
     const pad = this.input.poll();
+    // a pad takes a room's challenge on (challenge.js): the d-pad's down makes the press the logic reads
+    if (this.challenge.offer && this.input.padPress === 13 && this.state === 'playing') this.input.pressed.add('KeyY');
     if (this.cards.pending && this.input.padPress >= 0 && this.state === 'playing') {
       // a pad picks a style card: the d-pad (or LB/RB) moves along the three, A takes the one marked
       const b = this.input.padPress;
@@ -2152,6 +2165,7 @@ class Game {
     this.thrown.update(dt);
     this.pickups.update(dt, h, cmd);
     this.tutorial.update(h);
+    if (this.state === 'playing') this.challenge.update(cmd, h);
     this.waves.update(dt, h);
     // standing still while enemies are about drains the Style rank (RANK.camp)
     const busy = this.waves.state === 'active' && this.enemies.aliveCount > 0 && this.player.alive;

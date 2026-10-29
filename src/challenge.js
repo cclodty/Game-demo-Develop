@@ -1,0 +1,132 @@
+// The room challenges (F②a, REDESIGN §6): before a fight room's first wave, a sign over its entry offers one
+// challenge, drawn from the room's own stream (rng.fork('challenge', stage): the same seed, the same challenge). A
+// press of Y (input.js BUTTONS; the sign is a button too, and a pad's d-pad down makes the press: main.js) takes it
+// on, so a replay takes it on the same step; the room's first wave starting closes the sign unanswered. Taken on, the
+// HUD shows it under way; done when the room is cleared, it scores CHALLENGE Style and gives its reward for the rest
+// of the run; broken, it says so at once, and costs nothing. A boss room has none. Each challenge is data: what
+// breaks it is counted from the game's own events (a hit taken, the fighting clock), its reward is one switch or
+// number the game reads (`lives`, a weapon dropped). The numbers are in config.js CHALLENGE.
+import { CHALLENGE, PLAYER } from './config.js';
+import { PLAYER_WEAPONS } from './weapons.js';
+
+/**
+ * The challenges: `name` and `en` on the sign, `text()` what it asks (from config.js, read when shown), `prize` the
+ * reward's name; `fits` whether it can be offered under the run's rules (a weapon is no prize where no gun is handed
+ * out: rules.js `drops`).
+ */
+export const CHALLENGES = {
+  nohit: { name: '無傷', en: 'NO HIT', text: () => '成間房冇中過', prize: '一條命', reward: 'life', fits: () => true },
+  clock: { name: '限時', en: 'TIME LIMIT', text: () => `打鬥 ${CHALLENGE.time} 秒內清房`, prize: '一支特別武器', reward: 'weapon', fits: (g) => g.ruleset.drops !== false && g.ruleset.pads !== false },
+};
+export const CHALLENGE_IDS = Object.keys(CHALLENGES);
+
+export class Challenges {
+  constructor(game) {
+    this.game = game;
+    this.reset();
+  }
+
+  reset() {
+    this.offer = null; // the sign up: { id, stage }
+    this.active = null; // the one taken on: { id, stage, t: fighting seconds, failed }
+    this.openedFor = -1; // the room (stage) whose sign has been put up
+    this.lives = 0; // lives in hand (無傷's prize): an HP of nothing spends one instead of ending the run
+    this.won = 0;
+  }
+
+  /**
+   * Before room `stage`'s first wave (waves.js, while it waits to start): once a room, its sign goes up, if it is a
+   * fight room (no boss) and a challenge fits; the wait is CHALLENGE.window at least, so it can be read.
+   */
+  before(stage, waves) {
+    if (this.openedFor === stage) return;
+    this.openedFor = stage;
+    const g = this.game;
+    const map = g.mapAt(stage);
+    if (!map || map.boss) return;
+    const ids = CHALLENGE_IDS.filter((id) => CHALLENGES[id].fits(g));
+    if (!ids.length) return;
+    const r = g.rng.fork('challenge', stage);
+    const id = ids[r.int(0, ids.length - 1)];
+    this.offer = { id, stage };
+    waves.timer = Math.max(waves.timer, CHALLENGE.window);
+    const c = CHALLENGES[id];
+    g.notes.log(`挑戰：${c.name}（${c.text()}，獎勵${c.prize}），按 Y 接受`);
+  }
+
+  /** A logic step: the sign taken on by the step's press; the clock of 限時 runs while a wave is being fought. */
+  update(cmd, h) {
+    const g = this.game;
+    if (this.offer && cmd.hit('KeyY')) {
+      const c = CHALLENGES[this.offer.id];
+      this.active = { id: this.offer.id, stage: this.offer.stage, t: 0, failed: false };
+      this.offer = null;
+      g.notes.log(`接受挑戰：${c.name}`);
+      g.audio.pickup();
+    }
+    const a = this.active;
+    if (a && !a.failed && a.id === 'clock' && g.waves.state === 'active') {
+      a.t += h;
+      if (a.t > CHALLENGE.time) this.fail(`超過 ${CHALLENGE.time} 秒`);
+    }
+  }
+
+  /** The room's first wave starts (waves.js startWave): an unanswered sign comes down. */
+  waveStarts() {
+    if (!this.offer) return;
+    this.game.notes.log(`冇接受挑戰：${CHALLENGES[this.offer.id].name}`);
+    this.offer = null;
+  }
+
+  /** The player is hit (main.js onPlayerHurt): 無傷 is broken. */
+  hurt() {
+    if (this.active && !this.active.failed && this.active.id === 'nohit') this.fail('中咗');
+  }
+
+  fail(why) {
+    const c = CHALLENGES[this.active.id];
+    this.active.failed = true;
+    this.game.notes.log(`挑戰失敗：${c.name}（${why}）`);
+    this.game.hud.banner('CHALLENGE FAILED', `挑戰失敗 · ${c.name}`, 'fail');
+  }
+
+  /** The room is cleared (waves.js): a challenge under way and not broken is done; its Style and its prize. */
+  roomClear() {
+    const a = this.active;
+    this.offer = null;
+    if (!a) return;
+    this.active = null;
+    if (a.failed) return;
+    const g = this.game;
+    const c = CHALLENGES[a.id];
+    this.won++;
+    g.score.style('CHALLENGE', CHALLENGE.style);
+    if (c.reward === 'life') this.lives++;
+    let prize = c.prize;
+    if (c.reward === 'weapon') {
+      // a special weapon at the player's feet, full, drawn from the room's stream after the challenge
+      const r = g.rng.fork('challenge', a.stage);
+      r.next();
+      const kind = CHALLENGE.weapons[r.int(0, CHALLENGE.weapons.length - 1)];
+      const p = g.player;
+      g.pickups.spawn(kind, p.x, p.z, { ttl: CHALLENGE.weaponTtl });
+      prize = `${PLAYER_WEAPONS[kind].name}`;
+    }
+    g.notes.log(`挑戰成功：${c.name}${a.id === 'clock' ? `（${a.t.toFixed(1)} 秒）` : ''}，獎勵${prize}`);
+    g.hud.banner('CHALLENGE CLEAR', `挑戰成功 · ${c.name} · ${prize}`, 'clear');
+  }
+
+  /**
+   * An HP of nothing (player.js hurt): with a life in hand, the player is up again at once, whole and untouchable
+   * CHALLENGE.lifeInvuln s, and the life is spent. False with none.
+   */
+  spendLife(p) {
+    if (this.lives <= 0) return false;
+    this.lives--;
+    p.hp = PLAYER.hp;
+    p.invuln = CHALLENGE.lifeInvuln;
+    this.game.notes.log(`用咗一條命（剩 ${this.lives}）`);
+    this.game.hud.banner('EXTRA LIFE', '多一條命 · 企返起身', 'clear');
+    return true;
+  }
+}

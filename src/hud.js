@@ -2,8 +2,10 @@
 // lock marker and off-screen enemy arrows.
 
 import * as THREE from 'three';
-import { COMBO_WINDOW, FOCUS, PLAYER } from './config.js';
+import { CHALLENGES } from './challenge.js';
+import { CHALLENGE, COMBO_WINDOW, FOCUS, PLAYER } from './config.js';
 import { withLabels } from './input.js';
+import { clamp } from './utils.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
 const $ = (id) => document.getElementById(id);
@@ -48,6 +50,9 @@ export class HUD {
       lock: $('lock-marker'),
       indicators: $('indicators'),
       focusLabel: $('focus-label'),
+      sign: $('challenge-sign'),
+      challengeOn: $('challenge-on'),
+      lives: $('lives'),
     };
     this.cache = new Map();
     this.displayScore = 0;
@@ -212,6 +217,45 @@ export class HUD {
     this.updateArrows();
     this.updateSnipers();
     this.updateAffixTags();
+    this.updateChallenge();
+  }
+
+  /**
+   * The room's challenge (challenge.js, F②a): its sign on the entry's gate while it is offered (hung below it, outside
+   * the room, so it covers neither the player starting by it nor the room; kept on the screen); the
+   * one taken on under the weapon, its clock running down for 限時, crossed out once broken; the lives in hand.
+   */
+  updateChallenge() {
+    const g = this.game;
+    const C = g.challenge;
+    const e = this.el;
+    const offer = C.offer;
+    this.set('sign', offer ? `${offer.stage}/${offer.id}` : '', (v) => {
+      e.sign.classList.toggle('hidden', !v);
+      if (!v) return;
+      const c = CHALLENGES[offer.id];
+      e.sign.querySelector('.ch-name').innerHTML = `${c.name} <small>${c.en}</small>`;
+      e.sign.querySelector('.ch-text').textContent = c.text();
+      e.sign.querySelector('.ch-prize').textContent = `獎勵：${c.prize}`;
+    });
+    const entry = g.level.map && g.level.map.entry;
+    if (offer && entry) {
+      const s = this.project(entry[0], 0, entry[1]);
+      const x = clamp(s.x, 130, innerWidth - 130);
+      const y = clamp(s.y + 22, 150, innerHeight - 180);
+      e.sign.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, 0)`;
+    }
+    const a = C.active;
+    const on = a ? `${CHALLENGES[a.id].name} ${CHALLENGES[a.id].en}${a.failed ? ' ✗ 失敗' : a.id === 'clock' ? ` · 剩 ${Math.max(0, CHALLENGE.time - a.t).toFixed(1)} 秒` : ''}` : '';
+    this.set('challengeOn', on, (v) => {
+      e.challengeOn.classList.toggle('hidden', !v);
+      e.challengeOn.classList.toggle('failed', !!(a && a.failed));
+      e.challengeOn.textContent = v ? `挑戰中 · ${v}` : '';
+    });
+    this.set('lives', C.lives, (v) => {
+      e.lives.classList.toggle('hidden', v <= 0);
+      e.lives.textContent = `多一條命 ×${v}`;
+    });
   }
 
   /** Where (x, z), y over the ground there, is on the screen. */
