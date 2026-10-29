@@ -493,6 +493,9 @@ export class Fixture {
   /** The lock gives (a bullet, or a kick on the post): the shutter comes down. */
   drop(how = 'shot') {
     if (this.down || this.fallT >= 0) return false;
+    // the fight here is over (a room cleared, its exit open or its cards up; the stage handed over): the lock holds, or a stray shot on
+    // the way out would shut the way on for good, as nothing raises it again (試玩回饋 2026-10-29: the street's exit)
+    if (['exit', 'cards', 'transition'].includes(this.game.waves.state)) return false;
     this.fallT = 0;
     this.game.audio.impact(this.game.panFor(this.x));
     this.game.notes.log(how === 'kick' ? '踢斷鐵閘的鏈，鐵閘落下' : '鐵閘的鎖被打斷，鐵閘落下');

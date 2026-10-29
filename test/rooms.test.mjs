@@ -1,8 +1,8 @@
 // 彈幕試驗 ②: the trial's mode, 彈幕試驗 BULLET HELL, played in one room, a
 // teahouse (茶樓: the kind found all over Macau, not a real one; no name on
-// it). The whole room is on the screen whatever the view and wherever the
-// player is (a bullet hell is unfair when the shots come from off the
-// screen), one flat floor, dark and grey so the bullets stand out; round
+// it). The camera follows the player (試玩回饋 ⑥a: before, the whole room was on
+// the screen; the rooms grew and the developer wanted the player bigger), one
+// flat floor, dark and grey so the bullets stand out; round
 // tables are low (they stop bodies; shots and sight pass over until one is
 // kicked over: 彈幕試驗 ④, test/flip.test.mjs) and the dim-sum trolleys (the hand trolley's kind, a steamer stack on its
 // deck) roll and bowl men over when kicked. The room is data in the room
@@ -79,18 +79,20 @@ test('the menu has the game’s own mode (子彈芭蕾, once 彈幕試驗); its 
   assert.deepEqual(r.maps, ['rooftop', 'club', 'docks', 'senado', 'felicidade', 'guia', 'ruins'], 'MAPS as it was: the room is not one of them');
 });
 
-test('one screen: in every view, with the player anywhere in the room, in bullet time or not, its four inner corners are on the screen', async () => {
+test('the camera follows the player (試玩回饋 ⑥a): in every view, wherever he is in the room, in bullet time or not, he is near the middle of the screen; in a corner, the far one is off it, and a man there shows as an arrow at the screen’s edge', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom();
     const L = g.level;
-    const { halfW, halfD } = L.bounds;
-    const w = halfW; // the walls stand just outside the bounds (level.js buildEdges)
-    const d = halfD;
+    const { halfW: w, halfD: d } = L.bounds;
     const corners = [[-w, -d], [w, -d], [-w, d], [w, d]];
     const places = [[L.start.x, L.start.z], ...corners.map(([x, z]) => [x * 0.85, z * 0.85])];
     const V = g.camera.position.constructor;
     const out = [];
+    const ndc = (x, z) => {
+      const v = new V(x, 0, z).project(g.camera);
+      return Math.max(Math.abs(v.x), Math.abs(v.y));
+    };
     for (let view = 0; view < 3; view++) {
       g.view = view;
       for (const [px, pz] of places) {
@@ -101,20 +103,30 @@ test('one screen: in every view, with the player anywhere in the room, in bullet
           g.focusAmt = focus; // bullet time zooms in elsewhere
           g.updateCamera(1, true);
           g.camera.updateMatrixWorld();
-          let worst = 0;
-          for (const [x, z] of corners) {
-            const v = new V(x, 0, z).project(g.camera);
-            worst = Math.max(worst, Math.abs(v.x), Math.abs(v.y));
-          }
-          out.push({ view, at: [px, pz], focus, worst });
+          out.push({ view, at: [px, pz], focus, player: ndc(px, pz) });
         }
       }
       g.focusAmt = 0;
     }
+    // in the north-west corner: the south-east one is off the screen, and a man there is an arrow at its edge
     g.view = 2;
-    return out;
+    const [px, pz] = [-w * 0.85, -d * 0.85];
+    g.player.x = px;
+    g.player.z = pz;
+    g.aimPoint.set(px, 0, pz);
+    g.updateCamera(1, true);
+    g.camera.updateMatrixWorld();
+    const far = ndc(w, d);
+    const e = g.enemies.spawn('grunt', { x: w - 1, z: d - 1, ex: w - 1, ez: d - 1.1, stay: true });
+    e.state = 'move';
+    g.hud.update(1 / 60);
+    const arrows = [...document.querySelectorAll('#indicators .arrow')].filter((a) => a.style.display === 'block').length;
+    g.enemies.clear();
+    return { out, far, arrows };
   });
-  for (const o of r) assert.ok(o.worst <= 0.97, `view ${o.view}, the player at ${o.at.map((v) => v.toFixed(1))}${o.focus ? ', bullet time' : ''}: a corner at ${o.worst.toFixed(2)} of the screen’s half`);
+  for (const o of r.out) assert.ok(o.player <= 0.45, `view ${o.view}, the player at ${o.at.map((v) => v.toFixed(1))}${o.focus ? ', bullet time' : ''}: at ${o.player.toFixed(2)} of the screen’s half`);
+  assert.ok(r.far > 1, `the far corner off the screen (${r.far.toFixed(2)})`);
+  assert.equal(r.arrows, 1, 'the man there an arrow at the edge');
 });
 
 test('the teahouse: one flat floor, dark and grey (its mean luminance under 0.2); four point lights; the round tables stop bodies, shots and sight pass over them upright; its doors are where the men come in', async () => {

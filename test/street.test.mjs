@@ -217,6 +217,29 @@ test('a shot on the shutter’s lock drops it on the man under it: SHUTTER; the 
   assert.deepEqual(problems(logs), []);
 });
 
+test('the room cleared and its exit open, a shot or a kick at the shutter’s lock no longer drops it: the way to the exit stays open (試玩回饋 2026-10-29)', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    window.toStreet();
+    const { shutter } = window.parts();
+    const L = g.level;
+    // as the room's last wave clears (waves.js 'exit'): the exit open, nobody left
+    g.waves.state = 'exit';
+    L.exit.unlock();
+    const shot = shutter.drop('shot');
+    const kick = shutter.drop('kick');
+    for (let i = 0; i < 240; i++) g.updatePlay(1 / 120);
+    // the shot itself, from the street at the lock post
+    g.bullets.spawn({ x: shutter.x, z: shutter.z + 4, dx: 0, dz: -1, speed: 40, owner: 'player', damage: 1 });
+    for (let i = 0; i < 120; i++) g.updatePlay(1 / 120);
+    const at = L.exit.at;
+    const path = L.nav.findPath(shutter.x + shutter.w / 2, shutter.z + 2, at.x, at.z);
+    return { shot, kick, down: shutter.down, falling: shutter.fallT >= 0, straight: !!path && path.length <= 3 };
+  });
+  assert.deepEqual(r, { shot: false, kick: false, down: false, falling: false, straight: true });
+  assert.deepEqual(problems(logs), []);
+});
+
 test('screenshot: the shutter dropping on the middle shop, the west door kicked open onto the man behind it, gunners on the street', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;

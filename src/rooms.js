@@ -3,9 +3,10 @@
 // maps.js's are: the walls round it (the camera's side low), a door on a wall
 // for each way in (the spawns), round tables (fixtures.js 'table': low, shots
 // fly over them until the player's kick flips one into a wall), dim-sum trolleys (the hand trolley, a steamer stack on its deck: kicked, it
-// rolls and bowls men over). The whole room is on the screen at once (the
-// camera holds its middle, `camera.room`; test/rooms.test.mjs) and its floor
-// is dark and grey, so bullets stand out on it.
+// rolls and bowls men over). The camera follows the player most of the way from
+// the room's middle (`camera.room` with `follow`, config.js CAMERA.roomDist and
+// roomLean; test/rooms.test.mjs): since 試玩回饋 ⑥a the room is bigger than the
+// screen (it was all on it before). Its floor is dark and grey, so bullets stand out on it.
 //
 // A run is a floor of rooms (彈幕試驗 ⑤, drawFloor; test/floor.test.mjs): the
 // player comes in at a room's entry (a gate in a low wall, shut behind him) and
@@ -66,12 +67,12 @@
 //   then is a BLACKOUT), the dance floor flashing white the beat before; danceFloor: { at: [x, z], tiles: [cols, rows] }
 //   its light tiles, a metre each; dress 'disco' (E⑦),
 //   camera: { room: { at: [x, z] the middle it holds, back: m it sits back towards the camera, lean: how far it leans
-//   towards the player }, dist } }
+//   towards the player, or follow: CAMERA.roomLean of the way, from CAMERA.roomDist }, dist } }
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Pigeons } from './ambient.js';
-import { PLAZA_ROOM } from './config.js';
+import { PLAZA_ROOM, ROOM_SIZE } from './config.js';
 import { corrugatedTexture, windowTexture } from './textures.js';
 
 /** A door on side `side`, `at` m along it from its middle: where a man comes in (the wall's inner face) and the spot 2.2 m in. */
@@ -94,8 +95,62 @@ function wallPoint(side, at, halfW, halfD) {
 const EXIT_DOOR = [1.8, 2.5]; // the exit's width and height (m)
 const ENTRY_IN = 1.4; // m inside its entry the player starts
 
-/** What level.js loads for room template `t`. */
-export function room(t) {
+/** The rooms' scale (config.js ROOM_SIZE): `?roomscale=` in the address for a run, else the config's. */
+const ROOM_SCALE = (() => {
+  const q = Number(new URLSearchParams(globalThis.location ? globalThis.location.search : '').get('roomscale'));
+  return q > 0 ? q : ROOM_SIZE.scale;
+})();
+
+/**
+ * Template `t` drawn `k` × as big (試玩回饋 ⑥a): every place in it spread out from the room's middle, side by side
+ * (doors, the entry and the exit, tables, trolleys, barrels, cover, posts, flocks, the pool, the stall, the bend, the
+ * steps, the shops, the washing, the dance floor, the boss's spots, the lamps); what stands there keeps its
+ * size (a table's radius, a crate's box, a door's width), but for what covers ground (the water, a shop's depth, the
+ * steps' slope, the bend's radius, the dance floor's tiles). The lamps reach as much farther and shine k² as strong.
+ */
+function scaled(t, k) {
+  if (k === 1) return t;
+  const S = (v) => Math.round(v * k * 100) / 100;
+  const at = ([x, z, ...rest]) => [S(x), S(z), ...rest];
+  const side = ([sd, a]) => [sd, S(a)];
+  const spots = (v) => (Array.isArray(v) ? (Array.isArray(v[0]) ? v.map(at) : at(v)) : v);
+  const boss = (b) => {
+    if (!b || typeof b !== 'object') return b;
+    const out = Array.isArray(b) ? b.map(boss) : { ...b };
+    if (!Array.isArray(b)) for (const key of ['perches', 'posts', 'from', 'at', 'pad']) if (out[key]) out[key] = spots(out[key]);
+    if (out.pair) out.pair = out.pair.map(boss);
+    return out;
+  };
+  const th = t.theme;
+  return {
+    ...t,
+    size: t.size.map(S),
+    doors: t.doors.map(side),
+    entry: side(t.entry),
+    exit: side(t.exit),
+    tables: t.tables.map(at),
+    trolleys: t.trolleys && t.trolleys.map(at),
+    barrels: t.barrels && t.barrels.map(at),
+    solids: t.solids && t.solids.map(at),
+    posts: t.posts && t.posts.map((p) => p.map(S)),
+    flocks: t.flocks && t.flocks.map(at),
+    benches: t.benches && t.benches.map(at),
+    pool: t.pool && at(t.pool),
+    stall: t.stall && at(t.stall),
+    water: t.water && t.water.map((w) => ({ ...w, x: S(w.x), z: S(w.z), w: S(w.w), d: S(w.d) })),
+    track: t.track && { ...t.track, at: at(t.track.at), r: S(t.track.r) },
+    steps: t.steps && { ...t.steps, profile: t.steps.profile.map(([z, y]) => [S(z), y]), flight: t.steps.flight.map(S) },
+    shops: t.shops && { ...t.shops, depth: S(t.shops.depth), list: t.shops.list.map((q) => ({ ...q, x: q.x.map(S) })) },
+    laundry: t.laundry && { ...t.laundry, lines: t.laundry.lines.map((l) => l.map(S)) },
+    danceFloor: t.danceFloor && { at: at(t.danceFloor.at), tiles: t.danceFloor.tiles.map((n) => Math.round(n * k)) },
+    boss: boss(t.boss),
+    theme: { ...th, fog: [th.fog[0], th.fog[1] / k], points: th.points.map(([c, x, y, z, i, d]) => [c, S(x), y, S(z), Math.round(i * k * k * 10) / 10, S(d)]) },
+  };
+}
+
+/** What level.js loads for room template `t`, at the rooms' scale (ROOM_SCALE). */
+export function room(template) {
+  const t = scaled(template, ROOM_SCALE);
   const halfW = t.size[0] / 2;
   const halfD = t.size[1] / 2;
   const [h, mat, trim] = t.walls;
@@ -739,7 +794,7 @@ function teaTheme(at) {
   };
 }
 
-const ROOM_CAMERA = { room: { at: [0, 0], back: 5, lean: 0.1 }, dist: 28 };
+const ROOM_CAMERA = { room: { at: [0, 0], back: 1.5, follow: true } }; // follows the player (config.js CAMERA.roomDist, roomLean: 試玩回饋 ⑥a); before, it held the middle from 28 m (back 5, lean 0.1) with the whole room on the screen
 const ROOM_BUDGET = { tris: 120000, calls: 400 }; // rendered per frame, all passes; indoor: 400 (test/maps.test.mjs at the start: the teahouse 51,147 and 132, the banquet room 50,023 and 123, the side hall 49,373 and 99, the dai pai dong 66,804 and 111; the tables and the exit, fixtures, are their own meshes)
 
 /**
