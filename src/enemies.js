@@ -361,7 +361,7 @@ export const TYPES = {
   },
 };
 
-const WEAPONS = {
+export const WEAPONS = {
   pistol: { shots: 1, interval: 0.1, speed: 20, dmg: 20, pellets: 1, spread: 0.02, sound: 'pistol' },
   shotgun: { shots: 1, interval: 0.1, speed: 17, dmg: 13, pellets: 6, spread: 0.28, range: 13, sound: 'shotgun' },
   rifle: { shots: 3, interval: 0.11, speed: 28, dmg: 16, pellets: 1, spread: 0.035, sound: 'rifle' },
@@ -485,7 +485,7 @@ class Enemy {
     this.path = null;
     this.pathI = 0;
     this.repath = 0;
-    this.fireCd = this.game.rng.range(0.2, 0.8);
+    this.fireCd = this.game.rng.range(0.2, 0.8) * (this.inRoom ? HELL.firstMul : 1); // in a room sooner (試玩回饋 ⑤)
     this.aimT = 0;
     this.losLost = 0;
     this.los = false;
@@ -687,10 +687,18 @@ class Enemy {
 
   /**
    * Seconds from the laser coming on to the shot: the type's, times the difficulty's (rules.js aimMul) and the stage's
-   * (`pace`); longer while his captain's fall shakes him (AI.captain).
+   * (`pace`); longer while his captain's fall shakes him (AI.captain); in a room HELL.aimMul of it (試玩回饋 ⑤), but for a
+   * barrage's tell (WEAPONS `pattern`: the slow walls, the heavy fire), which is how the player reads what is coming.
    */
   get aimTime() {
-    return this.cfg.aimTime * this.game.ruleset.aimMul * this.pace * (this.mgr.panicT > 0 ? AI.captain.panicAim : 1);
+    const quick = this.inRoom && !(WEAPONS[this.cfg.weapon] && WEAPONS[this.cfg.weapon].pattern); // a barrage's tell keeps its time: the pattern is read in it
+    return this.cfg.aimTime * this.game.ruleset.aimMul * this.pace * (this.mgr.panicT > 0 ? AI.captain.panicAim : 1) * (quick ? HELL.aimMul : 1);
+  }
+
+  /** His pace on foot, m/s: the type's; in a room HELL.moveMul × that (試玩回饋 ⑤), but never past HELL.speedCap × the player's. */
+  get speed() {
+    const s = this.cfg.speed;
+    return this.inRoom ? Math.min(s * HELL.moveMul, Math.max(s, PLAYER.speed * HELL.speedCap)) : s;
   }
 
   /** Fighting in a room (waves.js MODES `floor`, 彈幕 ② A①): the hell's rules (config.js HELL). */
@@ -1766,7 +1774,7 @@ class Enemy {
             const dz = this.sp.ez - this.z;
             const d = Math.hypot(dx, dz);
             if (d < 0.3 || this.enterT > 2) this.state = this.rushes ? 'chase' : 'move';
-            else want = [(dx / d) * cfg.speed, (dz / d) * cfg.speed];
+            else want = [(dx / d) * this.speed, (dz / d) * this.speed];
           }
           break;
         }
@@ -1783,7 +1791,7 @@ class Enemy {
             const tx = p.x + Math.sin(a) * cfg.fly.radius;
             const tz = p.z + Math.cos(a) * cfg.fly.radius;
             const d = Math.hypot(tx - this.x, tz - this.z) || 1;
-            const sp = Math.min(cfg.speed, d * 2);
+            const sp = Math.min(this.speed, d * 2);
             want = [((tx - this.x) / d) * sp, ((tz - this.z) / d) * sp];
             face = angleTo(this.x, this.z, p.x, p.z);
             break;
@@ -1800,7 +1808,7 @@ class Enemy {
                 this.pathI = 0;
               }
               if (!this.path) this.retreatTo = null; // no way there: he fights from where he is
-              want = this.followPath(cfg.speed);
+              want = this.followPath(this.speed);
               if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
               this.tryVault(dt, t);
               break;
@@ -1819,7 +1827,7 @@ class Enemy {
                 g.notes.log(`${cfg.label} 繞到人盾側面`);
               }
             }
-            want = this.followPath(cfg.speed);
+            want = this.followPath(this.speed);
             if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
             break;
           }
@@ -1836,6 +1844,12 @@ class Enemy {
               const dx = t.x - this.x;
               const dz = t.z - this.z;
               const d = Math.hypot(dx, dz);
+              // on his way there he fires when he sees the player (試玩回饋 ⑤: HELL.walkFire), and goes on after
+              const onWay = cfg.lob ? distP < cfg.range[1] + 3 && distP > cfg.lob.radius + 1 && g.level.sameLevel(this.x, this.z, p.x, p.z) : this.los && distP < cfg.range[1] + 3;
+              if (HELL.walkFire && d >= 0.35 && onWay && this.fireCd <= 0 && this.blindT <= 0 && this.mgr.requestToken(this)) {
+                this.startAim();
+                break;
+              }
               if (d < 0.35) {
                 this.state = 'hold';
                 this.path = null;
@@ -1847,7 +1861,7 @@ class Enemy {
                 break;
               }
               if (d < 1.2) {
-                const sp = Math.min(cfg.speed, d * 4 + 0.4);
+                const sp = Math.min(this.speed, d * 4 + 0.4);
                 want = [(dx / d) * sp, (dz / d) * sp];
               } else {
                 this.repath -= dt;
@@ -1860,7 +1874,7 @@ class Enemy {
                   this.post = null; // no way there: another, later
                   break;
                 }
-                want = this.followPath(cfg.speed);
+                want = this.followPath(this.speed);
                 if (this.tryVault(dt, t)) break;
               }
               if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
@@ -1896,7 +1910,7 @@ class Enemy {
               }
               if (dc < 1.2) {
                 // the last step is straight to the spot (a path only reaches the cell it is in)
-                const sp = Math.min(cfg.speed, dc * 4 + 0.4);
+                const sp = Math.min(this.speed, dc * 4 + 0.4);
                 want = [(dx / dc) * sp, (dz / dc) * sp];
               } else {
                 this.repath -= dt;
@@ -1905,7 +1919,7 @@ class Enemy {
                   this.path = g.level.nav.findPath(this.x, this.z, c.x, c.z);
                   this.pathI = 0;
                 }
-                want = this.followPath(cfg.speed);
+                want = this.followPath(this.speed);
                 if (this.tryVault(dt, c)) break;
               }
               if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
@@ -1929,7 +1943,7 @@ class Enemy {
             this.path = g.level.nav.findPath(this.x, this.z, goal.x, goal.z);
             this.pathI = 0;
           }
-          want = this.followPath(cfg.speed);
+          want = this.followPath(this.speed);
           if (this.los) face = angleTo(this.x, this.z, p.x, p.z);
           if (this.los && cfg.reload) want = [0, 0]; // a sniper who can see the player stands his ground
           else if (this.path && this.path.length && this.tryVault(dt, this.path[this.path.length - 1])) break;
@@ -1999,7 +2013,7 @@ class Enemy {
             const dx = c.peekX - this.x;
             const dz = c.peekZ - this.z;
             const d = Math.hypot(dx, dz);
-            const sp = Math.min(cfg.speed, d * 4 + 0.4);
+            const sp = Math.min(this.speed, d * 4 + 0.4);
             want = d > 0.05 ? [(dx / d) * sp, (dz / d) * sp] : [0, 0];
           }
           if (!c || this.timer <= 0) {
@@ -2132,7 +2146,7 @@ class Enemy {
           }
           if (bomb && this.turnT > 0) {
             this.turnT -= dt;
-            want = [this.dashX * cfg.speed, this.dashZ * cfg.speed];
+            want = [this.dashX * this.speed, this.dashZ * this.speed];
           } else if (this.tactic === 'flank' && distP > AI.flankClose && this.mgr.hasPartner(this)) {
             // two of them split up: each closes in along an arc on his own side, so they arrive from two directions
             const b = Math.atan2(this.x - p.x, this.z - p.z) + (this.flankSide * AI.flankAngle * Math.PI) / 180;
@@ -2142,7 +2156,7 @@ class Enemy {
             const dx = tx - this.x;
             const dz = tz - this.z;
             const d = Math.hypot(dx, dz) || 1;
-            if (g.level.nav.lineWalkable(this.x, this.z, tx, tz)) want = [(dx / d) * cfg.speed, (dz / d) * cfg.speed];
+            if (g.level.nav.lineWalkable(this.x, this.z, tx, tz)) want = [(dx / d) * this.speed, (dz / d) * this.speed];
             else {
               if (this.repath <= 0 || !this.path) {
                 this.repath = 0.45;
@@ -2150,17 +2164,17 @@ class Enemy {
                 this.path = g.level.nav.findPath(this.x, this.z, i >= 0 ? g.level.nav.centerX(i) : p.x, i >= 0 ? g.level.nav.centerZ(i) : p.z);
                 this.pathI = 0;
               }
-              want = this.followPath(cfg.speed);
+              want = this.followPath(this.speed);
             }
           } else if (this.los && g.level.nav.lineWalkable(this.x, this.z, p.x, p.z)) {
-            want = [(dxp / distP) * cfg.speed, (dzp / distP) * cfg.speed];
+            want = [(dxp / distP) * this.speed, (dzp / distP) * this.speed];
           } else {
             if (this.repath <= 0 || !this.path) {
               this.repath = 0.45;
               this.path = g.level.nav.findPath(this.x, this.z, p.x, p.z);
               this.pathI = 0;
             }
-            want = this.followPath(cfg.speed);
+            want = this.followPath(this.speed);
           }
           if (bomb) {
             if (distP < bomb.reach) this.light();
@@ -2339,7 +2353,7 @@ class Enemy {
     const speed = Math.hypot(this.vx, this.vz);
     if (face === null && speed > 0.4) face = Math.atan2(this.vx, this.vz);
     if (face !== null) this.facing = dampAngle(this.facing, face, this.stunT > 0 ? 2 : 14, dt);
-    this.moveAmt = damp(this.moveAmt, clamp(speed / Math.max(cfg.speed, 1), 0, 1), 10, dt);
+    this.moveAmt = damp(this.moveAmt, clamp(speed / Math.max(this.speed, 1), 0, 1), 10, dt);
     this.phase += speed * dt * 2.2;
     this.sync();
     this.updateLaser();

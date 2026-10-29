@@ -294,7 +294,7 @@ test('the shotgunner and the brute come on as ever, the rifleman, grenadier and 
   assert.ok(!r.inRoom && r.restMul === 1, 'and the gap before the next shot is the type’s own');
 });
 
-test('the stats panel tunes HELL live: the fire gap, the crowd and the post distance', async () => {
+test('the stats panel tunes HELL live: the fire gap, the crowd, the post distance, the men’s walk and aim', async () => {
   const r = await page.evaluate(async () => {
     const { HELL } = await import('./src/config.js');
     const { TUNABLES } = await import('./src/notes.js');
@@ -306,7 +306,7 @@ test('the stats panel tunes HELL live: the fire gap, the crowd and the post dist
     g.notes.resetTuning();
     return { paths, before, after, reset: HELL.fireMul };
   });
-  assert.deepEqual(r.paths, ['HELL.fireMul', 'HELL.maxAlive', 'HELL.postClose']);
+  assert.deepEqual(r.paths, ['HELL.fireMul', 'HELL.maxAlive', 'HELL.postClose', 'HELL.moveMul', 'HELL.aimMul']);
   assert.ok(r.before > 0 && r.before < 1, `config.js's own (${r.before})`);
   assert.equal(r.after, 0.3);
   assert.equal(r.reset, r.before);

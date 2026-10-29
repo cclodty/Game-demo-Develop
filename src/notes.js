@@ -45,6 +45,8 @@ export const TUNABLES = [
   { path: 'HELL.fireMul', label: '房內：開火間隔倍率', step: 0.05, min: 0.1, max: 2 },
   { path: 'HELL.maxAlive', label: '房內：同場人數上限', step: 1, min: 1, max: 30 },
   { path: 'HELL.postClose', label: '房內：迫近換位 m', step: 0.5, min: 0, max: 12 },
+  { path: 'HELL.moveMul', label: '房內：敵人行路速度倍率', step: 0.1, min: 0.5, max: 3 },
+  { path: 'HELL.aimMul', label: '房內：敵人瞄準時間倍率', step: 0.05, min: 0.1, max: 2 },
 ];
 
 const $ = (id) => document.getElementById(id);

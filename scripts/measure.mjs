@@ -5,11 +5,12 @@
 // shot) and what the bot picked up, and how much of the time a heavy gun was
 // in hand. Same seeds, same bot: run it before and after a change.
 //
-//   node scripts/measure.mjs [--runs 5] [--map 0] [--god] [--loot] [--json out.json]
+//   node scripts/measure.mjs [--runs 5] [--map 0] [--mode danmaku] [--god] [--loot] [--json out.json]
 //
 // --god: hurt as usual but never down, so every wave is played (firepower,
 // health, time); without it the run ends where the bot falls (difficulty).
 // --loot: the bot walks to a weapon on the floor whenever slot 2 is empty.
+// --mode: the mode to play (waves.js MODES; the arcade without it): `danmaku` plays the game's own floors of rooms.
 import fs from 'node:fs';
 import { gameHarness, installBot } from '../test/helpers.mjs';
 
@@ -23,6 +24,7 @@ const RUNS = Number(arg('runs', 5));
 const MAP = Number(arg('map', 0));
 const GOD = !!arg('god', false);
 const LOOT = !!arg('loot', false);
+const MODE = arg('mode', null);
 const JSON_OUT = arg('json', null);
 const LIMIT = Number(arg('minutes', 30)) * 60 * 60; // frames of game time a run may take at most
 
@@ -32,7 +34,7 @@ try {
   for (let r = 0; r < RUNS; r++) {
     const seed = 101 + r;
     const { page } = await h.open(`?seed=${seed}`);
-    await installBot(page, { map: MAP, seed, restart: false, god: GOD, loot: LOOT });
+    await installBot(page, { map: MAP, seed, mode: MODE, restart: false, god: GOD, loot: LOOT });
     await page.evaluate(async () => {
       const g = window.game;
       const { PLAYER_WEAPONS } = await import('./src/weapons.js');
@@ -124,9 +126,9 @@ try {
 const fmt = (x, d = 1) => (Number.isFinite(x) ? x.toFixed(d) : '—');
 const all = runs.flatMap((r) => r.waves.filter((w) => w.n > 0));
 const sum = (list, k) => list.reduce((a, w) => a + w[k], 0);
-console.log(`\n${RUNS} runs, map ${MAP}${GOD ? ', god' : ''}${LOOT ? ', loot' : ''}`);
+console.log(`\n${RUNS} runs, map ${MAP}${MODE ? `, ${MODE}` : ''}${GOD ? ', god' : ''}${LOOT ? ', loot' : ''}`);
 console.log('wave | runs | time s | hurt | enemy hp | pads | drops | handed ÷ hp | taken ÷ hp | heavy in hand');
-for (let n = 1; n <= 12; n++) {
+for (let n = 1; n <= Math.max(12, ...all.map((w) => w.n)); n++) {
   const ws = all.filter((w) => w.n === n);
   if (!ws.length) continue;
   const hp = sum(ws, 'hp');
