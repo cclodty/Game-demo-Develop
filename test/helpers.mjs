@@ -116,6 +116,13 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
       let chaseT = 0;
       let lootT = 0;
       let lootTo = null; // with `loot`: the next corner on the way to a weapon on the floor
+      // stuck: where it stood at the last look, how many of the steps since it pushed a way, and a sidestep under way
+      let stuckX = 0;
+      let stuckZ = 0;
+      let pushes = 0;
+      let unstickT = 0;
+      let unstickX = 0;
+      let unstickZ = 0;
       let i = 0;
       window.simStep = (n) => {
         const dt = 1 / 60;
@@ -288,6 +295,30 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
               const c = Math.cos(yaw);
               const s = Math.sin(yaw);
               [kx, kz] = [kx * c - kz * s, kx * s + kz * c];
+            }
+          }
+          // stuck: pushing a way for most of 1.5 s and not 0.4 m on (into a shut shop door with men out on the street, against
+          // a flipped table between it and the exit): it kicks a shut door by it, and sidesteps a random way for 0.8 s
+          if (Math.abs(kx) > 0.3 || Math.abs(kz) > 0.3) pushes++;
+          if (i % 90 === 0) {
+            if (pushes > 60 && Math.hypot(p.x - stuckX, p.z - stuckZ) < 0.4 && g.state === 'playing') {
+              unstickT = 0.8;
+              const a = random() * 6.28;
+              unstickX = Math.sin(a);
+              unstickZ = Math.cos(a);
+            }
+            stuckX = p.x;
+            stuckZ = p.z;
+            pushes = 0;
+          }
+          if (unstickT > 0) {
+            unstickT -= dt;
+            [kx, kz] = [unstickX, unstickZ];
+            const shut = g.level.fixtures.find((f) => f.kind === 'door' && !f.open && Math.hypot(f.x - p.x, f.z - p.z) < 1.8);
+            if (shut) {
+              aimAt(shut.x, shut.z);
+              inp.mouse.left = false;
+              if (i % 15 === 0) inp.pressed.add('KeyF');
             }
           }
           if (kx > 0.3) inp.keys.add('KeyD');
