@@ -9,6 +9,7 @@
 - **只講 9527 自己知道的嘢。** 點解揀中佢、晶晶嗰場戲、金爺係邊個，序章唔講，留俾之後的輪迴同檔案頁。佢第一次見到金爺，只係戲棚高位上一個金牙閃一閃的人。
 - **每頁只做一件事**，每頁至少一格反應或者停頓，唔係格格都交代資料。
 - **9527 的動機喺序章尾先講出口：**「我想知……點解係我。」佢唔係為報仇，係想知道。之後三次破關就係佢慢慢知道的過程（`docs/STORY.md` §5）。
+- **黑色幽默：** 佢第一晚死得好快，打手的反應係「……咁快收工？」：成晚的騷，開機冇幾耐就完。
 - **埋伏筆：** 佢係因為「主角」兩個字先上車（第 3 頁）；真結局佢問閻王「下世可唔可以做主角？」（`docs/STORY.md` §7.8）。
 
 ## 點樣讀呢份分鏡
@@ -114,10 +115,10 @@
 | 2 | 中景 | 佢撞穿戲棚後面的帆布，碌咗出去後巷，燈籠光 | 聲效：「嘶啦——」 | 標準 |
 | 3 | 特寫（打直） | 慢鏡：前景一粒子彈喺半空，後面係 9527 茫然的臉 | ——（冇字） | 長停 |
 | 4 | 全黑細格 | 乜都冇 | 聲效：「砰。」 | 長停 |
-| 5 | 遠景 | 9527 倒喺濕地上，姿勢靚到似擺好甫士；一個打手放低槍，望住佢 | 打手：「……都幾靚喎。」 | 長停 |
+| 5 | 遠景 | 9527 倒喺濕地上，姿勢靚到似擺好甫士；一個打手放低槍，望住佢，有啲意外、有啲失望（成晚的騷，咁快就完） | 打手：「……咁快收工？」 | 長停 |
 
 ```text
-[共用風格] Five panels. Panels 1 and 2 are two long slanted strips stacked on the left: panel 1, [9527] running clumsily off the stage, tripping over his too-long trousers, bullets splintering the bamboo poles around him; panel 2, him bursting through the canvas at the back of the theatre and tumbling into a back alley lit by paper lanterns. Panel 3, a tall panel on the right: slow motion, a single bullet in the foreground in sharp focus, behind it [9527]'s blank, dazed face. Bottom row: panel 4, a small panel that is completely black; panel 5, wide, [9527] lying dead on the wet ground in an absurdly elegant pose like a posed photograph, a gangster lowering his pistol and looking at him. Leave calm space near the top of panel 5 for dialogue.
+[共用風格] Five panels. Panels 1 and 2 are two long slanted strips stacked on the left: panel 1, [9527] running clumsily off the stage, tripping over his too-long trousers, bullets splintering the bamboo poles around him; panel 2, him bursting through the canvas at the back of the theatre and tumbling into a back alley lit by paper lanterns. Panel 3, a tall panel on the right: slow motion, a single bullet in the foreground in sharp focus, behind it [9527]'s blank, dazed face. Bottom row: panel 4, a small panel that is completely black; panel 5, wide, [9527] lying dead on the wet ground in an absurdly elegant pose like a posed photograph, a gangster lowering his pistol and looking at him, surprised and a little let down that it ended so fast. Leave calm space near the top of panel 5 for dialogue.
 ```
 
 ## 第 7 頁：地府（6 格）
@@ -165,6 +166,7 @@ A 16:9 widescreen landscape image (wider than tall) showing one page of a game c
 
 ## 出完圖之後
 
+0. **交俾 ChatGPT 用 [`01-prologue-chatgpt.md`](01-prologue-chatgpt.md)**，逐段貼，唔好成份貼呢份分鏡（佢會想將表格入面的中文對白畫入圖）。
 1. 每頁一張圖，檔名 `prologue-1.png` 至 `prologue-8.png`，交返俾 Claude。
 2. Claude 照分鏡切格、按句子長短畫氣泡、配字幕同聲效，放入試做頁，用 `docs/STORY.md` §11 的節奏播。
 3. 開發者睇完講邊格唔啱：係圖唔啱就重出嗰一頁，係字唔啱就改分鏡。
