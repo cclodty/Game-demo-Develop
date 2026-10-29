@@ -4,7 +4,7 @@
 // one spot, quiet, then the next; endless trickles them in.
 
 import { BOSSES } from './boss.js';
-import { AFFIX, BEATS, FIREPOWER, HELL, RAMP } from './config.js';
+import { AFFIX, BEATS, DOORS, FIREPOWER, HELL, RAMP } from './config.js';
 import { AFFIX_IDS, AFFIXES, TYPES } from './enemies.js';
 import { clamp } from './utils.js';
 
@@ -229,12 +229,14 @@ export class Waves {
    */
   affixesFor(stage) {
     const g = this.game;
-    if (!this.rules.floor || !g.floors || g.floorOf(stage) < AFFIX.fromFloor) return [];
+    const elite = g.eliteStage === stage ? DOORS.eliteAffixes : 0; // an elite room (a door's prize, F③b): more, on any floor
+    const due = g.floors && g.floorOf(stage) >= AFFIX.fromFloor;
+    if (!this.rules.floor || !g.floors || (!due && !elite)) return [];
     const map = g.mapAt(stage);
     const lastBoss = !!(map.boss && BOSSES[map.boss.kind]);
     const r = g.rng.fork('affix', stage);
     const ids = AFFIX_IDS.slice();
-    const n = r.int(AFFIX.perRoom[0], AFFIX.perRoom[1]);
+    const n = (due ? r.int(AFFIX.perRoom[0], AFFIX.perRoom[1]) : 0) + elite;
     const plan = [];
     for (let k = 0; k < n && ids.length; k++) {
       const id = ids.splice(r.int(0, ids.length - 1), 1)[0];
@@ -525,6 +527,11 @@ export class Waves {
     this.clock += dt;
     if (this.state === 'warmup') return;
     if (this.state === 'intermission') {
+      // a door's prize card on the screen (F③b, cards.js showDoor): the room's first wave waits for the pick
+      if (this.game.cards.pending) {
+        this.game.cards.read(this.game.cmd);
+        return;
+      }
       this.timer -= realDt;
       if (this.timer <= 0 && this.game.player.alive) {
         if (this.stageNext) {

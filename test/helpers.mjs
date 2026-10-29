@@ -270,7 +270,8 @@ export async function installBot(page, { map = 0, view = 2, seed = null, mode = 
           }
           if (lootTo) chase = lootTo;
           // a floor's end offers the style cards (cards.js, 彈幕 ② C②): the bot takes one of them, by their number
-          if (g.waves.state === 'cards' && g.cards.pending && i % 20 === 0) inp.pressed.add(`Digit${1 + (i % 3)}`);
+          // (a door's prize card comes up before a room's first wave too: F③b)
+          if (g.cards.pending && i % 20 === 0) inp.pressed.add(`Digit${1 + (i % 3)}`);
           // 彈幕試驗: a cleared room's exit is open: walk out of it, round the tables on the nav grid
           if (g.waves.state === 'exit' && g.level.exit) {
             const at = g.level.exit.at;

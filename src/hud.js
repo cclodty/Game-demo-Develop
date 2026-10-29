@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { CHALLENGES } from './challenge.js';
 import { CHALLENGE, COMBO_WINDOW, FOCUS, PLAYER } from './config.js';
 import { withLabels } from './input.js';
+import { PRIZES } from './prizes.js';
 import { clamp } from './utils.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
@@ -229,10 +230,14 @@ export class HUD {
     this.updateExits();
   }
 
-  /** A room's ways on (main.js setExits, F③a): over each exit, the room it leads to; dim while the room is fought, lit once it opens. */
+  /**
+   * A room's ways on (main.js setExits, F③a): over each exit, the room it leads to and its prize under it (F③b); dim
+   * while the room is fought, lit once it opens. A sign that would cover the one before it is lifted above it.
+   */
   updateExits() {
     const g = this.game;
     let used = 0;
+    const placed = [];
     for (const x of g.level.exits || []) {
       const r = x.to && !x.spare && g.rooms[x.to];
       if (!r) continue;
@@ -246,14 +251,24 @@ export class HUD {
         this.exitTags.push(t);
       }
       used++;
-      const key = `${x.to}/${x.locked}`;
+      const key = `${x.to}/${x.locked}/${x.prize}`;
       if (t.dataset.key !== key) {
         t.dataset.key = key;
-        t.innerHTML = `${x.locked ? '' : '→ '}${r.name} <small>${r.en}</small>`;
+        t.innerHTML = `${x.locked ? '' : '→ '}${r.name} <small>${r.en}</small>${x.prize ? `<b>${PRIZES[x.prize].name} <small>${PRIZES[x.prize].en}</small></b>` : ''}`;
         t.classList.toggle('open', !x.locked);
+        t.style.display = 'block';
+        t.dataset.w = t.offsetWidth; // measured once per text, not every frame
+        t.dataset.h = t.offsetHeight;
       }
+      const w = +t.dataset.w;
+      const h = +t.dataset.h;
+      let y = s.y;
+      for (const o of placed) {
+        if (Math.abs(s.x - o.x) < (w + o.w) / 2 + 4 && y > o.y - o.h - 4 && y - h < o.y + 4) y = o.y - o.h - 4;
+      }
+      placed.push({ x: s.x, y, w, h });
       t.style.display = 'block';
-      t.style.transform = `translate(${Math.round(s.x)}px, ${Math.round(s.y)}px) translate(-50%, -100%)`;
+      t.style.transform = `translate(${Math.round(s.x)}px, ${Math.round(y)}px) translate(-50%, -100%)`;
     }
     for (let i = used; i < this.exitTags.length; i++) this.exitTags[i].style.display = 'none';
   }

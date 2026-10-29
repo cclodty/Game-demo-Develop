@@ -64,6 +64,11 @@ before(async () => {
     };
     /** The intermission over: the next wave begins. */
     window.nextWave = () => {
+      if (g.cards.pending) {
+        // a door's prize cards (F③b) hold the room's first wave: the first one
+        g.input.pressed.add('Digit1');
+        window.step();
+      }
       g.waves.timer = 0;
       window.step();
     };
