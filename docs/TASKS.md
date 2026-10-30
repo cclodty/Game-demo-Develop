@@ -1588,17 +1588,30 @@
 - 漂亮的解法：一局十分鐘
 - 涉及：`scripts/measure.mjs`、`src/config.js`／`waves.js`（數字）、`docs/DECISIONS.md`
 - 驗收：
-  - [ ] 量度：改前改後各 5 局的表
-  - [ ] 機械人一局 ≤ 12 分鐘（`test/hell.test.mjs` 的一局測試加時限）
-  - [ ] npm run lint && npm test 通過
+  - [x] 量度：改前改後各 5 局的表
+  - [x] 機械人一局 ≤ 12 分鐘（`test/hell.test.mjs` 的一局測試加時限）
+  - [x] npm run lint && npm test 通過
 - 這次不做：改手感數字（彈速、傷害）
 
-### F⑧：敵人重設計（行為）（估計：兩天，兩張卡）
-- 目標：照 `REDESIGN` §5 的表，每種敵人一個題目：補缺的行為（疊碼仔頭的整隊同一拍齊射、飛仔翻滾躲子彈、傘手的環算你的）、去掉重複的（按槍種分而題目相同的合併）；十二種，每種的三欄在 `enemies.js` TYPES 上有註解；外形留給 Godot（JS 版積木人換色、換識別物）
+### F⑧a：敵人缺嘅三個行為（估計：一天；2026-10-30 由 F⑧ 拆出：三個新行為一日，合併到十二種同三欄註解係另一日）
+- 目標：照 `REDESIGN` §5 補三個題目未有嘅行為：
+  1. 帶頭大佬（疊碼仔頭）**整隊齊射**：佢瞄準嗰陣佢嘅手下一齊瞄，手下瞄好咗等佢開槍先開（最多等 `AI.captain.wait` 秒），全隊同一拍；準備好 `AI.captain.alone` 秒都冇人叫就自己瞄；佢被抓（手下停火，B② 已有）、倒咗或者放開之後手下亂陣就各打各
+  2. 飛仔**翻滾躲子彈**：玩家嘅子彈 `AI.tumble.dodge.see` 米內飛向佢，佢打橫翻滾出條線（翻滾中子彈穿過），算一次翻滾（三次就喘氣），冷卻 `dodge.cooldown` 秒；解法：佢落地嗰下再補一槍、旋轉射擊、踢
+  3. 環形手（傘手）**做人盾**：抓住佢，佢個環每 `PLAYER.humanShield.ringEvery` 秒由你身邊放出去，算你嘅子彈；環殺嘅係 SHIELD RING（花招手冊多一個）
+- 漂亮的解法：打得精彩——每種敵人一個不同的解法
+- 涉及：`src/enemies.js`（`squadAim`、`squadHold`、`tumbleDodge`、TYPES `shieldRing`）、`src/player.js`（`hostageRing`）、`src/config.js`（`AI.captain.wait`、`AI.tumble.dodge`、`PLAYER.humanShield.ring*`）、`src/codex.js`、`test/squad.test.mjs`（新）
+- 驗收：
+  - [ ] 測試：手下同大佬同一步開槍，大佬被抓或者倒咗就唔齊；飛仔打橫翻走、冷卻內唔再翻、落地補槍中；環形手做人盾放環、算你嘅、殺人係 SHIELD RING
+  - [ ] 截圖：人盾放環
+  - [ ] npm run lint && npm test && npm run test:game 通過
+- 這次不做：合併類型、改名、TYPES 三欄註解、十二種同場截圖（F⑧b）；新模型、頭目新階段
+
+### F⑧b：十二種敵人：合併、三欄註解（估計：一天；2026-10-30 由 F⑧ 拆出）
+- 目標：照 `REDESIGN` §5 嘅表，彈幕模式嘅敵人收做十二種：題目相同嘅合併（霰彈手併入散彈手、刀手併入飛仔、螺旋手同扇形手併做舞獅手、排槍手嘅同一拍併入帶頭大佬嘅整隊齊射），機槍手同無人機留做候選（第二層起嘅「壓制者」）；十二種每種喺 `enemies.js` TYPES 上有三欄註解（題目、做人盾時、克制佢）；人盾效果表齊（盾牌 ±70°）；舊模式（`legacy`）照用舊嘅類型，佢哋嘅測試照舊
 - 漂亮的解法：打得精彩——每種敵人一個不同的解法
 - 涉及：`src/enemies.js`、`src/waves.js`（陣容）、`src/config.js`、`test/tactics.test.mjs`、`test/mix.test.mjs`
 - 驗收：
-  - [ ] 測試：每種敵人的題目一個測試（新的三個；舊的照舊）；人盾效果表齊
+  - [ ] 測試：彈幕模式只出十二種（同候選）；每種有三欄註解；人盾效果表齊
   - [ ] 截圖：十二種同場的識別
   - [ ] npm run lint && npm test && npm run test:game 通過
 - 這次不做：新模型、頭目的新階段

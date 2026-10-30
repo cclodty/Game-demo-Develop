@@ -248,6 +248,7 @@ export const TYPES = {
     label: 'RING',
     name: '環形手',
     patternNote: '一圈子彈向外散，留一個缺口',
+    shieldRing: true, // held up as a human shield, his ring goes out round the player, the player's own (F⑧a: player.js hostageRing)
     vault: true,
     hp: 4,
     speed: 2.6,
@@ -502,6 +503,8 @@ class Enemy {
     this.glow = 0; // a pattern man's tell, 0 to 1 (彈幕試驗 ③)
     this.salvoAt = -1; // a salvo's beat, the world time his aim ends (彈幕試驗 ⑦; -1: none)
     this.aimFrom = 0;
+    this.readyAt = -1; // a captain's guard: the world time his aim was done, waiting for his captain's shot (F⑧a; -1: not yet)
+    this.squadAsk = -1; // a captain's guard: since when he has been ready to aim without his captain's call (F⑧a; -1: not)
     this.volleyN = 0;
     this.patternA = 0;
     this.gapAt = 0;
@@ -1535,7 +1538,65 @@ class Enemy {
     const now = this.game.worldTime;
     this.aimFrom = now;
     this.salvoAt = w && w.pattern === 'salvo' ? Math.ceil((now + this.aimTime) / w.beat) * w.beat : -1;
+    this.readyAt = -1;
+    this.squadAsk = -1;
     this.game.audio.aimWarn(this.game.panFor(this.x));
+    if (this.cfg.captain) this.mgr.squadAim(this); // 整隊齊射 (F⑧a): his free guards take aim with him
+  }
+
+  /**
+   * 整隊齊射 (F⑧a, AI.captain.wait): a guard whose captain leads and is taking aim, his own aim done, holds it (the
+   * laser bright) until the captain's shot, then fires on that step with him; false when he fires now.
+   */
+  squadHold() {
+    const c = this.escortOf;
+    if (!c || !this.mgr.leads(c) || (c.state !== 'aim' && this.readyAt < 0)) return false;
+    const now = this.game.worldTime;
+    if (this.readyAt < 0) this.readyAt = now;
+    if (this.mgr.squadShot >= this.readyAt - 1e-9) return false; // the captain's round went out since: with him
+    return now - this.readyAt < AI.captain.wait;
+  }
+
+  /**
+   * 飛仔翻滾躲子彈 (F⑧a, AI.tumble.dodge): a player's round on its way into him, near enough, and he rolls across its
+   * line (away from where it would pass), if there is the floor for it; true when he does.
+   */
+  tumbleDodge() {
+    const D = AI.tumble.dodge;
+    const g = this.game;
+    if (this.dodgeCd > 0) return false;
+    for (const b of g.bullets.list) {
+      if (!b.alive || b.owner !== 'player') continue;
+      const len = Math.hypot(b.dx, b.dz) || 1;
+      const ux = b.dx / len;
+      const uz = b.dz / len;
+      const rx = this.x - b.x;
+      const rz = this.z - b.z;
+      const along = rx * ux + rz * uz;
+      if (along <= 0 || along > D.see) continue;
+      const cross = rx * uz - rz * ux; // which side of the round's line he stands
+      if (Math.abs(cross) > this.cfg.radius + D.margin) continue;
+      const nav = g.level.nav;
+      const away = cross >= 0 ? 1 : -1;
+      for (const side of [away, -away]) {
+        const sx = uz * side;
+        const sz = -ux * side;
+        const lx = this.x + sx * D.dist;
+        const lz = this.z + sz * D.dist;
+        if (!nav.isWalkable(lx, lz) || !nav.lineWalkable(this.x, this.z, lx, lz) || !g.level.sameLevel(this.x, this.z, lx, lz)) continue;
+        this.rollX = sx;
+        this.rollZ = sz;
+        this.rollDist = D.dist;
+        this.rolls++;
+        this.state = 'tumble';
+        this.timer = AI.tumble.roll;
+        this.dodgeCd = D.cooldown;
+        this.endAim();
+        return true;
+      }
+      return false;
+    }
+    return false;
   }
 
   /** A grenadier's throw: over any cover, onto where the player stands now. */
@@ -2087,11 +2148,17 @@ class Enemy {
               this.gapWait = true;
               break;
             }
+            if (this.squadHold()) {
+              // 整隊齊射 (F⑧a): a guard holds his aim for his captain's shot
+              this.aimT = this.aimTime;
+              break;
+            }
             this.gapWait = false;
             const w = WEAPONS[cfg.weapon];
             this.state = 'fire';
             this.burst = w.shots;
             this.burstT = 0;
+            if (cfg.captain) this.mgr.squadShot = g.worldTime; // his guards waiting for it fire with him
           }
           break;
         }
@@ -2137,7 +2204,7 @@ class Enemy {
           }
           break;
         case 'chase': {
-          if (cfg.tumble && this.tumbleOn(distP, dxp, dzp)) break;
+          if (cfg.tumble && (this.tumbleDodge() || this.tumbleOn(distP, dxp, dzp))) break;
           this.repath -= dt;
           const bomb = cfg.bomb;
           if (bomb && this.fuseT >= 0) {
@@ -2528,7 +2595,10 @@ export class Enemies {
     this.tokens = 0;
     this.flankSeq = 0; // flankers spawned so far: they take the two sides in turn
     this.captain = null; // the 帶頭大佬 on his feet, if one is (AI.captain)
+    this.squadShot = -1; // the world time of his last shot, for his guards' (F⑧a 整隊齊射)
+    this.squadCall = null; // the captain calling his guards to aim with him, while he does (squadAim)
     this.panicT = 0; // s left of the others wavering after he fell
+    this.freedT = 0; // s left of his men on their own after the player let him go (F⑧a: he leads none meanwhile)
     this.patternsSeen = new Set(); // the pattern kinds that have fired this run (a line in the notes the first time)
     this.claims = []; // lines of fire let through the gap gate whose rounds are not yet in the air (gapAllows): { line, until }
   }
@@ -2570,9 +2640,33 @@ export class Enemies {
     return e;
   }
 
+  /**
+   * 整隊齊射 (F⑧a): captain `c` takes aim, and so do his guards who are free to (on their way or holding, the player in
+   * sight and in reach, ready to fire); each holds his aim for the captain's shot (Enemy squadHold).
+   */
+  /**
+   * Whether captain `c` leads his guards (F⑧a): on his feet, not held up, knocked down or shoved, and his men not
+   * wavering (AI.captain.panic s after his fall, or after the player let him go); else each guard fights on his own.
+   */
+  leads(c) {
+    return c.alive && this.game.player.hostage !== c && c.stunT <= 0 && !c.shoved && this.panicT <= 0 && this.freedT <= 0;
+  }
+
+  squadAim(c) {
+    const p = this.game.player;
+    this.squadCall = c;
+    for (const m of this.list) {
+      if (m.escortOf !== c || !m.alive || m.stunT > 0 || !['move', 'hold', 'idle'].includes(m.state)) continue;
+      if (!m.los || m.fireCd > 0 || m.blindT > 0 || Math.hypot(p.x - m.x, p.z - m.z) > m.cfg.range[1] + 3) continue;
+      if (this.requestToken(m)) m.startAim();
+    }
+    this.squadCall = null;
+  }
+
   /** The captain let go by the player (B②): the men who held their fire waver a moment, as when he falls. */
   captainFreed(c) {
     for (const e of this.list) if (e !== c && e.alive && (e.escortOf === c || e.type === 'grunt')) e.waver();
+    this.freedT = AI.captain.panic; // and each fights on his own a while (F⑧a: leads)
     this.game.notes.log('放開帶頭大佬：手下亂一陣');
   }
 
@@ -2602,7 +2696,9 @@ export class Enemies {
     this.tokens = 0;
     this.flankSeq = 0;
     this.captain = null;
+    this.squadShot = -1;
     this.panicT = 0;
+    this.freedT = 0;
     this.patternsSeen.clear();
     this.claims = [];
   }
@@ -2614,6 +2710,14 @@ export class Enemies {
   requestToken(e) {
     if (e.muzzled) return false; // his captain in the player's arms (B②): he holds his fire
     if (e.hasToken) return true;
+    // 整隊齊射 (F⑧a): a guard of a captain who leads takes aim with him (squadAim), on his captain's token; on his own
+    // only once he has been ready AI.captain.alone s without a call (a captain who does not fire)
+    if (e.escortOf && this.leads(e.escortOf)) {
+      if (this.squadCall === e.escortOf) return true;
+      const now = this.game.worldTime;
+      if (e.squadAsk < 0) e.squadAsk = now;
+      if (now - e.squadAsk < AI.captain.alone) return false;
+    }
     if (e.cfg.heavy || this.game.waves.rules.floor) return true; // heavy fire (彈幕試驗 ⑦), and anyone in a room (彈幕 ② A①): the whole room opens up at once, no token to wait for
     if (this.tokens >= this.maxTokens()) return false;
     e.hasToken = true;
@@ -2669,6 +2773,7 @@ export class Enemies {
 
   update(dt) {
     this.panicT = Math.max(0, this.panicT - dt);
+    this.freedT = Math.max(0, this.freedT - dt);
     for (const e of this.list) e.update(dt);
     for (const e of this.corpses) e.update(dt);
 

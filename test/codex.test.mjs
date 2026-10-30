@@ -218,7 +218,7 @@ test('in the game: a trick done lights it in the book and it stays after a reloa
   });
   assert.ok(book.open, 'the title opens the book');
   assert.equal(book.cells, TRICK_IDS.length, 'one cell a trick');
-  assert.match(book.count, /2 \/ 60/, `kept after the reload: ${book.count}`);
+  assert.match(book.count, new RegExp(`2 / ${TRICK_IDS.length}`), `kept after the reload: ${book.count}`);
   assert.ok(book.flip.lit && book.flip.text.includes('翻枱'), `FLIP lit: ${book.flip.text}`);
   assert.ok(!book.boom.lit && book.boom.text.includes('？？？') && book.boom.text.includes(TRICKS.BOOM.hint), `BOOM by its hint: ${book.boom.text}`);
   assert.ok(!book.strike.lit && book.strike.text.includes('？？？') && !TRICKS['STRIKE!'].hint, `STRIKE! unknown: ${book.strike.text}`);

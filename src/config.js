@@ -48,8 +48,9 @@ export const PLAYER = {
   // his gun along the player's facing every `fireEvery` s, rounds that are the player's own (a kill: HOSTAGE FIRE +`firePts`)
   // B③: a gunner who strafes (TYPES `strafe`) and finds a man held in front of the player goes round to `flankTo`° off
   // the player's facing before he fires (the shield covers ±`arc`°; thugs fire into the held man as ever); a blade's
-  // cut or a tumbler's kick from the front lands on the held man too
-  humanShield: { reach: 1.5, gap: 0.75, hold: 4.5, arc: 60, hit: 1, walkMul: 0.6, shove: 24, knock: 0.85, bowling: 2, bowlPts: 250, bombFuse: 0.4, shieldKnock: 2, fireEvery: 0.1, firePts: 150, flankTo: 80 },
+  // cut or a tumbler's kick from the front lands on the held man too. F⑧a: a ring man held (TYPES `shieldRing`) lets his
+  // ring go round the player every `ringEvery` s, its rounds the player's own, `ringDmg` each (a kill: SHIELD RING +`ringPts`)
+  humanShield: { reach: 1.5, gap: 0.75, hold: 4.5, arc: 60, hit: 1, walkMul: 0.6, shove: 24, knock: 0.85, bowling: 2, bowlPts: 250, bombFuse: 0.4, shieldKnock: 2, fireEvery: 0.1, firePts: 150, flankTo: 80, ringEvery: 1.5, ringDmg: 3, ringPts: 200 },
   throwReach: 1.6, // metres: G picks up a pan or barrel this close
   throwRange: 8, // metres a carried thing is thrown, at most
   kickRange: 2.1,
@@ -286,12 +287,16 @@ export const AI = {
   retreat: { at: 0.5, away: 6 },
   // 飛仔 TUMBLER (試玩回饋 ④; TYPES `tumble`): rolls of `dist` m in `roll` s at the player, swung `angle`° one side then
   // the other, bullets passing through him mid-roll; `land` s open after each; after `rolls` rolls `pant` s for breath;
-  // within `reach` m a kick, `windup` s to wind up, for `kick`
-  tumble: { roll: 0.4, dist: 3, angle: 25, land: 0.5, rolls: 3, pant: 2, reach: 1.8, windup: 0.3, kick: 20 },
+  // within `reach` m a kick, `windup` s to wind up, for `kick`. F⑧a 翻滾躲子彈: a player's round on its way into him
+  // (passing within his radius and `dodge.margin` m) `dodge.see` m off or nearer, and he rolls `dodge.dist` m across its
+  // line, a roll like the others (it counts to his breath); not again for `dodge.cooldown` s
+  tumble: { roll: 0.4, dist: 3, angle: 25, land: 0.5, rolls: 3, pant: 2, reach: 1.8, windup: 0.3, kick: 20, dodge: { see: 5, margin: 0.35, dist: 2.2, cooldown: 1 } },
   // 帶頭大佬 CAPTAIN (試玩回饋 ④; TYPES `captain`): while he stands the others hide less and go round to the player's
   // sides, a place `side[0]`–`side[1]`° off the line from the player to him worth `bonus` more to them; when he falls,
-  // for `panic` s they take `panicAim` times as long to aim and fall back `back` m from the player
-  captain: { side: [50, 130], bonus: 5, panic: 4, panicAim: 1.6, back: 6 },
+  // for `panic` s they take `panicAim` times as long to aim and fall back `back` m from the player. F⑧a 整隊齊射: as he
+  // starts his aim his guards who are free start theirs, and a guard's aim done waits for his shot (`wait` s at most),
+  // so the squad fires on the one beat; a guard takes aim on his own only once he has been ready `alone` s uncalled
+  captain: { side: [50, 130], bonus: 5, panic: 4, panicAim: 1.6, back: 6, wait: 1.2, alone: 2.5 },
 };
 
 /**
