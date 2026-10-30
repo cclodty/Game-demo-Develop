@@ -234,13 +234,14 @@ test('彈幕試驗 ⑥: the dai pai dong (大排檔) is in the floors’ draw: s
       floors.push(...g.floors.map((f) => f.slice()));
     }
     g.fixedSeed = seed0;
-    return { floors, first: g.floor[0], pool: MODES.danmaku.floor.pool, route: g.routeText(0, 'danmaku'), room: g.rooms.daipaidong && { name: g.rooms.daipaidong.name, en: g.rooms.daipaidong.en } };
+    return { floors, first: g.floor[0], pool: MODES.danmaku.floor.pool, rooms: MODES.danmaku.floor.rooms, route: g.routeText(0, 'danmaku'), room: g.rooms.daipaidong && { name: g.rooms.daipaidong.name, en: g.rooms.daipaidong.en } };
   });
   assert.deepEqual(r.room, { name: '大排檔', en: 'DAI PAI DONG' });
   assert.ok(r.pool.includes('daipaidong'), `the pool: ${r.pool}`);
   const withIt = r.floors.filter((f) => f.includes('daipaidong')).length;
   assert.ok(withIt > 0 && withIt < r.floors.length, `${withIt} of ${r.floors.length} floors have it: ${r.floors.map((f) => f.join('>')).join(' | ')}`);
-  assert.ok(r.floors.every((f) => f.length - 1 >= 3 && f.length - 1 <= 4), 'three or four fight rooms a floor, before its boss room (D①)');
+  const [least, most] = r.rooms;
+  assert.ok(r.floors.every((f) => f.length - 1 >= least && f.length - 1 <= most), `${least} to ${most} fight rooms a floor (waves.js MODES: two since F⑦), before its boss room (D①)`);
   assert.equal(r.first, 'teahouse', 'the run’s first room the teahouse');
   assert.match(r.route, /大排檔/, r.route);
 });

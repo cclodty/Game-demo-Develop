@@ -96,7 +96,7 @@ after(async () => {
   await h.close();
 });
 
-test('a run is three floors of three or four rooms (彈幕 ② C①): the first floor opens in the teahouse, no room twice on a floor; the same seed, the same floors; the menu says so', async () => {
+test('a run is three floors of rooms, as many as MODES says (彈幕 ② C①; two and the boss’s since F⑦): the first floor opens in the teahouse, no room twice on a floor; the same seed, the same floors; the menu says so', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { MODES } = await import('./src/waves.js');
