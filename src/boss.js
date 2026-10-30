@@ -399,7 +399,7 @@ export class Boss {
     this.def = def;
     this.active = true;
     this.downed = false;
-    this.segments = size ? size.segments : this.cfg.segments;
+    this.segments = (size ? size.segments : this.cfg.segments) + this.game.ruleset.bossSegments; // the ladder's 頭目多一階段 (rules.js)
     this.bonus = size ? size.bonus : this.cfg.bonus;
     this.hp = this.segments;
     this.t = 0;
@@ -4217,7 +4217,7 @@ class Duo extends Boss {
     this.reset();
     super.start(def, size);
     const g = this.game;
-    const each = size ? { segments: size.each || 2, bonus: 0 } : { segments: DUO.segments, bonus: 0 };
+    const each = { segments: (size ? size.each || 2 : DUO.segments) + g.ruleset.bossSegments, bonus: 0 }; // each of the two a phase more on the ladder's 頭目多一階段
     this.members = def.pair.map((d, i) => {
       const slot = this.made[i] || (this.made[i] = {});
       const m = slot[d.kind] || (slot[d.kind] = BOSSES[d.kind].make(g));

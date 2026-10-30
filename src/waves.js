@@ -230,13 +230,14 @@ export class Waves {
   affixesFor(stage) {
     const g = this.game;
     const elite = g.eliteStage === stage ? DOORS.eliteAffixes : 0; // an elite room (a door's prize, F③b): more, on any floor
-    const due = g.floors && g.floorOf(stage) >= AFFIX.fromFloor;
+    const each = g.ruleset.affixesEach; // the ladder's 詞綴每房兩個 (rules.js): that many in every room, from the first floor
+    const due = g.floors && (each > 0 || g.floorOf(stage) >= AFFIX.fromFloor);
     if (!this.rules.floor || !g.floors || (!due && !elite)) return [];
     const map = g.mapAt(stage);
     const lastBoss = !!(map.boss && BOSSES[map.boss.kind]);
     const r = g.rng.fork('affix', stage);
     const ids = AFFIX_IDS.slice();
-    const n = (due ? r.int(AFFIX.perRoom[0], AFFIX.perRoom[1]) : 0) + elite;
+    const n = (due ? (each > 0 ? each : r.int(AFFIX.perRoom[0], AFFIX.perRoom[1])) : 0) + elite;
     const plan = [];
     for (let k = 0; k < n && ids.length; k++) {
       const id = ids.splice(r.int(0, ids.length - 1), 1)[0];

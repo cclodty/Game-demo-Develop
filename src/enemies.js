@@ -446,7 +446,7 @@ class Enemy {
     this.laser = new Laser(this.game.scene, new THREE.Color(lc[0], lc[1], lc[2]));
     this.radius = cfg.radius;
     // thicker each stage of the run (config.js ENEMY_HP); what is not a bullet is made as much stronger (harm)
-    this.hp = Math.round(cfg.hp * ENEMY_HP.base * (1 + ENEMY_HP.perStage * this.game.waves.stageIndex));
+    this.hp = Math.round(cfg.hp * ENEMY_HP.base * (1 + ENEMY_HP.perStage * this.game.waves.stageIndex)) * this.game.ruleset.enemyHpMul; // the ladder's 敵人血 +10% (rules.js)
     this.tough = this.hp / cfg.hp;
     // and quicker each stage: his aim and the gap before he fires again (config.js RAMP)
     this.pace = (1 - RAMP.perStage) ** this.game.waves.stageIndex;
@@ -1410,7 +1410,7 @@ class Enemy {
    * always. A shotgun's fan counts pellet by pellet.
    */
   gapAllows() {
-    if (!(HELL.gap > 0)) return true;
+    if (!(HELL.gap > 0) || !this.game.ruleset.gap) return true; // the ladder's 沒有缺口保證 (rules.js)
     const g = this.game;
     const beat = Math.floor(g.worldTime / HELL.beat);
     if (this.gapBeat === beat) return false;
@@ -2457,8 +2457,8 @@ class Enemy {
 
   updateLaser() {
     const w = WEAPONS[this.cfg.weapon];
-    if (!w || w.pattern || this.affixes.has('blind') || (this.state !== 'aim' && this.state !== 'fire')) {
-      // a pattern's tell is his glow, not a line (彈幕試驗 ③); so is a blind gun's (F①)
+    if (!w || w.pattern || this.affixes.has('blind') || !this.game.ruleset.lasers || (this.state !== 'aim' && this.state !== 'fire')) {
+      // a pattern's tell is his glow, not a line (彈幕試驗 ③); so is a blind gun's (F①), and every gun's on the ladder's 沒有紅線 (rules.js)
       this.laser.hide();
       return;
     }
