@@ -144,7 +144,7 @@ test('every room has at least four posts (the maze none), all in the half away f
   }
 });
 
-test('a wave in the room is the arcade’s men with the arcade’s bullets (no sniper, no drone); twice the arcade’s fire and more, nobody refused an aim token', { timeout: 10 * 60 * 1000 }, async () => {
+test('a wave in the room is the arcade’s men with the arcade’s bullets (no drone, nor the three merged away: F⑧b; the sniper is one of the twelve); twice the arcade’s fire and more, nobody refused an aim token', { timeout: 10 * 60 * 1000 }, async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom(0, 5);
@@ -156,9 +156,9 @@ test('a wave in the room is the arcade’s men with the arcade’s bullets (no s
     const arcade = window.measure(25);
     return { hell, hellSpeeds, look, roster, arcade };
   });
-  const banned = ['sniper', 'drone']; // the arcade's men but these; since A③ the heavy three and the slow walls come among them (test/mix.test.mjs)
+  const banned = ['drone', 'rusher', 'blaster', 'volleyer']; // the arcade's men but these; since A③ the slow walls come among them (test/mix.test.mjs), since F⑧b the sniper too (test/twelve.test.mjs)
   const all = r.roster.flat();
-  assert.ok(!all.some((t) => banned.includes(t)), `no sniper, no drone: ${[...new Set(all)]}`);
+  assert.ok(!all.some((t) => banned.includes(t)), `no drone, no blade, blaster or volley man: ${[...new Set(all)]}`);
   assert.ok(all.includes('grunt') && all.includes('rifle') && all.includes('brute'), `thugs, riflemen and a brute among them: ${[...new Set(all)]}`);
   assert.deepEqual(r.roster.slice(0, 4).map((w) => w.length), [5, 5, 5, 5], 'the wave sizes: five a wave on the first floor (MODES.danmaku roster; the floor’s end and the floors above are bigger: test/floors.test.mjs)');
   assert.ok(r.hell.wave === 1 && r.arcade.wave === 1, `both measured in wave 1 (${r.hell.wave}, ${r.arcade.wave})`);

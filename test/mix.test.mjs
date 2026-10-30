@@ -69,21 +69,29 @@ after(async () => {
   await h.close();
 });
 
-test('the roster: an elite (a slow wall) in a room’s first wave from wave 3, one a room, none before; the heavy three among the arcade’s men from wave 2; the same seed, the same roster', async () => {
+test('the roster: no elite (a slow wall) on the first floor; the presser (the machine gunner) from the second floor, the volley man and the blaster drawn no more (F⑧b: the captain’s squad and the shotgunner have their problems); the same seed, the same roster', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom();
-    const waves = Array.from({ length: 6 }, (_, i) => g.waves.compose(i + 1));
+    const waves = Array.from({ length: g.waves.totalWaves }, (_, i) => g.waves.compose(i + 1));
     window.toRoom();
-    const again = Array.from({ length: 6 }, (_, i) => g.waves.compose(i + 1));
-    return { waves, again, perStage: g.waves.rules.perStage };
+    const again = Array.from({ length: g.waves.totalWaves }, (_, i) => g.waves.compose(i + 1));
+    const hosers = [];
+    const keep = g.fixedSeed;
+    for (let seed = 1; seed <= 8; seed++) {
+      g.fixedSeed = seed;
+      window.toRoom();
+      for (let n = 1; n <= g.waves.totalWaves; n++) if (g.waves.compose(n).includes('hoser')) hosers.push(n);
+    }
+    g.fixedSeed = keep;
+    return { waves, again, hosers, firstFloor: g.floors[0].length * g.waves.rules.perStage };
   });
   const walls = ['ringer', 'spiraler', 'fanner'];
-  const heavy = ['hoser', 'volleyer', 'blaster'];
-  const elites = r.waves.map((w) => w.filter((t) => walls.includes(t)).length);
-  assert.deepEqual(elites, [0, 0, 0, 0, 0, 0], `none on the first floor (the elites come from the second: test/floors.test.mjs): ${elites}`);
-  assert.ok(heavy.some((t) => r.waves.slice(1).flat().includes(t)), `pressers from wave 2: ${r.waves.map((w) => w.join(' ')).join(' / ')}`);
-  assert.ok(!heavy.some((t) => r.waves[0].includes(t)), 'none in wave 1');
+  const first = r.waves.slice(0, r.firstFloor);
+  const elites = first.map((w) => w.filter((t) => walls.includes(t)).length);
+  assert.ok(elites.every((n) => n === 0), `none on the first floor (the elites come from the second: test/floors.test.mjs): ${elites}`);
+  assert.ok(r.hosers.length > 0 && Math.min(...r.hosers) > r.firstFloor, `the machine gunner from the second floor: waves ${r.hosers}`);
+  assert.ok(!r.waves.flat().some((t) => t === 'volleyer' || t === 'blaster'), 'the volley man and the blaster drawn no more');
   assert.ok(r.waves.flat().includes('grunt'), 'the arcade’s men still');
   assert.deepEqual(r.again, r.waves, 'the same seed, the same roster');
 });
