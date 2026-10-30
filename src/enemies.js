@@ -8,8 +8,16 @@ import { Laser } from './fx.js';
 import { fireLines, safeSpot } from './gaps.js';
 import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowards } from './utils.js';
 
+/**
+ * The enemy types. `role` (F⑧b, REDESIGN §5: one problem a man) is his place in the twelve the game sends into its
+ * rooms: `n` 1–12 (the lion dancer's two dances, the spiral and the fan, both 12), his `title`, and the three columns:
+ * the `problem` his fire sets, what he does held up as a human `shield`, the `counter` that beats him; `candidate`: one
+ * of the two kept as candidates (the pressers from the second floor); `merged`: drawn no more in the rooms, his problem
+ * now that type's (the older modes still send him).
+ */
 export const TYPES = {
   grunt: {
+    role: { n: 1, title: '街頭打手', problem: '單發快彈、直線、多人成排', shield: '照舊', counter: '滑鏟、任何' },
     label: 'THUG',
     name: '打手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
@@ -31,6 +39,7 @@ export const TYPES = {
     perch: true, // a beat may send him up to a balcony (waves.js; config.js BEATS.perch)
   },
   shotgun: {
+    role: { n: 3, title: '散彈手', problem: '近距離扇形、逼近', shield: '推出去撞倒一排', counter: '保持距離、滑鏟穿扇' },
     label: 'SHOTGUNNER',
     name: '散彈手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
@@ -52,6 +61,7 @@ export const TYPES = {
     spawn: { from: 2, weight: 2.5 },
   },
   rifle: {
+    role: { n: 2, title: '步槍手', problem: '三連發、見同伴被抓就繞側', shield: '照舊', counter: '掩體、翻枱' },
     label: 'RIFLEMAN',
     name: '步槍手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
@@ -74,6 +84,7 @@ export const TYPES = {
     perch: true,
   },
   rusher: {
+    role: { merged: 'tumbler' },
     label: 'BLADE',
     name: '刀手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
@@ -89,6 +100,7 @@ export const TYPES = {
     spawn: { from: 3, weight: 2.2 },
   },
   tumbler: {
+    role: { n: 9, title: '飛仔', problem: '近身、翻滾躲子彈、快', shield: '照舊', counter: '旋轉射擊、落地補槍、踢' },
     label: 'TUMBLER',
     name: '飛仔',
     tumble: true, // rolls in roll after roll, bullets passing through him mid-roll; pants after three; kicks (AI.tumble)
@@ -104,6 +116,7 @@ export const TYPES = {
     spawn: { from: 5, weight: 1.4, max: 2 },
   },
   captain: {
+    role: { n: 5, title: '疊碼仔頭', problem: '整隊同一拍齊射', shield: '手下停火', counter: '先抓他' },
     label: 'CAPTAIN',
     name: '帶頭大佬',
     // while he stands the others are bolder; when he falls they waver (AI.captain); he comes with `escort`
@@ -127,6 +140,7 @@ export const TYPES = {
     spawn: { from: 7, weight: 0.8, max: 1 },
   },
   brute: {
+    role: { n: 4, title: '保安大隻佬', problem: '衝撞、吸彈、擋在前面', shield: '走 ×0.4、吸最多', counter: '踢、環境' },
     label: 'BRUTE',
     name: '大隻佬',
     hp: 20,
@@ -145,6 +159,8 @@ export const TYPES = {
     look: { body: 0x3b3e48, pants: 0x22242c, accent: 0xff3a2a, hair: 0x55585f, weapon: 'minigun', scale: 1.25 },
   },
   shield: {
+    role: { n: 6, title: '盾牌保安', problem: '正面免疫、推進、盾後有人', shield: '正面 ±70° 免疫', counter: '繞側、牆跑過頂' },
+    holdArc: 70, // held up as a human shield, the riot shield covers ±70° of the player's front (F⑧b; the others PLAYER.humanShield.arc)
     label: 'SHIELD',
     name: '盾牌手',
     model: 'grunt', // the thug's model behind a riot shield
@@ -164,6 +180,7 @@ export const TYPES = {
     spawn: { from: 3, weight: 1.6, max: 2 },
   },
   bomber: {
+    role: { n: 7, title: '炸彈客', problem: '走近自爆', shield: '推出去 0.4 秒爆', counter: '踢遠、推出去' },
     label: 'BOMBER',
     name: '炸彈客',
     model: 'rusher', // the blade's lean runner, in a vest of charges
@@ -181,6 +198,7 @@ export const TYPES = {
     spawn: { from: 6, weight: 1.5, max: 2 },
   },
   grenadier: {
+    role: { n: 8, title: '擲彈兵', problem: '弧線落點、紅圈、封區', shield: '照舊', counter: '走位、落點外' },
     label: 'GRENADIER',
     name: '擲彈兵',
     model: 'rifle', // the rifleman's model, with a bag of grenades on his back
@@ -203,6 +221,8 @@ export const TYPES = {
     spawn: { from: 5, weight: 1.4, max: 2 },
   },
   sniper: {
+    role: { n: 10, title: '狙擊手', problem: '一槍重傷、長預告', shield: '槍沿你面向射（HOSTAGE FIRE）', counter: '牆跑破線、掩體' },
+    heldFire: 1, // held up, his rifle fires along the player's facing every this many s, the player's own (F⑧b: player.js hostageFire)
     label: 'SNIPER',
     name: '狙擊手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
@@ -223,6 +243,7 @@ export const TYPES = {
     perch: true,
   },
   drone: {
+    role: { candidate: true, title: '無人機（壓制者）', problem: '飛過掩體、繞住你射', shield: '—（抓唔到）', counter: '射落佢、爆炸' },
     label: 'DRONE',
     name: '無人機',
     hp: 3,
@@ -245,6 +266,7 @@ export const TYPES = {
   // They keep their distance, stand and glow for `aimTime` (the tell, no laser), then fire. Only 彈幕試驗 sends them
   // (waves.js MODES.danmaku `roster`; no `spawn` here). Light coats: they stand out on a dark floor.
   ringer: {
+    role: { n: 11, title: '傘手', problem: '慢大彈幕做牆（環）', shield: '環從你身邊放，算你的', counter: '擦彈充能、穿過缺口' },
     label: 'RING',
     name: '環形手',
     patternNote: '一圈子彈向外散，留一個缺口',
@@ -264,6 +286,8 @@ export const TYPES = {
     look: { body: 0xb9a6ff, pants: 0x3a2e66, accent: 0x7a4dff, hair: 0x2a1f4d, weapon: 'pistol' },
   },
   spiraler: {
+    role: { n: 12, title: '舞獅手（螺旋）', problem: '螺旋的慢牆', shield: '環從你身邊放，算你的', counter: '擦彈充能、喺兩條之間穿過' },
+    shieldRing: true, // held up, his spiral goes round the player as a ring, the player's own (F⑧b: player.js hostageRing)
     label: 'SPIRAL',
     name: '螺旋手',
     patternNote: '轉住噴的螺旋，在兩條之間穿過去',
@@ -282,6 +306,8 @@ export const TYPES = {
     look: { body: 0x6fe3d0, pants: 0x1d4a44, accent: 0x18b39a, hair: 0x123a35, weapon: 'minigun' },
   },
   fanner: {
+    role: { n: 12, title: '舞獅手（扇形）', problem: '扇形的慢牆', shield: '環從你身邊放，算你的', counter: '擦彈充能、向旁閃' },
+    shieldRing: true, // held up, his fan goes round the player as a ring, the player's own (F⑧b: player.js hostageRing)
     label: 'FAN',
     name: '扇形手',
     patternNote: '對準你的扇形，中間最密：向旁閃',
@@ -304,6 +330,7 @@ export const TYPES = {
   // their own; `heavy`: they need no aim token (the whole room opens up at once) and the notes say 重火力. Only
   // 彈幕試驗 sends them (waves.js MODES.danmaku `roster`). Light coats, as the pattern men.
   hoser: {
+    role: { candidate: true, title: '機槍手（壓制者）', problem: '長火線掃過嚟', shield: '槍沿你面向射（HOSTAGE FIRE）', counter: '橫跑甩開、翻枱擋' },
     label: 'MG',
     name: '機槍手',
     patternNote: '轉起槍管就一條長火線掃過嚟，轉得慢：橫跑甩開佢，或者翻枱擋住',
@@ -323,6 +350,7 @@ export const TYPES = {
     look: { body: 0x9fd7ff, pants: 0x203a52, accent: 0x2f9bff, hair: 0x15293b, weapon: 'minigun' },
   },
   volleyer: {
+    role: { merged: 'captain' },
     label: 'VOLLEY',
     name: '排槍手',
     patternNote: '同一間房的排槍手同一拍一齊開槍：喺兩排之間衝前',
@@ -342,6 +370,7 @@ export const TYPES = {
     look: { body: 0xd8f08a, pants: 0x3a4a1a, accent: 0x9acd32, hair: 0x2a3510, weapon: 'rifle' },
   },
   blaster: {
+    role: { merged: 'shotgun' },
     label: 'BLAST',
     name: '霰彈手',
     patternNote: '行近你兩下大扇，射程短：退開，或者開慢鏡閃出扇外',

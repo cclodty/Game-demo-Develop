@@ -53,15 +53,19 @@ export const MODES = {
     // 彈幕 ② A①: the arcade's men; five in a room's first wave (four fired 1.96× the arcade's first wave, short of the 2×
     // asked: test/hell.test.mjs), five in its second (`total` by the wave's place in its room), `perFloor` more a floor
     // (C①: about 140 men a run of three floors; the bot clears it in about a quarter of an hour, a player quicker). A③: `also` the heavy three as pressers (the same [from wave, weight,
-    // most a wave]), and an `elite` of the slow walls (ringer, spiraler, fanner) in a room's first wave from `fromFloor`
+    // most a wave]), and an `elite` of the slow walls (ringer, spiraler, fanner) in a room's first wave from `fromFloor`.
+    // F⑧b: REDESIGN §5's twelve (enemies.js TYPES `role`): the blade's, the blaster's and the volley man's problems
+    // are the tumbler's, the shotgunner's and the captain's squad's now, so `skip` keeps the blade out and `also` gives
+    // the tumbler and the shotgunner their weight; the sniper comes in; the machine gunner is the presser kept as a
+    // candidate, from the second floor (wave 7); the drone stays out
     roster: {
       total: [5, 5],
       perFloor: 1,
       brutes: [0, 1, 1], // in a room's last wave, by floor (F⑦: the third floor's two made one)
       arcade: true,
-      skip: ['sniper', 'drone'],
+      skip: ['drone', 'rusher'],
       fill: 'grunt',
-      also: { volleyer: [2, 2, 2], blaster: [2, 1.5, 2], hoser: [3, 1, 1] },
+      also: { tumbler: [3, 2.2, 2], shotgun: [2, 1.5, 2], hoser: [7, 1, 1] },
       elite: { types: ['ringer', 'spiraler', 'fanner'], fromFloor: 1 },
     },
   },

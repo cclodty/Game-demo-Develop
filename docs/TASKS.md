@@ -1601,9 +1601,9 @@
 - 漂亮的解法：打得精彩——每種敵人一個不同的解法
 - 涉及：`src/enemies.js`（`squadAim`、`squadHold`、`tumbleDodge`、TYPES `shieldRing`）、`src/player.js`（`hostageRing`）、`src/config.js`（`AI.captain.wait`、`AI.tumble.dodge`、`PLAYER.humanShield.ring*`）、`src/codex.js`、`test/squad.test.mjs`（新）
 - 驗收：
-  - [ ] 測試：手下同大佬同一步開槍，大佬被抓或者倒咗就唔齊；飛仔打橫翻走、冷卻內唔再翻、落地補槍中；環形手做人盾放環、算你嘅、殺人係 SHIELD RING
-  - [ ] 截圖：人盾放環
-  - [ ] npm run lint && npm test && npm run test:game 通過
+  - [x] 測試：手下同大佬同一步開槍，大佬被抓或者倒咗就唔齊；飛仔打橫翻走、冷卻內唔再翻、落地補槍中；環形手做人盾放環、算你嘅、殺人係 SHIELD RING
+  - [x] 截圖：人盾放環
+  - [x] npm run lint && npm test && npm run test:game 通過
 - 這次不做：合併類型、改名、TYPES 三欄註解、十二種同場截圖（F⑧b）；新模型、頭目新階段
 
 ### F⑧b：十二種敵人：合併、三欄註解（估計：一天；2026-10-30 由 F⑧ 拆出）

@@ -240,7 +240,7 @@ export class Player {
     const e = this.hostage;
     this.hostageFireT -= dt;
     if (this.hostageFireT > 0) return;
-    this.hostageFireT = PLAYER.humanShield.fireEvery;
+    this.hostageFireT = e.cfg.heldFire ?? PLAYER.humanShield.fireEvery; // a sniper's rifle slower (TYPES heldFire, F⑧b)
     const w = e.weaponStats; // his WEAPONS entry (enemies.js)
     if (!w) return;
     const a = this.facing + g.rng.range(-0.03, 0.03);
@@ -265,10 +265,11 @@ export class Player {
     this.hostageFireT -= dt;
     if (this.hostageFireT > 0) return;
     this.hostageFireT = H.ringEvery;
-    const w = e.weaponStats; // his WEAPONS entry (enemies.js ring)
-    if (!w || !w.count) return;
-    for (let i = 0; i < w.count; i++) {
-      const a = this.facing + (i / w.count) * Math.PI * 2;
+    const w = e.weaponStats; // his WEAPONS entry (enemies.js ring, spiral, fan)
+    if (!w) return;
+    const n = w.pattern === 'ring' ? w.count : H.ringCount; // the lion dancer's two dances (F⑧b) go round as a ring too
+    for (let i = 0; i < n; i++) {
+      const a = this.facing + (i / n) * Math.PI * 2;
       const dx = Math.sin(a);
       const dz = Math.cos(a);
       g.bullets.spawn({ x: this.x + dx, z: this.z + dz, dx, dz, speed: w.speed, owner: 'player', damage: H.ringDmg, range: w.range, weapon: null, shieldRing: true, look: 'player' });
@@ -295,7 +296,8 @@ export class Player {
   /** True when a bullet travelling along (dx, dz) comes from within the arc in front, where the human shield is. */
   shieldedFrom(dx, dz) {
     if (!this.hostage || !this.hostage.alive) return false;
-    return -(dx * Math.sin(this.facing) + dz * Math.cos(this.facing)) >= Math.cos((PLAYER.humanShield.arc * Math.PI) / 180);
+    const arc = this.hostage.cfg.holdArc ?? PLAYER.humanShield.arc; // a riot shield held up covers more (TYPES holdArc, F⑧b)
+    return -(dx * Math.sin(this.facing) + dz * Math.cos(this.facing)) >= Math.cos((arc * Math.PI) / 180);
   }
 
   get weapon() {
@@ -399,7 +401,7 @@ export class Player {
         if (!this.hostage.alive) g.notes.log('人盾被打死');
         this.letGo();
       } else if (this.hostageT <= 0) this.letGo();
-      else if (this.hostage.cfg.heavy) this.hostageFire(dt);
+      else if (this.hostage.cfg.heavy || this.hostage.cfg.heldFire) this.hostageFire(dt);
       else if (this.hostage.cfg.shieldRing) this.hostageRing(dt);
     }
     // the HUD's hint (hud.js): E would hold the man in front, nothing else to pick up or swap (B③)
