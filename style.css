@@ -1483,9 +1483,28 @@ body:not(.pad) .pad-only {
 
 .go-stats {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 34px;
+  gap: 12px 34px;
   margin-top: 22px;
+}
+
+/* the long ones (F⑤a room grades, F⑤b new tricks, F⑥a a ladder level opened): a line each under the numbers */
+.go-stats .rooms-only,
+.go-stats .fresh-only,
+.go-stats .ladder-only {
+  flex-basis: 100%;
+}
+
+.go-stats .fresh-only b,
+.go-stats .ladder-only b {
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.go-stats .rooms-only b {
+  font-size: 26px;
 }
 
 .go-stats span {
@@ -2231,6 +2250,7 @@ body:not(.pad) .pad-only {
 #gameover:not(.cards) .cards-only,
 #gameover:not(.rooms) .rooms-only,
 #gameover:not(.fresh) .fresh-only,
+#gameover:not(.ladder) .ladder-only,
 #gameover:not(.cleared) .clear-only,
 #gameover.cleared .over-only,
 #gameover:not(.graded) .go-grade,

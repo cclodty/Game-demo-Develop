@@ -4,8 +4,8 @@
 // card's job). A ten-minute run must stay under 100 KB.
 //
 // Layout: a 16-byte header ("BB", version, logic Hz, seed u32, map index,
-// step count u32, mode index with bit 7 set when the run opened with the
-// warm-up, the run rules as rules.js packRules makes them, the game's revision
+// step count u32, mode index in bits 0-2 with the ladder's level (F⑥a, 0-10) in bits 3-6 (0 in a record from before
+// it) and bit 7 set when the run opened with the warm-up, the run rules as rules.js packRules makes them, the game's revision
 // (the maps' and the play rules') as maps.js MAPS_REV gives it; little-endian; version 4 had no revision and a
 // 15-byte header, and still reads),
 // then one entry per step whose input
@@ -29,12 +29,13 @@ const F_YAW = 8;
 const F_NUDGE = 16; // a small aim change, packed into one byte
 
 export class InputRecord {
-  constructor({ seed = 0, map = 0, mode = 0, warmup = false, rules = 0, hz = 120, mapsRev = 0 } = {}) {
+  constructor({ seed = 0, map = 0, mode = 0, warmup = false, rules = 0, ladder = 0, hz = 120, mapsRev = 0 } = {}) {
     this.seed = seed >>> 0;
     this.map = map;
     this.mode = mode; // index into MODE_IDS (waves.js)
     this.warmup = warmup; // the run opened with the first-run warm-up (tutorial.js)
     this.rules = rules; // difficulty and variants, packed (rules.js packRules)
+    this.ladder = ladder; // the ladder's level (rules.js LADDER), in the mode byte
     this.mapsRev = mapsRev; // the maps as they were (maps.js MAPS_REV)
     this.hz = hz;
     this.steps = 0;
@@ -91,7 +92,7 @@ export class InputRecord {
     v.setUint32(4, this.seed, true);
     out[8] = this.map;
     v.setUint32(9, this.steps, true);
-    out[13] = this.mode | (this.warmup ? 0x80 : 0);
+    out[13] = (this.mode & 7) | ((this.ladder & 15) << 3) | (this.warmup ? 0x80 : 0);
     out[14] = this.rules;
     out[15] = this.mapsRev;
     out.set(this.buf.subarray(0, this.length), HEADER);
@@ -131,7 +132,8 @@ export class RecordReader {
     this.seed = v.getUint32(4, true);
     this.map = bytes[8];
     this.steps = v.getUint32(9, true);
-    this.mode = bytes[13] & 0x7f;
+    this.mode = bytes[13] & 7;
+    this.ladder = (bytes[13] >> 3) & 15; // 0 from before the ladder
     this.warmup = (bytes[13] & 0x80) !== 0;
     this.rules = bytes[14];
     this.version = bytes[2];
