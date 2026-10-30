@@ -13,7 +13,11 @@
 
 ## 已經畫咗？重畫第 2–5 頁（10-30 第二稿）
 
-設定圖同第 1 頁（刀姐）照用。第一稿第 2–5 頁的背景係原型茶樓的四個房，好違和；第二稿每個頭目一個自己的片場。喺**同一個對話**先貼下面這段，再貼第 3、4、5、6 段（即第 2–5 頁），每段附返標題寫明的圖：
+設定圖同第 1 頁（刀姐）照用。第一稿第 2–5 頁的背景係原型茶樓的四個房，好違和；第二稿每個頭目一個自己的片場。
+
+**最易：上載一個檔。** 喺同一個對話上載 [`03-bosses-redraw.txt`](03-bosses-redraw.txt)（純文字，入面已經有更正同第 2–5 頁），ChatGPT 會先畫第一張，之後每張打 `next`；邊張唔啱就打 `redo` 加一句點改。唔好上載呢份 `.md`，亦唔好貼 GitHub 連結：開發者 10-30 試過，ChatGPT 讀唔到。
+
+想逐段貼，就照下面：喺**同一個對話**先貼下面這段，再貼第 3、4、5、6 段（即第 2–5 頁），每段附返標題寫明的圖：
 
 ```text
 Change of plan for the boss pages. Keep the lineup sheet and page 1 (the action director in the restaurant hall) exactly as they are: they are right. Redraw pages 2, 3, 4 and 5: their backgrounds were wrong, because every boss now fights in their own location, which matches their film department: the pyrotechnics chief at a container port, the set security chief at the toll plaza in front of an undersea road tunnel (the only road out of the city), the cinematographer and the casting director on a film sound stage, and the producer in the bamboo theatre (with only ordinary henchmen behind him, never the other bosses). All at night. Do not draw anything for this message: just reply "ok", then I will send pages 2, 3, 4 and 5 again.
