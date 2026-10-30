@@ -1861,6 +1861,7 @@ class Game {
     // a dive (飛撲): in the air, rolling out of it, or by a shot fired in the air; never a SLIDE KILL as well
     const dive = (info.bullet && info.bullet.diveShot) || (p.alive && (p.diving || p.rolling));
     if (dive) tags.push({ label: 'DIVE KILL', pts: 150, cls: 'cyan' });
+    if ((info.bullet && info.bullet.wallShot) || (p.alive && p.wallRunning)) tags.push({ label: 'WALL KILL', pts: PLAYER.wallRun.pts, cls: 'cyan' }); // on a wall run (F⑨)
     else if (p.alive && p.sliding) tags.push({ label: 'SLIDE KILL', pts: 100, cls: 'cyan' });
     if (info.juggle) tags.push({ label: 'JUGGLE', pts: 120, cls: 'gold' });
     if (info.split) tags.push({ label: 'SPLIT AIM', pts: 100, cls: 'pink' });

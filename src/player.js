@@ -90,6 +90,9 @@ export class Player {
     this.slideDirX = 0;
     this.slideDirZ = 1;
     this.diveT = 0; // in the air on a dive: s left
+    this.wallT = 0; // on a wall run (F⑨): s left
+    this.wall = null; // the wall's face run along: { s, nx, nz, tx, tz, at, lo, hi } (wallAt)
+    this.wallCd = 0;
     this.rollT = 0; // landed: the roll, s left
     this.diveCd = 0;
     this.diveDirX = 1;
@@ -155,6 +158,8 @@ export class Player {
     this.vx = this.vz = 0;
     this.spinT = 0;
     this.diveT = this.rollT = 0;
+    this.wallT = this.wallCd = 0;
+    this.wall = null;
     this.hostage = null;
     this.hostageT = 0;
     this.splitTarget = null;
@@ -177,6 +182,40 @@ export class Player {
   /** In the air on a dive (bullets pass under). */
   get diving() {
     return this.diveT > 0;
+  }
+
+  /** On a wall run (F⑨): a metre up, the rounds passing under. */
+  get wallRunning() {
+    return this.wallT > 0;
+  }
+
+  /**
+   * The wall-run face (F⑨, level.js `wallruns`) beside the player within PLAYER.wallRun.reach m, heading (dx, dz) at it
+   * at least PLAYER.wallRun.into of the way: { s, nx, nz (out of it), tx, tz (along it), at (the face's line), lo, hi
+   * (its ends along it) }, or null.
+   */
+  wallAt(dx, dz) {
+    const W = PLAYER.wallRun;
+    const len = Math.hypot(dx, dz);
+    if (len < 1e-6) return null;
+    const ux = dx / len;
+    const uz = dz / len;
+    let best = null;
+    for (const s of this.game.level.wallruns) {
+      if (!s.alive) continue;
+      const faces = [
+        { nx: -1, nz: 0, gap: s.minX - this.x, along: this.z, lo: s.minZ, hi: s.maxZ, at: s.minX },
+        { nx: 1, nz: 0, gap: this.x - s.maxX, along: this.z, lo: s.minZ, hi: s.maxZ, at: s.maxX },
+        { nx: 0, nz: -1, gap: s.minZ - this.z, along: this.x, lo: s.minX, hi: s.maxX, at: s.minZ },
+        { nx: 0, nz: 1, gap: this.z - s.maxZ, along: this.x, lo: s.minX, hi: s.maxX, at: s.maxZ },
+      ];
+      for (const f of faces) {
+        if (f.gap < 0 || f.gap > PLAYER.radius + W.reach || f.along < f.lo || f.along > f.hi) continue;
+        if (-(ux * f.nx + uz * f.nz) < W.into) continue;
+        if (!best || f.gap < best.gap) best = { s, ...f, tx: Math.abs(f.nz), tz: Math.abs(f.nx) };
+      }
+    }
+    return best;
   }
 
   /** Landed from a dive, rolling out of it. */
@@ -390,6 +429,7 @@ export class Player {
     this.spinCd -= dt;
     this.slideCd -= dt;
     this.diveCd -= dt;
+    this.wallCd -= dt;
     this.fireCd -= dt;
     this.kickCd -= dt;
     this.invuln -= dt;
@@ -436,9 +476,38 @@ export class Player {
       }
     }
 
-    // slide: only out of a run, locked to the direction of travel; a spin can cut it short
+    // the wall run (F⑨): C again kicks off the wall into a dive; C beside a wall run along heading into it starts one
     const curSp = Math.hypot(this.vx, this.vz);
-    if (input.hit('KeyC') && this.slideCd <= 0 && this.slideT <= 0 && this.spinT <= 0 && this.diveT <= 0 && this.rollT <= 0 && this.execT <= 0 && !this.shieldOn && !this.hostage && curSp >= PLAYER.slideMinSpeed) {
+    let wallC = false;
+    if (input.hit('KeyC') && this.wallT > 0) {
+      wallC = true;
+      const W = this.wall;
+      const out = il > 0 && ix * W.nx + iz * W.nz > 0 ? [ix, iz] : [W.nx, W.nz];
+      this.wallT = 0;
+      this.wallCd = PLAYER.wallRun.cooldown;
+      this.diveT = PLAYER.dive.air;
+      this.diveDirX = out[0];
+      this.diveDirZ = out[1];
+      g.audio.slide();
+      g.notes.log('牆跑踢出');
+    } else if (input.hit('KeyC') && this.wallCd <= 0 && this.slideT <= 0 && this.spinT <= 0 && this.diveT <= 0 && this.rollT <= 0 && this.execT <= 0 && !this.shieldOn && !this.hostage) {
+      const W = this.wallAt(il > 0 ? ix : this.vx, il > 0 ? iz : this.vz);
+      if (W) {
+        wallC = true;
+        // along the wall the way the run (or the input, or the facing) goes along it
+        const along = (a, b) => a * W.tx + b * W.tz;
+        const pick = [along(this.vx, this.vz), along(ix, iz), along(Math.sin(this.facing), Math.cos(this.facing))].find((v) => Math.abs(v) > 0.05) || 1;
+        const sgn = Math.sign(pick);
+        this.wall = { ...W, tx: W.tx * sgn, tz: W.tz * sgn };
+        this.wallT = PLAYER.wallRun.time;
+        this.slideT = 0;
+        g.audio.slide();
+        g.notes.log('牆跑');
+      }
+    }
+
+    // slide: only out of a run, locked to the direction of travel; a spin can cut it short
+    if (!wallC && input.hit('KeyC') && this.wallT <= 0 && this.slideCd <= 0 && this.slideT <= 0 && this.spinT <= 0 && this.diveT <= 0 && this.rollT <= 0 && this.execT <= 0 && !this.shieldOn && !this.hostage && curSp >= PLAYER.slideMinSpeed) {
       this.slideT = PLAYER.slideDuration;
       this.slideDirX = this.vx / curSp;
       this.slideDirZ = this.vz / curSp;
@@ -484,6 +553,21 @@ export class Player {
       this.execT -= dt;
       tx = tz = 0;
       accel = 40;
+    } else if (this.wallT > 0) {
+      // along the wall (F⑨), held off its face: off its end, or the time up, and he is down
+      this.wallT -= dt;
+      const W = this.wall;
+      tx = W.tx * PLAYER.wallRun.speed;
+      tz = W.tz * PLAYER.wallRun.speed;
+      this.vx = tx;
+      this.vz = tz;
+      accel = 60;
+      const along = W.tx !== 0 ? this.x : this.z;
+      if (this.wallT <= 0 || !W.s.alive || along < W.lo - 0.1 || along > W.hi + 0.1) {
+        this.wallT = 0;
+        this.wallCd = PLAYER.wallRun.cooldown;
+        g.notes.log('牆跑落地');
+      }
     } else if (this.diveT > 0) {
       // through the air at a set speed: the distance is the dive's, whatever the run was
       this.diveT -= dt;
@@ -532,6 +616,13 @@ export class Player {
     this.vz = damp(this.vz, tz, accel, dt);
     this.x += this.vx * dt;
     this.z += this.vz * dt;
+    if (this.wallT > 0) {
+      // kept on the wall: his side of it a body's width off its face
+      const W = this.wall;
+      const off = W.at + (W.nx + W.nz) * (PLAYER.radius + 0.02);
+      if (W.nx !== 0) this.x = off;
+      else this.z = off;
+    }
     this.collide();
 
     // --- aim
@@ -789,6 +880,7 @@ export class Player {
             weapon: w.id,
             spinShot: s.spin !== undefined,
             diveShot: this.diveT > 0,
+            wallShot: this.wallT > 0, // fired on a wall run (F⑨): its kill is a WALL KILL
           });
         }
         dx = Math.sin(base);
@@ -1099,7 +1191,7 @@ export class Player {
 
   syncRig() {
     const r = this.rig;
-    r.root.position.set(this.x, this.game.level.groundY(this.x, this.z), this.z);
+    r.root.position.set(this.x, this.game.level.groundY(this.x, this.z) + (this.wallT > 0 ? PLAYER.wallRun.height : 0), this.z); // a wall run: up the wall (F⑨)
     r.root.rotation.y = this.facing;
     // flash and ring track every frame; the pose below refreshes at the style's step rate
     setFlash(r, this.hurtFlash * 2.5);
@@ -1115,7 +1207,8 @@ export class Player {
     const carrying = !!(thrown && thrown.carry) && !inHand && !hugged; // a load overhead: not a pan in hand, not an extinguisher in the arms
     r.inner.rotation.y = this.spinYaw();
     const held = (k) => (k < 0.12 || k > 0.88 ? 0.5 : 1);
-    if (this.diveT > 0) keyPose(r, 'dive', held(1 - this.diveT / PLAYER.dive.air));
+    if (this.wallT > 0) keyPose(r, 'slide', 0.5); // on the wall (F⑨): the slide's crouch, leant in (no pose of its own yet)
+    else if (this.diveT > 0) keyPose(r, 'dive', held(1 - this.diveT / PLAYER.dive.air));
     else if (this.rollT > 0) keyPose(r, 'roll', held(1 - this.rollT / PLAYER.dive.roll));
     else if (this.slideT > 0) keyPose(r, 'slide', held(1 - this.slideT / PLAYER.slideDuration));
     else if (this.spinT > 0) keyPose(r, 'spin', held(1 - this.spinT / PLAYER.spinDuration));

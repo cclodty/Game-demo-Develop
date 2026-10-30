@@ -886,6 +886,7 @@ export class Level {
   constructor(game) {
     this.game = game;
     this.scene = game.scene;
+    this.wallruns = [];
     this.time = 0;
     this.beat = 0;
     this.root = null;
@@ -1103,6 +1104,7 @@ export class Level {
     this.bounds = { halfW, halfD };
     this.start = { x: map.start[0], z: map.start[1] };
     this.solids = [];
+    this.wallruns = []; // the inner walls a wall run goes along (F⑨: map `wallrun`, marked below)
     this.glass = [];
     this.crates = [];
     this.boards = []; // the maze's board walls (BREAKABLE partition)
@@ -1136,6 +1138,14 @@ export class Level {
       else this.addSolid(...s);
     }
     for (const g of map.glass || []) this.addGlass(...g);
+    // the wall runs' walls (F⑨, rooms.js `wallrun`): the boxes of cover at those places, marked
+    for (const [x, z, w, d] of map.wallrun || []) {
+      const s = this.solids.find((o) => Math.abs(o.minX - (x - w / 2)) < 0.02 && Math.abs(o.maxX - (x + w / 2)) < 0.02 && Math.abs(o.minZ - (z - d / 2)) < 0.02 && Math.abs(o.maxZ - (z + d / 2)) < 0.02);
+      if (s) {
+        s.wallrun = true;
+        this.wallruns.push(s);
+      }
+    }
     // the maze room's walls (rooms.js mazeWalls, 試玩回饋 ⑥b), drawn for this room of this run from the run's seed: the
     // same seed walks the same maze. A board shot or kicked down stays down for the run (resetProps stands it up again
     // for the next), and the room is loaded once a run

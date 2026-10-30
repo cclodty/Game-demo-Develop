@@ -1611,9 +1611,9 @@
 - 漂亮的解法：打得精彩——每種敵人一個不同的解法
 - 涉及：`src/enemies.js`、`src/waves.js`（陣容）、`src/config.js`、`test/tactics.test.mjs`、`test/mix.test.mjs`
 - 驗收：
-  - [ ] 測試：彈幕模式只出十二種（同候選）；每種有三欄註解；人盾效果表齊
-  - [ ] 截圖：十二種同場的識別
-  - [ ] npm run lint && npm test && npm run test:game 通過
+  - [x] 測試：彈幕模式只出十二種（同候選）；每種有三欄註解；人盾效果表齊
+  - [x] 截圖：十二種同場的識別
+  - [x] npm run lint && npm test && npm run test:game 通過
 - 這次不做：新模型、頭目的新階段
 
 ### F⑨：牆跑與扒牆（估計：一天）

@@ -142,6 +142,7 @@ export class Bullets {
     b.weapon = o.weapon || null;
     b.spinShot = !!o.spinShot;
     b.diveShot = !!o.diveShot; // fired in the air on a dive: its kill is a DIVE KILL whenever it lands
+    b.wallShot = !!o.wallShot; // fired on a wall run (F⑨): its kill is a WALL KILL
     b.scatter = false;
     b.kills = 0;
     b.hits = [];
@@ -297,7 +298,7 @@ export class Bullets {
       }
     } else {
       const p = game.player;
-      if (p.alive && !p.spinning && !p.diving && (!p.sliding || game.cards.has('slideReflect'))) { // a slide is under the rounds; with the card 滑鏟反彈 it meets them (handleHit)
+      if (p.alive && !p.spinning && !p.diving && !p.wallRunning && (!p.sliding || game.cards.has('slideReflect'))) { // up a wall (F⑨) the rounds pass under // a slide is under the rounds; with the card 滑鏟反彈 it meets them (handleHit)
         const t = segCircle(x0, z0, x1, z1, p.x, p.z, PLAYER.hitRadius);
         // from the front, where the human shield is held, it meets him instead (player.js grab)
         if (t >= 0 && (!best || t < best.t)) best = p.shieldedFrom(b.dx, b.dz) ? { t, type: 'hostage', enemy: p.hostage } : { t, type: 'player' };
