@@ -161,6 +161,11 @@ export class Player {
     this.syncRig(0);
   }
 
+  /** The most HP there is: PLAYER.hp, CARDS.halfHp of it with the cost card 半條命・四選一 (F④b). */
+  get maxHp() {
+    return PLAYER.hp * (this.game.cards.has('halfHp') ? CARDS.halfHp : 1);
+  }
+
   get sliding() {
     return this.slideT > 0;
   }
@@ -375,7 +380,7 @@ export class Player {
     this.hurtFlash = Math.max(0, this.hurtFlash - dt * 4);
     this.recoilL = Math.max(0, this.recoilL - dt * 8);
     this.recoilR = Math.max(0, this.recoilR - dt * 8);
-    if (this.sinceHurt > PLAYER.regenDelay && this.hp < PLAYER.hp) this.hp = Math.min(PLAYER.hp, this.hp + PLAYER.regenRate * dt);
+    if (this.sinceHurt > PLAYER.regenDelay && this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + PLAYER.regenRate * dt);
 
     // --- weapon switching
     const cardUp = g.cards.pending; // the digits pick a style card then (cards.js), not a weapon
@@ -1013,7 +1018,6 @@ export class Player {
     if (!this.alive || this.invuln > 0) return false;
     if ((this.spinning || this.diving) && !explosion) return false; // a bullet passes round a spin, under a dive
     const g = this.game;
-    if (g.cards.has('oneHit')) dmg = Math.max(dmg, this.hp); // the cost card 一條命・四選一 (F④b): one hit is all of it
     this.hp -= dmg;
     this.sinceHurt = 0;
     this.hurtFlash = 1;

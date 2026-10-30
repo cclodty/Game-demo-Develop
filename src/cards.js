@@ -31,7 +31,7 @@ export const CARDS = {
   kickReload: { kind: 'action', tags: ['kick', 'gun'], needs: ['kick', 'gun'], name: '踢出彈匣', en: 'KICK RELOAD', text: '踢倒或者絆倒一個人，雙槍彈匣即刻補滿' },
   noSlow: { kind: 'slowmo', tags: ['slowmo'], cost: true, name: '冇慢鏡・雙倍', en: 'NO SLOW-MO', text: 'Style 雙倍；代價：成局冇子彈時間（連飛撲）' },
   pistolsOnly: { kind: 'slowmo', tags: ['gun', 'slowmo'], cost: true, name: '淨係手槍・慢鏡無限', en: 'PISTOLS ONLY', text: '慢鏡唔耗表；代價：執唔到特別武器' },
-  oneHit: { kind: 'action', tags: [], cost: true, name: '一條命・四選一', en: 'ONE HIT', text: '之後揀卡四選一；代價：中一下就死（贏返嚟的命照救）' },
+  halfHp: { kind: 'action', tags: [], cost: true, name: '半條命・四選一', en: 'HALF HP', text: '之後揀卡四選一；代價：血量上限減半' },
 };
 export const CARD_IDS = Object.keys(CARDS);
 export const KINDS = { action: { name: '動作', en: 'ACTION' }, slowmo: { name: '慢鏡', en: 'SLOW-MO' } };
@@ -116,9 +116,9 @@ export class Cards {
     return this.held.includes(id) && (!CARDS[id].needs || comboNeeds(id, this.held).every((n) => n.ok));
   }
 
-  /** How many cards a floor's end or a door offers: three, four with 一條命・四選一 (F④b). */
+  /** How many cards a floor's end or a door offers: three, four with 半條命・四選一 (F④b). */
   get offerSize() {
-    return this.has('oneHit') ? 4 : NUM.offer;
+    return this.has('halfHp') ? 4 : NUM.offer;
   }
 
   get pending() {
@@ -178,6 +178,7 @@ export class Cards {
     this.held.push(id);
     this.offer = null;
     const g = this.game;
+    g.player.hp = Math.min(g.player.hp, g.player.maxHp); // 半條命: down to the new cap at once
     g.hideCards();
     g.notes.log(`風格卡：${CARDS[id].name}`);
     g.hud.banner(CARDS[id].en, `${CARDS[id].name} · ${CARDS[id].text}`, 'stage');
