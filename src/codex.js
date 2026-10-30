@@ -40,6 +40,7 @@ export const TRICKS = {
   'SPIN KILL': { kind: 'move', name: '旋轉擊殺' },
   'SLIDE KILL': { kind: 'move', name: '滑鏟擊殺' },
   'DIVE KILL': { kind: 'move', name: '飛撲擊殺', hint: '慢鏡中方向＋Space 飛撲，半空開槍' },
+  'WALL KILL': { kind: 'move', name: '牆跑擊殺', hint: '貼住內牆向住佢撳 C 跑上牆，喺牆上開槍' },
   JUGGLE: { kind: 'move', name: '浮空連擊', hint: '打飛起嘅人' },
   DODGE: { kind: 'move', name: '閃避' },
   'SPIN RELOAD': { kind: 'move', name: '旋轉換彈', hint: '冇子彈嗰陣旋轉' },

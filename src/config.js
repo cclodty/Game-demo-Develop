@@ -34,6 +34,12 @@ export const PLAYER = {
   // (the player's own time) with the guns still firing and bullets passing under the body, then a `roll` s roll at
   // `rollMul` of the run speed; `cooldown` s before the next. Outside bullet time Space is the spin
   dive: { dist: 4, air: 0.42, roll: 0.3, rollMul: 0.5, cooldown: 0.4 },
+  // the wall run (F⑨, player.js wallRun): C beside an inner wall (level.js `wallrun`, within `reach` m of its face)
+  // heading into it (input or run at least `into` of the way at it) runs along it for `time` s at `speed` m/s,
+  // `height` m up the wall: enemy rounds pass under, the guns fire; C again kicks off it into a dive (PLAYER.dive's
+  // distance), away from the wall; its end, or the wall's, drops him; `cooldown` s before the next; a kill on it is
+  // WALL KILL (+`pts`)
+  wallRun: { reach: 0.7, into: 0.5, time: 1.5, speed: 6, height: 1, cooldown: 0.6, pts: 200 },
   // a human shield (player.js grab): E within `reach` m of a man in front, with nothing to pick up, holds him `gap` m in
   // front for `hold` s (or until E again); enemy bullets from within ±`arc`° of the facing hit him instead, `hit` of his
   // hp each; the player walks at `walkMul` of the run speed (a type's own `holdWalk`: the brute's) and fires the left gun
