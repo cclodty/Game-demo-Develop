@@ -143,6 +143,8 @@ test('a god-mode bot plays an arcade run to the RUN CLEAR screen', { timeout: 15
       onScreen: document.getElementById('gameover').classList.contains('cleared'),
       title: text('go-title'),
       stats: shown.map((d) => [d.querySelector('span').textContent, d.querySelector('b').textContent]),
+      fresh: g.codex.fresh.length, // the tricks the trick book first saw this run (F⑤b): its row on the end screen
+      freshNames: document.getElementById('go-fresh').textContent,
       cleared: g.notes.events.some((e) => e.text.includes('通關（RUN CLEAR）')),
     };
   });
@@ -163,7 +165,10 @@ test('a god-mode bot plays an arcade run to the RUN CLEAR screen', { timeout: 15
     ['擊殺', String(r.kills)],
     ['最高連擊', `x${Math.max(1, r.maxCombo)}`],
     ['無傷波數', `${r.clean} / 12`],
+    // a fresh browser's first run finds tricks for the book (F⑤b)
+    ...(r.fresh ? [['新發現', r.freshNames]] : []),
   ]);
+  assert.ok(r.fresh > 0 && r.freshNames.split('、').length === r.fresh, `the new tricks named: ${r.freshNames}`);
   assert.ok(r.start.startsWith('開局：霓虹天台（街機'), r.start);
   assert.ok(r.cleared, 'the feedback log records the clear');
   // the grade: what the formula gives for this run's numbers, its three parts, and a hint

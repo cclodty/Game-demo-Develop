@@ -155,6 +155,7 @@
           <button type="button" id="open-settings">設定 <small>SETTINGS</small></button>
           <button type="button" id="open-boards">排行榜 <small>LEADERBOARD</small></button>
           <button type="button" id="open-achievements">成就 <small>ACHIEVEMENTS</small></button>
+          <button type="button" id="open-codex">花招手冊 <small>TRICKS</small></button>
           <button type="button" id="open-replays">重播 <small>REPLAYS</small></button>
         </div>
       </div>
@@ -226,6 +227,16 @@
           </div>
         </div>
         <div class="menu"><button type="button" id="help-close">返回 <kbd>Esc</kbd></button></div>
+      </div>
+    </div>
+
+    <!-- F⑤b: the trick book (main.js showCodex, codex.js) -->
+    <div id="codex" class="screen hidden">
+      <div class="panel">
+        <div class="logo-en go-title">TRICKS</div>
+        <p class="tagline" id="codex-count"></p>
+        <div id="codex-list" class="codex-list"></div>
+        <div class="menu"><button type="button" id="codex-close">返回 <kbd>Esc</kbd></button></div>
       </div>
     </div>
 
@@ -335,6 +346,7 @@
           <div class="clear-only"><span>無傷波數</span><b id="go-clean">0</b></div>
           <div class="cards-only"><span>風格卡</span><b id="go-cards">—</b></div>
           <div class="rooms-only"><span>房評級</span><b class="go-rooms" id="go-rooms"></b></div>
+          <div class="fresh-only"><span>新發現</span><b id="go-fresh"></b></div>
         </div>
         <div class="start">點擊重新開始 <span>/ Enter</span></div>
         <div class="start replay-only">重播完 <span>/ 點擊或 Enter 返回</span></div>

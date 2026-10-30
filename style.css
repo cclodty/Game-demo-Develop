@@ -1839,6 +1839,57 @@ body:not(.pad) .pad-only {
   color: var(--gold);
 }
 
+/* the trick book (F⑤b, main.js showCodex): each sort a heading, its tricks in a grid; a lit one gold-edged */
+.codex-list {
+  max-height: 62vh;
+  margin-top: 10px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.codex-list h4 {
+  margin: 12px 0 6px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--gold);
+}
+
+.codex-list h4 small {
+  color: var(--dim);
+}
+
+.cx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+
+.cx-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--dim);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cx-cell b {
+  font-size: 14px;
+}
+
+.cx-cell.lit {
+  color: var(--ink);
+  background: rgba(255, 200, 97, 0.08);
+  border-color: rgba(255, 200, 97, 0.45);
+}
+
+.cx-cell.lit small {
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
 /* achievements (achievements.js) */
 .modes.four {
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2179,6 +2230,7 @@ body:not(.pad) .pad-only {
 
 #gameover:not(.cards) .cards-only,
 #gameover:not(.rooms) .rooms-only,
+#gameover:not(.fresh) .fresh-only,
 #gameover:not(.cleared) .clear-only,
 #gameover.cleared .over-only,
 #gameover:not(.graded) .go-grade,
