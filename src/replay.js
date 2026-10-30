@@ -6,8 +6,9 @@
 // Layout: a 16-byte header ("BB", version, logic Hz, seed u32, map index,
 // step count u32, mode index in bits 0-2 with the ladder's level (F⑥a, 0-10) in bits 3-6 (0 in a record from before
 // it) and bit 7 set when the run opened with the warm-up, the run rules as rules.js packRules makes them, the game's revision
-// (the maps' and the play rules') as maps.js MAPS_REV gives it; little-endian; version 4 had no revision and a
-// 15-byte header, and still reads),
+// (the maps' and the play rules') as maps.js MAPS_REV gives it, then (version 6, F⑥b) the unlock table as the run
+// played it, one bit an entry of unlocks.js UNLOCKS (u32); little-endian; version 5 had no table (a 16-byte header:
+// everything open), version 4 no revision either (15 bytes), and both still read),
 // then one entry per step whose input
 // differs from the step before. An entry starts with a varint holding
 // (unchanged steps skipped since the previous entry) * 32 + flags, followed by
@@ -19,8 +20,9 @@
 
 import { StepInput } from './input.js';
 
-const VERSION = 5;
-const HEADER = 16;
+const VERSION = 6;
+const HEADER = 20;
+const HEADER_V5 = 16; // version 5: no unlock table
 const HEADER_V4 = 15; // version 4: no maps' revision
 const F_KEYS = 1;
 const F_PRESSED = 2;
@@ -29,13 +31,14 @@ const F_YAW = 8;
 const F_NUDGE = 16; // a small aim change, packed into one byte
 
 export class InputRecord {
-  constructor({ seed = 0, map = 0, mode = 0, warmup = false, rules = 0, ladder = 0, hz = 120, mapsRev = 0 } = {}) {
+  constructor({ seed = 0, map = 0, mode = 0, warmup = false, rules = 0, ladder = 0, unlocks = 0, hz = 120, mapsRev = 0 } = {}) {
     this.seed = seed >>> 0;
     this.map = map;
     this.mode = mode; // index into MODE_IDS (waves.js)
     this.warmup = warmup; // the run opened with the first-run warm-up (tutorial.js)
     this.rules = rules; // difficulty and variants, packed (rules.js packRules)
     this.ladder = ladder; // the ladder's level (rules.js LADDER), in the mode byte
+    this.unlocks = unlocks >>> 0; // the unlock table as the run played it (unlocks.js: a bit an entry, set when open)
     this.mapsRev = mapsRev; // the maps as they were (maps.js MAPS_REV)
     this.hz = hz;
     this.steps = 0;
@@ -95,6 +98,7 @@ export class InputRecord {
     out[13] = (this.mode & 7) | ((this.ladder & 15) << 3) | (this.warmup ? 0x80 : 0);
     out[14] = this.rules;
     out[15] = this.mapsRev;
+    v.setUint32(16, this.unlocks, true);
     out.set(this.buf.subarray(0, this.length), HEADER);
     return out;
   }
@@ -125,7 +129,7 @@ export class InputRecord {
 export class RecordReader {
   constructor(bytes) {
     if (bytes.length < HEADER_V4 || bytes[0] !== 0x42 || bytes[1] !== 0x42) throw new Error('not an input record');
-    if (bytes[2] !== VERSION && bytes[2] !== 4) throw new Error(`input record version ${bytes[2]}, expected ${VERSION}`);
+    if (bytes[2] !== VERSION && bytes[2] !== 5 && bytes[2] !== 4) throw new Error(`input record version ${bytes[2]}, expected ${VERSION}`);
     const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     this.bytes = bytes;
     this.hz = bytes[3];
@@ -139,8 +143,9 @@ export class RecordReader {
     this.version = bytes[2];
     this.mapsRev = this.version >= 5 ? bytes[15] : null; // null: from before maps had revisions
     this.left = this.steps;
-    this.pos = this.version >= 5 ? HEADER : HEADER_V4;
+    this.pos = this.version >= 6 ? HEADER : this.version >= 5 ? HEADER_V5 : HEADER_V4;
     if (bytes.length < this.pos) throw new Error('not an input record');
+    this.unlocks = this.version >= 6 ? v.getUint32(16, true) : null; // null: from before the table, everything open
     this.cmd = new StepInput();
     this.head();
   }

@@ -88,6 +88,7 @@ src/cards.js                 the style cards (彈幕 ② C②, F④a, F④b): ei
 src/challenge.js             the room challenges (F②a, F②b): one offered on a fight room's entry before its first wave (drawn from the room's stream), taken on by a Y press in the input record; 無傷 gives a life (no more than CHALLENGE.maxLives held), 限時 a special weapon, 不開槍 a style card of four, 不用慢鏡 a focus segment (config.js CHALLENGE)
 src/prizes.js                the doors' prizes (F③b): where a room's two doors give a choice, a prize on each from the room's stream (a gun, a style card, an elite room, a heal: at full HP a life), given as the next room begins (config.js DOORS)
 src/codex.js                 the tricks (F⑤a, F⑤b): every kill tag and Style line that is a trick, with its Chinese name, sort and (half of them) a hint; a room's rating counts the different ones it saw (score.js roomTricks, config.js ROOM_RATING); the trick book (Codex) lights each the first time it is done, kept in this browser, shown from the title
+src/unlocks.js               the unlock table (F⑥b): ten style cards, two weapons, two variants shut at first, each opened by a challenge kind's first or second win or a ladder level (kept in this browser); a run's table fixed as it starts and kept in the input record as a mask
 src/rules.js                 run rules: difficulties, variants and the ladder (F⑥a: ten levels, one change each, the tenth all; a cleared 彈幕 run opens the next, kept in this browser) as data (one switch or number each), read by their systems as game.ruleset
 src/notes.js                 playtest notes: event log, stats/tuning panel (`), N notes, Markdown export
 src/style.js                 the look: toon twins of every lit material, outlines, afterimages, 12 fps pose step, proportions
@@ -203,6 +204,8 @@ merges `<id>@clip.glb` animations, writes `assets/models/` and
 - The first run in a fresh browser opens with the warm-up (`tutorial.js`). The
   test harness marks it as seen before every page load unless the query
   mentions `tutorial` (`?tutorial=1` forces it, `?tutorial=0` is a first visit).
+  It also opens the whole unlock table (`unlocks.js`) unless the query mentions
+  `unlocks`: the tests were written with every card, weapon and variant.
 - `index.html` has `<div id="game">`, so `window.game` is that element until
   `main.js` assigns the real `Game` (after the optional models load). Check
   for `window.game.startRun` before using it.
