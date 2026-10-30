@@ -2,22 +2,33 @@
 
 2026-10-30 · TASKS「故事 ④」· 依據 `docs/STORY.md` §3（角色）、§7.5（頭目戰）、§11（幾時出），`docs/art/CHARACTERS.md` §4（頭目的樣、主色、配件），同之前兩章定落的規矩（`01-prologue.md`、`02-every-night.md`）。
 
+**第二稿（開發者 10-30）：** 第一稿照原型的頭目房畫：大廳、後廳、庫房、前廳，其實係同一間茶樓的四個房。出圖之後：
+
+- 頭目設定圖可以，刀姐過關。
+- 其餘幾頁好違和：炸藥箱堆喺點心廚房、門神守住銀行夾萬、長鏡伏喺酒樓接待枱。
+- 入場的背景會變成第二代頭目房的樣，所以開發者定咗：**每個頭目一個自己的片場**，房跟佢的部門。
+- 第 2–5 頁重寫，第 1 頁（刀姐）同設定圖照用。
+
 ## 呢章要做到乜
 
 - **第一次撞到先出成頁，之後只出第一格**（§11）。所以每頁第一格自己就要講得明：
   - 第一格唔講對白，淨係頭目大格加名牌。名牌由遊戲寫，中英對照。
   - 打第二次嗰陣，名牌格一閃大約 1.5 秒就開打。
-- **頭目就係劇組。** 五個頭目係真人秀的五個部門，一睇道具就知做邊行：
-  - 刀姐：分鏡紙。
-  - 炮哥：炸藥箱。
-  - 門神：場務對講機。
-  - 長鏡：攝影機鏡頭。
-  - 選角陳：試鏡相。
-  - 名牌寫埋部門，好似片尾字幕咁。
+- **頭目就係劇組，每個頭目一個片場。** 一入房就知打邊個：
+
+  | 頭目 | 部門 | 片場（頭目房） | 點解 |
+  |---|---|---|---|
+  | 刀姐 | 動作指導 | 酒樓大廳 | 港產動作片最經典的槍戰場口 |
+  | 炮哥 | 爆破組 | 貨櫃碼頭 | 爆破戲最常拍的地方；原型本來就係碼頭重炮；佢的鐵灰＋橙同碼頭色盤一樣 |
+  | 門神 | 場務（清場） | 海底隧道口收費廣場 | 出城唯一一條路，佢守住唔俾 9527 走 |
+  | 長鏡、選角陳 | 攝影指導、選角 | 攝影棚 | 燈架、路軌、吊臂、綠幕：拍戲同試鏡的地方 |
+  | 金爺 | 監製 | 戲棚（第三層固定） | 一晚喺戲棚開機，喺戲棚殺青 |
+
+  頭目房喺第一、二層抽，燈光跟嗰層的時段；入場頁一律畫夜晚。
 - **五頁同一個版面：** 左邊頭目大格，右邊上面一格係佢一句，右邊下面一格係 9527 的反應。同層卡一樣，玩家第二次已經一見就知「頭目嚟喇」。長鏡同選角陳同場，嗰頁四格。
 - **9527 的反應係笑位：** 頭目越惡，佢越平靜、越認真咁答錯重點（「第七個都幾好喎」「咁我算邊樣？」）。佢個樣照預設：呆、無辜，唔係型。
 - **金爺喺呢度第一次露面。** 序章只係高位一個人影，層卡只見手、雪茄火同金牙。
-- **照守之前的規矩：** 賭客只喺螢幕出現；圖入面唔畫字：分鏡紙冇字、炸藥箱留白、賭盤留白、試鏡相冇名。
+- **照守之前的規矩：** 賭客只喺螢幕出現；圖入面唔畫字：分鏡紙冇字、炸藥箱留白、路牌留白、賭盤留白、試鏡相冇名。
 
 ## 點樣讀呢份分鏡
 
@@ -32,7 +43,7 @@
 | 散彈手 | 選角陳 | 選角 CASTING |
 | 最終頭目 | 金爺 | 監製 PRODUCER |
 
-**頭目的樣**（`docs/art/CHARACTERS.md` §4 的主色同配件；ChatGPT 版第 1 段先出一張六個人的設定圖）：
+**頭目的樣**（`docs/art/CHARACTERS.md` §4 的主色同配件；開發者 10-30 出咗設定圖，照用）：
 
 - **刀姐：** 三十幾歲女人，修身黑色長褸、銀邊，高馬尾，眼神利、有啲玩味；兩把短刀。
 - **炮哥：** 巨型男人，鐵灰色工人褲、橙色揹帶，胸前一塊鋼板；膊頭托住一支轉輪機槍。
@@ -43,7 +54,7 @@
 
 ---
 
-## 第 1 頁：刀姐（大廳，3 格）
+## 第 1 頁：刀姐（酒樓大廳，3 格）　已過關
 
 **版面（五頁共用）：** 左邊一格大，約佔五分之三闊，右邊斜邊（1）；右邊兩格疊住（2 上、3 下），中間斜邊。
 
@@ -57,72 +68,74 @@
 [共用風格] Three panels. Left, the largest panel, about three fifths of the width, its right edge slanted: a grand old Chinese restaurant hall at night (round banquet tables with white cloths, red paper lanterns, carved wooden screens); a woman in her thirties crouches like a cat on a low platform in the corner of the room, in a long fitted black coat with silver trim, a high ponytail, a sharp, amused look, a short blade in each hand; a row of throwing knives stands stuck upright in the floor around her, and sheets of film storyboard sketches are pinned to the wall behind her; seen from a low angle so she looms; keep the lower left of this panel darker and clear for a name plate. Right column, two panels stacked with a slanted gutter: top, a close-up of one storyboard sheet held up between her fingers: ten small rough pencil sketches of the same skinny figure in a white suit dying in ten absurd ways (falling off a roof, blown up, crushed by a sign, and so on), drawn as wordless storyboard frames with no writing at all; bottom, [9527] tilting his head and studying the sheet with mild, earnest interest, like a man choosing from a menu. Leave calm space near the top of the two right panels for dialogue.
 ```
 
-## 第 2 頁：炮哥（後廳，3 格）
+## 第 2 頁：炮哥（貨櫃碼頭，3 格）
 
 **版面：** 同第 1 頁。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 1 | 中景（仰角） | 酒樓後廳：一排不鏽鋼蒸櫃冒緊煙，一張宴會大圓枱連轉盤。炮哥膊頭托住轉輪機槍，笑；後面疊到好高的炸藥箱，條條引線 | 名牌：「炮哥／爆破組 PYROTECHNICS」 | 標準 |
-| 2 | 特寫 | 炮哥隻大手拍落一個炸藥箱，箱面一張白標籤（字由遊戲寫：「真」），箱頂一紮炸藥 | 標籤（遊戲寫）：「真」<br>炮哥：「今晚冇假炸藥。」 | 標準 |
-| 3 | 近景 | 9527 雙手插袋，聳聳膊頭，一臉冇所謂 | 9527：「冇所謂，我有得 NG。」 | 標準 |
+| 1 | 中景（仰角） | 夜晚的貨櫃碼頭：一疊疊貨櫃、龍門吊閃住橙色警示燈、一排排油桶、濕的石屎地。炮哥企喺一個貨櫃頂，膊頭托住轉輪機槍，笑；腳邊疊住炸藥箱，條條引線拖落去油桶度 | 名牌：「炮哥／爆破組 PYROTECHNICS」 | 標準 |
+| 2 | 特寫 | 炮哥隻大手拍落一個炸藥箱，箱面一張白標籤（字由遊戲寫：「真」），箱頂一紮炸藥，後面一排油桶 | 標籤（遊戲寫）：「真」<br>炮哥：「今晚冇假炸藥。」 | 標準 |
+| 3 | 近景 | 9527 企喺兩個貨櫃中間，雙手插袋，聳聳膊頭，一臉冇所謂 | 9527：「冇所謂，我有得 NG。」 | 標準 |
 
 ```text
-[共用風格] Three panels, the same layout as page 1. Left, the largest panel: the steamy back hall of an old Chinese restaurant at night (a row of stainless-steel steamer cabinets puffing steam, a big round banquet table with a lazy Susan, hanging lamps); a giant man in iron-grey work overalls with orange straps and a thick steel plate strapped to his chest rests a huge rotary machine gun on his shoulder and grins; behind him a tall stack of wooden explosive crates with fuse wires trailing from them; low angle so he looms; keep the lower left of this panel darker and clear for a name plate. Right column, two panels stacked with a slanted gutter: top, a close-up of his big hand slapping one explosive crate, a bundle of dynamite sticks on its lid and a plain white label on its side (left blank for a word to be added later); bottom, [9527] with his hands in his pockets, shrugging, his face blank and unbothered. Leave calm space near the top of the two right panels for dialogue.
+[共用風格] Three panels, the same layout as page 1. Left, the largest panel: a container port at night (stacks of shipping containers, a gantry crane with orange warning lights, rows of steel fuel drums, wet concrete reflecting the lights); a giant man in iron-grey work overalls with orange straps and a thick steel plate strapped to his chest stands on top of a container, a huge rotary machine gun resting on his shoulder, grinning; wooden explosive crates are stacked at his feet with fuse wires trailing down to the fuel drums; low angle so he looms; keep the lower left of this panel darker and clear for a name plate. Right column, two panels stacked with a slanted gutter: top, a close-up of his big hand slapping one explosive crate on the dock, a bundle of dynamite sticks on its lid, a plain white label on its side (left blank for a word to be added later), fuel drums behind it; bottom, [9527] standing in the gap between two containers with his hands in his pockets, shrugging, his face blank and unbothered. Leave calm space near the top of the two right panels for dialogue.
 ```
 
-## 第 3 頁：門神（庫房，3 格）
+## 第 3 頁：門神（海底隧道口收費廣場，3 格）
 
 **版面：** 同第 1 頁。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 1 | 中景（仰角） | 庫房：好大一度圓形夾萬門、靠牆一排錢籠、一個燈泡吊住。門神將一面大鐵盾插喺門口，成個門口擋晒；膊頭夾住對講機，腰間一支左輪 | 名牌：「門神／場務 SET SECURITY」 | 標準 |
-| 2 | 特寫 | 鐵盾撼落地，地板裂開，塵飛起，撞擊線 | 門神：「清場！生人死人都唔准過！」 | 標準 |
-| 3 | 近景 | 9527 低頭望自己雙手同身體，認真咁諗緊自己算生定死 | 9527：「咁我算邊樣？」 | 長停 |
+| 1 | 中景（仰角） | 夜晚，海底隧道口前面的收費廣場：一排收費亭、欄杆全部放低，隧道口白光光，係出城唯一一條路；頭頂的行車線牌留白。門神將大鐵盾插喺唯一一條開住的行車線，成條線擋晒；膊頭夾住對講機，腰間一支左輪 | 名牌：「門神／場務 SET SECURITY」 | 標準 |
+| 2 | 特寫 | 鐵盾撼落馬路，柏油連行車線一齊裂開，碎石飛起，撞擊線 | 門神：「清場！生人死人都唔准過！」 | 標準 |
+| 3 | 近景 | 9527 喺收費亭旁邊，低頭望自己雙手同身體，認真咁諗緊自己算生定死 | 9527：「咁我算邊樣？」 | 長停 |
+
+門神係場務：清場、守門。佢守住出城條路，係話俾 9527 知：成個腥港都係片場，走唔甩。
 
 ```text
-[共用風格] Three panels, the same layout as page 1. Left, the largest panel: a vault room at night (a huge round steel vault door, cash cages along the walls, a single bare bulb hanging); a huge man in dark green heavy armour pieces over a jacket and a full helmet with a visor plants a giant steel tower shield in the doorway, blocking it completely; a walkie-talkie clipped to his shoulder, a revolver at his hip; low angle so he looms; keep the lower left of this panel darker and clear for a name plate. Right column, two panels stacked with a slanted gutter: top, a close-up of the tower shield slamming down onto the floor, the floor cracking, dust jumping, impact lines; bottom, [9527] looking down at his own hands and body, puzzled and sincere, as if working out whether he counts as alive or dead. Leave calm space near the top of the two right panels for dialogue.
+[共用風格] Three panels, the same layout as page 1. Left, the largest panel: a toll plaza at night in front of the mouth of an undersea road tunnel: a row of toll booths with every barrier arm down, the tunnel mouth glowing cold white behind them, the only road out of the city; the overhead lane signs are left blank; a huge man in dark green heavy armour pieces over a jacket and a full helmet with a visor plants a giant steel tower shield in the one open lane, blocking it completely; a walkie-talkie clipped to his shoulder, a revolver at his hip; lit in cold white and green; low angle so he looms; keep the lower left of this panel darker and clear for a name plate. Right column, two panels stacked with a slanted gutter: top, a close-up of the tower shield slamming down onto the road, the asphalt and the painted lane markings cracking, chips of road flying, impact lines; bottom, [9527] beside a toll booth, looking down at his own hands and body, puzzled and sincere, as if working out whether he counts as alive or dead. Leave calm space near the top of the two right panels for dialogue.
 ```
 
-## 第 4 頁：長鏡同選角陳（前廳，4 格）
+## 第 4 頁：長鏡同選角陳（攝影棚，4 格）
 
 **版面：** 左邊兩格疊住（1 上、2 下），中間斜邊；右邊兩格疊住（3 上、4 下）。1、2 都係名牌格：打第二次時兩格一齊出。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 1 | 中景 | 酒樓前廳：長長的接待枱、一牆紅燈籠。長鏡伏喺接待枱面，用長狙擊槍瞄準，瞄準鏡似電影鏡頭；背住一部細攝影機 | 名牌：「長鏡／攝影指導 CINEMATOGRAPHER」 | 標準 |
-| 2 | 中景 | 選角陳行前，一手托住雙管散彈槍喺膊頭，一手揸住一疊試鏡相，笑得好似老朋友 | 名牌：「選角陳／選角 CASTING」<br>選角陳：「又見面喇，主角。」 | 標準 |
+| 1 | 遠景（俯角） | 夜晚的大攝影棚：燈架、地上的路軌、一幅綠幕、一支好高的攝影吊臂。長鏡伏喺吊臂最尾，高高在上，用長狙擊槍向下瞄準，瞄準鏡似電影鏡頭；背住一部細攝影機 | 名牌：「長鏡／攝影指導 CINEMATOGRAPHER」 | 標準 |
+| 2 | 中景 | 選角陳沿住路軌行埋嚟，一手托住雙管散彈槍喺膊頭，一手揸住一疊試鏡相，笑得好似老朋友；後面一幅牆貼滿試鏡相 | 名牌：「選角陳／選角 CASTING」<br>選角陳：「又見面喇，主角。」 | 標準 |
 | 3 | 特寫 | 試鏡相喺佢戴手套的手入面散開，最面嗰張係 9527 呆呆的大頭相 | 選角陳：「千揀萬揀，揀中你。」 | 標準 |
-| 4 | 近景 | 9527 好有禮貌咁微微鞠躬，認真又有少少緊張，好似員工見老闆 | 9527：「陳生，我有準時開工㗎。」 | 長停 |
+| 4 | 近景 | 一枝射燈打落 9527，好似試鏡咁；佢好有禮貌咁微微鞠躬，認真又有少少緊張，好似員工見老闆 | 9527：「陳生，我有準時開工㗎。」 | 長停 |
 
 選角陳係序章請 9527 上車嗰個人；9527 撞返佢，第一反應唔係嬲，係有禮貌咁報到：黑色幽默喺佢太乖。第一稿三格，加多一格俾 9527 的反應（DECISIONS 2026-10-30）。
 
 ```text
-[共用風格] Four panels. Left half, two panels stacked with a slanted gutter: top, the front hall of an old Chinese restaurant at night (a long reception desk, a wall of red paper lanterns); a tall, thin man in a dark blue long coat and a wide-brimmed hat lies along the top of the reception desk aiming a long sniper rifle whose scope is shaped like a cinema camera lens, a small film camera strapped to his back; keep the lower left of this panel clear for a name plate. Bottom: the casting director from the prologue (thin, in his forties, slicked-back hair, tinted glasses, a brown leather jacket and gloves) steps forward with a double-barrelled shotgun resting on his shoulder in one hand and a stack of headshot photos in the other, smiling like an old friend; keep the lower left of this panel clear for a name plate. Right half, two panels stacked with a slanted gutter: top, a close-up of the headshot photos fanned out in his gloved hand, the top one a headshot of [9527] with his dazed face (no names or writing on the photos); bottom, [9527] giving a small, polite bow, earnest and a little nervous, like an employee greeting his boss. Leave calm space near the top of panels 2, 3 and 4 for dialogue.
+[共用風格] Four panels. Left half, two panels stacked with a slanted gutter: top, a huge film sound stage at night, seen from above (lighting rigs on stands, a dolly track across the floor, a green-screen wall, a tall camera crane); a tall, thin man in a dark blue long coat and a wide-brimmed hat lies along the far end of the crane's arm high up in the air, aiming a long sniper rifle down at the floor, its scope shaped like a cinema camera lens, a small film camera strapped to his back; keep the lower left of this panel clear for a name plate. Bottom: the casting director from the prologue (thin, in his forties, slicked-back hair, tinted glasses, a brown leather jacket and gloves) walks along the dolly track towards us with a double-barrelled shotgun resting on his shoulder in one hand and a stack of headshot photos in the other, smiling like an old friend; behind him a wall covered with pinned headshot photos (no names or writing); keep the lower left of this panel clear for a name plate. Right half, two panels stacked with a slanted gutter: top, a close-up of the headshot photos fanned out in his gloved hand, the top one a headshot of [9527] with his dazed face (no names or writing on the photos); bottom, [9527] standing in a single spotlight on the studio floor as if at an audition, giving a small, polite bow, earnest and a little nervous, like an employee greeting his boss. Leave calm space near the top of panels 2, 3 and 4 for dialogue.
 ```
 
-## 第 5 頁：金爺（戲棚，3 格）
+## 第 5 頁：金爺（戲棚，第三層固定，3 格）
 
 **版面：** 同第 1 頁。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 1 | 中景（仰角） | 返到序章的戲棚，天光前：戲台上擺咗一張長賭枱，好似莊家位，堆滿籌碼。金爺坐喺後面，第一次成個人露面：花白油頭、黑色雙排扣西裝、暗金頸鏈、粗金戒指、雪茄，成口金牙笑到閃一閃；打手企喺衣邊的黑影入面；台下一排排空凳 | 名牌：「金爺／監製 PRODUCER」 | 標準 |
+| 1 | 中景（仰角） | 返到序章的戲棚，天光前，竹架外面天邊開始發白：戲台上擺咗一張長賭枱，好似莊家位，堆滿籌碼。金爺坐喺後面，第一次成個人露面：花白油頭、黑色雙排扣西裝、暗金頸鏈、粗金戒指、雪茄，成口金牙笑到閃一閃；衣邊的黑影入面企住幾個着黑西裝的普通打手（唔係其他頭目）；台下一排排空凳 | 名牌：「金爺／監製 PRODUCER」 | 標準 |
 | 2 | 遠景 | 竹架上的大螢幕亮起：賭盤（字由遊戲寫），旁邊一格格戴面具的賭客揮緊銀紙；金爺揸住雪茄的手指住螢幕 | 賭盤（遊戲寫）：「9527 天光前死　1 賠 1.1」<br>金爺：「全腥港都買你死。」 | 標準 |
 | 3 | 近景 | 9527 一個人企喺空凳之間的行人路，抬頭望住佢；細細個，但個樣好靜，有少少定；一滴汗 | 9527：「咁我搏冷門。」 | 長停 |
 
-**金爺喺邊（建議，待開發者定）：** 金爺的頭目房未定（`docs/STORY.md` §10 第 5 項）。分鏡將佢放返戲棚：一晚由戲棚開機（序章），喺戲棚殺青。台下張張空凳亦接得返真結局的伏筆（§10 第 6 項）。開發者唔啱，就換背景，對白同版面唔使改。
+一晚由戲棚開機（序章），喺戲棚殺青；台下張張空凳亦接得返真結局的伏筆（`docs/STORY.md` §10 第 6 項）。第一稿的圖金爺後面企咗其他頭目：其他頭目喺自己的片場，唔會喺度，所以改做普通打手。
 
 ```text
-[共用風格] Three panels, the same layout as page 1. Left, the largest panel: the bamboo opera theatre from the prologue, just before dawn; on its stage stands a long gambling table like a casino banker's, piled with chips; behind it sits the gang boss, shown in full for the first time: a heavy-set man in his late fifties, slicked-back grey hair, a black double-breasted suit, a dark brassy gold chain, chunky gold rings (as on the hand in the attached act card), a cigar, and a mouthful of gold teeth flashing in a wide grin; his gang stands in the shadows of the wings; rows of empty seats in front of the stage; low angle so he looms; the gold is dark and brassy, used only as accents; keep the lower left of this panel darker and clear for a name plate. Right column, two panels stacked with a slanted gutter: top, the giant video screen on the bamboo frame lighting up with a betting board (left blank for words to be added later) beside video-call windows of masked gamblers waving banknotes, and his hand with the cigar pointing up at it; bottom, [9527] standing alone in the aisle between the empty seats, looking up at him: small, but with a quiet, slightly steady little face, a drop of sweat on his temple. Leave calm space near the top of the two right panels for dialogue.
+[共用風格] Three panels, the same layout as page 1. Left, the largest panel: the bamboo opera theatre from the prologue, just before dawn, the sky beyond the bamboo frame turning pale; on its stage stands a long gambling table like a casino banker's, piled with chips; behind it sits the gang boss, shown in full for the first time: a heavy-set man in his late fifties, slicked-back grey hair, a black double-breasted suit, a dark brassy gold chain, chunky gold rings (as on the hand in the attached act card), a cigar, and a mouthful of gold teeth flashing in a wide grin; a few ordinary henchmen in plain dark suits stand in the shadows of the wings (none of the other bosses); rows of empty seats in front of the stage; low angle so he looms; the gold is dark and brassy, used only as accents; keep the lower left of this panel darker and clear for a name plate. Right column, two panels stacked with a slanted gutter: top, the giant video screen on the bamboo frame lighting up with a betting board (left blank for words to be added later) beside video-call windows of masked gamblers waving banknotes, and his hand with the cigar pointing up at it; bottom, [9527] standing alone in the aisle between the empty seats, looking up at him: small, but with a quiet, slightly steady little face, a drop of sweat on his temple. Leave calm space near the top of the two right panels for dialogue.
 ```
 
 ---
 
-## 先出：六個頭目的設定圖
+## 先出：六個頭目的設定圖　已出（開發者 10-30：可以）
 
-出入場頁之前先出呢張，之後每頁都附上，頭目先會似同一個人（打低嗰幾頁、Meshy 建模都用得着，`docs/art/CHARACTERS.md`）。
+之後每頁都附上，頭目先會似同一個人（打低嗰幾頁、Meshy 建模都用得着，`docs/art/CHARACTERS.md`）。
 
 ```text
 A 16:9 widescreen character lineup sheet of six gang bosses for the same game, standing side by side, full body, front view, relaxed neutral poses, each holding their weapon, on a plain light grey background, from left to right: 1) a woman in her thirties, long fitted black coat with silver trim, high ponytail, a short blade in each hand; 2) a giant man in iron-grey work overalls with orange straps and a steel chest plate, a rotary machine gun on his shoulder; 3) a huge man in dark green heavy armour pieces over a jacket, a full helmet with a visor, a giant steel tower shield, a walkie-talkie on his shoulder, a revolver at his hip; 4) a tall, thin man in a dark blue long coat and a wide-brimmed hat, a long sniper rifle with a scope shaped like a cinema camera lens, a small film camera on his back; 5) the casting director from the prologue: thin, in his forties, slicked-back hair, tinted glasses, a brown leather jacket and gloves, a double-barrelled shotgun and a stack of headshot photos; 6) the gang boss: a heavy-set man in his late fifties, slicked-back grey hair, a black double-breasted suit, a dark brassy gold chain, chunky gold rings, a cigar, a grin full of gold teeth. Each has a clear, different silhouette. Modern Japanese anime style, flat colours, clean two-tone cel shading, crisp black outlines. Original characters that do not resemble any real person or actor. No text, no name labels.

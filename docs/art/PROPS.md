@@ -358,6 +358,8 @@ pallet_stack — A stack of four wooden pallets 1.2 x 1.0 m, 0.6 m high.
 
 ## 6. 頭目房（四間）
 
+**2026-10-30 改咗，下面待重寫：** 開發者定咗每個頭目一個片場（`docs/REDESIGN.md` §3）：刀姐 酒樓大廳、炮哥 貨櫃碼頭、門神 海底隧道口收費廣場、長鏡＋選角陳 攝影棚、金爺 戲棚。下面係原型茶樓四個房的清單，只有大廳（刀姐）照用；其餘按入場頁（`docs/storyboard/03-bosses.md`）重寫，見 TASKS「H⓪b」。
+
 大廳（刀后）、後廳（重炮手）、庫房（鐵盾）、前廳（長槍手＋散彈手）現時全部用茶樓那套：`floor_terrazzo`、`wall_tea`、`table_cloth`（大廳四張 Ø1.6、後廳一張 `table_banquet` 加兩張 Ø1.6、庫房兩張 Ø2.2、前廳兩張 Ø1.8）。第二代每間房自己的身份要等頭目的幫派身份定（`docs/REDESIGN.md` §3 開發者填），所以下面全部 P3：
 
 | id | 名稱 | 房 | 尺寸 | 三角形 | 做法 | 要點 |
