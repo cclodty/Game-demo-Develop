@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import { chromium } from 'playwright';
 import { startServer } from '../scripts/serve.mjs';
+import { UNLOCKS } from '../src/unlocks.js';
 
 export const GPU_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'];
 
@@ -36,6 +37,9 @@ export async function gameHarness() {
       // the title opens on the game's own mode with the older four off it (彈幕 ② C③): a test written for the arcade
       // (and the maps, the daily, the night) starts as a player who picked it before, unless it names a mode (?mode=…)
       if (!/[?&]modes?=/.test(query)) await page.addInitScript(() => localStorage.getItem('bullet-ballet.mode') || localStorage.setItem('bullet-ballet.mode', 'arcade')); // (`?models=off` is not a mode) a pick made in the test (the night, kept across its reload) stands
+      // the unlock table (F⑥b) all open, the cards, weapons and variants the tests were written with, unless the test is
+      // about it (?unlocks); one opened or shut in the test (kept across its reload) stands
+      if (!query.includes('unlocks')) await page.addInitScript((all) => localStorage.getItem('bullet-ballet.unlocks') || localStorage.setItem('bullet-ballet.unlocks', all), JSON.stringify({ opened: UNLOCKS.map((u) => `${u.what}:${u.id}`), wins: {} }));
       await page.goto(`${server.url}/index.html${query}`);
       // index.html has <div id="game">, so window.game is that element until main.js
       // assigns the real Game (after the optional models load) — wait for the object.

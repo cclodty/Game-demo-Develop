@@ -239,10 +239,10 @@ test('a replay of a run on maps since rebuilt (another maps’ revision) is mark
     const same = g.playReplay(bytes, entry);
     out.fresh = { err: same, stale: g.replay && g.replay.stale };
     g.toTitle();
-    // one kept from before the maps had revisions: a version 4 record (no revision byte), a list entry without one
-    const v4 = new Uint8Array(bytes.length - 1);
+    // one kept from before the maps had revisions: a version 4 record (no revision byte, no unlock table), a list entry without one
+    const v4 = new Uint8Array(bytes.length - 5);
     v4.set(bytes.subarray(0, 15));
-    v4.set(bytes.subarray(16), 15);
+    v4.set(bytes.subarray(20), 15);
     v4[2] = 4;
     const before = { ...entry };
     delete before.mapsRev;

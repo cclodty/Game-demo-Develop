@@ -1489,15 +1489,20 @@ body:not(.pad) .pad-only {
   margin-top: 22px;
 }
 
-/* the long ones (F⑤a room grades, F⑤b new tricks, F⑥a a ladder level opened): a line each under the numbers */
+/* the long ones (F⑤a room grades, F⑤b new tricks, F⑥ what opened): a line each under the numbers */
 .go-stats .rooms-only,
 .go-stats .fresh-only,
-.go-stats .ladder-only {
+.go-stats .unlocks-only {
   flex-basis: 100%;
 }
 
+.go-stats .unlocks-only b i {
+  font-style: normal;
+  white-space: nowrap;
+}
+
 .go-stats .fresh-only b,
-.go-stats .ladder-only b {
+.go-stats .unlocks-only b {
   font-family: var(--body);
   font-weight: 700;
   font-size: 15px;
@@ -1904,6 +1909,11 @@ body:not(.pad) .pad-only {
   border-color: rgba(255, 200, 97, 0.45);
 }
 
+.cx-cell span {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .cx-cell.lit small {
   color: var(--gold);
   letter-spacing: 1px;
@@ -2250,7 +2260,7 @@ body:not(.pad) .pad-only {
 #gameover:not(.cards) .cards-only,
 #gameover:not(.rooms) .rooms-only,
 #gameover:not(.fresh) .fresh-only,
-#gameover:not(.ladder) .ladder-only,
+#gameover:not(.unlocks) .unlocks-only,
 #gameover:not(.cleared) .clear-only,
 #gameover.cleared .over-only,
 #gameover:not(.graded) .go-grade,

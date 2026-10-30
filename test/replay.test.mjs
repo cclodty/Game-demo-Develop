@@ -1,5 +1,5 @@
 // The input record (src/replay.js): what goes in comes back out, step by
-// step, with the header intact (the maps' revision too; a version 4 record,
+// step, with the header intact (the maps' revision and the unlock table too; a version 5 or 4 record,
 // from before it, still reads); long still stretches cost nothing; a control
 // the record does not know about fails loudly instead of reading as "up".
 // Run: npm test
@@ -77,26 +77,32 @@ test('controls: held and pressed read by name; an unknown one throws', () => {
   assert.ok(BUTTONS.length <= 31, 'the bits fit a 32-bit integer');
 });
 
-test('the header keeps the game’s revision (maps.js MAPS_REV: the maps’ and the play rules’); a version 4 record, from before it, still reads, step for step, its revision unknown', () => {
+test('the header keeps the game’s revision (maps.js MAPS_REV: the maps’ and the play rules’) and the unlock table (F⑥b); a version 5 record, from before the table, and a version 4, from before the revision, still read, step for step, the table all open and the revision unknown', () => {
   const steps = script(3000, 9);
-  const rec = new InputRecord({ seed: 7, map: 6, mode: 0, rules: 0, hz: 120, mapsRev: MAPS_REV });
+  const rec = new InputRecord({ seed: 7, map: 6, mode: 0, rules: 0, unlocks: 0x2a5, hz: 120, mapsRev: MAPS_REV });
   for (const s of steps) rec.push(Object.assign(new StepInput(), s));
   const bytes = rec.encode();
   const rd = new RecordReader(bytes);
-  assert.equal(rd.version, 5);
+  assert.equal(rd.version, 6);
   assert.equal(rd.mapsRev, MAPS_REV);
+  assert.equal(rd.unlocks, 0x2a5);
   assert.equal(MAPS_REV, (MAPS.reduce((s, m) => s + m.rev, 0) + Object.values(ROOMS).reduce((s, m) => s + m.rev, 0) + PLAY_REV) % 256, 'the sum of every map’s (and room’s: rooms.js) rev and the play revision');
   assert.ok(MAPS.every((m) => Number.isInteger(m.rev) && m.rev >= 1), 'every map has a revision');
-  // the same record as version 4 wrote it: no revision byte
-  const v4 = new Uint8Array(bytes.length - 1);
+  // the same record as version 5 wrote it (no table: 4 bytes fewer), and as version 4 (no revision byte either)
+  const v5 = new Uint8Array(bytes.length - 4);
+  v5.set(bytes.subarray(0, 16));
+  v5.set(bytes.subarray(20), 16);
+  v5[2] = 5;
+  const v4 = new Uint8Array(bytes.length - 5);
   v4.set(bytes.subarray(0, 15));
-  v4.set(bytes.subarray(16), 15);
+  v4.set(bytes.subarray(20), 15);
   v4[2] = 4;
-  const old = new RecordReader(v4);
-  assert.deepEqual([old.version, old.mapsRev, old.seed, old.map, old.steps], [4, null, 7, 6, steps.length]);
-  for (let i = 0; i < steps.length; i++) {
-    const c = old.next(0, 0);
-    assert.deepEqual([c.keys, c.pressed, c.aimQX, c.aimQZ, c.yawQ], [steps[i].keys, steps[i].pressed, steps[i].aimQX, steps[i].aimQZ, steps[i].yawQ], `step ${i}`);
+  for (const [old, version, rev] of [[new RecordReader(v5), 5, MAPS_REV], [new RecordReader(v4), 4, null]]) {
+    assert.deepEqual([old.version, old.mapsRev, old.unlocks, old.seed, old.map, old.steps], [version, rev, null, 7, 6, steps.length]);
+    for (let i = 0; i < steps.length; i++) {
+      const c = old.next(0, 0);
+      assert.deepEqual([c.keys, c.pressed, c.aimQX, c.aimQZ, c.yawQ], [steps[i].keys, steps[i].pressed, steps[i].aimQX, steps[i].aimQZ, steps[i].yawQ], `version ${version}, step ${i}`);
+    }
   }
 });
 

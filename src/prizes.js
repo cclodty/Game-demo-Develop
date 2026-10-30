@@ -5,14 +5,14 @@
 // clears scoring twice: waves.js affixesFor, main.js onWaveClear), or a heal (DOORS.heal of a full meter; at full HP a
 // life instead, while fewer than CHALLENGE.maxLives are in hand). Each is data: its name on the door's sign, whether it
 // fits the run's rules. The numbers are in config.js DOORS.
-import { CARD_IDS } from './cards.js';
 import { CHALLENGE, DOORS } from './config.js';
+import { openWeapons } from './unlocks.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
 /** `name` and `en` on the door's sign; `fits` whether it can be offered (a gun is none where no gun is handed out: rules.js `drops`). */
 export const PRIZES = {
   gun: { name: '一支槍', en: 'GUN', fits: (g) => g.ruleset.drops !== false && g.ruleset.pads !== false && !g.cards.has('pistolsOnly') },
-  card: { name: '一張卡', en: 'CARD', fits: (g) => CARD_IDS.length - g.cards.held.length >= 3 },
+  card: { name: '一張卡', en: 'CARD', fits: (g) => g.cards.pool.filter((id) => !g.cards.held.includes(id)).length >= 3 },
   elite: { name: '精英房', en: 'ELITE', fits: () => true },
   heal: { name: '回血', en: 'HEAL', fits: () => true },
 };
@@ -34,7 +34,8 @@ export function givePrize(g, id, stage) {
   if (id === 'gun') {
     // a special weapon, full, on the floor a little way in from the entry (slot 2 empty, walking over it takes it)
     const r = g.rng.fork('door-gun', stage);
-    const kind = DOORS.weapons[r.int(0, DOORS.weapons.length - 1)];
+    const list = openWeapons(DOORS.weapons, g.unlockMask); // the unlock table's (F⑥b)
+    const kind = list[r.int(0, list.length - 1)];
     const a = (L.map.entry[2] * Math.PI) / 180;
     g.pickups.spawn(kind, L.start.x + Math.sin(a) * DOORS.gunIn, L.start.z + Math.cos(a) * DOORS.gunIn, { ttl: DOORS.gunTtl });
     g.notes.log(`門的獎勵：${PLAYER_WEAPONS[kind].name}喺入口前面`);
