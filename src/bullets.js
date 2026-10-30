@@ -163,6 +163,7 @@ export class Bullets {
     b.turnedBack = false; // set by turnBack (a card's)
     b.chained = false; // set by the card 連環反彈 (F④b): one hop on to another man
     b.hostageFire = o.hostageFire || false; // a held heavy gun's round, the player's own (player.js hostageFire): a kill is HOSTAGE FIRE
+    b.shieldRing = o.shieldRing || false; // a held ring man's ring, the player's own (player.js hostageRing, F⑧a): a kill is SHIELD RING
     this.list.push(b);
     this.updateVisual(b);
     return b;

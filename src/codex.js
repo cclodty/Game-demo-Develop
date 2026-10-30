@@ -50,6 +50,7 @@ export const TRICKS = {
   'HUMAN SHIELD': { kind: 'shield', name: '人盾擋殺', hint: '抓住人做盾，等佢自己人射佢' },
   'HOSTAGE FIRE': { kind: 'shield', name: '借槍', hint: '抓住機槍手，用佢支槍' },
   'SHIELD BOWLING': { kind: 'shield', name: '人盾保齡', hint: '推出人盾撞倒其他人' },
+  'SHIELD RING': { kind: 'shield', name: '人盾放環', hint: '抓住環形手，佢個環由你身邊放出去' },
   // the place
   BOOM: { kind: 'stage', name: '油桶爆', hint: '射油桶' },
   CHAIN: { kind: 'stage', name: '連環爆', hint: '一個爆炸引爆另一個' },
