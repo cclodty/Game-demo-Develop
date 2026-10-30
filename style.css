@@ -1839,6 +1839,57 @@ body:not(.pad) .pad-only {
   color: var(--gold);
 }
 
+/* the trick book (F⑤b, main.js showCodex): each sort a heading, its tricks in a grid; a lit one gold-edged */
+.codex-list {
+  max-height: 62vh;
+  margin-top: 10px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.codex-list h4 {
+  margin: 12px 0 6px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--gold);
+}
+
+.codex-list h4 small {
+  color: var(--dim);
+}
+
+.cx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+
+.cx-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--dim);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cx-cell b {
+  font-size: 14px;
+}
+
+.cx-cell.lit {
+  color: var(--ink);
+  background: rgba(255, 200, 97, 0.08);
+  border-color: rgba(255, 200, 97, 0.45);
+}
+
+.cx-cell.lit small {
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
 /* achievements (achievements.js) */
 .modes.four {
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2178,11 +2229,38 @@ body:not(.pad) .pad-only {
 }
 
 #gameover:not(.cards) .cards-only,
+#gameover:not(.rooms) .rooms-only,
+#gameover:not(.fresh) .fresh-only,
 #gameover:not(.cleared) .clear-only,
 #gameover.cleared .over-only,
 #gameover:not(.graded) .go-grade,
 #gameover:not(.graded) .go-hint {
   display: none;
+}
+
+/* each room's rating on the end screen and their average (F⑤a, main.js gameOver) */
+.go-rooms i {
+  display: inline-block;
+  min-width: 1.2em;
+  margin-right: 3px;
+  font-style: normal;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+}
+
+.go-rooms .g-S {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+.go-rooms .g-A {
+  color: var(--cyan);
+}
+
+.go-rooms span {
+  margin-left: 8px;
+  color: var(--dim);
 }
 
 /* the arcade grade: a big letter beside its three parts */
@@ -2957,4 +3035,73 @@ body.playing #debug {
 #title.no-legacy #map-cards,
 #title.no-legacy .legacy-only {
   display: none;
+}
+
+/* a room's rating as it is cleared (F⑤a, hud.js roomGrade): a big letter stamped in on the left (the feed is on the right), the count under it */
+#room-grade {
+  position: fixed;
+  top: 32%;
+  left: 9%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(2.4) rotate(-12deg);
+}
+
+#room-grade b {
+  font-family: var(--display);
+  font-size: 120px;
+  line-height: 1;
+  color: var(--ink);
+  text-shadow: 4px 4px 0 rgba(255, 63, 164, 0.6);
+}
+
+#room-grade.g-S b {
+  color: var(--gold);
+  text-shadow:
+    0 0 28px rgba(255, 200, 97, 0.7),
+    4px 4px 0 rgba(255, 63, 164, 0.6);
+}
+
+#room-grade.g-A b {
+  color: var(--cyan);
+}
+
+#room-grade span {
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: var(--ink);
+  background: rgba(12, 8, 18, 0.72);
+  padding: 2px 10px;
+}
+
+#room-grade.show {
+  animation: room-stamp 2.6s ease-out forwards;
+}
+
+@keyframes room-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(2.4) rotate(-12deg);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1) rotate(-6deg);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1) rotate(-6deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1) rotate(-6deg);
+  }
+}
+
+.feed-mult {
+  margin-left: 4px;
+  font-size: 0.8em;
+  color: var(--gold);
 }

@@ -6,7 +6,7 @@
 // life instead, while fewer than CHALLENGE.maxLives are in hand). Each is data: its name on the door's sign, whether it
 // fits the run's rules. The numbers are in config.js DOORS.
 import { CARD_IDS } from './cards.js';
-import { CHALLENGE, DOORS, PLAYER } from './config.js';
+import { CHALLENGE, DOORS } from './config.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
 /** `name` and `en` on the door's sign; `fits` whether it can be offered (a gun is none where no gun is handed out: rules.js `drops`). */
@@ -45,9 +45,9 @@ export function givePrize(g, id, stage) {
     g.notes.log('門的獎勵：精英房（多一個詞綴，清波分數加倍）');
     g.hud.banner('ELITE ROOM', '精英房 · 多一個詞綴 · 清波分數加倍', 'stage');
   } else if (id === 'heal') {
-    if (p.hp < PLAYER.hp) {
+    if (p.hp < p.maxHp) {
       const before = Math.ceil(p.hp);
-      p.hp = Math.min(PLAYER.hp, p.hp + PLAYER.hp * DOORS.heal);
+      p.hp = Math.min(p.maxHp, p.hp + p.maxHp * DOORS.heal);
       g.notes.log(`門的獎勵：回血 HP ${before} → ${Math.ceil(p.hp)}`);
     } else if (g.challenge.addLife()) {
       // at full HP a heal is nothing: a life instead (the developer 10-29), while fewer than CHALLENGE.maxLives are in hand

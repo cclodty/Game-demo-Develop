@@ -7,7 +7,8 @@ import { drawPrizes, givePrize, PRIZES } from './prizes.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
-import { CAMERA, CARDS, ENV, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
+import { averageRating, Codex, KINDS as TRICK_KINDS, TRICK_IDS, TRICKS } from './codex.js';
+import { CAMERA, CARDS, ENV, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, ROOM_RATING, TOUCH, VIEWS } from './config.js';
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
@@ -137,6 +138,7 @@ class Game {
     else if (MODE_IDS.includes(saved) && (!MODES[saved].legacy || this.legacyModes)) this.mode = saved;
     // achievements and what they open (achievements.js); a locked rule pick is not on offer
     this.achievements = new Achievements(localStorage, (a) => this.onAchievement(a));
+    this.codex = new Codex(localStorage); // the trick book (F⑤b): what has been done, in this browser
     // the run rules picked on the title screen (rules.js); a run fixes them as ruleset
     this.difficulty = 'normal';
     this.variants = [];
@@ -339,6 +341,12 @@ class Game {
     });
     $('achievements').addEventListener('click', (e) => e.stopPropagation());
     $('achievements-close').addEventListener('click', () => this.showAchievements(false));
+    $('open-codex').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.showCodex(true);
+    });
+    $('codex').addEventListener('click', (e) => e.stopPropagation());
+    $('codex-close').addEventListener('click', () => this.showCodex(false));
     // difficulty, variants and coat fold away under one line that says what is picked
     $('open-rules').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -547,6 +555,10 @@ class Game {
         this.showAchievements(false);
         return;
       }
+      if (e.code === 'Escape' && !$('codex').classList.contains('hidden')) {
+        this.showCodex(false);
+        return;
+      }
       if (e.code === 'Escape' && !$('help').classList.contains('hidden')) {
         this.showHelp(false);
         return;
@@ -740,6 +752,30 @@ class Game {
     this.markRules();
   }
 
+  /**
+   * The trick book (F⑤b, codex.js) from the title: every trick by its sort, lit once done (its name, Chinese and
+   * English); one not yet done shows its hint, or ？？？ where it has none.
+   */
+  showCodex(on) {
+    $('codex').classList.toggle('hidden', !on);
+    $('title').classList.toggle('hidden', on);
+    if (!on) return;
+    const book = this.codex;
+    $('codex-count').textContent = `花招手冊 · 已發現 ${book.count} / ${TRICK_IDS.length}`;
+    $('codex-list').innerHTML = Object.entries(TRICK_KINDS)
+      .map(([kind, k]) => {
+        const cells = TRICK_IDS.filter((id) => TRICKS[id].kind === kind)
+          .map((id) => {
+            const t = TRICKS[id];
+            if (book.has(id)) return `<div class="cx-cell lit" data-trick="${id}"><b>${t.name}</b><small>${id}</small></div>`;
+            return `<div class="cx-cell" data-trick="${id}"><b>？？？</b><small>${t.hint || '未發現'}</small></div>`;
+          })
+          .join('');
+        return `<h4>${k.name} <small>${k.en}</small></h4><div class="cx-grid">${cells}</div>`;
+      })
+      .join('');
+  }
+
   showAchievements(on) {
     $('achievements').classList.toggle('hidden', !on);
     $('title').classList.toggle('hidden', on);
@@ -790,6 +826,7 @@ class Game {
     this.challenge.reset();
     this.doorPrize = null; // the prize of the door walked out by, for the room it leads to (F③b: prizes.js)
     this.eliteStage = -1; // the room an elite door led to (F③b)
+    this.roomRatings = []; // each room cleared: { stage, room, n, grade } (F⑤a: rateRoom)
     // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
     const warmup = this.fixedWarmup ?? wantWarmup();
     // the rules hold for the whole run (a replay brings its own: fixedRules)
@@ -829,7 +866,9 @@ class Game {
     this.endClip();
     this.clip.start();
     this.achievements.startRun();
+    this.codex.startRun();
     this.achievements.watching = !!this.replay; // a replay earns nothing
+    this.codex.watching = !!this.replay; // nor lights the book
     this.rankSeen = 0;
     this.state = 'playing';
     $('title').classList.add('hidden');
@@ -1149,6 +1188,7 @@ class Game {
   /** Leave playback: the keyboard drives the game again and the title's mode comes back. */
   endReplay() {
     this.achievements.watching = false;
+    this.codex.watching = false;
     if (!this.replay) return;
     this.mode = this.replay.mode;
     this.replay = null;
@@ -1514,6 +1554,18 @@ class Game {
     }
   }
 
+  /**
+   * A room cleared (waves.js, F⑤a): its rating from the different tricks it saw (codex.js, config.js ROOM_RATING), kept
+   * for the end screen, stamped on the screen, written down.
+   */
+  rateRoom() {
+    const r = this.score.rateRoom(ROOM_RATING.grades);
+    const room = this.stageMap.id;
+    this.roomRatings.push({ stage: this.stage, room, n: r.n, grade: r.grade });
+    this.notes.log(`房評級 ${r.grade}：${r.n} 種花招${r.n ? `（${r.tricks.map((t) => TRICKS[t].name).join('、')}）` : ''}`);
+    this.hud.roomGrade(r.grade, r.n);
+  }
+
   /** The end of a run: the player fell, or (cleared) the last arcade wave is down. */
   gameOver(cleared = false) {
     this.state = 'over';
@@ -1531,6 +1583,14 @@ class Game {
     $('go-kills').textContent = String(s.kills);
     $('go-combo').textContent = `x${Math.max(1, s.maxCombo)}`;
     $('go-cards').textContent = this.cards.held.length ? this.cards.names.join(' · ') : '—';
+    // each room's rating and their average, beside the run's grade (F⑤a)
+    const rated = this.roomRatings.map((x) => x.grade);
+    $('gameover').classList.toggle('rooms', rated.length > 0);
+    // the tricks first done this run (F⑤b): in the book now
+    const fresh = this.replay ? [] : this.codex.fresh;
+    $('gameover').classList.toggle('fresh', fresh.length > 0);
+    $('go-fresh').textContent = fresh.map((t) => TRICKS[t].name).join('、');
+    $('go-rooms').innerHTML = rated.length ? `${rated.map((g) => `<i class="g-${g}">${g}</i>`).join('')}<span>平均 <b>${averageRating(rated, ROOM_RATING.grades)}</b></span>` : '';
     $('gameover').classList.toggle('cards', !!this.floors);
     $('go-clean').textContent = this.floors ? `${this.waves.cleanRooms} / ${this.stage + (this.waves.state === 'done' ? 1 : 0)} 間房` : `${this.waves.cleanWaves} / ${this.waves.wave}`;
     const graded = !!this.waves.rules.graded;
@@ -1849,7 +1909,7 @@ class Game {
     if (this.eliteStage === this.stage) this.score.bonus('ELITE ×2', bonus); // an elite room's clears score twice (F③b)
     this.level.waveEnd(); // shutters roll back up
     this.addFocus(0.35);
-    this.player.hp = PLAYER.hp;
+    this.player.hp = this.player.maxHp;
     const alt = room && this.altAt(this.stage + 1);
     const next = stageEnd ? (room ? ` · 門開了：下一間 ${this.mapAt(this.stage + 1).name}${alt ? ` 或 ${ROOMS[alt].name}` : ''}` : ` · 下一站：${this.mapAt(this.stage + 1).name}`) : '';
     if (stageEnd && MODES[this.mode].night && !this.replay) this.night.cleared(this.routeAt + this.stage, NIGHT.length); // kept: the next night starts after it

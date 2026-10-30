@@ -450,11 +450,25 @@ export class HUD {
     this.pushFeed(block, 2600);
   }
 
-  feed(label, pts, cls = '') {
+  /** A Style line: its name, its points, and by how much they were multiplied (a combo, the rules, a card: F⑤a) when not 1. */
+  feed(label, pts, cls = '', mult = 1) {
     const block = document.createElement('div');
     block.className = `feed-block ${cls}`;
-    block.innerHTML = `<div class="feed-row"><span>${label}</span><b>+${fmt(pts)}</b></div>`;
+    const x = mult !== 1 ? ` <small class="feed-mult">×${Math.round(mult * 100) / 100}</small>` : '';
+    block.innerHTML = `<div class="feed-row"><span>${label}${x}</span><b>+${fmt(pts)}</b></div>`;
     this.pushFeed(block, 1800);
+  }
+
+  /** A room's rating (main.js rateRoom, F⑤a): the letter stamped in, how many different tricks under it. */
+  roomGrade(grade, n) {
+    const el = document.getElementById('room-grade');
+    el.querySelector('b').textContent = grade;
+    el.querySelector('span').textContent = `房評級 · ${n} 種花招 TRICKS`;
+    el.className = '';
+    void el.offsetWidth;
+    el.className = `show g-${grade}`;
+    clearTimeout(this.gradeTimer);
+    this.gradeTimer = setTimeout(() => (el.className = ''), 2600);
   }
 
   banner(main, sub = '', cls = '') {

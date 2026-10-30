@@ -193,7 +193,8 @@ export const PLAZA_ROOM = { rim: 0.45, birds: 18 };
  * speed (FOCUS.worldScale otherwise) and what it multiplies the meter's drain by. The second batch (F④a): a kick turns
  * rounds back for its first `kickWindow` s (踢彈); a slide trips a man with a kick of `tripKnock` m/s (滑鏟絆倒); a
  * magazine's last round goes through `lastPierce` men more (最後一發). The cost card 冇慢鏡・雙倍 (F④b) multiplies Style by
- * `noSlowStyle`. First version, to be confirmed in play.
+ * `noSlowStyle`; 半條命・四選一 leaves `halfHp` of PLAYER.hp the most there is (it was one hit and dead: too hard, the
+ * developer 10-30). First version, to be confirmed in play.
  */
 export const CARDS = {
   offer: 3,
@@ -207,6 +208,7 @@ export const CARDS = {
   tripKnock: 6,
   lastPierce: 3,
   noSlowStyle: 2,
+  halfHp: 0.5,
 };
 
 export const BULLET = {
@@ -481,6 +483,18 @@ export const CLIP = {
   fps: 30,
   width: 960, // pixels; the height follows the screen
   bitrate: 2500000, // bits per second
+};
+
+/**
+ * A room's rating (F⑤a, codex.js): the fewest different tricks for each grade, best first (the last is every room's
+ * floor). A trick used ten times is one. First version, to be confirmed in play.
+ */
+export const ROOM_RATING = {
+  grades: [
+    ['S', 3],
+    ['A', 2],
+    ['B', 0],
+  ],
 };
 
 export const RATING = {
