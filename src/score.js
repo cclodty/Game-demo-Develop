@@ -109,6 +109,12 @@ export class Score {
     this.roomTricks = new Set(); // the different tricks (codex.js) since the last room was rated (F⑤a: rateRoom)
   }
 
+  /** A kill tag or a Style line: counted for the room's rating if it is a trick that counts (F⑤a), lit in the book (F⑤b). */
+  trick(label) {
+    if (rated(label)) this.roomTricks.add(label);
+    if (this.game.codex) this.game.codex.see(label);
+  }
+
   /** A room cleared (F⑤a): its rating from the different tricks it saw (config.js ROOM_RATING); the next room starts afresh. */
   rateRoom(grades) {
     const tricks = [...this.roomTricks];
@@ -141,7 +147,7 @@ export class Score {
     this.score += total * m * rm;
     // the rank: the first tag names the enemy; the rest are the move
     const moves = tags.slice(1).map((t) => t.label);
-    for (const t of moves) if (rated(t)) this.roomTricks.add(t);
+    for (const t of moves) this.trick(t);
     this.raise(moves.length ? moves.sort().join('+') : 'KILL', moves.length ? RANK.move + RANK.extra * (moves.length - 1) : RANK.kill);
     this.game.hud.feedKill(tags, m, rm);
     if (this.combo > 1) this.game.audio.combo(this.combo);
@@ -154,7 +160,7 @@ export class Score {
     const m = this.mult * this.game.ruleset.styleMul;
     this.score += pts * m;
     this.raise(label, pts * RANK.perPoint);
-    if (rated(label)) this.roomTricks.add(label);
+    this.trick(label);
     if (refresh && this.combo > 0) this.comboT = Math.min(COMBO_WINDOW, this.comboT + 0.8);
     this.game.hud.feed(label, pts * m, '', m * (pts !== base ? CARDS.noSlowStyle : 1)); // the line says by how much (F⑤a)
   }
