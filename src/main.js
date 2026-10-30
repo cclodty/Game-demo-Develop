@@ -27,7 +27,7 @@ import { countdown, dailyFor, DailyStore, msToNextDay, shareCode, utcDay } from 
 import { fromBase64, InputRecord, RecordReader, ReplayStore, toBase64 } from './replay.js';
 import { Leaderboard } from './leaderboard.js';
 import { randomSeed, readSeed, Rng, vfxRng } from './rng.js';
-import { DIFFICULTIES, DIFFICULTY_IDS, packRules, rulesFor, unpackRules, VARIANT_IDS, VARIANTS } from './rules.js';
+import { DIFFICULTIES, DIFFICULTY_IDS, LADDER, ladderReached, openLadder, packRules, rulesFor, unpackRules, VARIANT_IDS, VARIANTS } from './rules.js';
 import { rate, Score } from './score.js';
 import { Style } from './style.js';
 import { Telemetry } from './telemetry.js';
@@ -142,15 +142,17 @@ class Game {
     // the run rules picked on the title screen (rules.js); a run fixes them as ruleset
     this.difficulty = 'normal';
     this.variants = [];
+    this.ladder = 0; // the ladder's level picked (F⑥a: rules.js LADDER), up to the highest a cleared run has opened
     try {
       const saved = JSON.parse(localStorage.getItem(RULES_KEY) || '{}');
       if (DIFFICULTY_IDS.includes(saved.difficulty)) this.difficulty = saved.difficulty;
       if (Array.isArray(saved.variants)) this.variants = VARIANT_IDS.filter((id) => saved.variants.includes(id) && this.isOpen(id));
+      if (Number.isInteger(saved.ladder)) this.ladder = Math.max(0, Math.min(ladderReached(), saved.ladder));
     } catch {
       /* storage unavailable or unreadable */
     }
-    this.ruleset = rulesFor(this.difficulty, this.variants);
-    this.fixedRules = null; // { difficulty, variants } from a replayed record
+    this.ruleset = rulesFor(this.difficulty, this.variants, this.ladder);
+    this.fixedRules = null; // { difficulty, variants, ladder } from a replayed record
     this.stage = 0;
     this.transition = null;
     this.level = new Level(this);
@@ -313,10 +315,13 @@ class Game {
       });
       $(row).appendChild(b);
     };
-    for (const id of DIFFICULTY_IDS) ruleCard(id, DIFFICULTIES[id], 'difficulty-cards', (d) => this.setRules(d, this.variants));
+    for (const id of DIFFICULTY_IDS) ruleCard(id, DIFFICULTIES[id], 'difficulty-cards', (d) => this.setRules(d, this.variants, this.ladder));
+    // the ladder (F⑥a): none, then each level a cleared run has opened (markRules hides the rest)
+    ruleCard('0', { name: '冇', en: 'NONE', desc: '平常咁玩', color: '#9aa0c8' }, 'ladder-cards', () => this.setRules(this.difficulty, this.variants, 0));
+    LADDER.forEach((step, i) => ruleCard(String(i + 1), { name: `第 ${i + 1} 級`, en: step.en, desc: step.name, color: '#ff5a7a' }, 'ladder-cards', () => this.setRules(this.difficulty, this.variants, i + 1)));
     for (const id of VARIANT_IDS) {
       ruleCard(id, VARIANTS[id], 'variant-cards', (v) =>
-        this.setRules(this.difficulty, this.variants.includes(v) ? this.variants.filter((x) => x !== v) : [...this.variants, v]),
+        this.setRules(this.difficulty, this.variants.includes(v) ? this.variants.filter((x) => x !== v) : [...this.variants, v], this.ladder),
       );
     }
     // the coat colours (open with an achievement) and the achievements page
@@ -651,12 +656,13 @@ class Game {
     return !!v && (!v.unlock || this.achievements.has(v.unlock));
   }
 
-  /** Pick the difficulty and variants for the next run (the title screen), and remember them. */
-  setRules(difficulty, variants) {
+  /** The title's picks: a difficulty, the variants, a ladder level (F⑥a; not past the highest opened). */
+  setRules(difficulty, variants, ladder = 0) {
     this.difficulty = DIFFICULTY_IDS.includes(difficulty) ? difficulty : 'normal';
     this.variants = VARIANT_IDS.filter((id) => variants.includes(id) && this.isOpen(id));
+    this.ladder = Math.max(0, Math.min(ladderReached(), Number.isInteger(ladder) ? ladder : 0));
     try {
-      localStorage.setItem(RULES_KEY, JSON.stringify({ difficulty: this.difficulty, variants: this.variants }));
+      localStorage.setItem(RULES_KEY, JSON.stringify({ difficulty: this.difficulty, variants: this.variants, ladder: this.ladder }));
     } catch {
       /* storage unavailable */
     }
@@ -669,11 +675,18 @@ class Game {
       c.classList.toggle('selected', this.variants.includes(c.dataset.rule));
       c.classList.toggle('hidden', !this.isOpen(c.dataset.rule));
     }
+    const reached = ladderReached();
+    $('ladder-row').classList.toggle('hidden', reached === 0); // nothing to pick before a first clear
+    for (const c of $('ladder-cards').children) {
+      c.classList.toggle('selected', Number(c.dataset.rule) === this.ladder);
+      c.classList.toggle('hidden', Number(c.dataset.rule) > reached);
+    }
     const ach = this.achievements;
     $('coat-row').classList.toggle('hidden', !ach.coatOpen);
     for (const c of $('coat-cards').children) c.classList.toggle('selected', c.dataset.coat === ach.coat);
     const coat = ach.coatOpen && COATS.find((c) => c.id === ach.coat);
     const picked = [DIFFICULTIES[this.difficulty].name, this.variants.length ? this.variants.map((v) => VARIANTS[v].name).join('、') : '沒有變體'];
+    if (this.ladder) picked.push(`階梯第 ${this.ladder} 級`);
     if (coat) picked.push(`${coat.name}色外套`);
     $('rules-summary').textContent = picked.join(' · ');
   }
@@ -830,10 +843,11 @@ class Game {
     // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
     const warmup = this.fixedWarmup ?? wantWarmup();
     // the rules hold for the whole run (a replay brings its own: fixedRules)
-    const pick = this.fixedRules ?? { difficulty: this.difficulty, variants: this.variants };
-    this.ruleset = rulesFor(pick.difficulty, pick.variants);
+    const pick = this.fixedRules ?? { difficulty: this.difficulty, variants: this.variants, ladder: this.ladder };
+    this.ruleset = rulesFor(pick.difficulty, pick.variants, pick.ladder || 0);
+    this.ladderOpened = 0; // the ladder level this run's clear opened (F⑥a: onRunClear)
     const rules = packRules(this.ruleset.difficulty, this.ruleset.variants);
-    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, rules, hz: LOGIC_HZ, mapsRev: MAPS_REV });
+    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, rules, ladder: this.ruleset.ladder, hz: LOGIC_HZ, mapsRev: MAPS_REV });
     const first = this.firstMap(this.mode, mapIndex);
     this.resetWorld(first);
     this.score.useBest(this.mode, this.ruleset);
@@ -897,7 +911,7 @@ class Game {
     const keep = { seed: this.fixedSeed, warmup: this.fixedWarmup, rules: this.fixedRules };
     this.fixedSeed = d.seed;
     this.fixedWarmup = false; // the same run for everyone: no warm-up
-    this.fixedRules = { difficulty: d.difficulty, variants: d.variants };
+    this.fixedRules = { difficulty: d.difficulty, variants: d.variants, ladder: 0 };
     this.dailyRun = { day, mode: this.mode };
     this.mode = 'daily';
     this.daily.begin(day);
@@ -1152,7 +1166,7 @@ class Game {
     const keep = { seed: this.fixedSeed, warmup: this.fixedWarmup, rules: this.fixedRules };
     this.fixedSeed = rd.seed;
     this.fixedWarmup = rd.warmup;
-    this.fixedRules = unpackRules(rd.rules);
+    this.fixedRules = { ...unpackRules(rd.rules), ladder: rd.ladder };
     this.replay = { rd, speed: 1, meta, mode: this.mode };
     this.mode = MODE_IDS[rd.mode]; // for the run (waves read it); the title's pick comes back after
     this.showReplays(false);
@@ -1586,6 +1600,9 @@ class Game {
     // each room's rating and their average, beside the run's grade (F⑤a)
     const rated = this.roomRatings.map((x) => x.grade);
     $('gameover').classList.toggle('rooms', rated.length > 0);
+    // the ladder's level this run opened (F⑥a)
+    $('gameover').classList.toggle('ladder', !!this.ladderOpened);
+    $('go-ladder').textContent = this.ladderOpened ? `階梯第 ${this.ladderOpened} 級（${LADDER[this.ladderOpened - 1].name}）` : '';
     // the tricks first done this run (F⑤b): in the book now
     const fresh = this.replay ? [] : this.codex.fresh;
     $('gameover').classList.toggle('fresh', fresh.length > 0);
@@ -1927,6 +1944,14 @@ class Game {
     this.telemetry.event(this.stepCount / LOGIC_HZ, { type: 'wave', n, hurt: this.waves.hurt, shots: this.waves.shots });
     this.score.bonus('RUN CLEAR', bonus);
     if (MODES[this.mode].night && !this.replay) this.night.cleared(NIGHT.length - 1, NIGHT.length); // the whole night: the next starts at its start
+    if (this.floors && !this.replay && !this.dailyRun) {
+      // a 彈幕 run cleared opens the ladder's next level (F⑥a: rules.js), kept in this browser
+      this.ladderOpened = openLadder(this.ruleset.ladder);
+      if (this.ladderOpened) {
+        this.notes.log(`解鎖階梯第 ${this.ladderOpened} 級：${LADDER[this.ladderOpened - 1].name}`);
+        this.markRules();
+      }
+    }
     this.player.invuln = 99; // nothing still flying can take the run away now
     this.clearT = 2.6;
     this.hud.banner('RUN CLEAR', `全部 ${n} 波清空 · +${bonus.toLocaleString('en-US')}`, 'clear');
@@ -2265,7 +2290,7 @@ class Game {
         this.audio.heartbeat();
       }
     } else {
-      this.focusMeter = Math.min(this.challenge.focusMax, this.focusMeter + FOCUS.regen * h);
+      this.focusMeter = Math.min(this.challenge.focusMax, this.focusMeter + FOCUS.regen * this.ruleset.focusRegenMul * h); // slower on the ladder's 專注回得慢
     }
 
     this.focusAmt = damp(this.focusAmt, this.focusActive ? 1 : 0, 9, h);

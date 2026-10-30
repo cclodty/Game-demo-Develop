@@ -141,7 +141,7 @@ export class Challenges {
 
   /** A life won (無傷, a door's heal: prizes.js), while fewer than CHALLENGE.maxLives are in hand; false at the cap. */
   addLife() {
-    if (this.lives >= CHALLENGE.maxLives) return false;
+    if (!this.game.ruleset.lives || this.lives >= CHALLENGE.maxLives) return false; // none at all on the ladder's 一條命 (rules.js)
     this.lives++;
     return true;
   }

@@ -116,9 +116,9 @@ export class Cards {
     return this.held.includes(id) && (!CARDS[id].needs || comboNeeds(id, this.held).every((n) => n.ok));
   }
 
-  /** How many cards a floor's end or a door offers: three, four with 半條命・四選一 (F④b). */
+  /** How many cards a floor's end or a door offers: three (two on the ladder's 卡兩選一: rules.js), four with 半條命・四選一 (F④b). */
   get offerSize() {
-    return this.has('halfHp') ? 4 : NUM.offer;
+    return this.has('halfHp') ? 4 : this.game.ruleset.cardOffer || NUM.offer;
   }
 
   get pending() {

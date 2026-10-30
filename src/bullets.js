@@ -131,7 +131,7 @@ export class Bullets {
     b.ground0 = this.game.level.groundY(o.x, o.z); // the level it was fired on (同一水平: it does not leave it)
     b.dx = o.dx;
     b.dz = o.dz;
-    b.speed = o.speed;
+    b.speed = o.owner === 'enemy' ? o.speed * this.game.ruleset.enemyBulletMul : o.speed; // the ladder's 快彈 +10% (rules.js)
     b.owner = o.owner;
     b.damage = o.damage ?? 1;
     b.range = o.range ?? BULLET.maxRange;
