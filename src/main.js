@@ -654,7 +654,8 @@ class Game {
     }
     if (r.floor) {
       // 彈幕試驗: a floor of rooms, whatever card is picked
-      $('maps-note').textContent = `${CN_COUNT[r.floor.floors]}層，每層${CN_COUNT[r.floor.rooms[0]]}至${CN_COUNT[r.floor.rooms[1]]}間房，每間 ${r.perStage} 波，打完開門去下一間：${this.routeText(start, this.mode)} · 場景不用揀`;
+      const [least, most] = r.floor.rooms;
+      $('maps-note').textContent = `${CN_COUNT[r.floor.floors]}層，每層${least === most ? CN_COUNT[least] : `${CN_COUNT[least]}至${CN_COUNT[most]}`}間房，每間 ${r.perStage} 波，打完開門去下一間：${this.routeText(start, this.mode)} · 場景不用揀`;
       return;
     }
     $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結：${this.routeText(start, this.mode)}` : `每 ${r.perStage} 波換一個場景`;
