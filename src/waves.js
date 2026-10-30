@@ -600,6 +600,7 @@ export class Waves {
         if (!this.roomHurt) this.cleanRooms++;
         this.roomHurt = false;
         this.game.challenge.roomClear(); // a challenge taken on and kept: its Style and its prize (F②a)
+        this.game.rateRoom(); // the room's rating, from the different tricks it saw (F⑤a)
       }
       if (this.isFinal) {
         this.state = 'done';

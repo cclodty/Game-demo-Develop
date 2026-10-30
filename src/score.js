@@ -1,5 +1,6 @@
 // Score, combo multiplier and "style" bonuses.
 
+import { rated, roomRating } from './codex.js';
 import { CARDS, COMBO_WINDOW, RANK, RATING } from './config.js';
 
 const KEY = 'bullet-ballet.best';
@@ -105,6 +106,14 @@ export class Score {
     this.maxCombo = 0;
     this.rank = new StyleRank();
     this.bestRank = 0;
+    this.roomTricks = new Set(); // the different tricks (codex.js) since the last room was rated (F⑤a: rateRoom)
+  }
+
+  /** A room cleared (F⑤a): its rating from the different tricks it saw (config.js ROOM_RATING); the next room starts afresh. */
+  rateRoom(grades) {
+    const tricks = [...this.roomTricks];
+    this.roomTricks.clear();
+    return { n: tricks.length, tricks, grade: roomRating(tricks.length, grades) };
   }
 
   get mult() {
@@ -132,6 +141,7 @@ export class Score {
     this.score += total * m * rm;
     // the rank: the first tag names the enemy; the rest are the move
     const moves = tags.slice(1).map((t) => t.label);
+    for (const t of moves) if (rated(t)) this.roomTricks.add(t);
     this.raise(moves.length ? moves.sort().join('+') : 'KILL', moves.length ? RANK.move + RANK.extra * (moves.length - 1) : RANK.kill);
     this.game.hud.feedKill(tags, m, rm);
     if (this.combo > 1) this.game.audio.combo(this.combo);
@@ -139,12 +149,14 @@ export class Score {
 
   /** A non-kill style bonus (close call, deflect, ...). */
   style(label, pts, refresh = true) {
+    const base = pts;
     if (this.game.cards.has('noSlow')) pts *= CARDS.noSlowStyle; // the cost card 冇慢鏡・雙倍 (F④b)
     const m = this.mult * this.game.ruleset.styleMul;
     this.score += pts * m;
     this.raise(label, pts * RANK.perPoint);
+    if (rated(label)) this.roomTricks.add(label);
     if (refresh && this.combo > 0) this.comboT = Math.min(COMBO_WINDOW, this.comboT + 0.8);
-    this.game.hud.feed(label, pts * m);
+    this.game.hud.feed(label, pts * m, '', m * (pts !== base ? CARDS.noSlowStyle : 1)); // the line says by how much (F⑤a)
   }
 
   bonus(label, pts) {

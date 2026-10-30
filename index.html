@@ -64,6 +64,8 @@
 
       <div id="feed"></div>
       <div id="banner"></div>
+      <!-- F⑤a: a room's rating stamped on the screen as it is cleared (hud.js roomGrade) -->
+      <div id="room-grade"><b></b><span></span></div>
       <!-- a phone (手機版 ①, main.js touchOn): a stick under each thumb, bullet time held, a pause -->
       <div id="touch">
         <div class="stick move"><i></i></div>
@@ -332,6 +334,7 @@
           <div><span>最高連擊</span><b id="go-combo">x1</b></div>
           <div class="clear-only"><span>無傷波數</span><b id="go-clean">0</b></div>
           <div class="cards-only"><span>風格卡</span><b id="go-cards">—</b></div>
+          <div class="rooms-only"><span>房評級</span><b class="go-rooms" id="go-rooms"></b></div>
         </div>
         <div class="start">點擊重新開始 <span>/ Enter</span></div>
         <div class="start replay-only">重播完 <span>/ 點擊或 Enter 返回</span></div>

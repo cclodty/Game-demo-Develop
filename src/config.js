@@ -485,6 +485,18 @@ export const CLIP = {
   bitrate: 2500000, // bits per second
 };
 
+/**
+ * A room's rating (F⑤a, codex.js): the fewest different tricks for each grade, best first (the last is every room's
+ * floor). A trick used ten times is one. First version, to be confirmed in play.
+ */
+export const ROOM_RATING = {
+  grades: [
+    ['S', 3],
+    ['A', 2],
+    ['B', 0],
+  ],
+};
+
 export const RATING = {
   style: 50, // points for the Style score, all of them at stylePar or more
   clean: 30, // points for waves cleared without a hit, all of them when every wave of the run is clean

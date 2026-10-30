@@ -7,7 +7,8 @@ import { drawPrizes, givePrize, PRIZES } from './prizes.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
-import { CAMERA, CARDS, ENV, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, TOUCH, VIEWS } from './config.js';
+import { averageRating, TRICKS } from './codex.js';
+import { CAMERA, CARDS, ENV, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, ROOM_RATING, TOUCH, VIEWS } from './config.js';
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
 import { HUD } from './hud.js';
@@ -790,6 +791,7 @@ class Game {
     this.challenge.reset();
     this.doorPrize = null; // the prize of the door walked out by, for the room it leads to (F③b: prizes.js)
     this.eliteStage = -1; // the room an elite door led to (F③b)
+    this.roomRatings = []; // each room cleared: { stage, room, n, grade } (F⑤a: rateRoom)
     // a first run opens with the warm-up; a replay plays it if its record did (fixedWarmup)
     const warmup = this.fixedWarmup ?? wantWarmup();
     // the rules hold for the whole run (a replay brings its own: fixedRules)
@@ -1514,6 +1516,18 @@ class Game {
     }
   }
 
+  /**
+   * A room cleared (waves.js, F⑤a): its rating from the different tricks it saw (codex.js, config.js ROOM_RATING), kept
+   * for the end screen, stamped on the screen, written down.
+   */
+  rateRoom() {
+    const r = this.score.rateRoom(ROOM_RATING.grades);
+    const room = this.stageMap.id;
+    this.roomRatings.push({ stage: this.stage, room, n: r.n, grade: r.grade });
+    this.notes.log(`房評級 ${r.grade}：${r.n} 種花招${r.n ? `（${r.tricks.map((t) => TRICKS[t].name).join('、')}）` : ''}`);
+    this.hud.roomGrade(r.grade, r.n);
+  }
+
   /** The end of a run: the player fell, or (cleared) the last arcade wave is down. */
   gameOver(cleared = false) {
     this.state = 'over';
@@ -1531,6 +1545,10 @@ class Game {
     $('go-kills').textContent = String(s.kills);
     $('go-combo').textContent = `x${Math.max(1, s.maxCombo)}`;
     $('go-cards').textContent = this.cards.held.length ? this.cards.names.join(' · ') : '—';
+    // each room's rating and their average, beside the run's grade (F⑤a)
+    const rated = this.roomRatings.map((x) => x.grade);
+    $('gameover').classList.toggle('rooms', rated.length > 0);
+    $('go-rooms').innerHTML = rated.length ? `${rated.map((g) => `<i class="g-${g}">${g}</i>`).join('')}<span>平均 <b>${averageRating(rated, ROOM_RATING.grades)}</b></span>` : '';
     $('gameover').classList.toggle('cards', !!this.floors);
     $('go-clean').textContent = this.floors ? `${this.waves.cleanRooms} / ${this.stage + (this.waves.state === 'done' ? 1 : 0)} 間房` : `${this.waves.cleanWaves} / ${this.waves.wave}`;
     const graded = !!this.waves.rules.graded;
