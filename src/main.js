@@ -1849,7 +1849,7 @@ class Game {
     if (this.eliteStage === this.stage) this.score.bonus('ELITE ×2', bonus); // an elite room's clears score twice (F③b)
     this.level.waveEnd(); // shutters roll back up
     this.addFocus(0.35);
-    this.player.hp = PLAYER.hp;
+    this.player.hp = this.player.maxHp;
     const alt = room && this.altAt(this.stage + 1);
     const next = stageEnd ? (room ? ` · 門開了：下一間 ${this.mapAt(this.stage + 1).name}${alt ? ` 或 ${ROOMS[alt].name}` : ''}` : ` · 下一站：${this.mapAt(this.stage + 1).name}`) : '';
     if (stageEnd && MODES[this.mode].night && !this.replay) this.night.cleared(this.routeAt + this.stage, NIGHT.length); // kept: the next night starts after it

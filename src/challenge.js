@@ -7,7 +7,7 @@
 // breaks it is counted from the game's own events (a hit taken, the fighting clock, a shot fired, bullet time put on),
 // its reward is one switch or number the game reads (`lives`, a weapon dropped, a style card picked, `focusMax`). The
 // numbers are in config.js CHALLENGE.
-import { CHALLENGE, PLAYER } from './config.js';
+import { CHALLENGE } from './config.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
 /**
@@ -153,7 +153,7 @@ export class Challenges {
   spendLife(p) {
     if (this.lives <= 0) return false;
     this.lives--;
-    p.hp = PLAYER.hp;
+    p.hp = p.maxHp;
     p.invuln = CHALLENGE.lifeInvuln;
     this.game.notes.log(`用咗一條命（剩 ${this.lives}）`);
     this.game.hud.banner('EXTRA LIFE', '多一條命 · 企返起身', 'clear');

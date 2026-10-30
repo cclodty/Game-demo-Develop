@@ -3,7 +3,7 @@
 // shield), a round a card turned back hops on to a second man (連環反彈, bounce + bounce), a man kicked down fills the
 // magazine (踢出彈匣, kick + gun). A cost card gives one thing and takes another: no bullet time for double Style
 // (冇慢鏡・雙倍), bullet time that costs nothing and no gun taken off the floor (淨係手槍・慢鏡無限), four cards to pick
-// from and one hit is death (一條命・四選一). The card screen says what each card plays with among those held. Run: npm test
+// from and half the HP (半條命・四選一). The card screen says what each card plays with among those held. Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { gameHarness, OUT, problems } from './helpers.mjs';
@@ -102,7 +102,7 @@ test('eighteen cards: the combo cards name the tags they need, the cost cards sa
   assert.equal(r.ids.length, 18, `eighteen cards: ${r.ids}`);
   assert.deepEqual(r.combos.map(([id]) => id), ['slideGrab', 'chainBounce', 'kickReload']);
   for (const [id, needs] of r.combos) assert.ok(needs.length === 2 && needs.every((t) => r.tagIds.includes(t)), `${id} needs ${needs}`);
-  assert.deepEqual(r.costs.map(([id]) => id), ['noSlow', 'pistolsOnly', 'oneHit']);
+  assert.deepEqual(r.costs.map(([id]) => id), ['noSlow', 'pistolsOnly', 'halfHp']);
   for (const [id, text] of r.costs) assert.ok(text.includes('代價'), `${id} says its cost: ${text}`);
   assert.deepEqual(r.seen, [...r.ids].sort(), 'every card drawn');
 });
@@ -230,17 +230,38 @@ test('淨係手槍・慢鏡無限: a gun on the floor stays there, and bullet ti
   assert.ok(r.plain.taken && r.plain.drained > 0.1, `without the card: ${JSON.stringify(r.plain)}`);
 });
 
-test('一條命・四選一: one hit ends the run (a life won still stands him up); a floor’s end and a door offer four cards', async () => {
-  const r = await page.evaluate(() => {
+test('半條命・四選一: the most HP there is halves on the pick, and every refill stops there (a wave cleared, the regeneration, a life won, a door’s heal); a floor’s end and a door offer four cards', async () => {
+  const r = await page.evaluate(async () => {
+    const { givePrize } = await import('./src/prizes.js');
     const g = window.game;
-    window.toRoom(window.LANE, 5, ['oneHit']);
-    g.player.hurt(5, 0, 1, false, '測試');
-    const dead = !g.player.alive;
-    window.toRoom(window.LANE, 5, ['oneHit']);
+    const { CARDS, PLAYER } = window.cfg;
+    const p = g.player;
+    // picked at full HP: down to the new cap at once
+    window.toRoom(window.LANE, 5, []);
+    g.cards.offer = ['halfHp', 'killSlow', 'tableBounce'];
+    g.cards.pick(0);
+    const picked = { hp: p.hp, max: p.maxHp };
+    // a wave cleared refills to the cap, no further
+    p.hp = 10;
+    g.onWaveClear();
+    const cleared = p.hp;
+    // a hit of 5 is 5; the regeneration stops at the cap
+    p.hurt(5, 0, 1, false, '測試');
+    const hit = p.hp;
+    p.sinceHurt = 99;
+    window.play(120 * 30);
+    const regen = p.hp;
+    // a life won stands him up at the cap
+    p.hp = 1;
     g.challenge.lives = 1;
-    g.player.hurt(5, 0, 1, false, '測試');
-    const saved = { alive: g.player.alive, hp: g.player.hp, lives: g.challenge.lives };
-    window.toRoom(window.LANE, 5, ['oneHit']);
+    p.hurt(5, 0, 1, false, '測試');
+    const saved = { alive: p.alive, hp: p.hp };
+    // a door's heal: DOORS.heal of the cap, up to it
+    p.hp = 10;
+    givePrize(g, 'heal', g.stage);
+    const healed = p.hp;
+    // the four cards: a floor’s end, a door (4 keeps the fourth)
+    window.toRoom(window.LANE, 5, ['halfHp']);
     g.waves.state = 'active';
     g.waves.wave = g.floors[0].length * g.waves.rules.perStage;
     g.waves.queue = [];
@@ -255,17 +276,21 @@ test('一條命・四選一: one hit ends the run (a life won still stands him u
     window.play(1, [], ['Digit4']);
     const fourth = g.cards.held.length;
     window.toRoom(window.LANE, 5, []);
-    g.player.hurt(5, 0, 1, false, '測試');
-    const plain = { alive: g.player.alive, hp: g.player.hp };
-    return { dead, saved, floorEnd, title, door, fourth, plain };
+    const plain = p.maxHp;
+    return { picked, cleared, hit, regen, saved, healed, heal: window.cfg.DOORS.heal, floorEnd, title, door, fourth, plain, full: PLAYER.hp, half: PLAYER.hp * CARDS.halfHp };
   });
-  assert.ok(r.dead, 'one hit of 5 ended it');
-  assert.deepEqual(r.saved, { alive: true, hp: 100, lives: 0 }, 'a life won stood him up');
+  assert.equal(r.half, r.full / 2, 'half the HP');
+  assert.deepEqual(r.picked, { hp: r.half, max: r.half }, 'picked at full HP: down to the new cap');
+  assert.equal(r.cleared, r.half, 'a wave cleared refills to the cap');
+  assert.equal(r.hit, r.half - 5, 'a hit of 5 is 5');
+  assert.equal(r.regen, r.half, 'the regeneration stops at the cap');
+  assert.deepEqual(r.saved, { alive: true, hp: r.half }, 'a life won stands him up at the cap');
+  assert.equal(r.healed, Math.min(r.half, 10 + r.half * r.heal), 'a door’s heal: DOORS.heal of the cap, up to it');
   assert.equal(r.floorEnd, 4, 'four at a floor’s end');
   assert.match(r.title, /四選一/);
   assert.equal(r.door, 4, 'four at a door');
   assert.equal(r.fourth, 2, '4 keeps the fourth');
-  assert.deepEqual(r.plain, { alive: true, hp: 95 }, 'without the card a hit of 5 is 5');
+  assert.equal(r.plain, r.full, 'without the card the whole meter');
 });
 
 test('the card screen says what each card plays with among those held: a combo card’s needs ticked or crossed, a card’s partners, the combo it would put on; screenshot', async () => {
