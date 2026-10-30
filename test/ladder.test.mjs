@@ -173,7 +173,7 @@ test('in the game: no ladder before a clear; a cleared run opens level 1 (the en
     g.onRunClear(28);
     for (let i = 0; i < 120 * 4 && g.state !== 'over'; i++) g.updatePlay(1 / 120);
     for (const id of ['replays', 'title']) document.getElementById(id).classList.add('hidden');
-    const el = document.getElementById('go-ladder');
+    const el = document.getElementById('go-unlocks');
     return { clamped, row, opened: g.ladderOpened, state: g.state, text: el.textContent, shown: getComputedStyle(el.parentElement).display !== 'none', stored: localStorage.getItem('bullet-ballet.ladder'), notes: g.notes.events.map((e) => e.text).filter((t) => t.startsWith('解鎖階梯')) };
   });
   assert.equal(r.clamped, 0, 'no level to pick before a clear');

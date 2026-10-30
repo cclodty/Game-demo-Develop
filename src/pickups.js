@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { buildWeaponModel } from './characters.js';
+import { openWeapons } from './unlocks.js';
 import { PAD_POOL, PLAYER_WEAPONS } from './weapons.js';
 import { rand } from './utils.js';
 
@@ -78,10 +79,11 @@ export class Pickups {
    */
   refillPads(rng) {
     const used = new Set();
+    const pool = openWeapons(PAD_POOL, this.game.unlockMask); // the unlock table's (F⑥b)
     let n = 0;
     for (const pad of this.game.level.pads) {
-      const fresh = PAD_POOL.filter((k) => !used.has(k));
-      const kind = rng.pick(fresh.length ? fresh : PAD_POOL);
+      const fresh = pool.filter((k) => !used.has(k));
+      const kind = rng.pick(fresh.length ? fresh : pool);
       used.add(kind);
       if (pad.pickup) this.remove(pad.pickup);
       this.spawn(kind, pad.x, pad.z, { pad });

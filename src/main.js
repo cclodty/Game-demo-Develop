@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import { AudioSys } from './audio.js';
 import { Bullets } from './bullets.js';
-import { Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS, SORTS as CARD_SORTS, synergy as cardSynergy, TAGS as CARD_TAGS } from './cards.js';
-import { Challenges } from './challenge.js';
+import { CARD_IDS as CARD_DATA_IDS, Cards, CARDS as CARD_DATA, KINDS as CARD_KINDS, SORTS as CARD_SORTS, synergy as cardSynergy, TAGS as CARD_TAGS } from './cards.js';
+import { Challenges, CHALLENGES } from './challenge.js';
 import { drawPrizes, givePrize, PRIZES } from './prizes.js';
 import { buildCharacter, disposeRig } from './characters.js';
 import { Clip } from './clip.js';
 import { Achievements, ACHIEVEMENTS, COAT_UNLOCK, COATS } from './achievements.js';
 import { averageRating, Codex, KINDS as TRICK_KINDS, TRICK_IDS, TRICKS } from './codex.js';
+import { ALL_OPEN, cardPool, howToOpen, UNLOCKS, Unlocks, WHAT as UNLOCK_WHAT } from './unlocks.js';
 import { CAMERA, CARDS, ENV, FOCUS, GRAZE, GUN_Y, LOGIC_HZ, PAD, PLAYER, RANK, RATING, ROOM_RATING, TOUCH, VIEWS } from './config.js';
 import { Enemies, TYPES as ENEMY_TYPES } from './enemies.js';
 import { FX } from './fx.js';
@@ -36,7 +37,7 @@ import { Settings } from './settings.js';
 import { Tutorial, wantWarmup } from './tutorial.js';
 import { clamp, damp, lerp } from './utils.js';
 import { MODE_IDS, MODES, Waves } from './waves.js';
-import { Grenades } from './weapons.js';
+import { Grenades, PLAYER_WEAPONS } from './weapons.js';
 import { BOSSES, Bosses } from './boss.js';
 import { SONGS } from './music.js';
 
@@ -139,6 +140,10 @@ class Game {
     // achievements and what they open (achievements.js); a locked rule pick is not on offer
     this.achievements = new Achievements(localStorage, (a) => this.onAchievement(a));
     this.codex = new Codex(localStorage); // the trick book (F⑤b): what has been done, in this browser
+    this.unlocks = new Unlocks(localStorage); // the unlock table (F⑥b): what has opened, in this browser
+    this.fixedUnlocks = null; // a replayed record's table (F⑥b)
+    this.unlockMask = null; // this run's (startRun): null, everything open
+    this.cardPool = null; // the style cards this run draws from (cards.js pool)
     // the run rules picked on the title screen (rules.js); a run fixes them as ruleset
     this.difficulty = 'normal';
     this.variants = [];
@@ -346,6 +351,12 @@ class Game {
     });
     $('achievements').addEventListener('click', (e) => e.stopPropagation());
     $('achievements-close').addEventListener('click', () => this.showAchievements(false));
+    $('open-unlocks').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.showUnlocks(true);
+    });
+    $('unlocks').addEventListener('click', (e) => e.stopPropagation());
+    $('unlocks-close').addEventListener('click', () => this.showUnlocks(false));
     $('open-codex').addEventListener('click', (e) => {
       e.stopPropagation();
       this.showCodex(true);
@@ -560,6 +571,10 @@ class Game {
         this.showAchievements(false);
         return;
       }
+      if (e.code === 'Escape' && !$('unlocks').classList.contains('hidden')) {
+        this.showUnlocks(false);
+        return;
+      }
       if (e.code === 'Escape' && !$('codex').classList.contains('hidden')) {
         this.showCodex(false);
         return;
@@ -650,10 +665,10 @@ class Game {
     return NIGHT[Math.min(this.night.at, NIGHT.length - 1)];
   }
 
-  /** Whether a variant is on offer: open from the start, or its achievement is done. */
+  /** Whether a variant is on offer: open from the start, or its achievement is done, and the unlock table's (F⑥b) open. */
   isOpen(id) {
     const v = VARIANTS[id];
-    return !!v && (!v.unlock || this.achievements.has(v.unlock));
+    return !!v && (!v.unlock || this.achievements.has(v.unlock)) && this.unlocks.has('variant', id);
   }
 
   /** The title's picks: a difficulty, the variants, a ladder level (F⑥a; not past the highest opened). */
@@ -765,6 +780,49 @@ class Game {
     this.markRules();
   }
 
+  /** An unlock table entry's name (unlocks.js UNLOCKS): the card's, the weapon's or the variant's. */
+  unlockName(u) {
+    return (u.what === 'card' ? CARD_DATA : u.what === 'weapon' ? PLAYER_WEAPONS : VARIANTS)[u.id].name;
+  }
+
+  /** Entries of the unlock table just opened (a challenge won, a ladder level): into the notes. */
+  noteUnlocks(list) {
+    for (const u of list) this.notes.log(`解鎖${UNLOCK_WHAT[u.what]}：${this.unlockName(u)}`);
+  }
+
+  /**
+   * The unlock table from the title (F⑥b, unlocks.js): the style cards, the special weapons and the variants, each
+   * open or shut, a shut one with what opens it (a variant an achievement opens names it).
+   */
+  showUnlocks(on) {
+    $('unlocks').classList.toggle('hidden', !on);
+    $('title').classList.toggle('hidden', on);
+    if (!on) return;
+    const names = Object.fromEntries(Object.entries(CHALLENGES).map(([id, c]) => [id, c.name]));
+    const how = (what, id) => {
+      const u = UNLOCKS.find((x) => x.what === what && x.id === id);
+      if (u && !this.unlocks.isOpen(u)) return howToOpen(u, names);
+      const v = what === 'variant' && VARIANTS[id];
+      if (v && v.unlock && !this.achievements.has(v.unlock)) return `成就「${ACHIEVEMENTS.find((a) => a.id === v.unlock).name}」`;
+      return '';
+    };
+    const cell = (what, id, name, en, text) => {
+      const shut = how(what, id);
+      if (!shut) return `<div class="cx-cell lit" data-${what}="${id}"><b>${name}</b><small>${en}</small>${text ? `<span>${text}</span>` : ''}</div>`;
+      return `<div class="cx-cell" data-${what}="${id}"><b>${name}</b><small>解鎖：${shut}</small></div>`;
+    };
+    const sections = [
+      ['card', CARD_DATA_IDS.map((id) => cell('card', id, CARD_DATA[id].name, CARD_DATA[id].en, CARD_DATA[id].text))],
+      ['weapon', Object.keys(PLAYER_WEAPONS).filter((id) => id !== 'pistols').map((id) => cell('weapon', id, PLAYER_WEAPONS[id].name, id.toUpperCase()))],
+      ['variant', VARIANT_IDS.map((id) => cell('variant', id, VARIANTS[id].name, VARIANTS[id].en, VARIANTS[id].desc))],
+    ];
+    const open = sections.flatMap(([, cells]) => cells).filter((c) => c.includes('cx-cell lit')).length;
+    const all = sections.reduce((n, [, cells]) => n + cells.length, 0);
+    $('unlocks-count').textContent = `解鎖表 · 已解鎖 ${open} / ${all}`;
+    const EN = { card: 'CARDS', weapon: 'WEAPONS', variant: 'VARIANTS' };
+    $('unlocks-list').innerHTML = sections.map(([what, cells]) => `<h4>${UNLOCK_WHAT[what]} <small>${EN[what]}</small></h4><div class="cx-grid">${cells.join('')}</div>`).join('');
+  }
+
   /**
    * The trick book (F⑤b, codex.js) from the title: every trick by its sort, lit once done (its name, Chinese and
    * English); one not yet done shows its hint, or ？？？ where it has none.
@@ -847,7 +905,10 @@ class Game {
     this.ruleset = rulesFor(pick.difficulty, pick.variants, pick.ladder || 0);
     this.ladderOpened = 0; // the ladder level this run's clear opened (F⑥a: onRunClear)
     const rules = packRules(this.ruleset.difficulty, this.ruleset.variants);
-    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, rules, ladder: this.ruleset.ladder, hz: LOGIC_HZ, mapsRev: MAPS_REV });
+    // the unlock table as the run starts: what opens during it comes with the next (F⑥b); a replay's its own
+    this.unlockMask = this.fixedUnlocks ?? this.unlocks.mask();
+    this.cardPool = cardPool(this.unlockMask);
+    this.record = new InputRecord({ seed: this.rng.seed, map: mapIndex, mode: MODE_IDS.indexOf(this.mode), warmup, rules, ladder: this.ruleset.ladder, unlocks: this.unlockMask, hz: LOGIC_HZ, mapsRev: MAPS_REV });
     const first = this.firstMap(this.mode, mapIndex);
     this.resetWorld(first);
     this.score.useBest(this.mode, this.ruleset);
@@ -881,8 +942,10 @@ class Game {
     this.clip.start();
     this.achievements.startRun();
     this.codex.startRun();
+    this.unlocks.startRun();
     this.achievements.watching = !!this.replay; // a replay earns nothing
     this.codex.watching = !!this.replay; // nor lights the book
+    this.unlocks.watching = !!this.replay; // nor opens anything
     this.rankSeen = 0;
     this.state = 'playing';
     $('title').classList.add('hidden');
@@ -1163,15 +1226,16 @@ class Game {
     }
     if (rd.map >= MAPS.length || !MODE_IDS[rd.mode]) return '檔案裡的地圖或模式這個版本沒有';
     if (this.replay) this.endReplay();
-    const keep = { seed: this.fixedSeed, warmup: this.fixedWarmup, rules: this.fixedRules };
+    const keep = { seed: this.fixedSeed, warmup: this.fixedWarmup, rules: this.fixedRules, unlocks: this.fixedUnlocks };
     this.fixedSeed = rd.seed;
     this.fixedWarmup = rd.warmup;
     this.fixedRules = { ...unpackRules(rd.rules), ladder: rd.ladder };
+    this.fixedUnlocks = rd.unlocks ?? ALL_OPEN; // a record from before the table: everything open
     this.replay = { rd, speed: 1, meta, mode: this.mode };
     this.mode = MODE_IDS[rd.mode]; // for the run (waves read it); the title's pick comes back after
     this.showReplays(false);
     this.startRun(rd.map);
-    Object.assign(this, { fixedSeed: keep.seed, fixedWarmup: keep.warmup, fixedRules: keep.rules });
+    Object.assign(this, { fixedSeed: keep.seed, fixedWarmup: keep.warmup, fixedRules: keep.rules, fixedUnlocks: keep.unlocks });
     this.feed = (game) => rd.next(game.player.x, game.player.z);
     this.setReplaySpeed(1);
     this.notes.log(`重播 ${meta.name || ''}`.trim());
@@ -1203,6 +1267,7 @@ class Game {
   endReplay() {
     this.achievements.watching = false;
     this.codex.watching = false;
+    this.unlocks.watching = false;
     if (!this.replay) return;
     this.mode = this.replay.mode;
     this.replay = null;
@@ -1600,9 +1665,12 @@ class Game {
     // each room's rating and their average, beside the run's grade (F⑤a)
     const rated = this.roomRatings.map((x) => x.grade);
     $('gameover').classList.toggle('rooms', rated.length > 0);
-    // the ladder's level this run opened (F⑥a)
-    $('gameover').classList.toggle('ladder', !!this.ladderOpened);
-    $('go-ladder').textContent = this.ladderOpened ? `階梯第 ${this.ladderOpened} 級（${LADDER[this.ladderOpened - 1].name}）` : '';
+    // what this run opened: the ladder's next level (F⑥a), the unlock table's cards, weapons, variants (F⑥b)
+    const opened = [];
+    if (this.ladderOpened) opened.push(`階梯第 ${this.ladderOpened} 級（${LADDER[this.ladderOpened - 1].name}）`);
+    if (!this.replay) for (const u of this.unlocks.fresh) opened.push(`${UNLOCK_WHAT[u.what]}：${this.unlockName(u)}`);
+    $('gameover').classList.toggle('unlocks', opened.length > 0);
+    $('go-unlocks').innerHTML = opened.map((t) => `<i>${t}</i>`).join('、'); // each kept on one line
     // the tricks first done this run (F⑤b): in the book now
     const fresh = this.replay ? [] : this.codex.fresh;
     $('gameover').classList.toggle('fresh', fresh.length > 0);
@@ -1950,6 +2018,7 @@ class Game {
       if (this.ladderOpened) {
         this.notes.log(`解鎖階梯第 ${this.ladderOpened} 級：${LADDER[this.ladderOpened - 1].name}`);
         this.markRules();
+        this.noteUnlocks(this.unlocks.ladderOpened(this.ladderOpened)); // and what it opens in the unlock table (F⑥b)
       }
     }
     this.player.invuln = 99; // nothing still flying can take the run away now

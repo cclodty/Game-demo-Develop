@@ -8,6 +8,7 @@
 // its reward is one switch or number the game reads (`lives`, a weapon dropped, a style card picked, `focusMax`). The
 // numbers are in config.js CHALLENGE.
 import { CHALLENGE } from './config.js';
+import { openWeapons } from './unlocks.js';
 import { PLAYER_WEAPONS } from './weapons.js';
 
 /**
@@ -121,6 +122,8 @@ export class Challenges {
     const c = CHALLENGES[a.id];
     this.won++;
     g.score.style('CHALLENGE', CHALLENGE.style);
+    // the unlock table (F⑥b, unlocks.js): a win opens what the kind's wins so far open, for the runs after this one
+    g.noteUnlocks(g.unlocks.challengeWon(a.id));
     if (c.reward === 'focus') this.focusUp++;
     let prize = c.prize;
     if (c.reward === 'life' && !this.addLife()) prize = `（命已經有 ${CHALLENGE.maxLives} 條）`;
@@ -130,7 +133,8 @@ export class Challenges {
       // a special weapon at the player's feet, full, drawn from the room's stream after the challenge
       const r = g.rng.fork('challenge', a.stage);
       r.next();
-      const kind = CHALLENGE.weapons[r.int(0, CHALLENGE.weapons.length - 1)];
+      const list = openWeapons(CHALLENGE.weapons, g.unlockMask); // the unlock table's (F⑥b)
+      const kind = list[r.int(0, list.length - 1)];
       const p = g.player;
       g.pickups.spawn(kind, p.x, p.z, { ttl: CHALLENGE.weaponTtl });
       prize = `${PLAYER_WEAPONS[kind].name}`;

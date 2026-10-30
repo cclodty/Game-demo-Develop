@@ -80,8 +80,8 @@ export function synergy(id, held) {
  * `n` cards to offer, none of `held`, from `rng`: one of each kind first (where one is left), the rest from
  * whatever is left; then shuffled so the kinds mix on the screen. Fewer when fewer are left.
  */
-export function drawOffer(rng, held, n = NUM.offer) {
-  const left = CARD_IDS.filter((id) => !held.includes(id));
+export function drawOffer(rng, held, n = NUM.offer, pool = CARD_IDS) {
+  const left = pool.filter((id) => !held.includes(id));
   const out = [];
   for (const kind of Object.keys(KINDS)) {
     const of = left.filter((id) => CARDS[id].kind === kind && !out.includes(id));
@@ -116,6 +116,11 @@ export class Cards {
     return this.held.includes(id) && (!CARDS[id].needs || comboNeeds(id, this.held).every((n) => n.ok));
   }
 
+  /** The cards this run draws from (F⑥b: the unlock table, fixed as the run starts: main.js); every card where none is set. */
+  get pool() {
+    return this.game.cardPool || CARD_IDS;
+  }
+
   /** How many cards a floor's end or a door offers: three (two on the ladder's 卡兩選一: rules.js), four with 半條命・四選一 (F④b). */
   get offerSize() {
     return this.has('halfHp') ? 4 : this.game.ruleset.cardOffer || NUM.offer;
@@ -128,7 +133,7 @@ export class Cards {
   /** The end of floor `floor` (0-based): three cards on the screen, from the run's seed. */
   show(floor) {
     const g = this.game;
-    this.offer = drawOffer(g.rng.fork('cards', floor), this.held, this.offerSize);
+    this.offer = drawOffer(g.rng.fork('cards', floor), this.held, this.offerSize, this.pool);
     this.offerFloor = floor;
     const n = NUMERAL[this.offer.length];
     g.notes.log(`風格卡${n}選一：${this.offer.map((id) => CARDS[id].name).join(' / ')}`);
@@ -142,7 +147,7 @@ export class Cards {
    */
   showPrize(stage) {
     const g = this.game;
-    const offer = drawOffer(g.rng.fork('challenge-cards', stage), this.held, CHALLENGE.cards);
+    const offer = drawOffer(g.rng.fork('challenge-cards', stage), this.held, CHALLENGE.cards, this.pool);
     if (!offer.length) return false;
     this.offer = offer;
     this.offerFloor = -1;
@@ -155,7 +160,7 @@ export class Cards {
   /** A door's prize (prizes.js, F③b): three on the screen before room `stage`'s first wave, from its stream; false when none is left. */
   showDoor(stage) {
     const g = this.game;
-    const offer = drawOffer(g.rng.fork('door-cards', stage), this.held, this.offerSize);
+    const offer = drawOffer(g.rng.fork('door-cards', stage), this.held, this.offerSize, this.pool);
     if (!offer.length) return false;
     this.offer = offer;
     this.offerFloor = -1;
