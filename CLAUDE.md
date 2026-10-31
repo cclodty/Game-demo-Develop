@@ -97,7 +97,7 @@ backend/                     the leaderboard Cloudflare Worker (worker.js), its 
 scripts/                     assets.mjs, asset-docs.mjs, build-single.mjs, itch.mjs (+ itch-cover.mjs), serve.mjs, senado-extract.mjs, measure.mjs (bot runs, wave by wave)
 test/                        node:test + playwright; helpers.mjs has the bot; fixtures/ holds a short recorded clip
 assets/                      SPEC.md, PROMPTS.md, START_HERE.md, asset-list.*, maps/*.json, source/ (masters), models/ (web)
-docs/                        ROADMAP.md (fourth edition; ROADMAP-2026-10-26.md is the third with the gameplay spec, ROADMAP-2026-10-22.md the second, kept for its § numbers), REDESIGN.md (second generation: art, world, enemies, assets, Godot), TASKS.md, DECISIONS.md, BACKEND.md (deploying the back end); shots/ holds the screenshots PR descriptions show; itch/ the itch.io page
+docs/                        ROADMAP.md (fourth edition; ROADMAP-2026-10-26.md is the third with the gameplay spec, ROADMAP-2026-10-22.md the second, kept for its § numbers), REDESIGN.md (second generation: art, world, enemies, assets, Godot), TASKS.md, DECISIONS.md, STORY.md (the script: the loop, the gang, the comic-panel cutscenes, the file pages), storyboard/ (the cutscenes panel by panel, a chapter a file, with image prompts), BACKEND.md (deploying the back end); art/ the second generation's asset lists (PROPS.md for ChatGPT, CHARACTERS.md with the count and the Meshy/Tripo costs); shots/ holds the screenshots PR descriptions show; itch/ the itch.io page
 senado/                      the Largo do Senado city-model sub-project (own README, tests, scripts); don't edit from game tasks
 vendor/three/                three.js r186 + the addons we use; never modify
 ```
