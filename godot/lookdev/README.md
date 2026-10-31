@@ -1,9 +1,10 @@
-# 茶樓精緻版：Godot 佈置試看（G⓪、G⓪b）
+# 茶樓精緻版：Godot 佈置試看（G⓪、G⓪b、G⓪c）
 
 一個獨立嘅 Godot 4 工程，睇吓第二代嘅美術方向（`docs/REDESIGN.md` §2 美術聖經）喺 Godot 入面係乜樣。**唔係搬遷**（G① 先定新倉定 `godot/`、先搭真正嘅工程結構），亦都**冇玩法**：淨係一間茶樓、四個積木人做比例（人照舊 6.5 頭身，開發者 10-31 定；角色模型留畀 H①）。
 
 - 房：遊戲第一間房（`src/rooms.js` `TEAHOUSE`），照遊戲嘅 1.2 倍：26.4 × 18 米，六張圓枱、兩架點心車、四道門、入口、兩個出口、四盞燈。數字喺 `room.json`，Godot 同 Blender 都讀佢
 - **G⓪b（而家）**：環境同道具全部喺 Blender 用 Python 腳本生成（`blender/`），導出 `models/*.glb`，Godot 擺位（`scripts/teahouse.gd`，牆邊嘢照 `room.json` 嘅 `decor`）同換賽璐璐材質（`scripts/dress.gd`）
+- **G⓪c**：打包畀本機用 Blender MCP 做細啲（`MCP.md`）；流程收帶貼圖嘅模型
 - **G⓪（第一次）**：全部係 Godot 自己嘅方塊同圓柱。喺 `scripts/teahouse.gd` 將 `models` 改做 `false` 就睇返（開發者睇過：「太似玩具」）
 - 佈置：朱紅＋墨綠、金邊、米白枱布；賽璐璐兩段色階、陰影偏紫藍、邊光；深色描邊（地面唔描）；地面上空冇嘢掛住（鏡頭同子彈之間唔可以有嘢）；地上嘅金色一律用暗金（子彈係黃色）
 
@@ -21,11 +22,13 @@
 blender -b --factory-startup -P godot/lookdev/blender/build.py
 ```
 
-全部道具重出去 `models/`，三角形數同材質寫入 `models/stats.json`。淨係出某幾件：`... build.py -- table_set lantern`。每件道具係 `blender/` 入面一個函數（`build.py` 嘅 `PROPS` 列晒）：
+全部道具重出去 `models/`，三角形數同材質寫入 `models/stats.json`。淨係出某幾件：`... build.py -- table_set lantern`。每件道具係 `blender/` 入面一個函數（`props.py` 嘅 `PROPS` 列晒）。
+
+想喺 Blender 視窗入面改一件（例如用 Blender MCP，見 `MCP.md`）：`blender --python godot/lookdev/blender/open.py -- table_set` 開佢出嚟（未合併、逐件零件），改完喺 Blender 嘅 Python 打 `import kit; kit.finish("table_set", keep=True)`，就由畫面見到嘅嘢出返 `models/table_set.glb`，場景原封不動。帶貼圖嘅模型都得：貼圖跟入 Godot，賽璐璐照樣上。
 
 | 檔 | 道具 |
 |---|---|
-| `kit.py` | 工具：遊戲座標、調色板（材質名就係色名，名有 `glow` 就發光）、倒角、旋轉體、圈、中文字（直寫橫寫）、`finish`（合併、硬邊、描邊法線、導出） |
+| `kit.py` | 工具：遊戲座標、調色板（材質名就係色名，名有 `glow` 就發光）、倒角、旋轉體、圈、中文字（直寫橫寫）、`finish`（合併、硬邊、描邊法線、導出；`keep=True` 唔郁原件） |
 | `shell.py` | 建築：高牆（踢腳、墨綠護牆凸板、金腰線、朱紅灰牆、金線、木檐口、紅柱金柱頭）、矮牆（兩面都有凸板，鏡頭睇到外面）、門框同紅漆雙門（金門釘、門環）、出口框同後面嘅暗走廊、入口柱 |
 | `table_set.py` | 八人圓枱：圓地氈、摺邊枱布、玻璃轉盤、茶壺、竹蒸籠、燒賣蝦餃、八個位（碟、碗、杯、筷子）、八張圈椅 |
 | `furniture.py` | 神枱、收銀櫃（算盤、電話、糖樽、月曆）、海鮮魚缸、熱水爐、富貴竹、四摺屏風、點心車 |
@@ -76,10 +79,12 @@ xvfb-run -s "-screen 0 1920x1080x24" godot --path godot/lookdev --resolution 192
 
 | 鏡頭 | draw call | 三角形 | 陰影三角形 |
 |---|---:|---:|---:|
-| 遊戲（45° 俯視） | 2,000 | 297,306 | 977,576 |
-| 側俯視 | 1,677 | 310,692 | 621,384 |
-| 近啲 | 1,891 | 299,792 | 983,742 |
-| 正上望落 | 1,728 | 313,408 | 727,774 |
+| 遊戲（45° 俯視） | 2,000 | 342,306 | 1,115,544 |
+| 側俯視 | 1,677 | 363,904 | 727,808 |
+| 近啲 | 1,891 | 325,196 | 1,064,290 |
+| 正上望落 | 1,728 | 363,904 | 835,850 |
+
+（G⓪c 將描邊法線搬去第二套 UV 之後，道具本身三角形一樣，成格多咗大約一成五。應該係 Godot import 自動出嘅遠景簡化（LOD）要保住多一套 UV 嘅接縫，簡化得少咗；G① 自己控制 LOD。）
 
 **太重，G① 要減**：JS 版每張地圖嘅預算係三百個 draw call 以下。重嘅原因同減法：
 
@@ -94,6 +99,6 @@ xvfb-run -s "-screen 0 1920x1080x24" godot --path godot/lookdev --resolution 192
 - **Compatibility 渲染器嘅 glow 唔好用**：預設「柔光」混合加 bloom 會成個畫面加對比；試過改加法混合，背景角落又會變色。燈籠靠自己嘅 emission 已經夠
 - **色調映射用 Linear**：Filmic 會郁色（同一面朱紅牆，紅通道 212 對 Linear 嘅 180），平塗色唔再係色板個色
 - 地面紋理要靜：水磨石粒細、少、淡，銅條暗，子彈先睇得清
-- **模型描邊要平滑法線**：硬邊嘅法線喺角位分開，沿法線推出嚟嘅外殼會爆開。Blender 將每點嘅平均法線（八面體編碼）寫入 UV，描邊 shader 沿佢推，推幾多用螢幕像素（1.6 px），茶杯同牆一樣粗
+- **模型描邊要平滑法線**：硬邊嘅法線喺角位分開，沿法線推出嚟嘅外殼會爆開。Blender 將每點嘅平均法線（八面體編碼）寫入第二套 UV（UV2；第一套留畀模型自己嘅貼圖），描邊 shader 沿佢推，推幾多用螢幕像素（1.6 px），茶杯同牆一樣粗
 - **Blender 合併物件之後**，`mesh.materials.clear()` 會將每個面嘅材質編號清做 0，要先記低再寫返（`kit.finish`）
 - 中文字用 WenQuanYi Zen Hei（GPL 加字體例外）出幾何，**只係試看**；正式版要開發者揀可以商用嘅字體（美術聖經 UI 一節）

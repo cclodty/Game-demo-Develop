@@ -1661,6 +1661,17 @@
   - [x] JS 遊戲同測試冇郁（npm run lint && npm test 照過：CI 三份全綠）
 - 這次不做：角色模型（6.5 頭身嘅人留畀 H①）、動畫、玩法、手繪貼圖（用程序材質同頂點色）、其他房
 
+### G⓪c：打包畀本機 Blender MCP（估計：半天；2026-10-31 寫，開發者 10-31：G⓪b「仲係有啲似玩具」「可能要打包到本地用 MCP 生成看看可否做得更精細」）
+- 目標：開發者喺自己部機用 Claude Desktop 加 Blender MCP，喺 G⓪b 嘅模型上面做細啲、或者換 AI 生成／素材庫嘅模型，出返嚟照樣入 Godot 嘅茶樓、照樣係賽璐璐同描邊
+- 漂亮的解法：流程唔使改就收貨：帶貼圖嘅模型都得（描邊法線搬去第二套 UV，賽璐璐材質跟貼圖）；一件道具喺開住嘅 Blender 導出，唔整爛個場景
+- 涉及：`godot/lookdev/blender/kit.py`（`finish` 保留模型自己嘅 UV、描邊寫第二套 UV、`keep` 唔郁原件）、`blender/open.py`（新：喺 Blender 開一件道具出嚟改）、`shaders/toon.gdshader`（貼圖）、`shaders/outline_model.gdshader`（讀 UV2）、`scripts/dress.gd`、`godot/lookdev/MCP.md`（新：本機做法、規矩、交俾本機 Claude 嘅開場白）
+- 驗收：
+  - [x] 一個帶貼圖嘅測試模型經 `kit.finish` 入 Godot：貼圖喺、描邊喺（截圖 `docs/shots/godot/g0c-textured.jpg`；`keep=True` 導出前後場景一樣）
+  - [x] G⓪b 十六件重出，四個鏡頭同之前一樣（描邊冇斷）
+  - [x] 一個 zip：Godot 工程（連模型同 Blender 腳本）、`MCP.md`、美術聖經、截圖；README 寫明點開
+  - [ ] JS 遊戲同測試冇郁（npm run lint && npm test 照過）
+- 這次不做：喺雲端機裝或者行 MCP、揀素材、新道具、角色
+
 ### G①–G⑦：Godot 搬遷（每步估計：一至三天；在新引擎做，驗收見 `docs/REDESIGN.md` §10）
 - G① 空工程、一間房、積木玩家與一支槍、固定步進、輸入記錄與重播、測試架與 CI
 - G② 子彈（MultiMesh）、反彈、子彈時間與專注值、擦彈、缺口保證

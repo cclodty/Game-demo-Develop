@@ -5,10 +5,12 @@ and writes it as a .glb for Godot.
 Coordinates are the game's: metres, Y up, +Z south (towards the camera). Blender is Z up with -Y south, so every
 position goes through `B()`; a turn `rot` (radians) about the up axis is the same number in both (Godot rotation.y).
 
-Each material is a palette name; Godot reads its colour from the .glb and swaps in the toon twin (scripts/
-teahouse.gd), and a name with "glow" in it shines. The ink line needs smooth normals where the shading has hard
-edges: `finish` writes each vertex's averaged normal (in glTF's axes, octahedron-encoded into 0..1) into the only UV
-map, and shaders/outline_model.gdshader pushes the hull out along it. The props have no textures, so UV is free.
+Each material here is a palette name; Godot reads its colour (and its base colour texture, when a model brought
+in by hand or by Blender MCP has one: godot/lookdev/MCP.md) from the .glb and swaps in the toon twin
+(scripts/dress.gd), and a name with "glow" in it shines. The ink line needs smooth normals where the shading has hard
+edges: `finish` writes each vertex's averaged normal (in glTF's axes, octahedron-encoded into 0..1) into a second UV
+map, after the model's own (an empty one if it has none), and shaders/outline_model.gdshader pushes the hull out
+along UV2.
 """
 
 import math
@@ -72,7 +74,17 @@ def srgb_to_linear(c):
 
 
 def reset():
+    """An empty scene with Blender's factory settings (build.py, run in the background)."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
+
+
+def clear():
+    """An empty scene, keeping the session as it is (its add-ons, Blender MCP's among them: open.py)."""
+    for ob in list(bpy.data.objects):
+        bpy.data.objects.remove(ob)
+    for blocks in (bpy.data.meshes, bpy.data.curves, bpy.data.materials):
+        for b in list(blocks):
+            blocks.remove(b)
 
 
 def material(name):
@@ -282,17 +294,19 @@ def copy(ob, at=None, rot=None):
     return c
 
 
-def _bake(ob):
-    """Apply the object's modifiers (and a text's curve) and transform into plain mesh data."""
+def _bake(ob, keep=False):
+    """The object's modifiers (and a text's curve) and transform applied into a new plain mesh object; the
+    original removed, unless `keep`."""
     dg = bpy.context.evaluated_depsgraph_get()
     ev = ob.evaluated_get(dg)
     me = bpy.data.meshes.new_from_object(ev, preserve_all_data_layers=True, depsgraph=dg)
     me.transform(ob.matrix_world)
     if ob.matrix_world.determinant() < 0:
         me.flip_normals()
-    new = bpy.data.objects.new(ob.name, me)
+    new = bpy.data.objects.new(ob.name + ".baked", me)
     bpy.context.scene.collection.objects.link(new)
-    bpy.data.objects.remove(ob)
+    if not keep:
+        bpy.data.objects.remove(ob)
     return new
 
 
@@ -305,17 +319,29 @@ def _octa(n):
     return x * 0.5 + 0.5, y * 0.5 + 0.5
 
 
-def finish(prop_id, sharp=35):
-    """Join everything in the scene into one mesh named `prop_id`, shade it (flat across edges sharper than
-    `sharp` degrees, smooth where the parts asked for it), write the ink line's normals and export
-    models/<prop_id>.glb. Returns the triangle count and the materials."""
-    obs = [_bake(o) for o in list(bpy.context.scene.objects) if o.type in {"MESH", "FONT"}]
+def finish(prop_id, sharp=35, objects=None, keep=False):
+    """Join `objects` (every mesh and text in the scene, if not given; only those visible, if `keep`) into one
+    mesh named `prop_id`, shade it (flat across edges sharper than `sharp` degrees, smooth where the parts asked
+    for it), write the ink line's normals and export models/<prop_id>.glb. Returns the triangle count and the
+    materials. build.py builds each prop in an empty scene and lets this use the parts up; in a scene being worked
+    on (Blender MCP: godot/lookdev/MCP.md), `keep=True` leaves the parts as they were and deletes the joined copy
+    once it is written."""
+    if objects is None:
+        objects = [o for o in bpy.context.scene.objects
+                   if o.type in {"MESH", "FONT"} and (not keep or o.visible_get())]
+    if bpy.context.object and bpy.context.object.mode != "OBJECT":
+        with bpy.context.temp_override(active_object=bpy.context.object, object=bpy.context.object):
+            bpy.ops.object.mode_set(mode="OBJECT")
+    obs = [_bake(o, keep) for o in list(objects)]
     for o in bpy.context.scene.objects:
         o.select_set(o in obs)
     bpy.context.view_layer.objects.active = obs[0]
     if len(obs) > 1:
-        bpy.ops.object.join()
-    ob = bpy.context.view_layer.objects.active
+        # named outright: through Blender MCP this runs from a timer, where the selection is not in the context
+        with bpy.context.temp_override(active_object=obs[0], object=obs[0], selected_objects=obs,
+                                       selected_editable_objects=obs):
+            bpy.ops.object.join()
+    ob = obs[0]
     ob.name = prop_id
     me = ob.data
     me.name = prop_id
@@ -348,9 +374,13 @@ def finish(prop_id, sharp=35):
         f.smooth = True
     bm.to_mesh(me)
     bm.free()
-    while me.uv_layers:
-        me.uv_layers.remove(me.uv_layers[0])
-    # the ink line's normals: the vertex's averaged normal, in glTF axes (x, z, -y), into the UV map
+    # the model's own UV map (its textures') first, then the ink line's normals: the vertex's averaged normal, in
+    # glTF axes (x, z, -y), as the second (glTF TEXCOORD_1, Godot UV2)
+    while len(me.uv_layers) > 1:
+        me.uv_layers.remove(me.uv_layers[-1])
+    if not me.uv_layers:
+        me.uv_layers.new(name="UVMap")
+    me.uv_layers[0].active_render = True
     uv = me.uv_layers.new(name="outline")
     for loop in me.loops:
         n = me.vertices[loop.vertex_index].normal
@@ -359,8 +389,12 @@ def finish(prop_id, sharp=35):
     tris = sum(len(p.vertices) - 2 for p in me.polygons)
     os.makedirs(os.path.join(ROOT, "models"), exist_ok=True)
     path = os.path.join(ROOT, "models", prop_id + ".glb")
-    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=False, export_apply=True,
+    for o in bpy.context.scene.objects:
+        o.select_set(o == ob)
+    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_apply=True,
                               export_yup=True, export_texcoords=True, export_normals=True,
                               export_materials="EXPORT", export_vertex_color="NONE", export_animations=False,
                               export_extras=False, export_cameras=False, export_lights=False)
+    if keep:
+        bpy.data.objects.remove(ob)
     return {"id": prop_id, "tris": tris, "materials": mats}

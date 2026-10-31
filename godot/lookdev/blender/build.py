@@ -15,26 +15,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import kit  # noqa: E402
-
-# id: (module, function, arguments)
-PROPS = {
-    "shell": ("shell", "build", {}),
-    "table_set": ("table_set", "build", {}),
-    "trolley": ("furniture", "trolley", {}),
-    "altar": ("furniture", "altar", {}),
-    "counter": ("furniture", "counter", {}),
-    "fish_tank": ("furniture", "fish_tank", {}),
-    "tea_urn": ("furniture", "tea_urn", {}),
-    "plant": ("furniture", "plant", {}),
-    "screen": ("furniture", "screen", {}),
-    "window": ("wall_decor", "window", {}),
-    "menu_boards": ("wall_decor", "menu_boards", {}),
-    "plaque": ("wall_decor", "plaque", {}),
-    "lantern": ("wall_decor", "lantern", {}),
-    "scroll_yumcha": ("wall_decor", "scroll", {"words": "一盅兩件"}),
-    "scroll_tea": ("wall_decor", "scroll", {"words": "茶香四溢"}),
-    "clock": ("wall_decor", "clock", {}),
-}
+from props import PROPS  # noqa: E402
 
 
 def main():

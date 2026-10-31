@@ -1,7 +1,7 @@
 // The ink line on a Blender model (blender/kit.py finish): the mesh drawn again behind itself, back faces only, its
-// points pushed out along the vertex's averaged normal, which the model carries octahedron-encoded in UV (the split
-// normals at its hard edges would tear the hull open). The push is in screen pixels, so the line is the art bible's
-// 1.5–2 px however near or far the camera, on a teacup as on a wall.
+// points pushed out along the vertex's averaged normal, which the model carries octahedron-encoded in UV2 (the split
+// normals at its hard edges would tear the hull open; UV is the model's own, for its textures). The push is in
+// screen pixels, so the line is the art bible's 1.5–2 px however near or far the camera, on a teacup as on a wall.
 shader_type spatial;
 render_mode unshaded, cull_front, depth_draw_opaque;
 
@@ -18,7 +18,7 @@ vec3 octa_decode(vec2 e) {
 }
 
 void vertex() {
-	vec3 n = octa_decode(UV);
+	vec3 n = octa_decode(UV2);
 	vec4 clip = PROJECTION_MATRIX * MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
 	vec3 view_n = mat3(MODELVIEW_MATRIX) * n;
 	vec2 dir = (PROJECTION_MATRIX * vec4(view_n, 0.0)).xy;
