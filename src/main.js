@@ -654,7 +654,8 @@ class Game {
     }
     if (r.floor) {
       // 彈幕試驗: a floor of rooms, whatever card is picked
-      $('maps-note').textContent = `${CN_COUNT[r.floor.floors]}層，每層${CN_COUNT[r.floor.rooms[0]]}至${CN_COUNT[r.floor.rooms[1]]}間房，每間 ${r.perStage} 波，打完開門去下一間：${this.routeText(start, this.mode)} · 場景不用揀`;
+      const [least, most] = r.floor.rooms;
+      $('maps-note').textContent = `${CN_COUNT[r.floor.floors]}層，每層${least === most ? CN_COUNT[least] : `${CN_COUNT[least]}至${CN_COUNT[most]}`}間房，每間 ${r.perStage} 波，打完開門去下一間：${this.routeText(start, this.mode)} · 場景不用揀`;
       return;
     }
     $('maps-note').textContent = Number.isFinite(r.waves) ? `每 ${r.perStage} 波換一個場景，第 ${r.waves} 波完結：${this.routeText(start, this.mode)}` : `每 ${r.perStage} 波換一個場景`;
@@ -1860,6 +1861,7 @@ class Game {
     // a dive (飛撲): in the air, rolling out of it, or by a shot fired in the air; never a SLIDE KILL as well
     const dive = (info.bullet && info.bullet.diveShot) || (p.alive && (p.diving || p.rolling));
     if (dive) tags.push({ label: 'DIVE KILL', pts: 150, cls: 'cyan' });
+    if ((info.bullet && info.bullet.wallShot) || (p.alive && p.wallRunning)) tags.push({ label: 'WALL KILL', pts: PLAYER.wallRun.pts, cls: 'cyan' }); // on a wall run (F⑨)
     else if (p.alive && p.sliding) tags.push({ label: 'SLIDE KILL', pts: 100, cls: 'cyan' });
     if (info.juggle) tags.push({ label: 'JUGGLE', pts: 120, cls: 'gold' });
     if (info.split) tags.push({ label: 'SPLIT AIM', pts: 100, cls: 'pink' });
@@ -1881,6 +1883,7 @@ class Game {
     if (info.cause === 'smash') tags.push({ label: 'PAN SMASH', pts: 120, cls: 'gold' });
     if (info.bullet && info.bullet.homeRun) tags.push({ label: 'HOME RUN', pts: 200, cls: 'gold' });
     if (info.bullet && info.bullet.hostageFire) tags.push({ label: 'HOSTAGE FIRE', pts: PLAYER.humanShield.firePts, cls: 'gold' }); // a held heavy gun's round (player.js hostageFire, B②)
+    if (info.bullet && info.bullet.shieldRing) tags.push({ label: 'SHIELD RING', pts: PLAYER.humanShield.ringPts, cls: 'gold' }); // a held ring man's ring (player.js hostageRing, F⑧a)
     if (this.level.darkAt(e.x, e.z)) tags.push({ label: 'BLACKOUT', pts: 100, cls: 'gold' });
     if (this.level.smokeAt(e.x, e.z)) tags.push({ label: 'SMOKE', pts: 80, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });

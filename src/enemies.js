@@ -8,8 +8,16 @@ import { Laser } from './fx.js';
 import { fireLines, safeSpot } from './gaps.js';
 import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowards } from './utils.js';
 
+/**
+ * The enemy types. `role` (F⑧b, REDESIGN §5: one problem a man) is his place in the twelve the game sends into its
+ * rooms: `n` 1–12 (the lion dancer's two dances, the spiral and the fan, both 12), his `title`, and the three columns:
+ * the `problem` his fire sets, what he does held up as a human `shield`, the `counter` that beats him; `candidate`: one
+ * of the two kept as candidates (the pressers from the second floor); `merged`: drawn no more in the rooms, his problem
+ * now that type's (the older modes still send him).
+ */
 export const TYPES = {
   grunt: {
+    role: { n: 1, title: '街頭打手', problem: '單發快彈、直線、多人成排', shield: '照舊', counter: '滑鏟、任何' },
     label: 'THUG',
     name: '打手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
@@ -31,6 +39,7 @@ export const TYPES = {
     perch: true, // a beat may send him up to a balcony (waves.js; config.js BEATS.perch)
   },
   shotgun: {
+    role: { n: 3, title: '散彈手', problem: '近距離扇形、逼近', shield: '推出去撞倒一排', counter: '保持距離、滑鏟穿扇' },
     label: 'SHOTGUNNER',
     name: '散彈手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
@@ -52,6 +61,7 @@ export const TYPES = {
     spawn: { from: 2, weight: 2.5 },
   },
   rifle: {
+    role: { n: 2, title: '步槍手', problem: '三連發、見同伴被抓就繞側', shield: '照舊', counter: '掩體、翻枱' },
     label: 'RIFLEMAN',
     name: '步槍手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
@@ -74,6 +84,7 @@ export const TYPES = {
     perch: true,
   },
   rusher: {
+    role: { merged: 'tumbler' },
     label: 'BLADE',
     name: '刀手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
@@ -89,6 +100,7 @@ export const TYPES = {
     spawn: { from: 3, weight: 2.2 },
   },
   tumbler: {
+    role: { n: 9, title: '飛仔', problem: '近身、翻滾躲子彈、快', shield: '照舊', counter: '旋轉射擊、落地補槍、踢' },
     label: 'TUMBLER',
     name: '飛仔',
     tumble: true, // rolls in roll after roll, bullets passing through him mid-roll; pants after three; kicks (AI.tumble)
@@ -104,6 +116,7 @@ export const TYPES = {
     spawn: { from: 5, weight: 1.4, max: 2 },
   },
   captain: {
+    role: { n: 5, title: '疊碼仔頭', problem: '整隊同一拍齊射', shield: '手下停火', counter: '先抓他' },
     label: 'CAPTAIN',
     name: '帶頭大佬',
     // while he stands the others are bolder; when he falls they waver (AI.captain); he comes with `escort`
@@ -127,6 +140,7 @@ export const TYPES = {
     spawn: { from: 7, weight: 0.8, max: 1 },
   },
   brute: {
+    role: { n: 4, title: '保安大隻佬', problem: '衝撞、吸彈、擋在前面', shield: '走 ×0.4、吸最多', counter: '踢、環境' },
     label: 'BRUTE',
     name: '大隻佬',
     hp: 20,
@@ -145,6 +159,8 @@ export const TYPES = {
     look: { body: 0x3b3e48, pants: 0x22242c, accent: 0xff3a2a, hair: 0x55585f, weapon: 'minigun', scale: 1.25 },
   },
   shield: {
+    role: { n: 6, title: '盾牌保安', problem: '正面免疫、推進、盾後有人', shield: '正面 ±70° 免疫', counter: '繞側、牆跑過頂' },
+    holdArc: 70, // held up as a human shield, the riot shield covers ±70° of the player's front (F⑧b; the others PLAYER.humanShield.arc)
     label: 'SHIELD',
     name: '盾牌手',
     model: 'grunt', // the thug's model behind a riot shield
@@ -164,6 +180,7 @@ export const TYPES = {
     spawn: { from: 3, weight: 1.6, max: 2 },
   },
   bomber: {
+    role: { n: 7, title: '炸彈客', problem: '走近自爆', shield: '推出去 0.4 秒爆', counter: '踢遠、推出去' },
     label: 'BOMBER',
     name: '炸彈客',
     model: 'rusher', // the blade's lean runner, in a vest of charges
@@ -181,6 +198,7 @@ export const TYPES = {
     spawn: { from: 6, weight: 1.5, max: 2 },
   },
   grenadier: {
+    role: { n: 8, title: '擲彈兵', problem: '弧線落點、紅圈、封區', shield: '照舊', counter: '走位、落點外' },
     label: 'GRENADIER',
     name: '擲彈兵',
     model: 'rifle', // the rifleman's model, with a bag of grenades on his back
@@ -203,6 +221,8 @@ export const TYPES = {
     spawn: { from: 5, weight: 1.4, max: 2 },
   },
   sniper: {
+    role: { n: 10, title: '狙擊手', problem: '一槍重傷、長預告', shield: '槍沿你面向射（HOSTAGE FIRE）', counter: '牆跑破線、掩體' },
+    heldFire: 1, // held up, his rifle fires along the player's facing every this many s, the player's own (F⑧b: player.js hostageFire)
     label: 'SNIPER',
     name: '狙擊手',
     dodge: true, // rolls aside when the player's aim and fire stay on him (AI.dodge)
@@ -223,6 +243,7 @@ export const TYPES = {
     perch: true,
   },
   drone: {
+    role: { candidate: true, title: '無人機（壓制者）', problem: '飛過掩體、繞住你射', shield: '—（抓唔到）', counter: '射落佢、爆炸' },
     label: 'DRONE',
     name: '無人機',
     hp: 3,
@@ -245,9 +266,11 @@ export const TYPES = {
   // They keep their distance, stand and glow for `aimTime` (the tell, no laser), then fire. Only 彈幕試驗 sends them
   // (waves.js MODES.danmaku `roster`; no `spawn` here). Light coats: they stand out on a dark floor.
   ringer: {
+    role: { n: 11, title: '傘手', problem: '慢大彈幕做牆（環）', shield: '環從你身邊放，算你的', counter: '擦彈充能、穿過缺口' },
     label: 'RING',
     name: '環形手',
     patternNote: '一圈子彈向外散，留一個缺口',
+    shieldRing: true, // held up as a human shield, his ring goes out round the player, the player's own (F⑧a: player.js hostageRing)
     vault: true,
     hp: 4,
     speed: 2.6,
@@ -263,6 +286,8 @@ export const TYPES = {
     look: { body: 0xb9a6ff, pants: 0x3a2e66, accent: 0x7a4dff, hair: 0x2a1f4d, weapon: 'pistol' },
   },
   spiraler: {
+    role: { n: 12, title: '舞獅手（螺旋）', problem: '螺旋的慢牆', shield: '環從你身邊放，算你的', counter: '擦彈充能、喺兩條之間穿過' },
+    shieldRing: true, // held up, his spiral goes round the player as a ring, the player's own (F⑧b: player.js hostageRing)
     label: 'SPIRAL',
     name: '螺旋手',
     patternNote: '轉住噴的螺旋，在兩條之間穿過去',
@@ -281,6 +306,8 @@ export const TYPES = {
     look: { body: 0x6fe3d0, pants: 0x1d4a44, accent: 0x18b39a, hair: 0x123a35, weapon: 'minigun' },
   },
   fanner: {
+    role: { n: 12, title: '舞獅手（扇形）', problem: '扇形的慢牆', shield: '環從你身邊放，算你的', counter: '擦彈充能、向旁閃' },
+    shieldRing: true, // held up, his fan goes round the player as a ring, the player's own (F⑧b: player.js hostageRing)
     label: 'FAN',
     name: '扇形手',
     patternNote: '對準你的扇形，中間最密：向旁閃',
@@ -303,6 +330,7 @@ export const TYPES = {
   // their own; `heavy`: they need no aim token (the whole room opens up at once) and the notes say 重火力. Only
   // 彈幕試驗 sends them (waves.js MODES.danmaku `roster`). Light coats, as the pattern men.
   hoser: {
+    role: { candidate: true, title: '機槍手（壓制者）', problem: '長火線掃過嚟', shield: '槍沿你面向射（HOSTAGE FIRE）', counter: '橫跑甩開、翻枱擋' },
     label: 'MG',
     name: '機槍手',
     patternNote: '轉起槍管就一條長火線掃過嚟，轉得慢：橫跑甩開佢，或者翻枱擋住',
@@ -322,6 +350,7 @@ export const TYPES = {
     look: { body: 0x9fd7ff, pants: 0x203a52, accent: 0x2f9bff, hair: 0x15293b, weapon: 'minigun' },
   },
   volleyer: {
+    role: { merged: 'captain' },
     label: 'VOLLEY',
     name: '排槍手',
     patternNote: '同一間房的排槍手同一拍一齊開槍：喺兩排之間衝前',
@@ -341,6 +370,7 @@ export const TYPES = {
     look: { body: 0xd8f08a, pants: 0x3a4a1a, accent: 0x9acd32, hair: 0x2a3510, weapon: 'rifle' },
   },
   blaster: {
+    role: { merged: 'shotgun' },
     label: 'BLAST',
     name: '霰彈手',
     patternNote: '行近你兩下大扇，射程短：退開，或者開慢鏡閃出扇外',
@@ -502,6 +532,8 @@ class Enemy {
     this.glow = 0; // a pattern man's tell, 0 to 1 (彈幕試驗 ③)
     this.salvoAt = -1; // a salvo's beat, the world time his aim ends (彈幕試驗 ⑦; -1: none)
     this.aimFrom = 0;
+    this.readyAt = -1; // a captain's guard: the world time his aim was done, waiting for his captain's shot (F⑧a; -1: not yet)
+    this.squadAsk = -1; // a captain's guard: since when he has been ready to aim without his captain's call (F⑧a; -1: not)
     this.volleyN = 0;
     this.patternA = 0;
     this.gapAt = 0;
@@ -1535,7 +1567,65 @@ class Enemy {
     const now = this.game.worldTime;
     this.aimFrom = now;
     this.salvoAt = w && w.pattern === 'salvo' ? Math.ceil((now + this.aimTime) / w.beat) * w.beat : -1;
+    this.readyAt = -1;
+    this.squadAsk = -1;
     this.game.audio.aimWarn(this.game.panFor(this.x));
+    if (this.cfg.captain) this.mgr.squadAim(this); // 整隊齊射 (F⑧a): his free guards take aim with him
+  }
+
+  /**
+   * 整隊齊射 (F⑧a, AI.captain.wait): a guard whose captain leads and is taking aim, his own aim done, holds it (the
+   * laser bright) until the captain's shot, then fires on that step with him; false when he fires now.
+   */
+  squadHold() {
+    const c = this.escortOf;
+    if (!c || !this.mgr.leads(c) || (c.state !== 'aim' && this.readyAt < 0)) return false;
+    const now = this.game.worldTime;
+    if (this.readyAt < 0) this.readyAt = now;
+    if (this.mgr.squadShot >= this.readyAt - 1e-9) return false; // the captain's round went out since: with him
+    return now - this.readyAt < AI.captain.wait;
+  }
+
+  /**
+   * 飛仔翻滾躲子彈 (F⑧a, AI.tumble.dodge): a player's round on its way into him, near enough, and he rolls across its
+   * line (away from where it would pass), if there is the floor for it; true when he does.
+   */
+  tumbleDodge() {
+    const D = AI.tumble.dodge;
+    const g = this.game;
+    if (this.dodgeCd > 0) return false;
+    for (const b of g.bullets.list) {
+      if (!b.alive || b.owner !== 'player') continue;
+      const len = Math.hypot(b.dx, b.dz) || 1;
+      const ux = b.dx / len;
+      const uz = b.dz / len;
+      const rx = this.x - b.x;
+      const rz = this.z - b.z;
+      const along = rx * ux + rz * uz;
+      if (along <= 0 || along > D.see) continue;
+      const cross = rx * uz - rz * ux; // which side of the round's line he stands
+      if (Math.abs(cross) > this.cfg.radius + D.margin) continue;
+      const nav = g.level.nav;
+      const away = cross >= 0 ? 1 : -1;
+      for (const side of [away, -away]) {
+        const sx = uz * side;
+        const sz = -ux * side;
+        const lx = this.x + sx * D.dist;
+        const lz = this.z + sz * D.dist;
+        if (!nav.isWalkable(lx, lz) || !nav.lineWalkable(this.x, this.z, lx, lz) || !g.level.sameLevel(this.x, this.z, lx, lz)) continue;
+        this.rollX = sx;
+        this.rollZ = sz;
+        this.rollDist = D.dist;
+        this.rolls++;
+        this.state = 'tumble';
+        this.timer = AI.tumble.roll;
+        this.dodgeCd = D.cooldown;
+        this.endAim();
+        return true;
+      }
+      return false;
+    }
+    return false;
   }
 
   /** A grenadier's throw: over any cover, onto where the player stands now. */
@@ -2087,11 +2177,17 @@ class Enemy {
               this.gapWait = true;
               break;
             }
+            if (this.squadHold()) {
+              // 整隊齊射 (F⑧a): a guard holds his aim for his captain's shot
+              this.aimT = this.aimTime;
+              break;
+            }
             this.gapWait = false;
             const w = WEAPONS[cfg.weapon];
             this.state = 'fire';
             this.burst = w.shots;
             this.burstT = 0;
+            if (cfg.captain) this.mgr.squadShot = g.worldTime; // his guards waiting for it fire with him
           }
           break;
         }
@@ -2137,7 +2233,7 @@ class Enemy {
           }
           break;
         case 'chase': {
-          if (cfg.tumble && this.tumbleOn(distP, dxp, dzp)) break;
+          if (cfg.tumble && (this.tumbleDodge() || this.tumbleOn(distP, dxp, dzp))) break;
           this.repath -= dt;
           const bomb = cfg.bomb;
           if (bomb && this.fuseT >= 0) {
@@ -2528,7 +2624,10 @@ export class Enemies {
     this.tokens = 0;
     this.flankSeq = 0; // flankers spawned so far: they take the two sides in turn
     this.captain = null; // the 帶頭大佬 on his feet, if one is (AI.captain)
+    this.squadShot = -1; // the world time of his last shot, for his guards' (F⑧a 整隊齊射)
+    this.squadCall = null; // the captain calling his guards to aim with him, while he does (squadAim)
     this.panicT = 0; // s left of the others wavering after he fell
+    this.freedT = 0; // s left of his men on their own after the player let him go (F⑧a: he leads none meanwhile)
     this.patternsSeen = new Set(); // the pattern kinds that have fired this run (a line in the notes the first time)
     this.claims = []; // lines of fire let through the gap gate whose rounds are not yet in the air (gapAllows): { line, until }
   }
@@ -2570,9 +2669,33 @@ export class Enemies {
     return e;
   }
 
+  /**
+   * 整隊齊射 (F⑧a): captain `c` takes aim, and so do his guards who are free to (on their way or holding, the player in
+   * sight and in reach, ready to fire); each holds his aim for the captain's shot (Enemy squadHold).
+   */
+  /**
+   * Whether captain `c` leads his guards (F⑧a): on his feet, not held up, knocked down or shoved, and his men not
+   * wavering (AI.captain.panic s after his fall, or after the player let him go); else each guard fights on his own.
+   */
+  leads(c) {
+    return c.alive && this.game.player.hostage !== c && c.stunT <= 0 && !c.shoved && this.panicT <= 0 && this.freedT <= 0;
+  }
+
+  squadAim(c) {
+    const p = this.game.player;
+    this.squadCall = c;
+    for (const m of this.list) {
+      if (m.escortOf !== c || !m.alive || m.stunT > 0 || !['move', 'hold', 'idle'].includes(m.state)) continue;
+      if (!m.los || m.fireCd > 0 || m.blindT > 0 || Math.hypot(p.x - m.x, p.z - m.z) > m.cfg.range[1] + 3) continue;
+      if (this.requestToken(m)) m.startAim();
+    }
+    this.squadCall = null;
+  }
+
   /** The captain let go by the player (B②): the men who held their fire waver a moment, as when he falls. */
   captainFreed(c) {
     for (const e of this.list) if (e !== c && e.alive && (e.escortOf === c || e.type === 'grunt')) e.waver();
+    this.freedT = AI.captain.panic; // and each fights on his own a while (F⑧a: leads)
     this.game.notes.log('放開帶頭大佬：手下亂一陣');
   }
 
@@ -2602,7 +2725,9 @@ export class Enemies {
     this.tokens = 0;
     this.flankSeq = 0;
     this.captain = null;
+    this.squadShot = -1;
     this.panicT = 0;
+    this.freedT = 0;
     this.patternsSeen.clear();
     this.claims = [];
   }
@@ -2614,6 +2739,14 @@ export class Enemies {
   requestToken(e) {
     if (e.muzzled) return false; // his captain in the player's arms (B②): he holds his fire
     if (e.hasToken) return true;
+    // 整隊齊射 (F⑧a): a guard of a captain who leads takes aim with him (squadAim), on his captain's token; on his own
+    // only once he has been ready AI.captain.alone s without a call (a captain who does not fire)
+    if (e.escortOf && this.leads(e.escortOf)) {
+      if (this.squadCall === e.escortOf) return true;
+      const now = this.game.worldTime;
+      if (e.squadAsk < 0) e.squadAsk = now;
+      if (now - e.squadAsk < AI.captain.alone) return false;
+    }
     if (e.cfg.heavy || this.game.waves.rules.floor) return true; // heavy fire (彈幕試驗 ⑦), and anyone in a room (彈幕 ② A①): the whole room opens up at once, no token to wait for
     if (this.tokens >= this.maxTokens()) return false;
     e.hasToken = true;
@@ -2669,6 +2802,7 @@ export class Enemies {
 
   update(dt) {
     this.panicT = Math.max(0, this.panicT - dt);
+    this.freedT = Math.max(0, this.freedT - dt);
     for (const e of this.list) e.update(dt);
     for (const e of this.corpses) e.update(dt);
 

@@ -19,6 +19,8 @@
 // cooked-food stall's tables in a lane at night.
 //
 // Template: { id, rev, name, en, desc, color, size: [w, d] inside the walls (m),
+//   wallrun: [[x, z, w, d, h?, material?]] (F⑨) inner walls a wall run goes along (player.js wallRun): one of the
+//   room's solids where it is one (the same x, z, w, d), else a wall of its own, `h` (2.4) m of `material` (concrete),
 //   walls: [height, material, trim] (level.js mat keys), low: [height, sides]: the walls on the camera's sides (the south,
 //   and the west the 45° side view looks in from) this high, so it looks in over them,
 //   doors: [[side, at]]: 'n' | 's' | 'w' | 'e' and where along it from its middle (m),
@@ -101,6 +103,12 @@ function wallPoint(side, at, halfW, halfD) {
 const EXIT_DOOR = [1.8, 2.5]; // the exit's width and height (m)
 const ENTRY_IN = 1.4; // m inside its entry the player starts
 
+/** A room's wall-run walls (F⑨, template `wallrun`) that are not one of its solids already: a solid each, `h` m high of `mat`. */
+function wallrunWalls(t) {
+  const same = (a, b) => a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
+  return (t.wallrun || []).filter((w) => !(t.solids || []).some((s) => same(s, w))).map(([x, z, w, d, h = 2.4, mat = 'concrete']) => [x, z, w, d, h, mat]);
+}
+
 /** The rooms' scale (config.js ROOM_SIZE): `?roomscale=` in the address for a run, else the config's. */
 const ROOM_SCALE = (() => {
   const q = Number(new URLSearchParams(globalThis.location ? globalThis.location.search : '').get('roomscale'));
@@ -139,6 +147,7 @@ function scaled(t, k) {
     trolleys: t.trolleys && t.trolleys.map(at),
     barrels: t.barrels && t.barrels.map(at),
     solids: t.solids && t.solids.map(at),
+    wallrun: t.wallrun && t.wallrun.map(at),
     posts: t.posts && t.posts.map((p) => p.map(S)),
     flocks: t.flocks && t.flocks.map(at),
     benches: t.benches && t.benches.map(at),
@@ -183,7 +192,8 @@ export function room(template) {
     theme: t.theme,
     floor: t.floor,
     edges: { n: wall('n'), s: wall('s'), w: wall('w'), e: wall('e'), ...(t.edges || {}) },
-    solids: [...(t.solids || []), ...(t.stall ? [[...t.stall, 1.0, 'counter']] : []), ...shops.solids],
+    solids: [...(t.solids || []), ...(t.stall ? [[...t.stall, 1.0, 'counter']] : []), ...shops.solids, ...wallrunWalls(t)],
+    wallrun: (t.wallrun || []).map(([x, z, w, d]) => [x, z, w, d]), // the inner walls a wall run goes along (F⑨: level.js marks them)
     barrels: t.barrels || [],
     tools: (t.trolleys || []).map(([x, z, angle]) => [x, z, 'trolley', angle, t.trolleyLook || 'dimsum']),
     fixtures: [...t.tables.map(([x, z, r]) => [x, z, 'table', 0, r, t.tableLook || 'cloth']), [ex, ez, 'exit', ef, ...EXIT_DOOR], ...(exit2 ? [[exit2[0], exit2[1], 'exit', exit2[2], ...EXIT_DOOR]] : []), ...shops.fixtures],
@@ -1180,7 +1190,7 @@ export const FRONTHALL = room({
  */
 export const PLAZA = room({
   id: 'plaza',
-  rev: 1,
+  rev: 2, // F⑨: a wall-run wall
   name: '廣場',
   en: 'PLAZA',
   desc: '噴水池的廣場：白鴿驚起擋住瞄準，把人踢落水。',
@@ -1193,6 +1203,7 @@ export const PLAZA = room({
   pool: [0, 0, 2.2],
   flocks: [[-6, 0.5], [6, -0.5]],
   benches: [[-6, -6.6], [6, -6.6], [-9.9, 3], [9.9, -3]],
+  wallrun: [[7, 4.2, 6, 0.4, 2.4, 'concrete']], // F⑨: a hoarding by the south-east aisle, to run along (rooms.js wallrunWalls; the west one's view of its flock kept)
   entry: ['s', 0],
   exit: ['n', 0],
   exit2: ['n', 3], // between it and a north door (F③a)
@@ -1232,7 +1243,7 @@ const BEND = { at: [11, -7.5], r: 11, road: 4.4 };
 
 export const RACEBEND = room({
   id: 'racebend',
-  rev: 1,
+  rev: 2, // F⑨: a wall-run wall
   name: '跑道彎',
   en: 'TRACK BEND',
   desc: '賽道彎：賽車定時掠過，紅燈一亮就離開賽道；把人踢上賽道等車到。',
@@ -1249,6 +1260,7 @@ export const RACEBEND = room({
   barrels: [[-1.5, 1.5], [5.2, -1.6, 'lpg']], // a drum by the road on the run-off's side, a cylinder by it in the infield: kicked on, sent flying
   track: { ...BEND, first: 10, every: 15, lanes: [-1.1, 1.1] }, // two lanes: the pack (RACE.cars) covers the 4.4 m road kerb to kerb
   dress: 'track',
+  wallrun: [[-7.5, 3.4, 6, 0.4, 2.2, 'concrete']], // F⑨: a pit wall in the run-off, to run along (rooms.js wallrunWalls)
   entry: ['s', -5],
   exit: ['n', 6], // in the infield: the way on is across the road
   exit2: ['e', -1], // in the infield too (F③a)
@@ -1285,7 +1297,7 @@ export const RACEBEND = room({
  */
 export const STEPS = room({
   id: 'steps',
-  rev: 1,
+  rev: 2, // F⑨: a wall-run wall
   name: '石階',
   en: 'STONE STEPS',
   desc: '老區的石階：守住石階頂，衝上來的人排成一行，就射倒油桶滾落去。',
@@ -1302,6 +1314,7 @@ export const STEPS = room({
   solids: [[-7, 4.5, 1.8, 1, 1.5, 'planter'], [7, 4.5, 1.8, 1, 1.5, 'planter']],
   barrels: [[-3, 1.1], [0, 1.1], [3, 1.1]], // on the top step: shot or kicked over, down they roll
   dress: 'steps',
+  wallrun: [[7, 2.6, 6, 0.4, 2.2, 'brick']], // F⑨: a retaining wall on the upper level, east of the flight, to run along (rooms.js wallrunWalls)
   entry: ['s', 0],
   exit: ['n', 0],
   exit2: ['n', 3], // F③a
@@ -1338,7 +1351,7 @@ export const STEPS = room({
  */
 export const STREET = room({
   id: 'shopstreet',
-  rev: 1,
+  rev: 2, // F⑨: a wall-run wall
   name: '直街',
   en: 'SHOP STREET',
   desc: '直街一排舊舖：踢開舖門撞飛門後的人，穿屋繞到後面，射落鐵閘封住中間那間。',
@@ -1352,6 +1365,7 @@ export const STREET = room({
   shops: { depth: 4.5, wall: 0.3, h: 2.8, door: 2, shutter: 3.2, list: [{ x: [-11, -3.75], front: 'door' }, { x: [-3.75, 3.75], front: 'shutter' }, { x: [3.75, 11], front: 'door' }] },
   cutaway: true,
   dress: 'shops',
+  wallrun: [[-7.5, 4.6, 6, 0.4, 2.4, 'brick']], // F⑨: a wall of posters across the street, to run along (rooms.js wallrunWalls)
   entry: ['s', 0],
   exit: ['n', 0], // in the middle shop's back wall
   exit2: ['n', 5], // in the east shop's (F③a): in by its door
@@ -1387,7 +1401,7 @@ export const STREET = room({
  */
 export const QUAY = room({
   id: 'quay',
-  rev: 1,
+  rev: 2, // F⑨: a wall-run wall
   name: '碼頭',
   en: 'QUAYSIDE',
   desc: '碼頭邊：開火位背住個海，一腳踢落海；手推車撞倒成排人。',
@@ -1405,6 +1419,7 @@ export const QUAY = room({
   solids: [[-9, -1.5, 1.2, 1.2, 1.2, 'crate'], [-1, -2.4, 1.2, 1.2, 1.2, 'crate'], [5.5, -2.6, 1.2, 1.2, 1.2, 'crate'], [7.2, 4.2, 1.4, 1.0, 1.2, 'metal']], // wooden crates (break apart, ENV.crateHits; the made crate is 7,760 triangles, so three) and a steel bin
   barrels: [[-5.5, -4.8]],
   dress: 'quay',
+  wallrun: [[-7.5, 0.8, 6, 0.5, 2.4, 'metal']], // F⑨: a container’s side, to run along (rooms.js wallrunWalls)
   entry: ['s', -4],
   exit: ['e', -5.5], // at the warehouse's north end, by the quay
   exit2: ['e', 0.5], // between two of its doors (F③a)
@@ -1441,7 +1456,7 @@ export const QUAY = room({
  */
 export const ROOF = room({
   id: 'roof',
-  rev: 1,
+  rev: 2, // F⑨: a wall-run wall
   name: '天台',
   en: 'ROOFTOP',
   desc: '天台：晾衫竹上的被單擋住視線，子彈照穿；踢氣樽射向開火位。',
@@ -1458,6 +1473,7 @@ export const ROOF = room({
   barrels: [[-7, 3.2, 'lpg'], [0.5, 0.6, 'lpg'], [5.5, 4.2, 'lpg'], [2.5, -4.4]], // LPG cylinders to kick; a red barrel by the posts
   dress: 'roof',
   cutaway: true, // the player behind a sheet stays in sight
+  wallrun: [[7.5, 2.6, 6, 0.4, 2.2, 'concrete']], // F⑨: the water tank’s stand, to run along (rooms.js wallrunWalls)
   entry: ['s', -5],
   exit: ['n', 7], // the stair hut's other door
   exit2: ['n', 3.5], // F③a
@@ -1492,7 +1508,7 @@ export const ROOF = room({
  */
 export const DISCO = room({
   id: 'disco',
-  rev: 1,
+  rev: 2, // F⑨: a wall-run wall
   name: '夜店',
   en: 'NIGHTCLUB',
   desc: '夜店：燈跟住節拍，每兩小節最後一拍燈滅，嗰一拍冇人瞄得準你。',
@@ -1508,6 +1524,7 @@ export const DISCO = room({
   blackout: { bpm: 124, every: 8, dark: 1 }, // the music's tempo; out on the last beat of every two bars
   danceFloor: { at: [0, 0], tiles: [10, 6] },
   dress: 'disco',
+  wallrun: [[7.5, 4.3, 6, 0.4, 2.2, 'clubWall']], // F⑨: the bar’s back wall, to run along (rooms.js wallrunWalls)
   entry: ['s', -6],
   exit: ['n', 7.5],
   exit2: ['n', 4.5], // beside the speaker (F③a)

@@ -3,7 +3,9 @@
 // it took, what the player took in damage, the enemies' total health, the
 // firepower handed out (weapon pads and drops, as damage: ammo × damage per
 // shot) and what the bot picked up, and how much of the time a heavy gun was
-// in hand. Same seeds, same bot: run it before and after a change.
+// in hand; in a run of floors (F⑦) a line a floor too: its whole time and the
+// fighting in it, its rooms, waves, men and the damage taken. Same seeds, same
+// bot: run it before and after a change.
 //
 //   node scripts/measure.mjs [--runs 5] [--map 0] [--mode danmaku] [--god] [--loot] [--json out.json]
 //
@@ -43,7 +45,7 @@ try {
         const w = PLAYER_WEAPONS[kind];
         return ammo * (w.grenade ? 20 : w.damage * (w.pellets || 1));
       };
-      const M = (window.M = { waves: {}, end: null });
+      const M = (window.M = { waves: {}, floors: {}, end: null });
       const row = () => {
         const n = g.waves.wave;
         return (M.waves[n] ||= { n, boss: g.waves.bossWave, map: g.level.map.id, floor: g.floors ? g.floorOf(g.stage) + 1 : 0, frames: 0, heavy: 0, hurt: 0, hp: 0, enemies: 0, pads: 0, drops: 0, taken: 0, kills0: g.score.kills, kills: 0 });
@@ -85,7 +87,16 @@ try {
         return e;
       };
       window.tick = () => {
-        if (g.state !== 'playing' || g.waves.state !== 'active') return;
+        if (g.state !== 'playing') return;
+        // a floor run (F⑦): the whole of each floor, between the fights too (the card screen, walking out, the doors)
+        if (g.floors) {
+          const n = g.floorOf(g.stage) + 1;
+          const f = (M.floors[n] ||= { floor: n, frames: 0, rooms: [], waves: [] });
+          f.frames++;
+          if (!f.rooms.includes(g.stage)) f.rooms.push(g.stage);
+          if (g.waves.state === 'active' && !f.waves.includes(g.waves.wave)) f.waves.push(g.waves.wave); // fought on this floor
+        }
+        if (g.waves.state !== 'active') return;
         const w = row();
         w.frames++;
         const p = g.player;
@@ -110,8 +121,8 @@ try {
           const g = window.game;
           return { why, wave: g.waves.wave, cleared: g.waves.state === 'done', alive: g.player.alive, score: g.score.score, errors: window.stats.errors.slice(0, 2) };
         }, ok === 'go' ? 'time' : ok);
-        const waves = await page.evaluate(() => Object.values(window.M.waves));
-        runs.push({ seed, ...end, frames, minutes: frames / 3600, waves });
+        const { waves, floors } = await page.evaluate(() => ({ waves: Object.values(window.M.waves), floors: Object.values(window.M.floors) }));
+        runs.push({ seed, ...end, frames, minutes: frames / 3600, waves, floors });
         console.error(`run ${r + 1}/${RUNS} seed ${seed}: wave ${end.wave}${end.cleared ? ' (clear)' : ''}, ${(frames / 3600).toFixed(1)} min game time, ${((Date.now() - t0) / 1000).toFixed(0)} s real${end.errors.length ? `, ERROR ${end.errors[0]}` : ''}`);
         break;
       }
@@ -151,11 +162,14 @@ for (const [a, b] of [
 }
 const cleared = runs.filter((r) => r.cleared).length;
 console.log(`ended at wave ${runs.map((r) => r.wave).join(', ')} (mean ${fmt(runs.reduce((a, r) => a + r.wave, 0) / runs.length)}); cleared ${cleared}/${runs.length}; ${fmt(runs.reduce((a, r) => a + r.minutes, 0) / runs.length)} min a run`);
-// a floor run (彈幕 ② C①): a line a floor, over the runs
-const floors = [...new Set(all.map((w) => w.floor).filter((f) => f > 0))].sort((a, b) => a - b);
+// a floor run (彈幕 ② C①, F⑦): a line a floor, over the runs: the whole floor's time (and the fighting in it), its
+// rooms, waves, men and the damage taken, each a run
+const floors = [...new Set(runs.flatMap((r) => r.floors.map((f) => f.floor)))].sort((a, b) => a - b);
+if (floors.length) console.log('floor | runs | time s | fighting s | rooms | waves | men | hurt');
 for (const f of floors) {
+  const got = runs.map((r) => r.floors.find((x) => x.floor === f)).filter(Boolean);
   const rows = all.filter((w) => w.floor === f);
-  const n = new Set(rows.map((w) => w.n)).size;
-  console.log(`floor ${f}: ${n} waves, ${fmt(rows.reduce((a, w) => a + w.frames, 0) / 60 / runs.length, 0)} s a run, hurt ${fmt(rows.reduce((a, w) => a + w.hurt, 0) / runs.length, 0)} a run`);
+  const per = (x) => fmt(x / got.length, 1);
+  console.log(`${f} | ${got.length} | ${fmt(got.reduce((a, x) => a + x.frames, 0) / 60 / got.length, 0)} | ${fmt(rows.reduce((a, w) => a + w.frames, 0) / 60 / got.length, 0)} | ${per(got.reduce((a, x) => a + x.rooms.length, 0))} | ${per(got.reduce((a, x) => a + x.waves.length, 0))} | ${per(rows.reduce((a, w) => a + w.enemies, 0))} | ${fmt(rows.reduce((a, w) => a + w.hurt, 0) / got.length, 0)}`);
 }
 if (JSON_OUT) fs.writeFileSync(JSON_OUT, JSON.stringify(runs, null, 1));

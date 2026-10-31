@@ -62,7 +62,7 @@ index.html, style.css        HUD / menu DOM and styles; importmap → vendor/thr
 src/main.js                  Game: fixed 120 Hz logic steps + per-frame present, time scale (bullet time, hit-stop, kill-cam), camera views, screens
 src/input.js  replay.js      live keyboard/mouse/gamepad (standard layout mapped onto BUTTONS)/touch on a phone (a stick under each thumb, bullet time held: the same bits and aim) → one StepInput per logic step; the run's input record (changes only), the last ten kept as replays (.bbr)
 src/config.js                every feel number: speeds, FOCUS, BULLET, CAMERA, VIEWS, FIREPOWER (pads, drops)
-src/player.js  enemies.js    player verbs; enemy TYPES, WEAPONS, AFFIXES (F①: 鐵頭, 彈衣… from the second floor, waves.js affixesFor) and the AI state machine
+src/player.js  enemies.js    player verbs (the wall run along a room's `wallrun` walls: F⑨); enemy TYPES (each with its `role` in REDESIGN §5's twelve: F⑧b), WEAPONS, AFFIXES (F①: 鐵頭, 彈衣… from the second floor, waves.js affixesFor) and the AI state machine
 src/weapons.js bullets.js    player weapon stats, grenades (the launcher's, and the grenadier's lobbed ones: ring, fuse, kick back, AIRBURST); projectile stepping and ricochet
 src/waves.js  pickups.js     MODES (danmaku, the game's own: three floors of rooms, the default; arcade, endless, daily and night are `legacy`, off the title unless ?modes=all), wave composition and spawn pacing; floor weapons and pads
 src/night.js                 澳門一夜: the maps in order of the hour each is set at (maps.js `hour`, `line`), how far the night has got (kept in this browser)

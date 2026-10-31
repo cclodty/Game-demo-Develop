@@ -40,6 +40,7 @@ export const TRICKS = {
   'SPIN KILL': { kind: 'move', name: '旋轉擊殺' },
   'SLIDE KILL': { kind: 'move', name: '滑鏟擊殺' },
   'DIVE KILL': { kind: 'move', name: '飛撲擊殺', hint: '慢鏡中方向＋Space 飛撲，半空開槍' },
+  'WALL KILL': { kind: 'move', name: '牆跑擊殺', hint: '貼住內牆向住佢撳 C 跑上牆，喺牆上開槍' },
   JUGGLE: { kind: 'move', name: '浮空連擊', hint: '打飛起嘅人' },
   DODGE: { kind: 'move', name: '閃避' },
   'SPIN RELOAD': { kind: 'move', name: '旋轉換彈', hint: '冇子彈嗰陣旋轉' },
@@ -50,6 +51,7 @@ export const TRICKS = {
   'HUMAN SHIELD': { kind: 'shield', name: '人盾擋殺', hint: '抓住人做盾，等佢自己人射佢' },
   'HOSTAGE FIRE': { kind: 'shield', name: '借槍', hint: '抓住機槍手，用佢支槍' },
   'SHIELD BOWLING': { kind: 'shield', name: '人盾保齡', hint: '推出人盾撞倒其他人' },
+  'SHIELD RING': { kind: 'shield', name: '人盾放環', hint: '抓住環形手，佢個環由你身邊放出去' },
   // the place
   BOOM: { kind: 'stage', name: '油桶爆', hint: '射油桶' },
   CHAIN: { kind: 'stage', name: '連環爆', hint: '一個爆炸引爆另一個' },

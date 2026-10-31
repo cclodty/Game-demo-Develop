@@ -41,25 +41,31 @@ export const MODES = {
     name: '子彈芭蕾',
     en: 'BULLET BALLET',
     color: '#ff6a3d',
-    desc: '三層，每層三四間房 · 滿屏快彈，在子彈時間起舞 · 約十分鐘',
+    desc: '三層，每層兩間房同頭目 · 滿屏快彈，在子彈時間起舞 · 約十分鐘',
     waves: 6,
     perStage: 2,
+    rest: 2.5, // s between a room's two waves (F⑦; the arcade's 3.8)
     graded: true,
-    floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong', 'plaza', 'racebend', 'steps', 'shopstreet', 'quay', 'roof', 'disco', 'maze'], floors: 3, rooms: [3, 4], boss: ['arena', 'backhall', 'strongroom', 'fronthall'] }, // a boss room a floor, drawn (D①–D④); the plaza (E①), the track bend (E②), the steps (E③), the street (E④), the quay (E⑤), the roof (E⑥), the club (E⑦) and the maze (試玩回饋 ⑥b) in the draw
+    floor: { first: 'teahouse', pool: ['banquet', 'sidehall', 'daipaidong', 'plaza', 'racebend', 'steps', 'shopstreet', 'quay', 'roof', 'disco', 'maze'], floors: 3, rooms: [2, 2], boss: ['arena', 'backhall', 'strongroom', 'fronthall'] }, // a boss room a floor, drawn (D①–D④); the plaza (E①), the track bend (E②), the steps (E③), the street (E④), the quay (E⑤), the roof (E⑥), the club (E⑦) and the maze (試玩回饋 ⑥b) in the draw
     floorBoss: { segments: 4, bonus: 1500 }, // a floor's boss fight but the last floor's, in full (boss.js cfg)
     finale: { size: 1.5, brutes: 1, maxAlive: 12 }, // the run's last wave, bigger like a floor's end (C①)
     graze: true,
     // 彈幕 ② A①: the arcade's men; five in a room's first wave (four fired 1.96× the arcade's first wave, short of the 2×
     // asked: test/hell.test.mjs), five in its second (`total` by the wave's place in its room), `perFloor` more a floor
     // (C①: about 140 men a run of three floors; the bot clears it in about a quarter of an hour, a player quicker). A③: `also` the heavy three as pressers (the same [from wave, weight,
-    // most a wave]), and an `elite` of the slow walls (ringer, spiraler, fanner) in a room's first wave from `fromFloor`
+    // most a wave]), and an `elite` of the slow walls (ringer, spiraler, fanner) in a room's first wave from `fromFloor`.
+    // F⑧b: REDESIGN §5's twelve (enemies.js TYPES `role`): the blade's, the blaster's and the volley man's problems
+    // are the tumbler's, the shotgunner's and the captain's squad's now, so `skip` keeps the blade out and `also` gives
+    // the tumbler and the shotgunner their weight; the sniper comes in; the machine gunner is the presser kept as a
+    // candidate, from the second floor (wave 7); the drone stays out
     roster: {
       total: [5, 5],
       perFloor: 1,
+      brutes: [0, 1, 1], // in a room's last wave, by floor (F⑦: the third floor's two made one)
       arcade: true,
-      skip: ['sniper', 'drone'],
+      skip: ['drone', 'rusher'],
       fill: 'grunt',
-      also: { volleyer: [2, 2, 2], blaster: [2, 1.5, 2], hoser: [3, 1, 1] },
+      also: { tumbler: [3, 2.2, 2], shotgun: [2, 1.5, 2], hoser: [7, 1, 1] },
       elite: { types: ['ringer', 'spiraler', 'fanner'], fromFloor: 1 },
     },
   },
@@ -184,8 +190,9 @@ export class Waves {
     const floorOfWave = (w) => (F ? this.game.floorOf(Math.floor((w - 1) / this.rules.perStage)) : 0);
     const byRoom = R && R.perFloor !== undefined; // sized by the wave's place in its room and its floor (C①)
     let total = R ? (byRoom ? R.total[(n - 1) % this.rules.perStage] + R.perFloor * floorOfWave(n) : R.total[Math.min(n, R.total.length) - 1]) : 3 + Math.floor(n * 1.7);
-    // brutes: the arcade's climb with the wave; by room, as many as the floor's number in a room's last wave (none on the first floor but its end)
-    let brutes = own ? 0 : byRoom ? (n % this.rules.perStage === 0 ? floorOfWave(n) : 0) : n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
+    // brutes: the arcade's climb with the wave; by room, `roster.brutes` by floor in a room's last wave (once the floor's number: none on the first floor but its end)
+    const roomBrutes = (f) => (R.brutes ? R.brutes[Math.min(f, R.brutes.length - 1)] : f);
+    let brutes = own ? 0 : byRoom ? (n % this.rules.perStage === 0 ? roomBrutes(floorOfWave(n)) : 0) : n >= 4 ? 1 + Math.floor((n - 4) / 3) : 0;
     if (finale) {
       total = Math.round(total * finale.size);
       brutes += finale.brutes;
@@ -609,7 +616,7 @@ export class Waves {
         return;
       }
       this.state = 'intermission';
-      this.timer = 3.8;
+      this.timer = this.rules.rest ?? 3.8; // the breath before the next wave (F⑦: a mode's own)
       // every few waves the fight moves to the next map; in a room (彈幕試驗) when the player walks out of its exit
       this.stageNext = this.wave % this.rules.perStage === 0;
       const exit = this.stageNext && this.rules.floor && this.game.level.exit;
