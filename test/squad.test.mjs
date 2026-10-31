@@ -2,13 +2,12 @@
 // take theirs, and a guard's aim done waits for his shot, so the squad fires on the one beat (AI.captain.wait); with him
 // held or down they fire as they please. 飛仔 (the tumbler): a player's round on its way into him and he rolls across
 // its line, out of it, a roll like his others (AI.tumble.dodge); the way through: rounds from two sides (a spin), or
-// his landing. 環形手 (the ring man) held up as a human shield: his ring goes out round the player, the rounds the
-// player's own, a kill SHIELD RING (PLAYER.humanShield.ringEvery). Run: npm test
+// his landing. (The third, 環形手 the ring man held up letting his ring go round the player, went with him: 試玩回饋 ⑦.)
+// Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { AI, PLAYER } from '../src/config.js';
-import { TRICKS } from '../src/codex.js';
-import { gameHarness, OUT, problems } from './helpers.mjs';
+import { AI } from '../src/config.js';
+import { gameHarness, problems } from './helpers.mjs';
 
 let h;
 let page;
@@ -146,78 +145,5 @@ test('飛仔翻滾躲子彈: a round on its way into him from 4 m and he rolls a
   assert.deepEqual(r.second, { within: false, state: 'chase', after: true }, 'none within the cooldown, one after it');
   assert.equal(r.landing, 'land', 'down from the roll');
   assert.ok(r.followUp > 0, 'a second round as he lands finds him');
-  assert.deepEqual(problems(logs), []);
-});
-
-test('the ring man held up as a human shield: his ring goes round the player every PLAYER.humanShield.ringEvery s, the player’s own rounds; a man it kills is SHIELD RING, a trick in the book; screenshot', async () => {
-  const r = await page.evaluate(() => {
-    const g = window.game;
-    window.begin();
-    const p = g.player;
-    const ring = window.put('ringer', 0, 7);
-    ring.fireCd = 99;
-    const man = window.put('grunt', 0, 2);
-    man.fireCd = 99;
-    man.hp = 1;
-    p.facing = Math.PI; // north, at the man
-    const kills = [];
-    const kill0 = g.onEnemyKilled.bind(g);
-    g.onEnemyKilled = (e, info, ...rest) => {
-      const out = kill0(e, info, ...rest);
-      kills.push({ type: e.type, ring: !!(info && info.bullet && info.bullet.shieldRing) });
-      return out;
-    };
-    // the steps a ring goes out on
-    let step = 0;
-    const rings = [];
-    const spawn0 = g.bullets.spawn.bind(g.bullets);
-    g.bullets.spawn = (o) => {
-      if (o.shieldRing && rings[rings.length - 1] !== step) rings.push(step);
-      return spawn0(o);
-    };
-    // grab him
-    p.grab(ring);
-    const grabbed = p.hostage === ring;
-    window.step();
-    const first = g.bullets.list.filter((b) => b.shieldRing);
-    const out = { grabbed, n: first.length, mine: first.every((b) => b.owner === 'player') };
-    // every direction round the player
-    const angles = first.map((b) => Math.atan2(b.dx, b.dz));
-    out.spread = Math.max(...angles) - Math.min(...angles);
-    for (step = 1; step < 120 * 2; step++) {
-      p.hostageT = 9;
-      window.step();
-    }
-    g.bullets.spawn = spawn0;
-    g.onEnemyKilled = kill0;
-    out.again = rings.length > 1 ? (rings[1] - rings[0]) / 120 : -1;
-    out.kills = kills;
-    out.notes = g.notes.events.map((e) => e.text).filter((x) => x.startsWith('人盾放環'));
-    return out;
-  });
-  assert.ok(r.grabbed, 'held up');
-  assert.ok(r.n >= 20 && r.mine, `a ring of the player’s own rounds: ${r.n}`);
-  assert.ok(r.spread > 5.5, `all the way round: ${r.spread.toFixed(2)} rad`);
-  assert.ok(Math.abs(r.again - PLAYER.humanShield.ringEvery) < 0.05, `again ${PLAYER.humanShield.ringEvery} s later (${r.again})`);
-  assert.ok(r.kills.some((k) => k.type === 'grunt' && k.ring), `the thug down to the ring: ${JSON.stringify(r.kills)}`);
-  assert.equal(r.notes.length, 1, 'a line in the notes');
-  assert.ok(TRICKS['SHIELD RING'] && TRICKS['SHIELD RING'].kind === 'shield', 'a trick of the shield’s in the book');
-  await page.evaluate(() => {
-    const g = window.game;
-    window.begin();
-    const p = g.player;
-    const ring = window.put('ringer', 0, 7);
-    ring.fireCd = 99;
-    for (const [x, z] of [[-4, 2], [4, 2], [0, 1]]) window.put('grunt', x, z).fireCd = 99;
-    p.facing = Math.PI;
-    p.grab(ring);
-    for (let i = 0; i < 30; i++) {
-      p.hostageT = 9;
-      window.step();
-    }
-    g.updateCamera(1, true);
-    g.render();
-  });
-  await page.screenshot({ path: new URL('squad-ring.png', OUT).pathname });
   assert.deepEqual(problems(logs), []);
 });

@@ -1059,7 +1059,7 @@ export const ARENA = room({
   exit: ['n', 0],
   // the far side: behind the north pair of tables, and the north ends of the side aisles
   posts: [[-7, -5.2, -7, -3], [7, -5.2, 7, -3], [-9.5, -1], [9.5, -1]],
-  // the blade queen (boss.js BLADE) with her bullet-hell moves (`danmaku`): knives from a perch, a ring of slow blades as she lands on one
+  // the blade queen (boss.js BLADE) with her bullet-hell moves (`danmaku`): knives from a perch, a ring of blades as she lands on one
   boss: { kind: 'blade', danmaku: true, perches: [[-8.5, -5.5], [8.5, -5.5], [-8.5, 5], [8.5, 5]] },
   floor: 'teahouse',
   theme: teaTheme([
@@ -1075,7 +1075,7 @@ export const ARENA = room({
 /**
  * The back hall (後廳, 彈幕 ② D②): the heavy gunner's. He comes in by the north door and walks after the player; a big
  * round table in the middle to circle round him to his open back, two small ones for cover from his sweep and his
- * slow wall. 22 × 15 m, in at the south, out at the north.
+ * wall. 22 × 15 m, in at the south, out at the north.
  */
 export const BACKHALL = room({
   id: 'backhall',
@@ -1093,7 +1093,7 @@ export const BACKHALL = room({
   exit: ['n', 0],
   // the far side: behind the north pair of small tables, and the north ends of the side aisles
   posts: [[-6.5, -5.5, -6.5, -3.5], [6.5, -5.5, 6.5, -3.5], [-9.5, -1], [9.5, -1]],
-  // the heavy gunner (boss.js GUNNER) with his slow wall (`danmaku`): in through the exit's wall from beyond it
+  // the heavy gunner (boss.js GUNNER) with his wall (`danmaku`): in through the exit's wall from beyond it
   boss: { kind: 'gunner', danmaku: true, from: [0, -9.5], at: [0, -5] },
   floor: 'teahouse',
   theme: teaTheme([
@@ -1127,7 +1127,7 @@ export const STRONGROOM = room({
   exit: ['n', 0],
   // the far side: the north ends of the aisles outside and between the two tables
   posts: [[-8.5, -5], [8.5, -5], [0, -5], [-9.5, -1], [9.5, -1]],
-  // the bulwark (boss.js BULWARK) with his slow wall (`danmaku`): in through the exit's wall from beyond it
+  // the bulwark (boss.js BULWARK) with his wall (`danmaku`): in through the exit's wall from beyond it
   boss: { kind: 'bulwark', danmaku: true, from: [0, -9.5], at: [0, -5] },
   floor: 'teahouse',
   theme: teaTheme([
@@ -1161,7 +1161,7 @@ export const FRONTHALL = room({
   exit: ['n', 0],
   // the far side: the north ends of the aisles, and behind the north table
   posts: [[-8.5, -5.5], [8.5, -5.5], [0, -5.5], [-5, -4.5, -5, -2], [9.5, -1]],
-  // the pair (boss.js DUO): the marksman's posts round the room, the shotgunner in through the exit's wall with his slow wall (`danmaku`);
+  // the pair (boss.js DUO): the marksman's posts round the room, the shotgunner in through the exit's wall with his wall (`danmaku`);
   // their combo RED LINE RUSH as on Senado
   boss: {
     kind: 'duo',

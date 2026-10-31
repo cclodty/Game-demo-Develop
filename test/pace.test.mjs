@@ -88,7 +88,7 @@ test('in a room every man walks twice his type’s speed, capped at 0.9 of the p
     const { HELL, PLAYER } = await import('./src/config.js');
     const { TYPES, WEAPONS } = await import('./src/enemies.js');
     const g = window.game;
-    const types = ['grunt', 'shotgun', 'rifle', 'rusher', 'tumbler', 'captain', 'brute', 'shield', 'bomber', 'grenadier', 'volleyer', 'blaster', 'hoser', 'ringer'];
+    const types = ['grunt', 'shotgun', 'rifle', 'rusher', 'tumbler', 'captain', 'brute', 'shield', 'bomber', 'grenadier', 'volleyer', 'blaster', 'hoser']; // (the ring man went with 試玩回饋 ⑦)
     const at = (mode) => {
       g.setRules('normal', []);
       g.setMode(mode);

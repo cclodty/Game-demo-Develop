@@ -20,8 +20,6 @@ function trailGeometry(headW, tailW) {
 const _m = new THREE.Matrix4();
 const _s = new THREE.Vector3();
 
-/** A bullet hell's bullets (彈幕試驗 ③): solid colour, not added light, so a dense pattern still shows every one. */
-const solid = (r, g, b) => new THREE.MeshBasicMaterial({ color: new THREE.Color(r, g, b) });
 
 const additive = (r, g, b, vertexColors = false) =>
   new THREE.MeshBasicMaterial({
@@ -44,7 +42,6 @@ export class Bullets {
       enemyTrail: trailGeometry(0.26, 0.02),
       sniperTrail: trailGeometry(0.2, 0.03),
       head: new THREE.SphereGeometry(1, 8, 6),
-      rim: new THREE.CircleGeometry(1, 18).rotateX(-Math.PI / 2), // a pattern bullet's dark rim, flat round its head
     };
     this.looks = {
       player: { trail: additive(3.5, 2.4, 0.9, true), head: additive(7, 5.5, 3), headSize: 0.07, geo: this.geo.playerTrail },
@@ -52,8 +49,7 @@ export class Bullets {
       enemy: { trail: additive(5, 0.7, 0.35, true), head: additive(9, 2.6, 1.2), headSize: 0.13, geo: this.geo.enemyTrail },
       pellet: { trail: additive(3.5, 2, 0.7, true), head: additive(7, 4.5, 2), headSize: 0.05, geo: this.geo.playerTrail },
       sniper: { trail: additive(2.2, 3.6, 4.5, true), head: additive(8, 9, 10), headSize: 0.1, geo: this.geo.sniperTrail },
-      // a pattern's (enemies.js WEAPONS `pattern`): a solid pink-red head on a dark rim `rim` times its size, no trail
-      danmaku: { trail: solid(0.1, 0, 0.03), head: solid(1, 0.32, 0.52), headSize: 0.15, geo: this.geo.rim, rim: 1.5 },
+      // (the slow walls' solid pink look went with them: 試玩回饋 ⑦; every round is one of these)
     };
     this.batches = {}; // look -> { trail, head, cap }: its instanced meshes (meshesOf)
   }
@@ -109,8 +105,7 @@ export class Bullets {
       bt.trail.count++;
       b.group.updateMatrix();
       const L = this.looks[b.look];
-      if (L.rim) bt.trail.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.setScalar(L.headSize * L.rim)));
-      else bt.trail.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.set(1, 1, Math.max(0.05, b.trailLen))));
+      bt.trail.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.set(1, 1, Math.max(0.05, b.trailLen))));
       bt.head.setMatrixAt(i, _m.copy(b.group.matrix).scale(_s.setScalar(L.headSize)));
     }
     for (const look in counts) {
@@ -164,7 +159,6 @@ export class Bullets {
     b.turnedBack = false; // set by turnBack (a card's)
     b.chained = false; // set by the card 連環反彈 (F④b): one hop on to another man
     b.hostageFire = o.hostageFire || false; // a held heavy gun's round, the player's own (player.js hostageFire): a kill is HOSTAGE FIRE
-    b.shieldRing = o.shieldRing || false; // a held ring man's ring, the player's own (player.js hostageRing, F⑧a): a kill is SHIELD RING
     this.list.push(b);
     this.updateVisual(b);
     return b;

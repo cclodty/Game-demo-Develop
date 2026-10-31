@@ -1,7 +1,7 @@
 // 彈幕 ② D②: the heavy gunner in a room. The back hall (rooms.js BACKHALL) is the other boss room a floor can end in
-// (MODES.danmaku floor.boss, one drawn a floor); its last wave is the heavy gunner (boss.js Gunner) with his slow
+// (MODES.danmaku floor.boss, one drawn a floor); its last wave is the heavy gunner (boss.js Gunner) with his
 // wall on (the room's def `danmaku`): every nine seconds he plants his feet, his plate lights for 0.6 s, then a fan of
-// thirteen slow rounds (the pattern men's look) across his front with two missing: the way through, or round him to
+// thirteen rounds (fast as his gun's since 試玩回饋 ⑦) across his front with two missing: the way through, or round him to
 // his open back. His sweep (the red line, 24 fast rounds) and his mortar are the docks' (test/boss.test.mjs). The
 // docks' gunner, without `danmaku`, walls nothing.
 // Run: npm test
@@ -105,7 +105,7 @@ test('the boss rooms are drawn a floor: over the seeds some floors end in the ba
   assert.deepEqual(problems(logs), []);
 });
 
-test('the slow wall: planted, his plate alight for 0.6 s, then eleven slow rounds in the pattern men’s look across his front, two missing inside: a gap over 1.2 m wide 3 m out; his sweep still comes, fast; the docks’ gunner walls nothing', { timeout: 5 * 60 * 1000 }, async () => {
+test('the wall: planted, his plate alight for 0.6 s, then eleven rounds fast as his gun’s (試玩回饋 ⑦) across his front, two missing inside: a gap over 1.2 m wide 3 m out; his sweep still comes, fast; the docks’ gunner walls nothing', { timeout: 5 * 60 * 1000 }, async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     const b = g.boss;
@@ -145,7 +145,7 @@ test('the slow wall: planted, his plate alight for 0.6 s, then eleven slow round
     return { n: one.length, speeds: [...new Set(one.map((s) => s.speed))], looks: [...new Set(one.map((s) => s.look))], spread, widest, gapAt3m, sweep: sweep.length, sweepSpeed: [...new Set(sweep.map((s) => s.speed))], planted, notes: notes.filter((t) => t.includes('鋼板發光')), docks, docksWall };
   });
   assert.equal(r.n, 11, `thirteen less two: ${r.n}`);
-  assert.deepEqual([r.speeds, r.looks], [[6], ['danmaku']], 'slow, in the pattern men’s look');
+  assert.deepEqual([r.speeds, r.looks], [[30], ['enemy']], 'fast as his gun, in the arcade’s look (試玩回饋 ⑦)');
   assert.ok(r.spread > 2.0 && r.spread <= 2.2 + 1e-6, `across ± 1.1 rad: ${r.spread.toFixed(2)}`);
   assert.ok(r.gapAt3m > 1.2, `the gap 3 m out: ${r.gapAt3m.toFixed(2)} m`);
   assert.ok(r.sweep >= 24 && r.sweepSpeed.includes(30), `the sweep still: ${r.sweep} rounds at ${r.sweepSpeed}`);
@@ -153,6 +153,35 @@ test('the slow wall: planted, his plate alight for 0.6 s, then eleven slow round
   assert.ok(r.notes.length >= 1, `the note: ${r.notes}`);
   assert.deepEqual(r.docks, { kind: 'gunner', danmaku: false });
   assert.equal(r.docksWall, 0, 'the docks’ gunner walls nothing');
+});
+
+test('screenshot: the heavy gunner’s wall, thirteen fast rounds with their gap, the player in bullet time (試玩回饋 ⑦)', { timeout: 5 * 60 * 1000 }, async () => {
+  const n = await page.evaluate(() => {
+    const g = window.game;
+    g.view = 2;
+    window.toHall(0, 0, 5);
+    g.challenge.offer = null; // the room's challenge sign, out of the picture
+    // on until his wall is a few steps out of the barrel
+    const fired = [];
+    const spawn0 = g.bullets.spawn.bind(g.bullets);
+    g.bullets.spawn = (o) => {
+      const b = spawn0(o);
+      if (o.source && o.source.cfg && o.source.cfg.label === '重炮的彈幕') fired.push(b);
+      return b;
+    };
+    for (let i = 0; i < 120 * 16 && !fired.length; i++) window.step();
+    for (let i = 0; i < 18; i++) window.step();
+    g.bullets.spawn = spawn0;
+    g.setFocus(true);
+    g.focusAmt = 1;
+    g.updateCamera(1, true);
+    g.hud.update(1 / 60);
+    g.render();
+    return fired.filter((b) => b.alive).length;
+  });
+  assert.ok(n >= 8, `the wall in the air (${n} rounds)`);
+  await page.screenshot({ path: new URL('backhall-wall.png', OUT).pathname });
+  assert.deepEqual(problems(logs), []);
 });
 
 test('the bot beats him in the back hall in god mode within four minutes; then the style cards and the exit', { timeout: 10 * 60 * 1000 }, async () => {

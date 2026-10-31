@@ -1,8 +1,8 @@
 // 彈幕 ② D④: the marksman and the shotgunner in a room, two at once (boss.js Duo). The front hall (rooms.js FRONTHALL)
 // is the fourth boss room a floor can end in (MODES.danmaku floor.boss, one drawn a floor); its last wave is the pair:
 // the marksman at six posts round the room with his one fast round down the red line (72 m/s), the shotgunner after
-// the player with his fan; with his slow wall on (his def's `danmaku`) every blast of his is followed by a slow fan of
-// nine rounds (the pattern men's look) with two missing inside: the way through. Two segments each on a floor; the
+// the player with his fan; with his wall on (his def's `danmaku`) every blast of his is followed by a fan of
+// nine rounds (fast as his pellets since 試玩回饋 ⑦) with two missing inside: the way through. Two segments each on a floor; the
 // combo (RED LINE RUSH) and the rest as on Senado (test/senado-duo.test.mjs). Senado's shotgunner walls nothing.
 // Run: npm test
 import { after, before, test } from 'node:test';
@@ -97,13 +97,13 @@ test('the front hall is among the boss rooms a floor can end in; its last wave i
   assert.deepEqual(problems(logs), []);
 });
 
-test('the slow wall: every blast of the shotgunner is followed by seven slow rounds in the pattern men’s look across ± 0.9 rad, two missing inside: a gap over 1.2 m wide 3 m out; the marksman’s round is fast; Senado’s shotgunner walls nothing', { timeout: 5 * 60 * 1000 }, async () => {
+test('the wall: every blast of the shotgunner is followed by seven rounds fast as his pellets (試玩回饋 ⑦) across ± 0.9 rad, two missing inside: a gap over 1.2 m wide 3 m out; the marksman’s round is fast; Senado’s shotgunner walls nothing', { timeout: 5 * 60 * 1000 }, async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toHall(0, 0, 3);
     const shots = window.watch(120 * 20);
-    const wall = shots.filter((s) => s.label === '散彈手的慢彈');
-    const fast = shots.filter((s) => s.label !== '散彈手的慢彈');
+    const wall = shots.filter((s) => s.label === '散彈手的彈幕');
+    const fast = shots.filter((s) => s.label !== '散彈手的彈幕');
     const at = wall.length ? wall[0].at : -1;
     const one = wall.filter((s) => s.at === at);
     const angles = one.map((s) => Math.atan2(s.dx, s.dz)).sort((x, y) => x - y);
@@ -124,11 +124,11 @@ test('the slow wall: every blast of the shotgunner is followed by seven slow rou
     g.waves.startWave();
     g.enemies.clear();
     const senado = { kind: g.boss.def.kind, danmaku: g.boss.members.map((m) => !!m.danmaku) };
-    const senadoWall = window.watch(120 * 20).filter((s) => s.label === '散彈手的慢彈').length;
-    return { n: one.length, speeds: [...new Set(one.map((s) => s.speed))], looks: [...new Set(one.map((s) => s.look))], spread, gapAt3m, blastBefore, fastest: Math.max(0, ...fast.map((s) => s.speed)), notes: notes.filter((t) => t.includes('慢彈')), senado, senadoWall };
+    const senadoWall = window.watch(120 * 20).filter((s) => s.label === '散彈手的彈幕').length;
+    return { n: one.length, speeds: [...new Set(one.map((s) => s.speed))], looks: [...new Set(one.map((s) => s.look))], spread, gapAt3m, blastBefore, fastest: Math.max(0, ...fast.map((s) => s.speed)), notes: notes.filter((t) => t.startsWith('散彈手的彈幕')), senado, senadoWall };
   });
   assert.equal(r.n, 7, `nine less two: ${r.n}`);
-  assert.deepEqual([r.speeds, r.looks], [[6], ['danmaku']], 'slow, in the pattern men’s look');
+  assert.deepEqual([r.speeds, r.looks], [[20], ['enemy']], 'fast as his pellets, in the arcade’s look (試玩回饋 ⑦)');
   assert.ok(r.spread > 1.6 && r.spread <= 1.8 + 1e-6, `across ± 0.9 rad: ${r.spread.toFixed(2)}`);
   assert.ok(r.gapAt3m > 1.2, `the gap 3 m out: ${r.gapAt3m.toFixed(2)} m`);
   assert.ok(r.blastBefore >= 7, `the blast's own pellets in the same step: ${r.blastBefore}`);

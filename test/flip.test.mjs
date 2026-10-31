@@ -165,7 +165,7 @@ test('the teahouse with its tables as fixtures stays within its draw-call budget
   assert.ok(r.upright <= r.budget && r.flipped <= r.budget, `${r.upright} upright, ${r.flipped} flipped; budget ${r.budget}`);
 });
 
-test('screenshot: a ring of bullets breaking on a flipped table, the player behind it', async () => {
+test('screenshot: a fan of rounds breaking on a flipped table, the player behind it', async () => {
   await page.evaluate(() => {
     const g = window.game;
     g.view = 2;
@@ -173,16 +173,17 @@ test('screenshot: a ring of bullets breaking on a flipped table, the player behi
     g.player.kickCd = 0;
     g.player.kick();
     for (let i = 0; i < 40; i++) window.step();
-    // a fan of pattern bullets from 5 m north at the player, three volleys: the first breaking on the table
+    // a fan of fast rounds from 5 m north at the player, three volleys a few steps apart: the first breaking on the table
+    // (every round fast since 試玩回饋 ⑦)
     const p = g.player;
-    for (const [k, at] of [[0, 0], [1, 25], [2, 50]]) {
+    for (const [k, at] of [[0, 0], [1, 4], [2, 4]]) {
       for (let i = 0; i < at; i++) window.step();
       for (let i = -9; i <= 9; i++) {
         const a = i * 0.07 + k * 0.035;
-        g.bullets.spawn({ x: t.x, z: t.z - 5, dx: Math.sin(a), dz: Math.cos(a), speed: 6, owner: 'enemy', damage: 0, look: 'danmaku' });
+        g.bullets.spawn({ x: t.x, z: t.z - 5, dx: Math.sin(a), dz: Math.cos(a), speed: 20, owner: 'enemy', damage: 0 });
       }
     }
-    for (let i = 0; i < 40; i++) window.step();
+    for (let i = 0; i < 12; i++) window.step();
     p.facing = Math.PI;
     g.updateCamera(1, true);
     g.hud.update(1 / 60);
