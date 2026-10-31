@@ -1,53 +1,53 @@
 # 第三次通關：真結局《心甘命抵》
 
-2026-10-31 第二稿 · TASKS「故事 ⑥」· 依據 `docs/STORY.md` §3、§5、§10 第 6 項（空凳的伏筆）、§11。接住金爺倒下。
+2026-10-31 第十二稿 · TASKS「故事 ⑥」· 依據 `docs/STORY.md` §2（輪迴的規矩）、§3、§5、§10 第 6 項（空凳的伏筆）、§11。接住金爺倒下。
 
 **改稿紀錄：**
 
-- **第十稿（開發者 10-31，出咗圖之後）：**
-  - 晶晶唔投降：佢一路亂咁開槍。9527 唔殺佢，射佢頭頂嘅射燈，子彈反彈打甩個鈎，射燈跌落嚟撞暈佢；之後佢一直暈住（第 6 頁）。
-  - 紙條冇咗：第二次通關 9527 臨死偷聽到場務姐對住對講機呻，記憶卡喺機身第二格，部機連後台都錄埋（第十一稿）。
-  - 帳簿嗰格改做金爺錄影：「捱到天光？一張都唔使派。」
-- **第七稿（開發者 10-31）：** 晶晶嗰格唔使 9527 落判語（「妒忌好演員」似扣帽子：鏡頭係導演揀嘅，賭客蝕錢亦係金爺做手腳），改播晶晶自己的錄影：「個臨記搶晒我鏡頭。」「我要佢死，喺全腥港面前死。」「個導演都係。」同上一格金爺錄影一樣，等佢自己把聲揭穿自己；之後接 9527「……不過今晚，我先係主角。」
-- **第六稿（開發者 10-31）：** 直播台詞：
-  - 9527 指住「捱到天光 1 賠 500」：「做莊嘅，又點唔會做手腳？」
-  - 金爺錄影：「天光嗰下佢未死，幅螢幕就要跌落去。」
-  - 晶晶片段：「至於揀我做獵物、累大家蝕錢嘅——記住佢個樣：一個妒忌好演員嘅女人。」（第七稿已經改）
-  - 帳簿嗰格唔講嘢（第十稿改做金爺錄影：「捱到天光？一張都唔使派。」）。
-- **第五稿（開發者 10-31）：**
-  - 9527 以主角自居，突顯佢嘅成長：晶晶問「你一個臨記，憑咩做主角？」，佢答「……今晚唔係。」
-  - 直播改：直播講明「點買都係輸」講唔通，改做揭穿「捱到天光」永遠唔會贏，因為天光必有「意外」：金爺叫人鬆螢幕螺絲，螢幕殺唔到就有晶晶補槍。
-  - 直播最尾仍然係「不過今晚，我先係主角」。
-- **第四稿（開發者 10-31）：** 用 9527 一句「不過今晚，我先係主角」收拾晶晶同金爺。晶晶問「你一個臨記，憑咩做主角？」，9527 只答「我係臨記」。直播時佢先自我介紹，揭穿兩個人之後，最尾先講下半句。地府嗰句改做「下世，仲可唔可以做主角？」（佢今晚做過一晚主角）。
-- **第三稿（開發者 10-31）：** 唔好太密，通關過場可以長啲。9527 直播前，先由機身第二格拎出記憶卡（紙條講嘅「帳」）。直播時佢逐樣講清楚：呢本係莊家嘅帳；賭盤一早做咗手腳；叫金爺揀佢嘅係晶晶。
-- **第二稿（開發者 10-31）：** 晶晶先係真正嘅元兇，佢唔識打。真結局要做幾樣嘢：
-
-- **加入晶晶做頭目。** 佢係最後一個頭目，但唔親自打，由戲棚嘅機關同保鏢出手。
-- **直播揭穿佢。** 片段入面除咗金爺做莊，仲有晶晶點名要 9527 死。
-- **場務姐打板嗌收工。** 第一稿係晶晶打板，而家改做場務姐。
+- **第十二稿（開發者 10-31）：** 唔再揭穿，唔再要證據。記憶卡、後台錄影、直播講道理全部刪走（開發者：「行去直播機，然後又走回去避螢幕……晶晶倒下前全自爆，都是相當不合理」）。改做：
+  - **一注獨中：** 9527 黃昏將份糧全部買自己「捱到天光　1 賠 500」。天光，螢幕同晶晶都殺唔到佢，全場得佢一注中（第 3 頁）。
+  - **離間：** 9527 對住鏡頭多謝晶晶揀佢。天光嗰個局得金爺同晶晶知，人又係晶晶揀嘅，金爺即刻懷疑晶晶出賣佢；晶晶水洗唔清（第 4 頁）。
+  - **最尾一句：**「雖然做開臨記……」「但今晚，我係主角。」（第 6 頁）
+  - **生死冊：** 9527 捱過天光都冇問題，大禮係玉帝同閻王開口送嘅；佢收工之後照 §2 返櫃位等判（開發者 10-31）。
+  - 頁數由 8 頁變 7 頁：舊第 3–5 頁（記憶卡、直播）冇咗，舊第 6、7 頁（找數、一次過）重新排過。
+- **第十稿（開發者 10-31，出咗圖之後）：** 晶晶唔投降：佢一路亂咁開槍。9527 唔殺佢，射佢頭頂嘅射燈，子彈反彈打甩個鈎，射燈跌落嚟撞暈佢。
+- **第七稿（開發者 10-31）：** 直播播晶晶自己的錄影（第十二稿刪走）。
+- **第五稿（開發者 10-31）：** 9527 以主角自居，突顯佢嘅成長：晶晶問「你一個臨記，憑咩做主角？」，佢答「……今晚唔係。」
+- **第四稿（開發者 10-31）：** 地府嗰句改做「下世，仲可唔可以做主角？」（佢今晚做過一晚主角）。
+- **第二稿（開發者 10-31）：** 晶晶先係真正嘅元兇，佢唔識打。真結局加晶晶做頭目（佢唔親自打，由戲棚嘅機關同保鏢出手）；場務姐打板嗌收工（第一稿係晶晶打板）。
+- 第三、六、八、九、十一稿嘅記憶卡、錄影同直播講法，第十二稿全部唔再用；詳細見 `docs/DECISIONS.md`。
 
 ## 呢章要做到乜
 
-- **輪迴學識嘅嘢全部用上。** 9527 冇飲孟婆湯，記得每一晚：
-  - 第一次通關之後，佢記得大螢幕會跌落嚟，識得避（第二次通關已經避咗）。
-  - 第二次通關之後，佢記得晶晶會喺背後開槍。今次佢及時轉身。
+- **輪迴學識嘅嘢全部用上，冇第二個人知道輪迴。** 9527 冇飲孟婆湯，記得每一晚；佢帶得走嘅只有記憶：
+  - 第一次通關：天光，大螢幕會跌落嚟。今次佢避開（同第二次通關一樣）。
+  - 第二次通關：晶晶會喺背後開槍。今次佢及時轉身（第 1 頁）。
+  - 第二次通關閻王一句「唔抵」：佢諗起全場最抵嘅一注，「捱到天光　1 賠 500」（`07-clear-2.md` 第 20 格）。
 - **晶晶頭目戰（只喺呢局之後出）：** 晶晶背刺唔成，逃上貴賓位，即係序章金爺坐嗰個位。
   - 佢開晒戲棚嘅燈光、機關同保鏢：射燈掃、沙包跌、活門開。
   - 佢自己唔打，一直企喺射燈下面。9527 要殺上貴賓位。
   - 點樣打係玩法嘢，另開卡（TASKS「D⑤」）。
-- **「今晚我做莊」兌現。** 9527 用第二次通關偷聽返嚟的記憶卡（長鏡部機，機身第二格，成晚連後台都錄埋），直播俾全腥港：「捱到天光」從來冇派過彩，因為天光必有「意外」（金爺叫人鬆螢幕螺絲）；同埋晶晶坐喺金爺大腿點名要 9527 死。
-  - 長鏡部機就係戲棚嗰部主直播機，因為玩家未必打過長鏡。
-- **晶晶的收場：** 佢最想要鏡頭，今次全城鏡頭都對住佢，拍佢點樣跌落嚟。
-  - 佢俾自己最想要嘅射燈撞暈，坐喺黑晒嘅貴賓位，電話震過不停；保鏢都跨過佢走咗，冇人理佢（10-31 第十稿：佢唔會投降，9527 亦唔殺佢）。
+- **一注獨中：** 今晚黃昏開機前，場務姐好似每晚咁派糧（「9527，你份糧。」），9527 原封不動交俾金牙幫後台收注嘅打手，全部買自己「捱到天光」。收注佬當佢送錢，因為天光必有「意外」，呢一行從來冇派過彩（檔案頁 12）。
+  - 天光，螢幕避咗、晶晶倒咗，全場得佢一注中（第 3 頁）。
+- **離間，唔使證據：** 9527 對住直播機講一句真話：「多謝晶晶小姐揀我。」
+  - 金爺知道天光嗰個局（鬆螢幕螺絲、晶晶補槍）得佢同晶晶兩個人知（`07-clear-2.md` 第 13 格）。
+  - 9527 兩樣都避得開，又買咗自己贏，人又係晶晶揀嘅：喺金爺眼中，一定係晶晶出賣佢。
+  - 晶晶水洗唔清：9527 真係佢揀嘅；9527 點解知道個局，佢講唔出，因為只有 9527 知道輪迴。
+  - 賭客見莊家個女人揀嘅獵物買自己贏，當佢哋夾份呃錢，全數退款，金爺破產。
+  - 冇人自爆：金爺嬲到衝口講「天光嗰個局」，晶晶只係嗌冤；兩個人都只係講咗一兩句。
+- **「今晚我做莊」兌現：** 9527 打低金爺時執起籌碼講嘅一句（`04-defeats.md` 第 5 頁）。今晚贏莊家嘅，係佢。
+- **生死冊：** 9527 捱過天光，但大禮係玉帝同閻王開口送嘅，佢哋話事。佢收工之後好似每晚咁返櫃位等判（§2），閻王判心甘命抵，輪迴先完（開發者 10-31）。
+- **晶晶的收場：** 佢想 9527「喺全腥港面前死」；結果全腥港見住佢俾自己最想要嘅射燈撞暈，再俾金爺當叛徒。
+  - 佢坐喺黑晒嘅貴賓位，電話震過不停；保鏢都跨過佢走咗，冇人理佢（10-31 第十稿：佢唔會投降，9527 亦唔殺佢）。
   - 唔值得原諒，所以冇人原諒佢。
 - **收晒伏筆：**
+  - 「做主角」：晶晶問佢「你一個臨記，憑咩做主角？」，佢答「……今晚唔係」；天光佢講「雖然做開臨記……但今晚，我係主角」；最後佢問閻王「下世，仲可唔可以做主角？」
   - 「呢個 take，一次過」：輪迴就係重拍，最後一次唔使 NG。
-  - 場務姐打場記板嗌收工，板上嘅 TAKE 數就係玩家用咗幾多晚。佢成日望都唔望人，呢度第一次望住 9527，點一點頭。
+  - 場務姐打場記板嗌收工，板上嘅 TAKE 數就係玩家用咗幾多晚。佢成日望都唔望人（第二次通關點屍都冇望佢），呢度第一次望住 9527，點一點頭。佢派嘅份糧，就係 9527 落嗰注。
   - 空凳：9527 終於坐喺台下第一行。佢唔再係獵物，係觀眾，好似盂蘭節神功戲終於有鬼坐（§10 第 6 項）。
   - 孟婆湯：序章佢唔飲，因為想知「點解係我」；第二次通關佢知道咗，今次佢接過碗湯。
-  - 「做主角」：晶晶問佢「你一個臨記，憑咩做主角？」，佢答「……今晚唔係」；直播最尾佢講「不過今晚，我先係主角」；最後佢問閻王「下世，仲可唔可以做主角？」
   - 金爺排第一千億零一號：大禮派晒。
-- **9527 的樣：** 心甘命抵（§3）。平靜、滿足；笑，但唔係型。
+- **9527 的樣：** 心甘命抵（§3）。平靜、滿足；笑，但唔係型。多謝晶晶嗰下真誠有禮，嘴角得一絲笑。
 
 ## 幾時出
 
@@ -55,13 +55,15 @@
 |---|---|---|
 | 晶晶入場（第 1 頁） | 已經通關兩次，打低金爺之後 | 第一次成頁；之後只出第 3 格（名牌格），約 1.5 秒 |
 | 晶晶倒下（第 2 頁） | 打低晶晶 | 第一次成頁，最尾蓋「晶晶　殺青」印；之後只出第 3 格加印 |
-| 真結局（第 3–8 頁） | 第一次打低晶晶 | 成段，20 格，約 65 秒；之後再通關照 §11：只出天光一格、閻王一格 |
+| 真結局（第 3–7 頁） | 第一次打低晶晶 | 成段，19 格，約 60 秒；之後再通關照 §11：只出天光一格、閻王一格 |
 
 ---
 
 ## 第 1 頁：晶晶入場（4 格）
 
 **版面：** 左邊兩格疊住（1 上、2 下）；右邊兩格疊住（3 上、大，名牌格；4 下）。
+
+天光嗰下大螢幕已經跌咗落嚟，9527 好似第二次通關咁避開咗（玩家見過，呢頁唔再畫）；晶晶就喺呢一刻由衣邊出嚟。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
@@ -87,101 +89,100 @@
 |---|---|---|---|---|
 | 5 | 中景 | 打完之後的貴賓位：射燈爆咗、繩斷晒、保鏢瞓晒地。晶晶頭髮散咗、化妝糊咗，仲死都唔肯低頭，一路嗌一路對住 9527 亂咁開槍；子彈打晒落欄杆同牆，一槍都唔中（佢唔識打）。**表情：嬲到癲** | 晶晶：「你一個臨記……」<br>晶晶：「憑咩做主角？！」 | 標準 |
 | 6 | 中景 | 9527 企定定，舉槍唔係瞄佢，係瞄佢頭頂嗰枝吊住的射燈；子彈打中金色欄杆，反彈上去，畫一條線打中射燈的鈎。**表情：平靜、好定** | 9527：「……今晚唔係。」 | 標準 |
-| 7 | 中景 | 射燈連鈎跌落嚟，「噹」一聲撞中晶晶個頭；佢暈低坐喺地，頭頂冒星，射燈熄咗，得返佢一個喺黑暗入面；9527 轉身落樓梯，去台邊嗰部直播機 | 聲效：「噹！」<br>印（遊戲寫）：「晶晶　殺青」 | 長停 |
+| 7 | 中景 | 射燈連鈎跌落嚟，「噹」一聲撞中晶晶個頭；佢暈低坐喺地，頭頂冒星，射燈熄咗，得返佢一個喺黑暗入面；9527 轉身落樓梯，返落台 | 聲效：「噹！」<br>印（遊戲寫）：「晶晶　殺青」 | 長停 |
 
-「今晚唔係」即係：今晚我唔係臨記。9527 第一次以主角自居，係佢成長的終點（開發者 10-31）。直播最尾佢再講一次：「不過今晚，我先係主角。」（第 5 頁）
+「今晚唔係」即係：今晚我唔係臨記。9527 第一次以主角自居，係佢成長的終點（開發者 10-31）。天光佢講埋成句：「雖然做開臨記……但今晚，我係主角。」（第 6 頁）
 
 ```text
-[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: the private box above the stage after the fight: a smashed spotlight, cut ropes hanging, bodyguards knocked out on the floor; Jing Jing, her hair coming loose and her make-up smudged, refuses to give up: screaming, she fires her small jewelled pistol wildly at [9527] with both hands, and every shot misses, chipping the railing and the walls, because she is no fighter; [9527] has just climbed into the box and stands calm. Right column, two panels stacked with a slanted gutter: top, [9527] raises his pistol, not at her but at the spotlight hanging above her head; a bright bullet trail shows the shot bouncing off the gilded railing and up into the spotlight's hook; his face is calm and steady; bottom, the spotlight drops on its broken hook and clonks Jing Jing on the head; she slumps to the floor knocked out cold, little cartoon stars circling her head, the light gone out so she sits in the dark, while [9527] walks away down the stairs towards the broadcast camera at the edge of the stage. Leave calm space near the top of the left panel and the top right panel for dialogue.
+[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: the private box above the stage after the fight: a smashed spotlight, cut ropes hanging, bodyguards knocked out on the floor; Jing Jing, her hair coming loose and her make-up smudged, refuses to give up: screaming, she fires her small jewelled pistol wildly at [9527] with both hands, and every shot misses, chipping the railing and the walls, because she is no fighter; [9527] has just climbed into the box and stands calm. Right column, two panels stacked with a slanted gutter: top, [9527] raises his pistol, not at her but at the spotlight hanging above her head; a bright bullet trail shows the shot bouncing off the gilded railing and up into the spotlight's hook; his face is calm and steady; bottom, the spotlight drops on its broken hook and clonks Jing Jing on the head; she slumps to the floor knocked out cold, little cartoon stars circling her head, the light gone out so she sits in the dark, while [9527] walks away down the stairs back to the stage. Leave calm space near the top of the left panel and the top right panel for dialogue.
 ```
 
-## 第 3 頁：機身第二格（3 格）
+## 第 3 頁：一注獨中（4 格）
 
-**版面：** 左邊一格大，約佔五分之三闊，右邊斜邊（8）；右邊兩格疊住（9 上、10 下）。
+**版面：** 上面兩格由左至右（8 大、9 細）；下面兩格由左至右（10、11），兩格都係回憶，褪色舊菲林色（同第二次通關回憶頁一樣）。
 
-記憶卡入面係乜（10-31 第十稿）：長鏡嗰部係戲棚的主直播機，成晚都冇停過錄，連後台都錄埋（第二次通關 9527 臨死聽到場務姐對住對講機講）。卡入面有三段後台片段：金爺吩咐打手鬆螢幕螺絲、金爺揭住本帳話「捱到天光」一張都唔使派、晶晶坐喺金爺大腿要 9527 死。
+- **Action 叔**只有把聲，喺大聲公度嗌（§3），人唔出鏡。
+- **賭盤喺邊：** 大螢幕跌咗落嚟，斜斜挨住台口，裂晒仲閃緊。賭盤嘅字由遊戲寫：第一次通關係「派彩中」（之後螢幕跌落嚟，冇派到）；今次係「已派彩」。
+- **9527 落注：** 收注嘅係金牙幫自己後台嘅外圍，劇組同打手都喺度買。收注佬肯收，因為「捱到天光」從來冇派過彩，佢當 9527 送錢。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 8 | 中景 | 天光，戲棚台邊：一部腳架上的大直播機，鏡頭長長似狙擊鏡（長鏡部機），紅燈亮住；9527 打開機身側面第二格，拎出一張記憶卡。**表情：認真、平靜** | 9527：「機身第二格……」 | 標準 |
-| 9 | 近景 | 9527 將記憶卡插入直播枱，再雙手將部機轉過嚟對住自己 | 9527：「借部機用吓。」 | 標準 |
-| 10 | 遠景 | 全腥港的螢幕一齊轉畫面：竹架上的大螢幕、唐樓外牆的巨型螢幕、賭客的視像窗口，全部變成 9527 望住鏡頭的同一個畫面 | 字幕：「全腥港直播中。」 | 標準 |
+| 8 | 遠景 | 太陽由竹架後面升起；跌咗落嚟的大螢幕斜斜挨住台口，裂晒仲閃緊賭盤；台邊直播機紅燈亮住；9527 由貴賓位樓梯行返落台 | 賭盤（遊戲寫）：「捱到天光　1 賠 500　已派彩」<br>Action 叔（大聲公）：「天光喇！」<br>Action 叔（大聲公）：「捱到天光，一注獨中！」 | 標準 |
+| 9 | 近景 | 金爺坐喺籌碼堆，望住手機（螢幕留白，遊戲寫），崩咗金牙嗰個窿露出嚟，呆咗 | 手機（遊戲寫）：「中獎：9527」<br>Action 叔（大聲公）：「中獎嘅……係 9527？！」 | 標準 |
+| 10 | 中景（回憶，褪色） | 今晚黃昏，開機前的戲棚後台：場務姐頭都唔抬，望住文件夾，遞一個啡色人工信封俾 9527 | 字幕：「今晚，黃昏。」<br>場務姐：「9527，你份糧。」 | 標準 |
+| 11 | 中景（回憶，褪色） | 後台一張細收注枱：一個金牙幫打手做收注佬，枱面一疊注單同一個錢箱；9527 將個人工信封原封不動放上枱，個樣呆呆哋，好認真；收注佬笑到見金牙 | 9527：「全部，買捱到天光。」<br>收注佬：「當你送錢。」 | 長停 |
 
 ```text
-[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: dawn at the edge of the stage of the bamboo opera theatre: a big broadcast camera on a tripod, its long lens shaped like a sniper scope (the cinematographer's camera), its red recording light on; [9527] opens the second compartment on the side of the camera body and takes out a memory card; his expression is serious and calm. Right column, two panels stacked with a slanted gutter: top, [9527] slots the memory card into a broadcast desk and turns the camera round with both hands to face himself; bottom, the whole city switching to the same picture: the giant screen on the bamboo frame, a giant screen on the side of a tenement block, and a grid of the gamblers' video-call windows all show the same image of 9527 looking into the camera. Leave calm space near the top of all three panels for dialogue and a caption.
+[共用風格] Four panels. Top row, left to right: a larger panel: sunrise over the bamboo opera theatre: the sun comes up behind the bamboo frame; the giant video screen that fell lies tilted against the front of the stage, cracked all over but still flickering with the betting board (left blank for words to be added later); the broadcast camera at the edge of the stage has its red recording light on; [9527], his tie pulled loose, comes down the narrow staircase from the private box back onto the stage. Then a smaller panel: a close-up of the gang boss sitting among the scattered chips, his gold-toothed mouth with the one missing tooth hanging open, staring at the phone in his hand (its screen left blank), stunned. Bottom row, left to right, both drawn in faded old film colours (sepia and warm brown, a little grain, darkened edges) as a flashback to that evening: backstage at the bamboo theatre before the shoot, the tired crew woman in the cap and grey work shirt (as in the act cards) hands [9527] a small brown pay envelope without looking up from her clipboard; then a small betting table backstage: a gang henchman in a dark suit acting as the bookie, with a cash box and a stack of betting slips, laughs with his gold tooth showing, as [9527] puts the whole unopened pay envelope down on the table, his face blank and earnest. Leave calm space near the top of all four panels for dialogue and captions.
 ```
 
-## 第 4 頁：各位觀眾（3 格）
+## 第 4 頁：多謝晶晶小姐（4 格）
 
-**版面：** 上面兩格由左至右（11、12）；下面一條闊格（13）。
+**版面：** 上面兩格由左至右（12 大、13 細）；下面兩格由左至右（14、15）。
 
-直播講乜（開發者 10-31 第五稿：直播入面點買都係輸講唔通）：賭客睇住直播，結果係真嘅；呃人嘅係「捱到天光」永遠唔會贏。天光嗰陣一定有「意外」：第一次通關嗰幅大螢幕，係金爺叫人鬆咗螺絲；螢幕殺唔到，就有晶晶喺背後補槍（第二次通關）。所以買「捱到天光 1 賠 500」嘅人，從來冇人收過錢。
+**點樣離間（開發者 10-31）：** 9527 唔使講大道理，只係講一句真話。其餘嘅，金爺自己會諗：
+- 天光嗰個局得佢同晶晶知（第二次通關第 13 格）。
+- 9527 兩樣都避得開，又買咗自己贏；人又係晶晶揀嘅。
+- 所以一定係晶晶出賣佢。晶晶點解都講唔清，因為真正嘅原因（輪迴）只有 9527 知。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 11 | 近景 | 9527 望住直播機鏡頭，好似新聞主播咁，有少少緊張但好認真 | 9527：「各位觀眾，我叫 9527。」<br>9527：「做臨記，喺戲入面死過二百一十三次。」 | 標準 |
-| 12 | 遠景 | 9527 指住後面竹架上的大螢幕：賭盤（遊戲寫），「捱到天光」嗰行特別閃 | 賭盤（遊戲寫）：「捱到天光　1 賠 500」<br>9527：「做莊嘅，又點唔會做手腳？」 | 標準 |
-| 13 | 中景 | 大螢幕轉錄影片段（有錄影框）：金爺喺後台指住竹架上嗰幅大螢幕吩咐打手；一個打手揸住士巴拿，爬上竹架鬆緊螺絲 | 金爺（錄影）：「天光嗰下佢未死，」<br>金爺（錄影）：「幅螢幕就要跌落去。」 | 長停 |
+| 12 | 中景 | 台中間，朝陽打喺 9527 身上；佢對住台邊亮紅燈的直播機，好有禮貌咁鞠一個躬，好似臨記收工多謝導演。**表情：真誠，嘴角得一絲笑** | 9527：「多謝晶晶小姐揀我。」 | 長停 |
+| 13 | 中景（仰角） | 金爺喺籌碼堆度慢慢抬頭，望上貴賓位，面色由青轉黑。**表情：疑心** | 金爺：「天光嗰個局，得你同我知。」<br>金爺：「人，又係你揀嘅。」 | 標準 |
+| 14 | 中景 | 貴賓位：晶晶啱啱醒，頭頂腫起一舊，手仲揸住支鑲石手槍（越睇越似同謀）；佢捉住欄杆，對住下面拚命搖頭。**表情：驚、慌** | 晶晶：「唔、唔關我事！」 | 標準 |
+| 15 | 遠景 | 直播機旁邊的監視器：一格格視像窗口，戴面具的賭客嬲到拍枱、除面具（面孔普通、唔似真人），有人掟爛酒杯 | 賭客：「夾份呃錢！」<br>字幕：「賭局取消，全數退款。」 | 標準 |
+
+金爺衝口講「天光嗰個局」，全部賭客都聽到：佢自己認咗天光有局。晶晶揸住槍嗌冤，冇人信。兩個人都冇自爆，只係嬲同驚。
 
 ```text
-[共用風格] Three panels. Top row, left to right: a close-up of [9527] looking into the broadcast camera like a nervous but earnest news presenter; then [9527] pointing back at the giant screen on the bamboo frame, which shows the betting board (left blank for words to be added later) with one row flashing. Across the bottom, a wide strip: the giant screen now shows recorded footage inside a video frame: in a back room, the gang boss points up at the giant screen on the bamboo frame and gives an order to a henchman, and the henchman, holding a spanner, climbs the bamboo frame and loosens the bolts that hold the screen. Leave calm space near the top of all three panels for dialogue.
+[共用風格] Four panels. Top row, left to right: a larger panel: in the middle of the stage, morning sunlight falling on him, [9527] faces the broadcast camera with the red recording light at the edge of the stage and gives it a polite little bow, like an extra thanking the director at the end of a shoot; sincere, with only the faintest smile at the corner of his mouth. Then a low-angle panel: the gang boss among the chips slowly raises his head and glares up at the private box above the stage, his face darkening with suspicion. Bottom row, left to right: the private box: Jing Jing (as in the attached character sheet) has just come round, a bump on her head, her small jewelled pistol still in her hand; she grips the gilded railing and shakes her head frantically, shouting down at the boss, scared and flustered; then a monitor beside the broadcast camera showing a grid of video-call windows: the masked gamblers furious, banging the table, tearing off their masks (plain, ordinary faces that resemble no real people), one smashing a wine glass. Leave calm space near the top of all four panels for dialogue and a caption.
 ```
 
-## 第 5 頁：我先係主角（3 格）
+## 第 5 頁：找數（3 格）
 
-**版面：** 上面兩格由左至右（14 細、15 細）；下面一條闊格（16）。
+**版面：** 左邊一格大，約佔五分之三闊，右邊斜邊（16）；右邊兩格疊住（17 上、18 下）。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 14 | 中景 | 大螢幕轉錄影片段（有錄影框）：後台，金爺揭住一本厚厚的帳簿（頁面留白），對住身邊的人笑 | 金爺（錄影）：「捱到天光？」<br>金爺（錄影）：「一張都唔使派。」 | 標準 |
-| 15 | 中景 | 大螢幕轉錄影片段：晶晶坐喺金爺大腿，指住檯面 9527 的大頭相（同第二次通關回憶嗰格一樣，但係錄影的樣） | 晶晶（錄影）：「個臨記搶晒我鏡頭。」<br>晶晶（錄影）：「我要佢死，喺全腥港面前死。」<br>晶晶（錄影）：「個導演都係。」 | 長停 |
-| 16 | 近景（仰角） | 戲棚嘅射燈全部轉過嚟打住 9527；佢身後的大螢幕、全城的螢幕都係佢塊面。**表情：平靜，細細個笑**，唔係型，係終於企喺光入面 | 9527：「……不過今晚，我先係主角。」 | 長停 |
+| 16 | 近景 | 金爺坐喺籌碼堆，面都青埋，崩咗一隻金牙，雪茄跌咗。**表情：驚** | 金爺：「我……要賠幾多？」 | 標準 |
+| 17 | 遠景 | 戲棚衣邊，一排金牙幫打手放低槍，各自散；有人除西裝外套搭喺膊頭，有人打喊露 | 打手：「冇糧出喇，散水！」 | 標準 |
+| 18 | 中景 | 黑晒的貴賓位：晶晶一個人挨住欄杆坐喺地，頭頂腫起一舊，身邊跌咗枝射燈；佢部電話喺地下震過不停，螢幕光照住佢塊面（冇字）；保鏢跨過佢行咗去，冇人理佢 | ——（冇字） | 長停 |
 
-全城觀眾聽完，即刻搵金爺找數，晶晶亦冇人理（第 6 頁）。呢句一次過收拾佢哋兩個（開發者 10-31）；亦接返第二次通關晶晶嗰句「今晚，主角係我」，同第 2 頁 9527 嗰句「今晚唔係」。
+打手嗰句由「收工」改做「散水」，「收工」留俾場務姐（第 6 頁）。
 
 ```text
-[共用風格] Three panels. Top row, left to right: the giant screen showing recorded footage inside a video frame: backstage, the gang boss flips through a thick ledger (its pages blank) and laughs to someone beside him; then the giant screen showing recorded footage inside a video frame of Jing Jing sitting on the gang boss's knee, one arm round his neck, pointing at a headshot photo of 9527 lying on his desk. Across the bottom, a wide strip, low angle: every spotlight in the bamboo theatre swings round onto [9527], and behind him the giant screen and all the city's screens show his face; his expression is calm, with a small quiet smile, not cool, simply a man standing in the light at last. Leave calm space near the top of all three panels for dialogue.
+[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: a close-up of the gang boss sitting among the chips, his face gone pale green, his gold-toothed mouth with the one missing tooth hanging open, his cigar dropped. Right column, two panels stacked with a slanted gutter: top, in the wings of the bamboo theatre, a line of the gang's henchmen in dark suits lower their pistols and wander off in different directions, one with his jacket slung over his shoulder, one yawning; bottom, the dark private box: Jing Jing sits alone on the floor, slumped against the railing with a bump on her head, the fallen spotlight beside her; her phone lies on the floor buzzing with endless notifications, its glow lighting her face (the screen shows no readable text); her bodyguards step over her and leave without a glance. Leave calm space near the top of all three panels for dialogue.
 ```
 
-## 第 6 頁：找數（4 格）
+## 第 6 頁：今晚，我係主角（4 格）
 
-**版面：** 上面兩格由左至右（17 大、18 細）；下面兩格由左至右（19、20）。
+**版面：** 上面一條闊格（19）；下面三格由左至右（20、21、22）。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 17 | 遠景 | 一格格視像窗口：戴面具的賭客電話一齊響，有人嬲到除咗面具（面孔普通、唔似真人），有人掟爛酒杯 | 字幕：「賭局取消，全數退款。」 | 標準 |
-| 18 | 近景 | 金爺坐喺籌碼堆，面都青埋，崩咗一隻金牙，雪茄跌咗。**表情：驚** | 金爺：「我……要賠幾多？」 | 標準 |
-| 19 | 遠景 | 戲棚衣邊，一排金牙幫打手放低槍，各自散；有人除西裝外套搭喺膊頭，有人打喊露 | 打手：「冇糧出喇，收工！」 | 標準 |
-| 20 | 中景 | 黑晒的貴賓位：晶晶仲暈緊，挨住欄杆，頭頂腫起一舊，身邊跌咗枝射燈；佢部電話喺地下震過不停，螢幕光照住佢塊面（冇字）；保鏢醒返，跨過佢行咗去，冇人理佢 | ——（冇字） | 長停 |
+| 19 | 遠景（仰角） | 朝陽由竹架後面照入嚟，好似一枝大射燈打正 9527；佢企喺跌爛的大螢幕前面，望住直播機。**表情：平靜，細細個笑**，唔係型，係終於企喺光入面 | 9527：「雖然做開臨記……」<br>9527：「但今晚，我係主角。」 | 長停 |
+| 20 | 近景 | 9527 望住直播機的鏡頭，陽光喺佢後面。**表情：平靜、滿足** | 9527：「呢個 take，一次過。」 | 長停 |
+| 21 | 中景 | 直播機後面：場務姐舉起場記板，「啪」一聲合埋（板上的字由遊戲寫，TAKE 數＝玩家用咗幾多晚）；佢第一次望住 9527，點一點頭 | 場記板（遊戲寫）：「一夜成名／TAKE ×××」<br>場務姐：「收工！」 | 標準 |
+| 22 | 遠景 | 成個戲棚冇人，朝早的陽光由竹架照入嚟；9527 一個人坐喺台下第一行，望住空嘅戲台 | ——（冇字） | 長停 |
+
+「雖然做開臨記……但今晚，我係主角」（開發者 10-31）接返三句：第二次通關晶晶嘅「今晚，主角係我」、第 1 頁佢再講嘅「今晚，主角係我！」、第 2 頁 9527 答佢嘅「……今晚唔係」。
 
 ```text
-[共用風格] Four panels. Top row, left to right: a large panel: a grid of video-call windows: the masked gamblers' phones all ringing at once; some tear off their masks in fury (plain, ordinary faces that resemble no real people), one smashes a wine glass; a small panel: a close-up of the gang boss sitting among the chips, his face gone pale green, his gold-toothed mouth with the one missing tooth hanging open, his cigar dropped. Bottom row, left to right: in the wings of the bamboo theatre, a line of the gang's henchmen in dark suits lower their pistols and wander off in different directions, one with his jacket slung over his shoulder, one yawning; then the dark private box: Jing Jing still knocked out, slumped against the railing with a bump on her head, the fallen spotlight beside her; her phone lies on the floor buzzing with endless notifications, its glow lighting her face (the screen shows no readable text); her bodyguards, awake again, step over her and leave without a glance. Leave calm space near the top of all four panels for dialogue and a caption.
+[共用風格] Four panels. Across the top, a wide strip, low angle: the morning sun streams through the bamboo frame onto [9527] like one giant spotlight; he stands on the stage in front of the cracked, fallen giant screen, facing the broadcast camera, calm, with a small quiet smile; not cool, simply a man standing in the light at last. Below it, three panels from left to right: a close-up of [9527] looking straight into the broadcast camera's lens, the sunrise behind him, calm and content; then, behind the camera, the tired crew woman in the cap and grey work shirt (as in the act cards) raises her clapperboard and snaps it shut, motion lines (its writing area left blank); for the first time she looks straight at him, with a small nod; then the whole bamboo theatre empty in the morning sun streaming through the bamboo frame; [9527] sits alone in the front row of the empty seats, looking up at the empty stage, a small figure, peaceful. Leave calm space near the top of the wide strip and the first two lower panels for dialogue.
 ```
 
-## 第 7 頁：一次過（3 格）
+## 第 7 頁：排隊先（4 格）
 
-**版面：** 左邊一格大，約佔五分之三闊，右邊斜邊（21）；右邊兩格疊住（22 上、23 下）。
+**版面：** 四格：上面兩格由左至右（23、24），下面兩格由左至右（25 細、26 大），斜邊。
+
+收工之後，9527 好似每晚咁返到櫃位等判（§2）。佢捱過咗天光，但大禮係玉帝同閻王開口送嘅，佢哋話事（開發者 10-31）。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 21 | 近景 | 天光，9527 望住直播機的鏡頭，陽光喺佢後面。**表情：平靜、滿足，細細個笑**（唔係型） | 9527：「呢個 take，一次過。」 | 長停 |
-| 22 | 中景 | 直播機後面：場務姐舉起場記板，「啪」一聲合埋（板上的字由遊戲寫，TAKE 數＝玩家用咗幾多晚）；佢第一次望住 9527，點一點頭 | 場記板（遊戲寫）：「一夜成名／TAKE ×××」<br>場務姐：「收工！」 | 標準 |
-| 23 | 遠景 | 成個戲棚冇人，朝早的陽光由竹架照入嚟；9527 一個人坐喺台下第一行，望住空嘅戲台 | ——（冇字） | 長停 |
-
-```text
-[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: a close-up of [9527] looking straight into the broadcast camera's lens at dawn, the sunrise behind him; his expression is calm and content, a small, quiet smile; not cool, simply at peace. Right column, two panels stacked with a slanted gutter: top, behind the camera, the tired crew woman in the cap and grey work shirt (as in the act cards) raises her clapperboard and snaps it shut, motion lines (its writing area left blank); for the first time she looks straight at him, with a small nod; bottom, the whole bamboo theatre empty in the morning sun streaming through the bamboo frame; [9527] sits alone in the front row of the empty seats, looking up at the empty stage, a small figure, peaceful. Leave calm space near the top of the left and top right panels for dialogue.
-```
-
-## 第 8 頁：排隊先（4 格）
-
-**版面：** 四格：上面兩格由左至右（24、25），下面兩格由左至右（26 細、27 大），斜邊。
-
-| 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
-|---|---|---|---|---|
-| 24 | 中景 | 地府櫃位：閻王收起 NG 印；孟婆遞湯，9527 今次雙手接過碗湯 | 閻王：「心甘命抵。去投胎啦。」 | 標準 |
-| 25 | 近景 | 9527 捧住碗湯，回頭望閻王。**表情：有少少期待**，眼發光 | 9527：「下世，仲可唔可以做主角？」 | 標準 |
-| 26 | 近景 | 閻王面無表情，喺表格度蓋一個唔同的四方印（印面留白，遊戲寫「考慮」） | 印面（遊戲寫）：「考慮」<br>閻王：「排隊先。」 | 標準 |
-| 27 | 遠景 | 9527 捧住湯行開；下一個企喺櫃位前攞籌的係金爺：成身西裝、崩咗隻金牙、垂頭喪氣；叫號機留白 | 叫號機（遊戲寫）：「100,000,000,001」<br>閻王：「大禮？派晒喇。」 | 長停 |
+| 23 | 中景 | 地府櫃位：閻王收起 NG 印；孟婆遞湯，9527 今次雙手接過碗湯 | 閻王：「心甘命抵。去投胎啦。」 | 標準 |
+| 24 | 近景 | 9527 捧住碗湯，回頭望閻王。**表情：有少少期待**，眼發光 | 9527：「下世，仲可唔可以做主角？」 | 標準 |
+| 25 | 近景 | 閻王面無表情，喺表格度蓋一個唔同的四方印（印面留白，遊戲寫「考慮」） | 印面（遊戲寫）：「考慮」<br>閻王：「排隊先。」 | 標準 |
+| 26 | 遠景 | 9527 捧住湯行開；下一個企喺櫃位前攞籌的係金爺：成身西裝、崩咗隻金牙、垂頭喪氣；叫號機留白 | 叫號機（遊戲寫）：「100,000,000,001」<br>閻王：「大禮？派晒喇。」 | 長停 |
 
 ```text
 [共用風格] Four panels. Top row, left to right: the underworld's reincarnation counter from the prologue: the King of the Underworld puts the red NG stamp away in a drawer, while the kind old woman offers a steaming bowl of soup and this time [9527] takes it gently in both hands; then a close-up of [9527] holding the bowl and looking back over his shoulder at the King, a hopeful little face, eyes shining. Bottom row, left to right: a small panel: the King, deadpan, stamps a different square seal onto a form (the seal face left blank); a large panel: [9527] walks away with his soup, and the next soul standing at the counter with a paper queue ticket is the gang boss, in his suit, the gap in his gold teeth showing, shoulders slumped, utterly deflated; the queue-number display above the counter is left blank; translucent blue ghosts queue behind him. Leave calm space near the top of all four panels for dialogue.
@@ -192,9 +193,8 @@
 | 頁 | 附上 |
 |---|---|
 | 1、2 | 晶晶設定圖、9527 人物設定、序章第 5 頁（貴賓位） |
-| 3 | 9527 人物設定、頭目設定圖（長鏡部機）、序章第 4、5 頁 |
-| 4 | 9527 人物設定、頭目設定圖（金爺）、序章第 5 頁（大螢幕） |
-| 5 | 9527 人物設定、晶晶設定圖、頭目設定圖（金爺） |
-| 6 | 晶晶設定圖、頭目設定圖（金爺）、序章第 5 頁（賭客） |
-| 7 | 9527 人物設定、層卡第 1 張（場務姐、場記板） |
-| 8 | 9527 人物設定、序章第 7、8 頁（地府、閻王、孟婆）、頭目設定圖（金爺） |
+| 3 | 9527 人物設定、頭目設定圖（金爺）、層卡第 1 張（場務姐）、序章第 4、5 頁（戲棚、大螢幕） |
+| 4 | 9527 人物設定、晶晶設定圖、頭目設定圖（金爺）、序章第 5 頁（賭客） |
+| 5 | 晶晶設定圖、頭目設定圖（金爺） |
+| 6 | 9527 人物設定、層卡第 1 張（場務姐、場記板） |
+| 7 | 9527 人物設定、序章第 7、8 頁（地府、閻王、孟婆）、頭目設定圖（金爺） |
