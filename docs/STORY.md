@@ -6,7 +6,7 @@
 
 ## 1. 一句講晒
 
-臨記 9527 喺片場死得太靚，搶咗新晉女星晶晶的鏡頭。晶晶妒忌又嬲，向金牙幫老大金爺獻媚，要佢揀 9527 做地下真人秀《一夜成名》的獵物，全腥港的富豪落注佢幾時死、點樣死。佢死咗。閻王同玉帝慶祝第一千億個準備投胎的鬼，送佢一份大禮：重過死前嗰一晚，直至佢「死得心甘命抵」為止。
+臨記 9527 喺片場中槍，演出咗唔可以死又要死的無奈，導演用咗嗰個鏡頭，焦點意外落咗喺佢身上，搶咗新晉女星晶晶的鏡頭。晶晶妒忌又嬲，向金牙幫老大金爺獻媚，要佢揀 9527 做地下真人秀《一夜成名》的獵物，全腥港的富豪落注佢幾時死、點樣死。佢死咗。閻王同玉帝慶祝第一千億個準備投胎的鬼，送佢一份大禮：重過死前嗰一晚，直至佢「死得心甘命抵」為止。
 
 **語氣：** 港產片咁爽，夾黑色幽默。地府係政府櫃位，大禮係商場抽獎，賭盤係直播節目。
 
@@ -28,7 +28,7 @@
 | 角色 | 身份 | 同 9527 的關係 | 口頭禪 |
 |---|---|---|---|
 | **9527**（主角） | 臨記，專演死人，「全腥港死得最靚」。片場個個都只叫佢的臨記編號，冇人知佢真名；片尾字幕寫「屍體：9527」。死嗰晚着住戲服白西裝（全場唯一白色）。**個樣呆、無辜**：圓面、眼瞓眼、成日一臉茫然，西裝大一個碼；打得幾勁個樣都好似唔知發生乜事（§12） | — | 「死，我專業㗎。」 |
-| **晶晶**（真結局的頭目） | 新晉女星，金爺要捧佢；靚，但唔識打，靠獻媚同背後開槍 | **真正的元兇**（開發者 10-31）。晶晶第一部戲的殉情場，9527 演佢身邊條屍，死得太靚：導演用咗 9527 嗰個 take，剪走晶晶的特寫。片段爆紅，晶晶被笑「俾條屍搶戲」。佢妒忌又嬲，向金爺獻媚，主動要求揀 9527 做獵物，亦唔掩飾。第二次通關佢喺背後偷襲 9527，先講原因；真結局佢係最後一個頭目，但唔親自打（射燈、機關同保鏢，§7.8）。靚，但唔值得原諒（「死得太靚」嗰場要先試畫，§12） | 「我先係主角。」 |
+| **晶晶**（真結局的頭目） | 新晉女星，金爺要捧佢；靚，但唔識打，靠獻媚同背後開槍 | **真正的元兇**（開發者 10-31）。兩個月前，晶晶第一部做主角的戲，殉情場：9527 做佢後面中槍的臨記，演出咗「唔可以死但又要死」的無奈（10-31 改，取代芭蕾轉身）；導演用咗嗰個 take，點知焦點落咗喺 9527 身上，唔係晶晶。片段爆紅，晶晶被笑「俾條屍搶戲」，記者追問、片商唔再搵佢。佢妒忌又嬲，向金爺獻媚，主動要求揀 9527 做獵物，亦唔掩飾。第二次通關佢喺背後偷襲 9527，先講原因；真結局佢係最後一個頭目，但唔親自打（射燈、機關同保鏢，§7.8）。靚，但唔值得原諒（嗰場戲畫喺第二次通關的回憶頁，`docs/storyboard/07-clear-2.md`） | 「我先係主角。」 |
 | **金爺**（老大，最終頭目） | 金牙幫話事人，一口金牙；開影業公司洗錢，《一夜成名》的監製兼莊家 | 晶晶開口，佢就揀中 9527：一嚟晶晶要佢死，二嚟佢死得好睇，賭盤收得 | 「呢一鋪，我做莊。」 |
 | **場務姐** | 片場場務：派糧、打場記板、點屍；好攰，望都唔望人 | 每晚都喺度。第二次通關佢點屍時塞紙條入 9527 袋（「帳喺長鏡部機入面」）；真結局佢打板嗌「收工！」，第一次望住 9527（開發者 10-31 揀） | 「9527，你份糧。」 |
 | **刀姐**（頭目：刀后） | 動作指導 | 今晚 9527 的每一個死法都係佢度 | 「你點死，我度好晒。」 |
@@ -45,6 +45,8 @@
 五個頭目就係劇組的五個部門（動作、爆破、場務、攝影、選角），最終頭目係監製。頭目每層抽，所以每個人的戲自成一段，冇先後。
 
 **9527 這個名：** 致敬周星馳電影裏的僕人編號，華語觀眾一睇就知。一個數字唔係真人的名，冇問題；但只係借個編號：唔用嗰套戲的其他角色名、對白、場口，9527 的樣都唔可以似任何真實演員（CLAUDE.md 第 8 條）。外地玩家睇唔出都唔緊要：臨記冇名、得個編號，本身已經講得通。
+
+**搶戲嗰場（開發者 10-31）：** 9527 中槍「唔可以死但又要死」的無奈，亦係致敬周星馳戲入面認真到極的臨記。只借呢種精神：場口、動作、對白都係我哋自己的，唔抄任何一套戲。
 
 **9527 的成長（開發者 10-29 定）：** 無辜臉撐唔到成個遊戲，所以佢跟住輪迴變。佢享受的係**跳舞**，即係子彈芭蕾本身，唔係殺人：佢仍然係嗰個無辜的人，只係發現自己原來好叻。
 
@@ -284,14 +286,14 @@
 | # | 誰掉 | 階梯 | 標題 | 內容 |
 |---|---|---|---|---|
 | 1 | 刀姐 | 1 | 分鏡：死法十種 | 第三種，茶樓翻枱壓死。第七種，碌落石階。旁邊手寫：「佢唔會咁易死。」 |
-| 2 | 刀姐 | 3 | 動作指導筆記 | 晶晶嗰套戲的殉情場，我叫佢直直倒地。佢自己加咗一個轉身。導演話：用佢嗰 take。 |
+| 2 | 刀姐 | 3 | 動作指導筆記 | 晶晶嗰套戲的殉情場，我叫佢中槍即刻倒地。佢企咗成分鐘先肯倒。導演話：用佢嗰 take。 |
 | 3 | 炮哥 | 1 | 爆破清單 | 油桶十二個，石油氣十罐。備註：全部真貨，監製要「真實感」。 |
 | 4 | 炮哥 | 3 | 保險單 | 受保人：9527。受益人：金牙影業。保額：一千萬。 |
 | 5 | 門神 | 1 | 通告單 | 《一夜成名》第一晚。演員：9527（獵物）。其他人：全部有槍。 |
 | 6 | 門神 | 3 | 片場守則 | 一、清場。二、獵物唔准離開片場。三、天光之前，唔准報警。 |
 | 7 | 長鏡 | 1 | 攝影筆記 | 佢一入鏡，個畫面就好睇。我拍咗三十年，未見過死得咁靚的人。 |
 | 8 | 長鏡 | 2 | 記憶卡 | 備份：賭盤即時帳目。位置：機身第二格。 |
-| 9 | 選角陳 | 2 | 試鏡紀錄 | 臨記 9527，第 213 次演死人。評語：死得太靚，搶戲。 |
+| 9 | 選角陳 | 2 | 試鏡紀錄 | 臨記 9527，第 213 次演死人。評語：死得太入戲，搶戲。 |
 | 10 | 選角陳 | 3 | 選角會議 | 晶晶（坐喺金爺大腿）：「條屍搶我鏡頭。我要佢喺全腥港面前死。」金爺：「聽晒你講。」我：「咁就揀佢做獵物。」 |
 | 11 | 選角陳 | 5 | 辭職信（未交） | 我揀過好多人。今次，係我第一次揀錯。 |
 | 12 | 金爺 | 2 | 賭盤 | 9527 第一幕死：1 賠 3。第三幕死：1 賠 1.1。捱到天光：1 賠 50。 |
@@ -323,7 +325,7 @@
 
 1. 其他角色名：晶晶、金爺、刀姐、炮哥、門神、長鏡、選角陳、Action 叔、銀姐，仍然係第一稿。
 2. 區名（`docs/REDESIGN.md` §3：每區一個名）。
-3. 9527 同晶晶結怨點樣畫：先用 §12 的提示詞試畫「死得太靚」，畫唔出就用後備的「詐屍」。
+3. ~~9527 同晶晶結怨點樣畫~~：定咗（10-31）：中槍「唔可以死但又要死」，焦點落咗喺佢身上；畫喺第二次通關的回憶頁（`docs/storyboard/07-clear-2.md` 第 3 頁）。§12 第 6 段同後備「詐屍」唔再用。
 4. 「極難」係邊一級：F⑥ 階梯做好之後定。
 7. 晶晶頭目戰點樣打（佢唔識打：射燈、沙包、活門同保鏢，佢企喺貴賓位）：TASKS「D⑤」。
 5. ~~金爺的頭目房~~：定咗（開發者 10-30）：戲棚，第三層固定；一晚由戲棚開機、喺戲棚殺青。其他頭目每人一個片場（§7.5）。
@@ -341,7 +343,7 @@
 | 金爺第二階段（`docs/storyboard/04-defeats.md` 第 5 頁第 1 格） | 每次 | 1 | 約 1.5 秒 |
 | 頭目倒下（`docs/storyboard/04-defeats.md`） | 第一次打低嗰個頭目 | 2（長鏡同選角陳 3、金爺 2），最尾蓋「殺青」印 | 之後有檔案頁先出第 1 格加印，檔案頁跟住滑入 |
 | 晶晶入場、倒下（`docs/storyboard/08-true-ending.md` 第 1、2 頁） | 已經通關兩次，打低金爺之後（真結局的頭目戰，10-31 加） | 4、3 | 之後入場只出名牌格；倒下只出最尾一格加「殺青」印 |
-| 結局 A 第 1、2、3 段（`docs/storyboard/06-clear-1.md`、`07-clear-2.md`、`08-true-ending.md` 第 3–7 頁） | 非極難通關，按已經通關幾多次出下一段 | 9、18、17（10-31 寫長咗：約 30、60、55 秒；通關係獎勵，唔使慳） | 三段睇完之後再通關：只出天光一格、閻王一格 |
+| 結局 A 第 1、2、3 段（`docs/storyboard/06-clear-1.md`、`07-clear-2.md`、`08-true-ending.md` 第 3–7 頁） | 非極難通關，按已經通關幾多次出下一段 | 9、21、18（10-31 寫長咗：約 30、70、60 秒；通關係獎勵，唔使慳） | 三段睇完之後再通關：只出天光一格、閻王一格 |
 | 結局 B | 極難通關 | 9 | 每次極難通關都出 |
 | 轉捩點：第一次笑（`docs/storyboard/05-turning-point.md`） | 第一次 Style 評級去到 SSS，嗰間房清完先出（唔打斷打鬥） | 3 | 只出一次；放映室重睇 |
 
@@ -401,7 +403,7 @@ Two panels. A large panel covering the left two thirds of the screen, its right 
 Three panels. Across the top, a long slanted strip the full width of the screen: an old Chinese tea house at night, orange-red paper lanterns on the walls, round tables with tablecloths, a line of gangsters in dark clothes opening fire. Bottom left, the biggest panel, diagonal: [9527] slides on his knees between the tables in slow motion, firing two pistols, bullets frozen in the air around him as yellow-white streaks, a kicked table flipping up as a shield, cyan afterimages trailing behind him; his face is still blank and dazed, as if he cannot believe he is doing this. Bottom right, a close-up inset overlapping the big panel: his wide-eyed, startled face, a bullet passing an inch from his cheek, one empty speech bubble.
 ```
 
-**6. 最難的一段：「死得太靚」（附上 1、2 兩張設定）**
+**6. 最難的一段：「死得太靚」（附上 1、2 兩張設定）**（10-31：唔再用，改咗做第二次通關的回憶頁，`docs/storyboard/07-clear-2.md` 第 3 頁）
 
 ```text
 Four panels from left to right, using the two attached characters. Panel 1: on a film set, the actress kneels in a dramatic close-up, crying over her dead lover, cameras and crew around her. Panel 2, the biggest: behind her, [9527], playing a corpse who has just been shot, performs an absurdly beautiful slow-motion death: a ballet spin in mid-air, rose petals and confetti, golden backlight, hair and oversized jacket flowing, far more beautiful than the actress, while his face stays completely blank. Panel 3: the whole crew in tears, the director on his feet applauding, the camera swung round onto the extra; the forgotten actress glares from the corner. Panel 4: the finished film poster: the extra's death pose fills it, the actress cropped to a thin sliver at its edge.

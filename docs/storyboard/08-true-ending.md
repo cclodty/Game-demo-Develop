@@ -4,6 +4,7 @@
 
 **改稿紀錄：**
 
+- **第四稿（開發者 10-31）：** 用 9527 一句「不過今晚，我先係主角」收拾晶晶同金爺。晶晶問「你一個臨記，憑咩做主角？」，9527 只答「我係臨記」。直播時佢先自我介紹，揭穿兩個人之後，最尾先講下半句。地府嗰句改做「下世，仲可唔可以做主角？」（佢今晚做過一晚主角）。
 - **第三稿（開發者 10-31）：** 唔好太密，通關過場可以長啲。9527 直播前，先由機身第二格拎出記憶卡（紙條講嘅「帳」）。直播時佢逐樣講清楚：呢本係莊家嘅帳；賭盤一早做咗手腳；叫金爺揀佢嘅係晶晶。
 - **第二稿（開發者 10-31）：** 晶晶先係真正嘅元兇，佢唔識打。真結局要做幾樣嘢：
 
@@ -30,7 +31,7 @@
   - 場務姐打場記板嗌收工，板上嘅 TAKE 數就係玩家用咗幾多晚。佢成日望都唔望人，呢度第一次望住 9527，點一點頭。
   - 空凳：9527 終於坐喺台下第一行。佢唔再係獵物，係觀眾，好似盂蘭節神功戲終於有鬼坐（§10 第 6 項）。
   - 孟婆湯：序章佢唔飲，因為想知「點解係我」；第二次通關佢知道咗，今次佢接過碗湯。
-  - 「做主角」：晶晶問佢「你憑咩做主角？」，佢答「我只係臨記」；最後佢問閻王「下世可唔可以做主角？」
+  - 「做主角」：晶晶問佢「你一個臨記，憑咩做主角？」，佢只答「我係臨記」；直播最尾佢先講下半句「不過今晚，我先係主角」；最後佢問閻王「下世，仲可唔可以做主角？」
   - 金爺排第一千億零一號：大禮派晒。
 - **9527 的樣：** 心甘命抵（§3）。平靜、滿足；笑，但唔係型。
 
@@ -40,7 +41,7 @@
 |---|---|---|
 | 晶晶入場（第 1 頁） | 已經通關兩次，打低金爺之後 | 第一次成頁；之後只出第 3 格（名牌格），約 1.5 秒 |
 | 晶晶倒下（第 2 頁） | 打低晶晶 | 第一次成頁，最尾蓋「晶晶　殺青」印；之後只出第 3 格加印 |
-| 真結局（第 3–7 頁） | 第一次打低晶晶 | 成段，17 格，約 55 秒；之後再通關照 §11：只出天光一格、閻王一格 |
+| 真結局（第 3–7 頁） | 第一次打低晶晶 | 成段，18 格，約 60 秒；之後再通關照 §11：只出天光一格、閻王一格 |
 
 ---
 
@@ -65,12 +66,14 @@
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 5 | 中景 | 打完之後的貴賓位：射燈爆咗、繩斷晒、保鏢瞓晒地。晶晶背脊貼住欄杆，頭髮散咗、化妝糊咗，雙手揸住手袋槍指住啱啱爬上嚟的 9527，手震到不得了（佢唔識打） | 晶晶：「你……你憑咩做主角？」 | 標準 |
-| 6 | 特寫 | 9527 隻手輕輕將支槍由佢手入面拎走，一啲力都唔使，好似特技人收道具 | 9527：「我唔係主角。我只係臨記。」 | 標準 |
-| 7 | 中景 | 晶晶坐低喺貴賓位地下，佢頭頂嗰枝射燈「嗒」一聲熄咗，得返佢一個喺黑暗入面 | 聲效：「嗒。」<br>印（遊戲寫）：「晶晶　殺青」 | 長停 |
+| 5 | 中景 | 打完之後的貴賓位：射燈爆咗、繩斷晒、保鏢瞓晒地。晶晶背脊貼住欄杆，頭髮散咗、化妝糊咗，雙手揸住手袋槍指住啱啱爬上嚟的 9527，手震到不得了（佢唔識打） | 晶晶：「你一個臨記……」<br>晶晶：「憑咩做主角？」 | 標準 |
+| 6 | 特寫 | 9527 隻手輕輕將支槍由佢手入面拎走，一啲力都唔使，好似特技人收道具 | 9527：「……我係臨記。」 | 標準 |
+| 7 | 中景 | 晶晶頭頂嗰枝射燈「嗒」一聲熄咗，佢坐喺黑暗入面；9527 轉身落樓梯，去台邊嗰部直播機 | 聲效：「嗒。」<br>印（遊戲寫）：「晶晶　殺青」 | 長停 |
+
+9527 答「我係臨記」，故意唔講完；下半句「不過今晚，我先係主角」留到直播最尾先講（第 4 頁），一次過收拾晶晶同金爺（開發者 10-31）。
 
 ```text
-[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: the private box above the stage after the fight: a smashed spotlight, cut ropes hanging, bodyguards knocked out on the floor; Jing Jing is backed against the gilded railing, her hair coming loose and her make-up smudged, pointing her small jewelled pistol at [9527] with both hands, which shake badly, because she is no fighter; [9527] has just climbed into the box and stands calm. Right column, two panels stacked with a slanted gutter: top, a close-up of [9527]'s hand gently taking the pistol out of her trembling hands, without any force, the way a stuntman takes back a prop; bottom, Jing Jing sinks down onto the floor of the box as the spotlight above her switches off, leaving her alone in the dark: the star's light goes out. Leave calm space near the top of the left and top right panels for dialogue.
+[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: the private box above the stage after the fight: a smashed spotlight, cut ropes hanging, bodyguards knocked out on the floor; Jing Jing is backed against the gilded railing, her hair coming loose and her make-up smudged, pointing her small jewelled pistol at [9527] with both hands, which shake badly, because she is no fighter; [9527] has just climbed into the box and stands calm. Right column, two panels stacked with a slanted gutter: top, a close-up of [9527]'s hand gently taking the pistol out of her trembling hands, without any force, the way a stuntman takes back a prop; bottom, the spotlight above Jing Jing switches off and she is left sitting alone in the dark, while [9527] turns away and walks down the stairs towards the broadcast camera at the edge of the stage. Leave calm space near the top of the left and top right panels for dialogue.
 ```
 
 ## 第 3 頁：帳喺呢度（3 格）
@@ -87,30 +90,33 @@
 [共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: dawn at the edge of the stage of the bamboo opera theatre: a big broadcast camera on a tripod, its long lens shaped like a sniper scope (the cinematographer's camera), its red recording light on; [9527], holding the crew woman's small folded note in one hand, opens the second compartment on the side of the camera body with the other and takes out a memory card; his expression is serious and calm. Right column, two panels stacked with a slanted gutter: top, [9527] slots the memory card into a broadcast desk and turns the camera round with both hands to face himself; bottom, the whole city switching to the same picture: the giant screen on the bamboo frame, a giant screen on the side of a tenement block, and a grid of the gamblers' video-call windows all show the same image of 9527 looking into the camera. Leave calm space near the top of all three panels for dialogue and a caption.
 ```
 
-## 第 4 頁：各位觀眾（3 格）
+## 第 4 頁：各位觀眾（4 格）
 
-**版面：** 上面一條闊格（11）；下面兩格由左至右（12、13）。
+**版面：** 上面兩格由左至右（11、12）；下面兩格由左至右（13 細、14 大），斜邊。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 11 | 遠景 | 竹架上的大螢幕：一本帳（格仔留白，數字由遊戲寫）；9527 企喺鏡頭前，好似主持咁一隻手指住螢幕 | 帳目（遊戲寫）<br>9527：「各位觀眾，呢本係莊家嘅帳。」 | 標準 |
-| 12 | 中景 | 大螢幕轉片段：金爺喺後台改賭盤、指揮打手（片段有直播的錄影框） | 9527（旁白）：「賭盤一早做咗手腳，你哋點買都係輸。」 | 標準 |
+| 11 | 近景 | 9527 望住直播機鏡頭，好似新聞主播咁，有少少緊張但好認真 | 9527：「各位觀眾，我叫 9527，係個臨記。」 | 標準 |
+| 12 | 遠景 | 竹架上的大螢幕：左邊一本帳（格仔留白，數字由遊戲寫），右邊金爺喺後台改賭盤、指揮打手的片段 | 9527（旁白）：「呢本係莊家嘅帳。」<br>9527（旁白）：「賭盤一早做咗手腳，你哋點買都係輸。」 | 標準 |
 | 13 | 中景 | 大螢幕轉片段：晶晶坐喺金爺大腿，指住檯面 9527 的大頭相（同第二次通關回憶嗰格一樣，但係錄影的樣） | 9527（旁白）：「叫金爺揀我做獵物嘅，係佢。」 | 標準 |
+| 14 | 近景（仰角） | 戲棚嘅射燈全部轉過嚟打住 9527；佢身後的大螢幕、全城的螢幕都係佢塊面。**表情：平靜，細細個笑**，唔係型，係終於企喺光入面 | 9527：「不過今晚，我先係主角。」 | 長停 |
+
+全城觀眾聽完呢句，即刻搵金爺找數，晶晶亦冇人理（第 5 頁）。呢句收晒佢哋兩個（開發者 10-31）；亦接返第二次通關晶晶嗰句「今晚，主角係我」。
 
 ```text
-[共用風格] Three panels. Across the top, a wide strip: the giant screen on the bamboo frame now shows a ledger table (its cells left blank); [9527] stands in front of the broadcast camera and points up at the screen like a show host. Below it, two panels from left to right, each a shot of the giant screen showing recorded footage inside a video frame: first, the gang boss in a back room changing the betting board and ordering his henchmen about; second, Jing Jing sitting on the gang boss's knee, one arm round his neck, pointing at a headshot photo of 9527 lying on his desk. Leave calm space near the top of all three panels for dialogue.
+[共用風格] Four panels. Top row, left to right: a close-up of [9527] looking into the broadcast camera like a nervous but earnest news presenter; then a wide shot of the giant screen on the bamboo frame: on its left a ledger table (its cells left blank), on its right recorded footage inside a video frame of the gang boss in a back room changing the betting board and ordering his henchmen about. Bottom row, left to right: a small panel: the giant screen now shows recorded footage of Jing Jing sitting on the gang boss's knee, one arm round his neck, pointing at a headshot photo of 9527 lying on his desk; a large panel, low angle: every spotlight in the bamboo theatre swings round onto [9527], and behind him the giant screen and all the city's screens show his face; his expression is calm, with a small quiet smile, not cool, simply a man standing in the light at last. Leave calm space near the top of all four panels for dialogue.
 ```
 
 ## 第 5 頁：找數（4 格）
 
-**版面：** 上面兩格由左至右（14 大、15 細）；下面兩格由左至右（16、17）。
+**版面：** 上面兩格由左至右（15 大、16 細）；下面兩格由左至右（17、18）。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 14 | 遠景 | 一格格視像窗口：戴面具的賭客電話一齊響，有人嬲到除咗面具（面孔普通、唔似真人），有人掟爛酒杯 | 字幕：「賭局取消，全數退款。」 | 標準 |
-| 15 | 近景 | 金爺坐喺籌碼堆，面都青埋，崩咗一隻金牙，雪茄跌咗。**表情：驚** | 金爺：「我……要賠幾多？」 | 標準 |
-| 16 | 遠景 | 戲棚衣邊，一排金牙幫打手放低槍，各自散；有人除西裝外套搭喺膊頭，有人打喊露 | 打手：「冇糧出喇，收工！」 | 標準 |
-| 17 | 中景 | 晶晶一個人坐喺黑晒的貴賓位，電話不停震，螢幕光照住佢塊面（冇字），睫毛膏流晒落嚟，身邊冇人 | 晶晶：「唔關我事……」 | 長停 |
+| 15 | 遠景 | 一格格視像窗口：戴面具的賭客電話一齊響，有人嬲到除咗面具（面孔普通、唔似真人），有人掟爛酒杯 | 字幕：「賭局取消，全數退款。」 | 標準 |
+| 16 | 近景 | 金爺坐喺籌碼堆，面都青埋，崩咗一隻金牙，雪茄跌咗。**表情：驚** | 金爺：「我……要賠幾多？」 | 標準 |
+| 17 | 遠景 | 戲棚衣邊，一排金牙幫打手放低槍，各自散；有人除西裝外套搭喺膊頭，有人打喊露 | 打手：「冇糧出喇，收工！」 | 標準 |
+| 18 | 中景 | 晶晶一個人坐喺黑晒的貴賓位，電話不停震，螢幕光照住佢塊面（冇字），睫毛膏流晒落嚟，身邊冇人 | 晶晶：「唔關我事……」 | 長停 |
 
 ```text
 [共用風格] Four panels. Top row, left to right: a large panel: a grid of video-call windows: the masked gamblers' phones all ringing at once; some tear off their masks in fury (plain, ordinary faces that resemble no real people), one smashes a wine glass; a small panel: a close-up of the gang boss sitting among the chips, his face gone pale green, his gold-toothed mouth with the one missing tooth hanging open, his cigar dropped. Bottom row, left to right: in the wings of the bamboo theatre, a line of the gang's henchmen in dark suits lower their pistols and wander off in different directions, one with his jacket slung over his shoulder, one yawning; then Jing Jing sitting alone in the dark private box, her phone buzzing in her hand with endless notifications, its glow lighting her face (the screen shows no readable text), mascara running down her cheeks, nobody left beside her. Leave calm space near the top of all four panels for dialogue and a caption.
@@ -118,13 +124,13 @@
 
 ## 第 6 頁：一次過（3 格）
 
-**版面：** 左邊一格大，約佔五分之三闊，右邊斜邊（18）；右邊兩格疊住（19 上、20 下）。
+**版面：** 左邊一格大，約佔五分之三闊，右邊斜邊（19）；右邊兩格疊住（20 上、21 下）。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 18 | 近景 | 天光，9527 望住直播機的鏡頭，陽光喺佢後面。**表情：平靜、滿足，細細個笑**（唔係型） | 9527：「呢個 take，一次過。」 | 長停 |
-| 19 | 中景 | 直播機後面：場務姐舉起場記板，「啪」一聲合埋（板上的字由遊戲寫，TAKE 數＝玩家用咗幾多晚）；佢第一次望住 9527，點一點頭 | 場記板（遊戲寫）：「一夜成名／TAKE ×××」<br>場務姐：「收工！」 | 標準 |
-| 20 | 遠景 | 成個戲棚冇人，朝早的陽光由竹架照入嚟；9527 一個人坐喺台下第一行，望住空嘅戲台 | ——（冇字） | 長停 |
+| 19 | 近景 | 天光，9527 望住直播機的鏡頭，陽光喺佢後面。**表情：平靜、滿足，細細個笑**（唔係型） | 9527：「呢個 take，一次過。」 | 長停 |
+| 20 | 中景 | 直播機後面：場務姐舉起場記板，「啪」一聲合埋（板上的字由遊戲寫，TAKE 數＝玩家用咗幾多晚）；佢第一次望住 9527，點一點頭 | 場記板（遊戲寫）：「一夜成名／TAKE ×××」<br>場務姐：「收工！」 | 標準 |
+| 21 | 遠景 | 成個戲棚冇人，朝早的陽光由竹架照入嚟；9527 一個人坐喺台下第一行，望住空嘅戲台 | ——（冇字） | 長停 |
 
 ```text
 [共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: a close-up of [9527] looking straight into the broadcast camera's lens at dawn, the sunrise behind him; his expression is calm and content, a small, quiet smile; not cool, simply at peace. Right column, two panels stacked with a slanted gutter: top, behind the camera, the tired crew woman in the cap and grey work shirt (as in the act cards) raises her clapperboard and snaps it shut, motion lines (its writing area left blank); for the first time she looks straight at him, with a small nod; bottom, the whole bamboo theatre empty in the morning sun streaming through the bamboo frame; [9527] sits alone in the front row of the empty seats, looking up at the empty stage, a small figure, peaceful. Leave calm space near the top of the left and top right panels for dialogue.
@@ -132,14 +138,14 @@
 
 ## 第 7 頁：排隊先（4 格）
 
-**版面：** 四格：上面兩格由左至右（21、22），下面兩格由左至右（23 細、24 大），斜邊。
+**版面：** 四格：上面兩格由左至右（22、23），下面兩格由左至右（24 細、25 大），斜邊。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 21 | 中景 | 地府櫃位：閻王收起 NG 印；孟婆遞湯，9527 今次雙手接過碗湯 | 閻王：「心甘命抵。去投胎啦。」 | 標準 |
-| 22 | 近景 | 9527 捧住碗湯，回頭望閻王。**表情：有少少期待**，眼發光 | 9527：「下世可唔可以做主角？」 | 標準 |
-| 23 | 近景 | 閻王面無表情，喺表格度蓋一個唔同的四方印（印面留白，遊戲寫「考慮」） | 印面（遊戲寫）：「考慮」<br>閻王：「排隊先。」 | 標準 |
-| 24 | 遠景 | 9527 捧住湯行開；下一個企喺櫃位前攞籌的係金爺：成身西裝、崩咗隻金牙、垂頭喪氣；叫號機留白 | 叫號機（遊戲寫）：「100,000,000,001」<br>閻王：「大禮？派晒喇。」 | 長停 |
+| 22 | 中景 | 地府櫃位：閻王收起 NG 印；孟婆遞湯，9527 今次雙手接過碗湯 | 閻王：「心甘命抵。去投胎啦。」 | 標準 |
+| 23 | 近景 | 9527 捧住碗湯，回頭望閻王。**表情：有少少期待**，眼發光 | 9527：「下世，仲可唔可以做主角？」 | 標準 |
+| 24 | 近景 | 閻王面無表情，喺表格度蓋一個唔同的四方印（印面留白，遊戲寫「考慮」） | 印面（遊戲寫）：「考慮」<br>閻王：「排隊先。」 | 標準 |
+| 25 | 遠景 | 9527 捧住湯行開；下一個企喺櫃位前攞籌的係金爺：成身西裝、崩咗隻金牙、垂頭喪氣；叫號機留白 | 叫號機（遊戲寫）：「100,000,000,001」<br>閻王：「大禮？派晒喇。」 | 長停 |
 
 ```text
 [共用風格] Four panels. Top row, left to right: the underworld's reincarnation counter from the prologue: the King of the Underworld puts the red NG stamp away in a drawer, while the kind old woman offers a steaming bowl of soup and this time [9527] takes it gently in both hands; then a close-up of [9527] holding the bowl and looking back over his shoulder at the King, a hopeful little face, eyes shining. Bottom row, left to right: a small panel: the King, deadpan, stamps a different square seal onto a form (the seal face left blank); a large panel: [9527] walks away with his soup, and the next soul standing at the counter with a paper queue ticket is the gang boss, in his suit, the gap in his gold teeth showing, shoulders slumped, utterly deflated; the queue-number display above the counter is left blank; translucent blue ghosts queue behind him. Leave calm space near the top of all four panels for dialogue.
