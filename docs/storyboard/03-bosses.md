@@ -121,14 +121,14 @@
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 1 | 中景（仰角） | 返到序章的戲棚，天光前，竹架外面天邊開始發白：戲台上擺咗一張長賭枱，好似莊家位，堆滿籌碼。金爺坐喺後面，第一次成個人露面：花白油頭、黑色雙排扣西裝、暗金頸鏈、粗金戒指、雪茄，成口金牙笑到閃一閃；衣邊的黑影入面企住幾個着黑西裝的普通打手（唔係其他頭目）；台下一排排空凳 | 名牌：「金爺／監製 PRODUCER」 | 標準 |
+| 1 | 中景（仰角） | 返到序章的戲棚，天光前，竹架外面天邊開始發白：戲台上擺咗一張長賭枱，好似莊家位，堆滿籌碼。金爺坐喺後面，第一次成個人露面：花白油頭、黑色雙排扣西裝、暗金頸鏈、粗金戒指、雪茄，成口金牙笑到閃一閃；衣邊的黑影入面企住幾個着黑西裝的普通打手（唔係其他頭目）；台下一排排空凳。**晶晶挨住金爺膊頭獻媚**，深紫色晚裝，望落台嘅眼神好冷（10-31 加：佢係真正嘅元兇，由呢度開始喺金爺身邊；冇名牌、冇對白） | 名牌：「金爺／監製 PRODUCER」 | 標準 |
 | 2 | 遠景 | 竹架上的大螢幕亮起：賭盤（字由遊戲寫），旁邊一格格戴面具的賭客揮緊銀紙；金爺揸住雪茄的手指住螢幕 | 賭盤（遊戲寫，五行，圖入面畫咗格）：「開打即死 1 賠 1.05／**天光前死 1 賠 1.1**（發光）／死得好睇 1 賠 3／捱到天光 1 賠 500／打低金爺 停售」<br>金爺：「全腥港都買你死。」 | 標準 |
 | 3 | 近景 | 9527 一個人企喺空凳之間的行人路，抬頭望住佢；細細個，但個樣好靜，有少少定；一滴汗 | 9527：「咁我搏冷門。」 | 長停 |
 
 一晚由戲棚開機（序章），喺戲棚殺青；台下張張空凳亦接得返真結局的伏筆（`docs/STORY.md` §10 第 6 項）。第一稿的圖金爺後面企咗其他頭目：其他頭目喺自己的片場，唔會喺度，所以改做普通打手。
 
 ```text
-[共用風格] Three panels, the same layout as page 1. Left, the largest panel: the bamboo opera theatre from the prologue, just before dawn, the sky beyond the bamboo frame turning pale; on its stage stands a long gambling table like a casino banker's, piled with chips; behind it sits the gang boss, shown in full for the first time: a heavy-set man in his late fifties, slicked-back grey hair, a black double-breasted suit, a dark brassy gold chain, chunky gold rings (as on the hand in the attached act card), a cigar, and a mouthful of gold teeth flashing in a wide grin; a few ordinary henchmen in plain dark suits stand in the shadows of the wings (none of the other bosses); rows of empty seats in front of the stage; low angle so he looms; the gold is dark and brassy, used only as accents; keep the lower left of this panel darker and clear for a name plate. Right column, two panels stacked with a slanted gutter: top, the giant video screen on the bamboo frame lighting up with a betting board (left blank for words to be added later) beside video-call windows of masked gamblers waving banknotes, and his hand with the cigar pointing up at it; bottom, [9527] standing alone in the aisle between the empty seats, looking up at him: small, but with a quiet, slightly steady little face, a drop of sweat on his temple. Leave calm space near the top of the two right panels for dialogue.
+[共用風格] Three panels, the same layout as page 1. Left, the largest panel: the bamboo opera theatre from the prologue, just before dawn, the sky beyond the bamboo frame turning pale; on its stage stands a long gambling table like a casino banker's, piled with chips; behind it sits the gang boss, shown in full for the first time: a heavy-set man in his late fifties, slicked-back grey hair, a black double-breasted suit, a dark brassy gold chain, chunky gold rings (as on the hand in the attached act card), a cigar, and a mouthful of gold teeth flashing in a wide grin; beside him, leaning on his shoulder and fawning over him, Jing Jing (as in the attached character sheet) in her deep purple evening dress, glancing down at the stage with cold contempt; a few ordinary henchmen in plain dark suits stand in the shadows of the wings (none of the other bosses); rows of empty seats in front of the stage; low angle so he looms; the gold is dark and brassy, used only as accents; keep the lower left of this panel darker and clear for a name plate. Right column, two panels stacked with a slanted gutter: top, the giant video screen on the bamboo frame lighting up with a betting board (left blank for words to be added later) beside video-call windows of masked gamblers waving banknotes, and his hand with the cigar pointing up at it; bottom, [9527] standing alone in the aisle between the empty seats, looking up at him: small, but with a quiet, slightly steady little face, a drop of sweat on his temple. Leave calm space near the top of the two right panels for dialogue.
 ```
 
 ---
@@ -152,7 +152,7 @@ A 16:9 widescreen character lineup sheet of six gang bosses for the same game, s
 | 設定圖 | 序章第 3 頁（選角陳）、層卡第 3 張（金爺的手） |
 | 1–3 | 頭目設定圖、9527 人物設定 |
 | 4 | 頭目設定圖、9527 人物設定、序章第 3 頁（選角陳） |
-| 5 | 頭目設定圖、9527 人物設定、序章第 4、5 頁（戲棚）、層卡第 3 張 |
+| 5 | 頭目設定圖、9527 人物設定、序章第 4、5 頁（戲棚）、層卡第 3 張、晶晶設定圖（10-31 加） |
 
 ## 出完圖之後
 
