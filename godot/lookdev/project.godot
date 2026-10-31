@@ -1,0 +1,21 @@
+; Bullet Ballet: the teahouse look-dev (TASKS.md G⓪). Not the port (G①): a look test of the second generation's
+; art bible in Godot, built from the game's room data. Compatibility renderer, as docs/REDESIGN.md §9 plans.
+
+config_version=5
+
+[application]
+
+config/name="Bullet Ballet — teahouse look-dev"
+run/main_scene="res://scenes/teahouse.tscn"
+config/features=PackedStringArray("4.5", "GL Compatibility")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+anti_aliasing/quality/msaa_3d=2

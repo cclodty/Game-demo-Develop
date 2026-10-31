@@ -99,6 +99,7 @@ test/                        node:test + playwright; helpers.mjs has the bot; fi
 assets/                      SPEC.md, PROMPTS.md, START_HERE.md, asset-list.*, maps/*.json, source/ (masters), models/ (web)
 docs/                        ROADMAP.md (fourth edition; ROADMAP-2026-10-26.md is the third with the gameplay spec, ROADMAP-2026-10-22.md the second, kept for its § numbers), REDESIGN.md (second generation: art, world, enemies, assets, Godot), TASKS.md, DECISIONS.md, BACKEND.md (deploying the back end); shots/ holds the screenshots PR descriptions show; itch/ the itch.io page
 senado/                      the Largo do Senado city-model sub-project (own README, tests, scripts); don't edit from game tasks
+godot/lookdev/               G⓪: the teahouse set dressed to the art bible in Godot 4.5 (own README; screenshots by tools/shot.gd); a look test, not the port
 vendor/three/                three.js r186 + the addons we use; never modify
 ```
 

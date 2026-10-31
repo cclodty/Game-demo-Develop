@@ -1645,9 +1645,9 @@
 - 漂亮的解法：未搬之前先睇到 Godot 版會係乜樣，美術方向可以早啲改
 - 涉及：`godot/lookdev/`（新：`project.godot`、場景、shader、截圖腳本）、`docs/shots/godot/`
 - 驗收：
-  - [ ] 截圖：遊戲鏡頭（俯視 45°）、近啲嘅角度、正上望落，三張
-  - [ ] 一句指令重出截圖（Xvfb＋軟件渲染：`godot --path godot/lookdev -s tools/shot.gd`），README 寫明
-  - [ ] JS 遊戲同測試冇郁（npm run lint && npm test 照過）
+  - [x] 截圖：遊戲鏡頭（俯視 45°）、近啲嘅角度、正上望落，三張（加多一張 45° 側俯視成間房：`docs/shots/godot/`）
+  - [x] 一句指令重出截圖（Xvfb＋軟件渲染：`godot --path godot/lookdev -s tools/shot.gd`），README 寫明
+  - [x] JS 遊戲同測試冇郁（npm run lint && npm test 照過）
 - 這次不做：玩法、搬遷 G① 嘅工程結構（新倉定 `godot/` 照 G① 再定）、模型、動畫
 
 ### G①–G⑦：Godot 搬遷（每步估計：一至三天；在新引擎做，驗收見 `docs/REDESIGN.md` §10）
