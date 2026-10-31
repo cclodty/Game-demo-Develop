@@ -1883,7 +1883,6 @@ class Game {
     if (info.cause === 'smash') tags.push({ label: 'PAN SMASH', pts: 120, cls: 'gold' });
     if (info.bullet && info.bullet.homeRun) tags.push({ label: 'HOME RUN', pts: 200, cls: 'gold' });
     if (info.bullet && info.bullet.hostageFire) tags.push({ label: 'HOSTAGE FIRE', pts: PLAYER.humanShield.firePts, cls: 'gold' }); // a held heavy gun's round (player.js hostageFire, B②)
-    if (info.bullet && info.bullet.shieldRing) tags.push({ label: 'SHIELD RING', pts: PLAYER.humanShield.ringPts, cls: 'gold' }); // a held ring man's ring (player.js hostageRing, F⑧a)
     if (this.level.darkAt(e.x, e.z)) tags.push({ label: 'BLACKOUT', pts: 100, cls: 'gold' });
     if (this.level.smokeAt(e.x, e.z)) tags.push({ label: 'SMOKE', pts: 80, cls: 'gold' });
     if (info.cause === 'friendly') tags.push({ label: 'FRIENDLY FIRE', pts: 200, cls: 'gold' });

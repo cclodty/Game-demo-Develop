@@ -175,9 +175,10 @@ export const BLADE = {
   // her bullet-hell moves (彈幕 ② D①), on where the map's def says `danmaku` (rooms.js ARENA): from her perch, before a
   // dash, a red line on the player for `tell` s and then `volleys` fans of `count` knives ± `spread` rad, fast, the
   // arcade's look, `between` s apart (the second fan between the first's knives); and as she lands on a perch, a ring
-  // of `count` slow blades (the pattern men's look) with `gap` of them missing: the way through
+  // of `count` blades with `gap` of them missing: the way through (slow and pink once; since 試玩回饋 ⑦ as fast as her
+  // knives, the arcade's look)
   knives: { tell: 0.4, volleys: 2, between: 0.25, count: 3, spread: 0.45, speed: 24, dmg: 12, range: 30 },
-  wall: { count: 16, gap: 3, speed: 6.5, dmg: 10, range: 24 },
+  wall: { count: 16, gap: 3, speed: 24, dmg: 10, range: 24 },
 };
 
 export const TRUCK = {
@@ -231,11 +232,11 @@ export const GUNNER = {
   stagger: { kick: 0.7, smash: 1.3, bowl: 1.2, blast: 1.2 }, // s he reels (plate down, aim dropped) after a kick, a pan smash, a thug bowled into him, a blast
   bowl: 5, // m/s a kicked thug needs to stagger him
   blast: 2.8, // m: a blast this close takes a segment
-  // his slow wall (彈幕 ② D②), on where the map's def says `danmaku` (rooms.js BACKHALL): every `every` s (first after
-  // `first`) he plants his feet and his plate lights for `warn` s, then a fan of `count` slow rounds (the pattern men's
-  // look) across ± `spread` rad in front of him with `gap` of them missing somewhere inside: the way through, or round
-  // him to his open back
-  wall: { first: 5, every: 9, warn: 0.6, count: 13, spread: 1.1, gap: 2, speed: 6, dmg: 10, range: 20 },
+  // his wall (彈幕 ② D②), on where the map's def says `danmaku` (rooms.js BACKHALL): every `every` s (first after
+  // `first`) he plants his feet and his plate lights for `warn` s, then a fan of `count` rounds across ± `spread` rad in
+  // front of him with `gap` of them missing somewhere inside: the way through, or round him to his open back (slow and
+  // pink once; since 試玩回饋 ⑦ as fast as his gun, the arcade's look)
+  wall: { first: 5, every: 9, warn: 0.6, count: 13, spread: 1.1, gap: 2, speed: 30, dmg: 10, range: 20 },
 };
 
 export const CONVOY = {
@@ -309,9 +310,10 @@ export const BUCKSHOT = {
   stagger: 0.8, // s he reels after a kick, a pan smash or a thug bowled into him
   bowl: 5, // m/s a kicked thug needs to knock him off balance
   blast: 2.6, // m: a blast this close takes a segment
-  // his slow wall (彈幕 ② D④), on where his def says `danmaku` (rooms.js FRONTHALL): every blast of his is followed by a
-  // fan of `count` slow rounds (the pattern men's look) across ± `spread` rad with `gap` of them missing inside: the way through
-  wall: { count: 9, spread: 0.9, gap: 2, speed: 6, dmg: 10, range: 16 },
+  // his wall (彈幕 ② D④), on where his def says `danmaku` (rooms.js FRONTHALL): every blast of his is followed by a
+  // fan of `count` rounds across ± `spread` rad with `gap` of them missing inside: the way through (slow and pink once;
+  // since 試玩回饋 ⑦ as fast as his gun, the arcade's look)
+  wall: { count: 9, spread: 0.9, gap: 2, speed: 20, dmg: 10, range: 16 },
 };
 
 export const BULWARK = {
@@ -342,10 +344,10 @@ export const BULWARK = {
   // paying the player no heed unless right before his shield or shooting him; there he looks round `look` s: the way
   // round through the doorways
   lost: { after: 0.5, search: 4, look: 0.8 },
-  // his slow wall (彈幕 ② D③), on where the map's def says `danmaku` (rooms.js STRONGROOM): the moment a bash is spent,
-  // his shield down, a ring of `count` slow rounds (the pattern men's look) out from him with `gap` of them missing:
-  // the way in to him while he is open
-  wall: { count: 14, gap: 3, speed: 5.5, dmg: 10, range: 18 },
+  // his wall (彈幕 ② D③), on where the map's def says `danmaku` (rooms.js STRONGROOM): the moment a bash is spent,
+  // his shield down, a ring of `count` rounds out from him with `gap` of them missing: the way in to him while he is open
+  // (slow and pink once; since 試玩回饋 ⑦ as fast as his gun, the arcade's look)
+  wall: { count: 14, gap: 3, speed: 26, dmg: 10, range: 18 },
 };
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -1336,7 +1338,7 @@ class Blade extends Boss {
     g.audio.shot('pistol', g.panFor(this.x));
   }
 
-  /** As she lands on a perch (danmaku): a ring of slow blades out from her, BLADE.wall.gap of them missing at a random place. */
+  /** As she lands on a perch (danmaku): a ring of blades out from her, BLADE.wall.gap of them missing at a random place. */
   wallRing() {
     const g = this.game;
     const W = BLADE.wall;
@@ -1348,14 +1350,14 @@ class Blade extends Boss {
       const a = base + i * step;
       const dx = Math.sin(a);
       const dz = Math.cos(a);
-      g.bullets.spawn({ x: this.x + dx * 0.5, z: this.z + dz * 0.5, dx, dz, speed: W.speed, owner: 'enemy', damage: W.dmg, range: W.range, source: this.wallSrc, look: 'danmaku' });
+      g.bullets.spawn({ x: this.x + dx * 0.5, z: this.z + dz * 0.5, dx, dz, speed: W.speed, owner: 'enemy', damage: W.dmg, range: W.range, source: this.wallSrc, look: 'enemy' });
     }
     g.fx.ring(this.x, this.z, 1.2, 0.4, 0xff2bd0, 3);
     g.audio.shot('pistol', g.panFor(this.x));
     if (this.firstWall) {
       this.firstWall = false;
-      g.notes.log('刀后放出刀氣環：慢，有缺口');
-      g.hud.banner('RING', '刀氣環慢：找缺口走出去', 'clear');
+      g.notes.log('刀后放出刀氣環：快，有缺口');
+      g.hud.banner('RING', '刀氣環：認住缺口，慢鏡穿出去', 'clear');
     }
   }
 
@@ -2148,7 +2150,7 @@ class Gunner extends Boss {
   constructor(game) {
     super(game, GUNNER);
     this.rig = null;
-    this.wallSrc = { cfg: { label: '重炮的彈幕' } }; // what his slow wall says hit the player (bullets.js: `source.cfg.label`)
+    this.wallSrc = { cfg: { label: '重炮的彈幕' } }; // what his wall says hit the player (bullets.js: `source.cfg.label`)
     this.reset();
   }
 
@@ -2194,7 +2196,7 @@ class Gunner extends Boss {
     this.flash = 0;
     this.plateFlash = 0;
     this.raging = false; // his partner down (a duo): shells more often (enrage)
-    this.danmaku = !!def.danmaku; // his slow wall (GUNNER.wall)
+    this.danmaku = !!def.danmaku; // his wall (GUNNER.wall)
     this.wallState = 'idle'; // idle, warn
     this.wallT = GUNNER.wall.first;
     this.wallTimer = 0;
@@ -2279,7 +2281,7 @@ class Gunner extends Boss {
     this.sync();
   }
 
-  /** The slow wall (danmaku): planted, his plate alight for the warning, then the fan with its gap. */
+  /** The wall (danmaku): planted, his plate alight for the warning, then the fan with its gap. */
   updateWall(dt) {
     if (!this.danmaku) return;
     const g = this.game;
@@ -2297,8 +2299,8 @@ class Gunner extends Boss {
       g.fx.ring(this.x, this.z, 1.6, W.warn, 0xff8a2a, 3);
       if (this.firstWall) {
         this.firstWall = false;
-        g.notes.log('重炮鋼板發光：慢彈幕牆要來，有缺口');
-        g.hud.banner('SLOW WALL', '鋼板發光：慢彈幕牆，找缺口或繞到背後', 'clear');
+        g.notes.log('重炮鋼板發光：彈幕牆要來，有缺口');
+        g.hud.banner('WALL', '鋼板發光：彈幕牆，找缺口或繞到背後', 'clear');
       }
       return;
     }
@@ -2314,7 +2316,7 @@ class Gunner extends Boss {
     }
   }
 
-  /** The fan of slow rounds across his front (GUNNER.wall), `gap` of them missing somewhere inside. */
+  /** The fan of rounds across his front (GUNNER.wall), `gap` of them missing somewhere inside. */
   fireWall() {
     const g = this.game;
     const W = GUNNER.wall;
@@ -2325,7 +2327,7 @@ class Gunner extends Boss {
       const a = this.facing - W.spread + i * step;
       const dx = Math.sin(a);
       const dz = Math.cos(a);
-      g.bullets.spawn({ x: this.x + dx * 1.2, z: this.z + dz * 1.2, dx, dz, speed: W.speed, owner: 'enemy', damage: W.dmg, range: W.range, source: this.wallSrc, look: 'danmaku' });
+      g.bullets.spawn({ x: this.x + dx * 1.2, z: this.z + dz * 1.2, dx, dz, speed: W.speed, owner: 'enemy', damage: W.dmg, range: W.range, source: this.wallSrc, look: 'enemy' });
     }
     g.audio.shot('shotgun', g.panFor(this.x));
     this.flash = 0.4;
@@ -2957,7 +2959,7 @@ class Buckshot extends Boss {
   constructor(game) {
     super(game, BUCKSHOT);
     this.rig = null;
-    this.wallSrc = { cfg: { label: '散彈手的慢彈' } }; // what his slow wall says hit the player (bullets.js: `source.cfg.label`)
+    this.wallSrc = { cfg: { label: '散彈手的彈幕' } }; // what his wall says hit the player (bullets.js: `source.cfg.label`)
     this.reset();
   }
 
@@ -2994,12 +2996,12 @@ class Buckshot extends Boss {
     this.phase = 0;
     this.flash = 0;
     this.raging = false;
-    this.danmaku = !!def.danmaku; // his slow wall (BUCKSHOT.wall)
+    this.danmaku = !!def.danmaku; // his wall (BUCKSHOT.wall)
     this.firstWall = true;
     this.build();
   }
 
-  /** The slow wall (danmaku): after the blast, a fan of slow rounds the same way, BUCKSHOT.wall.gap of them missing somewhere inside. */
+  /** The wall (danmaku): after the blast, a fan of rounds the same way, BUCKSHOT.wall.gap of them missing somewhere inside. */
   wallFan() {
     const g = this.game;
     const W = BUCKSHOT.wall;
@@ -3010,12 +3012,12 @@ class Buckshot extends Boss {
       const a = this.aimA - W.spread + i * step;
       const dx = Math.sin(a);
       const dz = Math.cos(a);
-      g.bullets.spawn({ x: this.x + dx * 0.8, z: this.z + dz * 0.8, dx, dz, speed: W.speed, owner: 'enemy', damage: W.dmg, range: W.range, source: this.wallSrc, look: 'danmaku' });
+      g.bullets.spawn({ x: this.x + dx * 0.8, z: this.z + dz * 0.8, dx, dz, speed: W.speed, owner: 'enemy', damage: W.dmg, range: W.range, source: this.wallSrc, look: 'enemy' });
     }
     if (this.firstWall) {
       this.firstWall = false;
-      g.notes.log('散彈手的慢彈：每槍之後一排慢彈，有缺口');
-      g.hud.banner('SLOW FAN', '散彈之後一排慢彈：找缺口', 'clear');
+      g.notes.log('散彈手的彈幕：每槍之後一排快彈，有缺口');
+      g.hud.banner('FAN', '散彈之後一排快彈：找缺口', 'clear');
     }
   }
 
@@ -3287,7 +3289,7 @@ class Bulwark extends Boss {
   constructor(game) {
     super(game, BULWARK);
     this.rig = null;
-    this.wallSrc = { cfg: { label: '鐵盾的盾震' } }; // what his slow wall says hit the player (bullets.js: `source.cfg.label`)
+    this.wallSrc = { cfg: { label: '鐵盾的盾震' } }; // what his wall says hit the player (bullets.js: `source.cfg.label`)
     this.reset();
   }
 
@@ -3337,12 +3339,12 @@ class Bulwark extends Boss {
     this.lit = 0; // the shield's glow, braced for the bash
     this.firstBrace = true;
     this.raging = false;
-    this.danmaku = !!def.danmaku; // his slow wall (BULWARK.wall)
+    this.danmaku = !!def.danmaku; // his wall (BULWARK.wall)
     this.firstWall = true;
     this.build();
   }
 
-  /** The slow wall (danmaku): as the bash is spent, a ring of slow rounds out from him, BULWARK.wall.gap of them missing at a random place. */
+  /** The wall (danmaku): as the bash is spent, a ring of rounds out from him, BULWARK.wall.gap of them missing at a random place. */
   wallRing() {
     const g = this.game;
     const W = BULWARK.wall;
@@ -3354,14 +3356,14 @@ class Bulwark extends Boss {
       const a = base + i * step;
       const dx = Math.sin(a);
       const dz = Math.cos(a);
-      g.bullets.spawn({ x: this.x + dx * 0.7, z: this.z + dz * 0.7, dx, dz, speed: W.speed, owner: 'enemy', damage: W.dmg, range: W.range, source: this.wallSrc, look: 'danmaku' });
+      g.bullets.spawn({ x: this.x + dx * 0.7, z: this.z + dz * 0.7, dx, dz, speed: W.speed, owner: 'enemy', damage: W.dmg, range: W.range, source: this.wallSrc, look: 'enemy' });
     }
     g.fx.ring(this.x, this.z, 1.4, 0.4, 0xffb02a, 3);
     g.audio.shot('shotgun', g.panFor(this.x));
     if (this.firstWall) {
       this.firstWall = false;
-      g.notes.log('鐵盾盾震：撞完放出慢彈環，有缺口，趁他盾垂下入去');
-      g.hud.banner('SHIELD SHOCK', '撞完的盾震慢：由缺口入去，他的盾正垂下', 'clear');
+      g.notes.log('鐵盾盾震：撞完放出一圈快彈，有缺口，趁他盾垂下入去');
+      g.hud.banner('SHIELD SHOCK', '撞完的盾震：由缺口入去，他的盾正垂下', 'clear');
     }
   }
 

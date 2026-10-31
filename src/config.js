@@ -54,10 +54,9 @@ export const PLAYER = {
   // his gun along the player's facing every `fireEvery` s, rounds that are the player's own (a kill: HOSTAGE FIRE +`firePts`)
   // B③: a gunner who strafes (TYPES `strafe`) and finds a man held in front of the player goes round to `flankTo`° off
   // the player's facing before he fires (the shield covers ±`arc`°; thugs fire into the held man as ever); a blade's
-  // cut or a tumbler's kick from the front lands on the held man too. F⑧a: a ring man held (TYPES `shieldRing`) lets his
-  // ring go round the player every `ringEvery` s, its rounds the player's own, `ringDmg` each (a kill: SHIELD RING +`ringPts`);
-  // F⑧b: the lion dancer's spiral or fan, `ringCount` rounds round
-  humanShield: { reach: 1.5, gap: 0.75, hold: 4.5, arc: 60, hit: 1, walkMul: 0.6, shove: 24, knock: 0.85, bowling: 2, bowlPts: 250, bombFuse: 0.4, shieldKnock: 2, fireEvery: 0.1, firePts: 150, flankTo: 80, ringEvery: 1.5, ringDmg: 3, ringPts: 200, ringCount: 24 },
+  // cut or a tumbler's kick from the front lands on the held man too (F⑧a's ring man held, his ring round the player,
+  // went with him: 試玩回饋 ⑦)
+  humanShield: { reach: 1.5, gap: 0.75, hold: 4.5, arc: 60, hit: 1, walkMul: 0.6, shove: 24, knock: 0.85, bowling: 2, bowlPts: 250, bombFuse: 0.4, shieldKnock: 2, fireEvery: 0.1, firePts: 150, flankTo: 80 },
   throwReach: 1.6, // metres: G picks up a pan or barrel this close
   throwRange: 8, // metres a carried thing is thrown, at most
   kickRange: 2.1,

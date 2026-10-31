@@ -1,7 +1,7 @@
 // 彈幕 ② D③: the bulwark in a room. The strongroom (rooms.js STRONGROOM) is the third boss room a floor can end in
-// (MODES.danmaku floor.boss, one drawn a floor); its last wave is the bulwark (boss.js Bulwark) with his slow wall on
-// (the room's def `danmaku`): the moment his bash is spent, shield down, a ring of fourteen slow rounds (the pattern
-// men's look) goes out from him with three missing: the way in to him while he is open. His bash and his revolver
+// (MODES.danmaku floor.boss, one drawn a floor); its last wave is the bulwark (boss.js Bulwark) with his wall on
+// (the room's def `danmaku`): the moment his bash is spent, shield down, a ring of fourteen rounds (fast as his
+// revolver's since 試玩回饋 ⑦) goes out from him with three missing: the way in to him while he is open. His bash and his revolver
 // (fast, round the shield's edge) are 大三巴's (test/ruins-boss.test.mjs). 大三巴's bulwark, without `danmaku`, rings
 // nothing.
 // Run: npm test
@@ -96,7 +96,7 @@ test('the strongroom is among the boss rooms a floor can end in; its last wave i
   assert.deepEqual(problems(logs), []);
 });
 
-test('the slow wall: the bash spent, shield down, eleven slow rounds in the pattern men’s look go out from him, three missing: a gap over 1.2 m wide 3 m out; the revolver still, fast; 大三巴’s bulwark rings nothing', { timeout: 5 * 60 * 1000 }, async () => {
+test('the wall: the bash spent, shield down, eleven rounds fast as his revolver’s (試玩回饋 ⑦) go out from him, three missing: a gap over 1.2 m wide 3 m out; the revolver still, fast; 大三巴’s bulwark rings nothing', { timeout: 5 * 60 * 1000 }, async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     const b = g.boss;
@@ -146,7 +146,7 @@ test('the slow wall: the bash spent, shield down, eleven slow rounds in the patt
   });
   assert.equal(r.n, 11, `fourteen less three: ${r.n} (${r.state})`);
   assert.equal(r.when, 'spent', 'as the bash is spent');
-  assert.deepEqual([r.speeds, r.looks], [[5.5], ['danmaku']], 'slow, in the pattern men’s look');
+  assert.deepEqual([r.speeds, r.looks], [[26], ['enemy']], 'fast as his revolver, in the arcade’s look (試玩回饋 ⑦)');
   assert.ok(r.gapAt3m > 1.2, `the gap 3 m out: ${r.gapAt3m.toFixed(2)} m`);
   assert.ok(r.gun >= 3 && r.gunSpeed.includes(26), `the revolver still: ${r.gun} rounds at ${r.gunSpeed}`);
   assert.ok(r.notes.length >= 1, `the note: ${r.notes}`);

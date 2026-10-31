@@ -1744,10 +1744,34 @@
 - 漂亮的解法：打得精彩——多一個維度躲彈幕
 - 涉及：`src/player.js`（狀態）、`src/level.js`／`rooms.js`（`wallrun` 實體）、`src/characters.js`（姿勢）、`src/config.js`（`WALLRUN`）、`test/wallrun.test.mjs`（新）
 - 驗收：
-  - [ ] 測試：牆跑中低彈不中、牆跑中開火、踢出的距離、WALL KILL；每間房有一面
-  - [ ] 截圖
-  - [ ] npm run lint && npm test 通過
+  - [x] 測試：牆跑中低彈不中、牆跑中開火、踢出的距離、WALL KILL；每間房有一面
+  - [x] 截圖
+  - [x] npm run lint && npm test 通過
 - 這次不做：二次元的牆跑動畫（Godot）、牆與牆之間跳
+
+### 試玩回饋 ⑦：全部係快彈（估計：一天；2026-10-31 寫，開發者 10-31 定：慢彈連人一齊刪）
+- 目標：遊戲入面冇慢彈，全部係快彈：
+  1. 環形手（傘手）、螺旋手、扇形手（舞獅手）刪走：類型、佢哋嘅彈幕（ring、spiral、fan）、做人盾放環（F⑧a 嘅 SHIELD RING，花招手冊跟住少一個）；房間嘅精英位改出十二種入面嘅硬嘢；十二種嘅 #11、#12 留空（之後再諗）
+  2. 頭目嘅慢牆（刀后嘅環、重炮手同散彈頭目嘅扇、鐵盾嘅環）改做快彈：同一個陣、同一個缺口，速度同佢自己支槍一樣快，黃白色
+  3. 粉紅「慢大彈幕」嘅子彈樣同美術聖經嘅功能色刪走
+- 漂亮的解法：一個彈幕係一個有缺口嘅謎題——而家個個都快，讀紅線同用子彈時間係主菜
+- 涉及：`src/enemies.js`、`src/waves.js`、`src/boss.js`、`src/bullets.js`、`src/player.js`、`src/codex.js`、`src/config.js`、`test/danmaku.test.mjs`、`test/mix.test.mjs`、`test/twelve.test.mjs`、`test/squad.test.mjs`、頭目房嘅測試、`docs/REDESIGN.md`
+- 驗收：
+  - [ ] 測試：彈幕模式一局（機械人）冇一粒敵人子彈慢過 15 米每秒（散彈嘅彈珠本身係 17 上下；慢牆係 5.5–8）；房唔再出嗰三種；四個頭目嘅牆係快彈、缺口照留
+  - [ ] 截圖：頭目房嘅快彈牆
+  - [ ] 機械人一局 ≤ 12 分鐘（前後數字）
+  - [ ] npm run lint && npm test && npm run test:game 通過
+- 這次不做：#11、#12 嘅新敵人；擦彈、缺口保證嘅數字
+
+### G⓪：茶樓精緻版（Godot 佈置試看；估計：一天；2026-10-31 寫，開發者 10-31 定：做茶樓、放呢個倉嘅 `godot/`）
+- 目標：一個獨立嘅 Godot 4 工程 `godot/lookdev/`，一個場景：茶樓（同遊戲第一間房一樣大、一樣嘅枱、點心車、門、四盞燈），照美術聖經佈置：朱紅＋墨綠、賽璐璐（兩段色階、一條邊光、陰影偏紫藍）、描邊、燈籠同金欄杆、屏風、牆身裝飾、地磚；鏡頭用遊戲嘅俯視 45°；放一個積木玩家同兩三個積木敵人做比例；全部用 Godot 自己嘅幾何同 shader，唔用模型檔
+- 漂亮的解法：未搬之前先睇到 Godot 版會係乜樣，美術方向可以早啲改
+- 涉及：`godot/lookdev/`（新：`project.godot`、場景、shader、截圖腳本）、`docs/shots/godot/`
+- 驗收：
+  - [ ] 截圖：遊戲鏡頭（俯視 45°）、近啲嘅角度、正上望落，三張
+  - [ ] 一句指令重出截圖（Xvfb＋軟件渲染：`godot --path godot/lookdev -s tools/shot.gd`），README 寫明
+  - [ ] JS 遊戲同測試冇郁（npm run lint && npm test 照過）
+- 這次不做：玩法、搬遷 G① 嘅工程結構（新倉定 `godot/` 照 G① 再定）、模型、動畫
 
 ### G①–G⑦：Godot 搬遷（每步估計：一至三天；在新引擎做，驗收見 `docs/REDESIGN.md` §10）
 - G① 空工程、一間房、積木玩家與一支槍、固定步進、輸入記錄與重播、測試架與 CI

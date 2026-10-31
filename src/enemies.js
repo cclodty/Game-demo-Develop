@@ -10,7 +10,8 @@ import { angleTo, clamp, damp, dampAngle, lerp, rand, smoothstep, TAU, turnTowar
 
 /**
  * The enemy types. `role` (F⑧b, REDESIGN §5: one problem a man) is his place in the twelve the game sends into its
- * rooms: `n` 1–12 (the lion dancer's two dances, the spiral and the fan, both 12), his `title`, and the three columns:
+ * rooms: `n` 1–10 (11 and 12, the slow walls' umbrella man and lion dancer, went with every slow round: 試玩回饋 ⑦; their
+ * places wait for new men), his `title`, and the three columns:
  * the `problem` his fire sets, what he does held up as a human `shield`, the `counter` that beats him; `candidate`: one
  * of the two kept as candidates (the pressers from the second floor); `merged`: drawn no more in the rooms, his problem
  * now that type's (the older modes still send him).
@@ -262,73 +263,11 @@ export const TYPES = {
     look: { body: 0x23262e, accent: 0xff3aa0, gun: 0x2b2b33 },
     spawn: { from: 8, weight: 1.2, max: 2 },
   },
-  // 彈幕試驗 ③ (DECISIONS 2026-10-23): three who each fire a bullet pattern (WEAPONS `pattern`), Enter the Gungeon's way.
-  // They keep their distance, stand and glow for `aimTime` (the tell, no laser), then fire. Only 彈幕試驗 sends them
-  // (waves.js MODES.danmaku `roster`; no `spawn` here). Light coats: they stand out on a dark floor.
-  ringer: {
-    role: { n: 11, title: '傘手', problem: '慢大彈幕做牆（環）', shield: '環從你身邊放，算你的', counter: '擦彈充能、穿過缺口' },
-    label: 'RING',
-    name: '環形手',
-    patternNote: '一圈子彈向外散，留一個缺口',
-    shieldRing: true, // held up as a human shield, his ring goes out round the player, the player's own (F⑧a: player.js hostageRing)
-    vault: true,
-    hp: 4,
-    speed: 2.6,
-    radius: 0.32,
-    aimTime: 1.0,
-    cooldown: [2.4, 3.2],
-    range: [5, 11],
-    weapon: 'ring',
-    score: 150,
-    lead: [0, 0],
-    turn: 4,
-    model: 'grunt',
-    look: { body: 0xb9a6ff, pants: 0x3a2e66, accent: 0x7a4dff, hair: 0x2a1f4d, weapon: 'pistol' },
-  },
-  spiraler: {
-    role: { n: 12, title: '舞獅手（螺旋）', problem: '螺旋的慢牆', shield: '環從你身邊放，算你的', counter: '擦彈充能、喺兩條之間穿過' },
-    shieldRing: true, // held up, his spiral goes round the player as a ring, the player's own (F⑧b: player.js hostageRing)
-    label: 'SPIRAL',
-    name: '螺旋手',
-    patternNote: '轉住噴的螺旋，在兩條之間穿過去',
-    vault: true,
-    hp: 5,
-    speed: 2.2,
-    radius: 0.34,
-    aimTime: 0.9,
-    cooldown: [3, 3.8],
-    range: [4, 10],
-    weapon: 'spiral',
-    score: 200,
-    lead: [0, 0],
-    turn: 4,
-    model: 'brute',
-    look: { body: 0x6fe3d0, pants: 0x1d4a44, accent: 0x18b39a, hair: 0x123a35, weapon: 'minigun' },
-  },
-  fanner: {
-    role: { n: 12, title: '舞獅手（扇形）', problem: '扇形的慢牆', shield: '環從你身邊放，算你的', counter: '擦彈充能、向旁閃' },
-    shieldRing: true, // held up, his fan goes round the player as a ring, the player's own (F⑧b: player.js hostageRing)
-    label: 'FAN',
-    name: '扇形手',
-    patternNote: '對準你的扇形，中間最密：向旁閃',
-    vault: true,
-    hp: 3,
-    speed: 3,
-    radius: 0.32,
-    aimTime: 0.8,
-    cooldown: [1.8, 2.6],
-    range: [5, 12],
-    weapon: 'fan',
-    score: 120,
-    lead: [0, 0],
-    turn: 6,
-    model: 'shotgun',
-    look: { body: 0xffc27a, pants: 0x5a3416, accent: 0xff7a1a, hair: 0x3a2210, weapon: 'shotgun' },
-  },
+  // 彈幕試驗 ③'s three pattern men (the ring, the spiral, the fan: slow walls) are gone since 試玩回饋 ⑦ (DECISIONS
+  // 2026-10-31): every round in the game is a fast one.
   // 彈幕試驗 ⑦ (DECISIONS 2026-10-26): heavy fire. The bullet hell is the volume of their fire at the player, not
-  // patterns round them. The pattern men's tell (he stands and glows) and slow solid bullets, a WEAPONS `pattern` of
-  // their own; `heavy`: they need no aim token (the whole room opens up at once) and the notes say 重火力. Only
-  // 彈幕試驗 sends them (waves.js MODES.danmaku `roster`). Light coats, as the pattern men.
+  // patterns round them. A tell (he stands and glows) and a WEAPONS `pattern` of their own; `heavy`: they need no aim token (the whole room opens up at once) and the notes say 重火力. Only
+  // 彈幕試驗 sends them (waves.js MODES.danmaku `roster`). Light coats.
   hoser: {
     role: { candidate: true, title: '機槍手（壓制者）', problem: '長火線掃過嚟', shield: '槍沿你面向射（HOSTAGE FIRE）', counter: '橫跑甩開、翻枱擋' },
     label: 'MG',
@@ -399,16 +338,9 @@ export const WEAPONS = {
   sniper: { shots: 1, interval: 0.1, speed: 72, dmg: 40, pellets: 1, spread: 0, sound: 'sniper' },
   drone: { shots: 4, interval: 0.09, speed: 24, dmg: 9, pellets: 1, spread: 0.05, sound: 'smg' },
   dual: { shots: 2, interval: 0.12, speed: 21, dmg: 16, pellets: 1, spread: 0.03, sound: 'pistol' }, // the captain's pair: one from each hand
-  // the patterns (彈幕試驗 ③): `shots` volleys `interval` s apart, slow bullets in their own look (bullets.js 'danmaku').
-  // `wall`: a barrage with gaps of its own (彈幕 ② A③, the slow walls): not held for the gap guarantee (gapAllows)
-  // ring: `count` places round him, `gap` of them left out together (where, the rng's), each ring turned `twist` places
-  ring: { pattern: 'ring', wall: true, shots: 3, interval: 0.5, speed: 6.5, dmg: 10, count: 34, gap: 4, twist: 0.5, range: 26, sound: 'pistol' },
-  // spiral: `arms` bullets a shot, the arms turned `turn` rad each shot
-  spiral: { pattern: 'spiral', wall: true, shots: 28, interval: 0.075, speed: 6, dmg: 8, arms: 4, turn: 0.21, range: 24, sound: 'smg' },
-  // fan: `count` bullets across ± `spread` rad at the player, bunched to the middle (|u| ** `bunch` for u in -1…1)
-  fan: { pattern: 'fan', wall: true, shots: 3, interval: 0.32, speed: 8, dmg: 10, count: 9, spread: 0.6, bunch: 1.7, range: 26, sound: 'shotgun' },
-  // heavy fire (彈幕試驗 ⑦): aimed at the player, a great many; since 彈幕 ② A③ fast rounds in the arcade's look (`look`),
-  // the pressers between the slow walls, and held for the gap guarantee like any gun
+  // the patterns: `shots` volleys `interval` s apart (the slow walls, ring, spiral and fan, went with 試玩回饋 ⑦).
+  // heavy fire (彈幕試驗 ⑦): aimed at the player, a great many, fast rounds in the arcade's look (`look`), held for the
+  // gap guarantee like any gun
   // hose: `shots` rounds `interval` s apart (a stream two seconds long), his aim turning after the player at most `track` rad/s, each round ± `jitter` rad
   hose: { pattern: 'hose', shots: 30, interval: 0.07, speed: 20, look: 'enemy', dmg: 7, jitter: 0.05, track: 0.55, range: 26, sound: 'minigun' },
   // salvo: his aim ends on the squad's beat (every `beat` s of world time: all of them in the room on the same step), then `shots` rounds `interval` s apart where the player was
@@ -433,7 +365,7 @@ export const AFFIX_IDS = Object.keys(AFFIXES);
 
 const _aim = { x: 0, z: 0 };
 
-const LASER_COLOR = { ring: [0.6, 0.4, 1], spiral: [0.3, 1, 0.9], fan: [1, 0.6, 0.2], hose: [0.3, 0.6, 1], salvo: [0.6, 0.85, 0.2], blast: [1, 0.3, 0.55], pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05], sniper: [1, 0.02, 0.02], drone: [1, 0.15, 0.6], dual: [1, 0.72, 0.12] };
+const LASER_COLOR = { hose: [0.3, 0.6, 1], salvo: [0.6, 0.85, 0.2], blast: [1, 0.3, 0.55], pistol: [1, 0.08, 0.12], shotgun: [1, 0.35, 0.05], rifle: [0.7, 0.15, 1], minigun: [1, 0.1, 0.05], sniper: [1, 0.02, 0.02], drone: [1, 0.15, 0.6], dual: [1, 0.72, 0.12] };
 
 class Enemy {
   constructor(mgr, type, sp) {
@@ -535,8 +467,6 @@ class Enemy {
     this.readyAt = -1; // a captain's guard: the world time his aim was done, waiting for his captain's shot (F⑧a; -1: not yet)
     this.squadAsk = -1; // a captain's guard: since when he has been ready to aim without his captain's call (F⑧a; -1: not)
     this.volleyN = 0;
-    this.patternA = 0;
-    this.gapAt = 0;
     this.phase = rand(0, TAU);
     this.moveAmt = 0;
     this.hasToken = false;
@@ -720,7 +650,7 @@ class Enemy {
   /**
    * Seconds from the laser coming on to the shot: the type's, times the difficulty's (rules.js aimMul) and the stage's
    * (`pace`); longer while his captain's fall shakes him (AI.captain); in a room HELL.aimMul of it (試玩回饋 ⑤), but for a
-   * barrage's tell (WEAPONS `pattern`: the slow walls, the heavy fire), which is how the player reads what is coming.
+   * barrage's tell (WEAPONS `pattern`: the heavy fire), which is how the player reads what is coming.
    */
   get aimTime() {
     const quick = this.inRoom && !(WEAPONS[this.cfg.weapon] && WEAPONS[this.cfg.weapon].pattern); // a barrage's tell keeps its time: the pattern is read in it
@@ -1693,37 +1623,24 @@ class Enemy {
   }
 
   /**
-   * One volley of his pattern (WEAPONS `pattern`, 彈幕試驗 ③): `volleyN` counts them from the first of this firing; the
-   * ring's gap and turn come from where he started (patternA, drawn from game.rng when he began: the same seed, the same).
+   * One volley of his pattern (WEAPONS `pattern`): `volleyN` counts them from the first of this firing.
    */
   volley(w) {
     const g = this.game;
     const k = this.volleyN++;
     const angles = [];
-    if (w.pattern === 'ring') {
-      const step = (Math.PI * 2) / w.count;
-      const base = this.patternA + k * w.twist * step;
-      for (let i = 0; i < w.count; i++) if ((i - this.gapAt + w.count) % w.count >= w.gap) angles.push(base + i * step);
-    } else if (w.pattern === 'spiral') {
-      for (let j = 0; j < w.arms; j++) angles.push(this.patternA + k * w.turn + (j * Math.PI * 2) / w.arms);
-    } else if (w.pattern === 'hose' || w.pattern === 'salvo') {
+    if (w.pattern === 'hose' || w.pattern === 'salvo') {
       // a round along his aim (a hose's turns after the player while it fires: the fire state's `track`)
       angles.push(this.aimAngle + g.rng.range(-w.jitter, w.jitter));
     } else if (w.pattern === 'blast') {
       const a0 = angleTo(this.x, this.z, g.player.x, g.player.z);
       for (let i = 0; i < w.count; i++) angles.push(a0 + ((i / (w.count - 1)) * 2 - 1) * w.spread + g.rng.range(-w.jitter, w.jitter));
-    } else {
-      const a0 = angleTo(this.x, this.z, g.player.x, g.player.z);
-      for (let i = 0; i < w.count; i++) {
-        const u = (i / (w.count - 1)) * 2 - 1;
-        angles.push(a0 + Math.sign(u) * Math.abs(u) ** w.bunch * w.spread);
-      }
     }
     for (const a of angles) {
       const dx = Math.sin(a);
       const dz = Math.cos(a);
       const speed = w.spreadV ? w.speed * g.rng.range(1 - w.spreadV, 1 + w.spreadV) : w.speed;
-      g.bullets.spawn({ x: this.x + dx * 0.45, z: this.z + dz * 0.45, dx, dz, speed, owner: 'enemy', damage: w.dmg, range: w.range, source: this, look: w.look || 'danmaku' });
+      g.bullets.spawn({ x: this.x + dx * 0.45, z: this.z + dz * 0.45, dx, dz, speed, owner: 'enemy', damage: w.dmg, range: w.range, source: this, look: w.look || 'enemy' });
     }
     if (this.cfg.heavy) {
       // a gun's flash at the muzzle (looks only)
@@ -1734,7 +1651,7 @@ class Enemy {
       this.mgr.patternsSeen.add(this.type);
       g.notes.log(`${this.cfg.heavy ? '重火力' : '彈幕'}：${this.cfg.name}（${this.cfg.patternNote}）`);
     }
-    const stream = w.pattern === 'spiral' ? 4 : w.pattern === 'hose' ? 3 : 1; // a stream's sound every few rounds
+    const stream = w.pattern === 'hose' ? 3 : 1; // a stream's sound every few rounds
     if (k % stream === 0) g.audio.shot(w.sound, g.panFor(this.x));
   }
 
@@ -2128,7 +2045,7 @@ class Enemy {
             this.glow = salvo ? clamp(this.aimT / Math.max(1e-6, this.salvoAt - this.aimFrom), 0, 1) : clamp(this.aimT / this.aimTime, 0, 1);
             if (salvo ? g.worldTime >= this.salvoAt - 1e-9 : this.aimT >= this.aimTime) {
               const w = WEAPONS[cfg.weapon];
-              if (this.inRoom && !w.wall && !this.gapAllows()) {
+              if (this.inRoom && !this.gapAllows()) {
                 // a presser (the heavy guns) is held for the gap like any gun; a salvo waits for the squad's next beat, so the row stays one
                 if (salvo) this.salvoAt += w.beat;
                 else this.aimT = this.aimTime;
@@ -2141,8 +2058,6 @@ class Enemy {
               this.burst = w.shots;
               this.burstT = 0;
               this.volleyN = 0;
-              this.patternA = this.aimAngle + g.rng.range(-Math.PI, Math.PI);
-              this.gapAt = Math.floor(g.rng.range(0, w.count || 1));
             }
             break;
           }

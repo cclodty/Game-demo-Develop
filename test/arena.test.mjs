@@ -1,8 +1,8 @@
 // 彈幕 ② D①: the floor boss in a room. Every floor ends in the arena (rooms.js ARENA, MODES.danmaku floor.boss), whose
 // last wave is the blade queen (boss.js Blade) with her bullet-hell moves on (the room's def `danmaku`): from a perch,
 // before a dash, a red line on the player and then two fans of three fast knives (the arcade's look) a quarter second
-// apart, the second between the first's; as she lands on a perch, a ring of sixteen slow blades (the pattern men's
-// look) with three missing: the way through. The rest of her fight is the club's (test/blade.test.mjs): the dash, the
+// apart, the second between the first's; as she lands on a perch, a ring of sixteen blades (fast as her knives since
+// 試玩回饋 ⑦) with three missing: the way through. The rest of her fight is the club's (test/blade.test.mjs): the dash, the
 // window with the blades up, the cut. A floor's fight is four segments (floorBoss), the last floor's five; down, the
 // style cards come and the exit opens. The club's queen, without `danmaku`, throws nothing and rings nothing.
 // Run: npm test
@@ -146,7 +146,7 @@ test('the knives: from her perch a red line on the player for 0.4 s (shots turne
   assert.ok(r.notes.length >= 1, `the note: ${r.notes}`);
 });
 
-test('the ring: as she lands on a perch sixteen slow blades go out in the pattern men’s look, three missing: a gap over 1.2 m wide 3 m out; the club’s queen (no `danmaku`) throws and rings nothing', async () => {
+test('the ring: as she lands on a perch sixteen blades go out, fast as her knives (試玩回饋 ⑦), three missing: a gap over 1.2 m wide 3 m out; the club’s queen (no `danmaku`) throws and rings nothing', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toArena(0, 0, 4);
@@ -182,7 +182,7 @@ test('the ring: as she lands on a perch sixteen slow blades go out in the patter
     return { n: one.length, speeds: [...new Set(one.map((s) => s.speed))], looks: [...new Set(one.map((s) => s.look))], widest, gapAt3m, club, clubShots: clubShots.length, state: g.boss.state };
   });
   assert.equal(r.n, 13, `sixteen less three: ${r.n}`);
-  assert.deepEqual([r.speeds, r.looks], [[6.5], ['danmaku']], 'slow, in the pattern men’s look');
+  assert.deepEqual([r.speeds, r.looks], [[24], ['enemy']], 'fast as her knives, in the arcade’s look (試玩回饋 ⑦)');
   assert.ok(r.gapAt3m > 1.2, `the gap 3 m out: ${r.gapAt3m.toFixed(2)} m`);
   assert.deepEqual(r.club, { danmaku: false, kind: 'blade' });
   assert.equal(r.clubShots, 0, `the club’s queen throws nothing (${r.state})`);

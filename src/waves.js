@@ -53,7 +53,9 @@ export const MODES = {
     // 彈幕 ② A①: the arcade's men; five in a room's first wave (four fired 1.96× the arcade's first wave, short of the 2×
     // asked: test/hell.test.mjs), five in its second (`total` by the wave's place in its room), `perFloor` more a floor
     // (C①: about 140 men a run of three floors; the bot clears it in about a quarter of an hour, a player quicker). A③: `also` the heavy three as pressers (the same [from wave, weight,
-    // most a wave]), and an `elite` of the slow walls (ringer, spiraler, fanner) in a room's first wave from `fromFloor`.
+    // most a wave]), and an `elite` in a room's first wave from `fromFloor`: the slow walls once (ringer, spiraler,
+    // fanner), since 試玩回饋 ⑦ (every round fast) three of the twelve with a problem of their own: the riot shield, the
+    // sniper, the grenadier.
     // F⑧b: REDESIGN §5's twelve (enemies.js TYPES `role`): the blade's, the blaster's and the volley man's problems
     // are the tumbler's, the shotgunner's and the captain's squad's now, so `skip` keeps the blade out and `also` gives
     // the tumbler and the shotgunner their weight; the sniper comes in; the machine gunner is the presser kept as a
@@ -66,7 +68,7 @@ export const MODES = {
       skip: ['drone', 'rusher'],
       fill: 'grunt',
       also: { tumbler: [3, 2.2, 2], shotgun: [2, 1.5, 2], hoser: [7, 1, 1] },
-      elite: { types: ['ringer', 'spiraler', 'fanner'], fromFloor: 1 },
+      elite: { types: ['shield', 'sniper', 'grenadier'], fromFloor: 1 },
     },
   },
 };
@@ -221,7 +223,7 @@ export class Waves {
     }
     for (let b = 0; b < brutes; b++) list.splice(Math.floor(rng.range(list.length * 0.4, list.length)), 0, 'brute');
     if (R && list.every((t) => t === 'grunt')) list[0] = R.fill;
-    // an elite (A③): one of the slow walls in a room's first wave, in the last place, from floor `fromFloor` (C①; a wave number `from` before)
+    // an elite (A③): one of `types` in a room's first wave, in the last place, from floor `fromFloor` (C①; a wave number `from` before)
     const E = R && R.elite;
     const due = E && (E.fromFloor !== undefined ? floorOfWave(n) >= E.fromFloor : n >= E.from);
     if (due && (n - 1) % this.rules.perStage === 0) list[list.length - 1] = E.types[rng.int(0, E.types.length - 1)];

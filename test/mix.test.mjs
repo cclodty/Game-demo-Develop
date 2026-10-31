@@ -1,9 +1,8 @@
-// 彈幕 ② A③: fast and slow together. The slow walls: the pattern men of 彈幕試驗 ③ (rings, spirals, fans, 6–8 m/s in
-// the solid pink look) come back as elites, one in a room's first wave from wave 3, to push the player about; the
-// pressers: the heavy three of ⑦ keep their patterns (the stream, the squad's row, the blast) with fast rounds in the
-// arcade's look, among the arcade's men from wave 2 (waves.js MODES.danmaku roster `also`, `elite`). The fast rounds
-// come between the slow walls; both looks tell apart on one screen; the gap guarantee (A②) counts the walls' rounds
-// as lines of fire and holds the pressers like any gun, never the walls (their gaps are their own).
+// 彈幕 ② A③: the pressers, the heavy three of ⑦, keep their patterns (the stream, the squad's row, the blast) with fast
+// rounds in the arcade's look; the gap guarantee (A②) counts their rounds as lines of fire and holds them like any gun.
+// Since F⑧b only the machine gunner of the three comes, from the second floor (waves.js MODES.danmaku roster `also`);
+// since 試玩回饋 ⑦ the slow walls that came between them (the pattern men, solid pink, 6–8 m/s) are gone, and a room's
+// elite is one of three of the twelve with a problem of their own (the riot shield, the sniper, the grenadier).
 // Run: npm test
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -69,7 +68,7 @@ after(async () => {
   await h.close();
 });
 
-test('the roster: no elite (a slow wall) on the first floor; the presser (the machine gunner) from the second floor, the volley man and the blaster drawn no more (F⑧b: the captain’s squad and the shotgunner have their problems); the same seed, the same roster', async () => {
+test('the roster: no elite on the first floor, from the second one in a room’s first wave, a riot shield, a sniper or a grenadier (試玩回饋 ⑦); the presser (the machine gunner) from the second floor, the volley man and the blaster drawn no more (F⑧b: the captain’s squad and the shotgunner have their problems); the same seed, the same roster', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom();
@@ -86,41 +85,42 @@ test('the roster: no elite (a slow wall) on the first floor; the presser (the ma
     g.fixedSeed = keep;
     return { waves, again, hosers, firstFloor: g.floors[0].length * g.waves.rules.perStage };
   });
-  const walls = ['ringer', 'spiraler', 'fanner'];
-  const first = r.waves.slice(0, r.firstFloor);
-  const elites = first.map((w) => w.filter((t) => walls.includes(t)).length);
-  assert.ok(elites.every((n) => n === 0), `none on the first floor (the elites come from the second: test/floors.test.mjs): ${elites}`);
+  const per = 2; // waves a room
+  const firstWaves = r.waves.filter((_, i) => i % per === 0); // each room's first wave
+  const lastOf = firstWaves.map((w) => w[w.length - 1]);
+  const elite = ['shield', 'sniper', 'grenadier'];
+  const onFirst = lastOf.slice(0, r.firstFloor / per);
+  assert.ok(onFirst.filter((t) => elite.includes(t)).length < onFirst.length, `not every first-floor room ends its first wave on an elite: ${onFirst}`);
+  assert.ok(lastOf.slice(r.firstFloor / per).every((t) => elite.includes(t)), `from the second floor every room’s first wave ends on one: ${lastOf.slice(r.firstFloor / per)}`);
+  assert.ok(!r.waves.flat().some((t) => ['ringer', 'spiraler', 'fanner'].includes(t)), 'no pattern man (試玩回饋 ⑦)');
   assert.ok(r.hosers.length > 0 && Math.min(...r.hosers) > r.firstFloor, `the machine gunner from the second floor: waves ${r.hosers}`);
   assert.ok(!r.waves.flat().some((t) => t === 'volleyer' || t === 'blaster'), 'the volley man and the blaster drawn no more');
   assert.ok(r.waves.flat().includes('grunt'), 'the arcade’s men still');
   assert.deepEqual(r.again, r.waves, 'the same seed, the same roster');
 });
 
-test('a wall’s rounds are slow and solid pink, a presser’s fast and in the arcade’s look; the gap guarantee counts a wall’s rounds as lines of fire', async () => {
+test('a presser’s rounds are fast and in the arcade’s look; the gap guarantee counts them as lines of fire', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     window.toRoom(-3, 2.5);
-    const ringer = window.put('ringer', -9, -5.5);
     const hoser = window.put('hoser', -3, -6.5);
-    const shots = window.watch([ringer, hoser], 120 * 4);
-    const by = (k) => shots.filter((s) => s.who === k);
+    const hose = window.watch([hoser], 120 * 4);
     const p = g.player;
-    // the ring's rounds about the player are lines of fire for the gate (fireLines counts every enemy round)
-    const ringAbout = g.bullets.list.filter((b) => b.owner === 'enemy' && b.look === 'danmaku' && Math.hypot(b.x - p.x, b.z - p.z) < 6).length;
+    // the stream's rounds about the player are lines of fire for the gate (fireLines counts every enemy round)
+    const about = g.bullets.list.filter((b) => b.owner === 'enemy' && Math.hypot(b.x - p.x, b.z - p.z) < 6).length;
     const lines = window.fireLines(g.bullets.list, p.x, p.z, 6).length;
-    // a blaster on his own (beside a ring's wall his fan would close every spot, and the gate holds him: the next test)
+    // a blaster on his own
     window.toRoom(-3, 2.5);
     const blaster = window.put('blaster', 2, 0, 0.6);
-    const blast = window.watch([blaster], 120 * 4).map((s) => ({ ...s, who: 2 }));
-    return { ring: by(0), hose: by(1), blast, ringAbout, lines };
+    const blast = window.watch([blaster], 120 * 4);
+    return { hose, blast, about, lines };
   });
-  assert.ok(r.ring.length > 20 && r.ring.every((s) => s.speed <= 8 && s.look === 'danmaku'), `the ring: ${r.ring.length} slow pink rounds`);
   assert.ok(r.hose.length > 20 && r.hose.every((s) => s.speed >= 17 && s.look === 'enemy'), `the stream: ${r.hose.length} fast rounds in the arcade's look`);
   assert.ok(r.blast.length > 10 && r.blast.every((s) => s.speed >= 15 && s.look === 'enemy'), `the blast: ${r.blast.length} fast pellets`);
-  assert.ok(r.ringAbout > 0 && r.lines >= r.ringAbout, `the ring's ${r.ringAbout} rounds about the player are among the ${r.lines} lines of fire`);
+  assert.ok(r.lines >= r.about, `the ${r.about} rounds about the player are among the ${r.lines} lines of fire`);
 });
 
-test('six blasters round the player are held for the gap like any gun; six ringers round him are not (their rings have gaps of their own)', { timeout: 10 * 60 * 1000 }, async () => {
+test('six blasters round the player are held for the gap like any gun', { timeout: 10 * 60 * 1000 }, async () => {
   const r = await page.evaluate(() => {
     const ring = (type) => {
       window.toRoom(0, 0);
@@ -134,20 +134,17 @@ test('six blasters round the player are held for the gap like any gun; six ringe
       }
       return n;
     };
-    const blasters = waits(ring('blaster'), 120 * 8);
-    const ringers = waits(ring('ringer'), 120 * 8);
-    return { blasters, ringers };
+    return { blasters: waits(ring('blaster'), 120 * 8) };
   });
   assert.ok(r.blasters > 0, `blasters held for the gap (${r.blasters} man-steps)`);
-  assert.equal(r.ringers, 0, 'ringers never');
 });
 
-test('screenshot: a ring’s slow wall and the thugs’ fast rounds in the teahouse, the player in bullet time', async () => {
+test('screenshot: the machine gunner’s stream and the thugs’ fast rounds in the teahouse, the player in bullet time', async () => {
   await page.evaluate(() => {
     const g = window.game;
     g.view = 2;
     window.toRoom(-3, 2.5);
-    window.put('ringer', -3, -5.5);
+    window.put('hoser', -3, -5.5);
     window.put('rifle', -9, -5.5, 0.9);
     window.put('rifle', 6, -5.5, 1.1);
     window.put('grunt', 9, -1, 1.0);

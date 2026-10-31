@@ -293,33 +293,6 @@ export class Player {
     }
   }
 
-  /**
-   * A ring man held up (F⑧a, TYPES `shieldRing`): his ring goes out round the player every PLAYER.humanShield.ringEvery s
-   * (the first as he is grabbed), its rounds the player's own, at his ring's speed and reach.
-   */
-  hostageRing(dt) {
-    const g = this.game;
-    const e = this.hostage;
-    const H = PLAYER.humanShield;
-    this.hostageFireT -= dt;
-    if (this.hostageFireT > 0) return;
-    this.hostageFireT = H.ringEvery;
-    const w = e.weaponStats; // his WEAPONS entry (enemies.js ring, spiral, fan)
-    if (!w) return;
-    const n = w.pattern === 'ring' ? w.count : H.ringCount; // the lion dancer's two dances (F⑧b) go round as a ring too
-    for (let i = 0; i < n; i++) {
-      const a = this.facing + (i / n) * Math.PI * 2;
-      const dx = Math.sin(a);
-      const dz = Math.cos(a);
-      g.bullets.spawn({ x: this.x + dx, z: this.z + dz, dx, dz, speed: w.speed, owner: 'player', damage: H.ringDmg, range: w.range, weapon: null, shieldRing: true, look: 'player' });
-    }
-    g.audio.shot(w.sound, g.panFor(e.x));
-    if (!this.hostageFired) {
-      this.hostageFired = true;
-      g.notes.log(`人盾放環：${e.cfg.name}`);
-    }
-  }
-
   /** The man held up in front, where the arms hold him: `gap` m ahead, facing the way the player faces. */
   holdHostage() {
     const e = this.hostage;
@@ -442,7 +415,6 @@ export class Player {
         this.letGo();
       } else if (this.hostageT <= 0) this.letGo();
       else if (this.hostage.cfg.heavy || this.hostage.cfg.heldFire) this.hostageFire(dt);
-      else if (this.hostage.cfg.shieldRing) this.hostageRing(dt);
     }
     // the HUD's hint (hud.js): E would hold the man in front, nothing else to pick up or swap (B③)
     this.grabPrompt = this.alive && !this.hostage && !g.pickups.prompt && !g.thrown.prompt && !g.thrown.inHand && !g.thrown.carry && !!this.grabTarget();
