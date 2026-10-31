@@ -1645,10 +1645,32 @@
 - 漂亮的解法：未搬之前先睇到 Godot 版會係乜樣，美術方向可以早啲改
 - 涉及：`godot/lookdev/`（新：`project.godot`、場景、shader、截圖腳本）、`docs/shots/godot/`
 - 驗收：
-  - [ ] 截圖：遊戲鏡頭（俯視 45°）、近啲嘅角度、正上望落，三張
-  - [ ] 一句指令重出截圖（Xvfb＋軟件渲染：`godot --path godot/lookdev -s tools/shot.gd`），README 寫明
-  - [ ] JS 遊戲同測試冇郁（npm run lint && npm test 照過）
+  - [x] 截圖：遊戲鏡頭（俯視 45°）、近啲嘅角度、正上望落，三張（加多一張 45° 側俯視成間房：`docs/shots/godot/`）
+  - [x] 一句指令重出截圖（Xvfb＋軟件渲染：`godot --path godot/lookdev -s tools/shot.gd`），README 寫明
+  - [x] JS 遊戲同測試冇郁（npm run lint && npm test 照過）
 - 這次不做：玩法、搬遷 G① 嘅工程結構（新倉定 `godot/` 照 G① 再定）、模型、動畫
+
+### G⓪b：茶樓 Blender 版（環境同道具建模試看；估計：一天；2026-10-31 寫，開發者 10-31：G⓪ 「太似玩具，唔夠動畫感」「主要是環境和道具的問題，建模過於簡單」「想試一下整個場景都先用 Blender 處理」）
+- 目標：G⓪ 嗰間茶樓（同樣 26.4 × 18 米，場景唔縮），環境同道具全部改喺 Blender 用 Python 腳本生成，導出 glTF 入 `godot/lookdev/`，用返 G⓪ 嘅賽璐璐 shader 同鏡頭出圖。道具要有第二層形狀同細節：牆身（護牆板、線腳、門框、門釘、窗花）、圓枱（枱布摺邊、轉盤）、凳、點心車同竹蒸籠、茶壺茶杯、燈籠同吊燈、掛軸、屏風、招牌（中文字）、地磚；再加生活雜物，令間房唔再似模型盒。廣東味（開發者 10-31：絕區零廣東嗰章嘅感覺）；人照舊 6.5 頭身（開發者 10-31 定），呢張卡人仍用積木做比例
+- 漂亮的解法：每件道具一個腳本，一句指令重出；之後換風格只係改腳本，唔使手執
+- 涉及：`godot/lookdev/blender/`（新：生成腳本）、`godot/lookdev/models/`（新：生成嘅 .glb）、`godot/lookdev/scripts/teahouse.gd`（擺模型）、`docs/shots/godot/`
+- 驗收：
+  - [x] 截圖：同 G⓪ 一樣四個鏡頭，加一張道具排排企嘅特寫（兩張：掛牆、落地；`docs/shots/godot/`）
+  - [x] 一句指令由腳本重出全部模型（`blender -b -P godot/lookdev/blender/build.py`），再一句出截圖；README 寫明
+  - [x] 每件道具嘅三角形數，同成間房一格嘅 draw call，列喺 README（G① 定預算用：遊戲鏡頭一格 2,000 個 draw call，太重，README 寫咗點減）
+  - [x] JS 遊戲同測試冇郁（npm run lint && npm test 照過：CI 三份全綠）
+- 這次不做：角色模型（6.5 頭身嘅人留畀 H①）、動畫、玩法、手繪貼圖（用程序材質同頂點色）、其他房
+
+### G⓪c：打包畀本機 Blender MCP（估計：半天；2026-10-31 寫，開發者 10-31：G⓪b「仲係有啲似玩具」「可能要打包到本地用 MCP 生成看看可否做得更精細」）
+- 目標：開發者喺自己部機用 Claude Desktop 加 Blender MCP，喺 G⓪b 嘅模型上面做細啲、或者換 AI 生成／素材庫嘅模型，出返嚟照樣入 Godot 嘅茶樓、照樣係賽璐璐同描邊
+- 漂亮的解法：流程唔使改就收貨：帶貼圖嘅模型都得（描邊法線搬去第二套 UV，賽璐璐材質跟貼圖）；一件道具喺開住嘅 Blender 導出，唔整爛個場景
+- 涉及：`godot/lookdev/blender/kit.py`（`finish` 保留模型自己嘅 UV、描邊寫第二套 UV、`keep` 唔郁原件）、`blender/open.py`（新：喺 Blender 開一件道具出嚟改）、`shaders/toon.gdshader`（貼圖）、`shaders/outline_model.gdshader`（讀 UV2）、`scripts/dress.gd`、`godot/lookdev/MCP.md`（新：本機做法、規矩、交俾本機 Claude 嘅開場白）
+- 驗收：
+  - [x] 一個帶貼圖嘅測試模型經 `kit.finish` 入 Godot：貼圖喺、描邊喺（截圖 `docs/shots/godot/g0c-textured.jpg`；`keep=True` 導出前後場景一樣）
+  - [x] G⓪b 十六件重出，四個鏡頭同之前一樣（描邊冇斷）
+  - [x] 一個 zip：Godot 工程（連模型同 Blender 腳本）、`MCP.md`、美術聖經、截圖；README 寫明點開
+  - [ ] JS 遊戲同測試冇郁（npm run lint && npm test 照過）
+- 這次不做：喺雲端機裝或者行 MCP、揀素材、新道具、角色
 
 ### G①–G⑦：Godot 搬遷（每步估計：一至三天；在新引擎做，驗收見 `docs/REDESIGN.md` §10）
 - G① 空工程、一間房、積木玩家與一支槍、固定步進、輸入記錄與重播、測試架與 CI
