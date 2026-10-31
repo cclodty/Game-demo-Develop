@@ -1,0 +1,190 @@
+{
+  "shell": {
+    "tris": 38872,
+    "materials": [
+      "vermilion",
+      "black",
+      "ink_green",
+      "ink_green_light",
+      "gold",
+      "wood",
+      "wood_red",
+      "vermilion_dark"
+    ]
+  },
+  "table_set": {
+    "tris": 15148,
+    "materials": [
+      "vermilion_dark",
+      "gold_dark",
+      "cream",
+      "cloth",
+      "wood",
+      "glass",
+      "clay",
+      "bamboo",
+      "bamboo_dark",
+      "porcelain",
+      "porcelain_blue",
+      "siumai",
+      "roe",
+      "dumpling",
+      "vermilion",
+      "wood_red",
+      "wood_light"
+    ]
+  },
+  "trolley": {
+    "tris": 6800,
+    "materials": [
+      "steel",
+      "rubber",
+      "steel_dark",
+      "black",
+      "bamboo",
+      "bamboo_dark",
+      "cream",
+      "vermilion",
+      "wood",
+      "porcelain"
+    ]
+  },
+  "altar": {
+    "tris": 2356,
+    "materials": [
+      "wood_red",
+      "vermilion",
+      "gold",
+      "lantern_glow",
+      "porcelain",
+      "roe"
+    ]
+  },
+  "counter": {
+    "tris": 3605,
+    "materials": [
+      "wood_red",
+      "wood_light",
+      "vermilion",
+      "gold",
+      "black",
+      "wood",
+      "cream",
+      "glass",
+      "roe",
+      "pink",
+      "jade",
+      "siumai"
+    ]
+  },
+  "fish_tank": {
+    "tris": 1490,
+    "materials": [
+      "tile_white",
+      "tile_green",
+      "water",
+      "gravel",
+      "steel",
+      "steel_dark",
+      "sign_glow",
+      "fish",
+      "porcelain"
+    ]
+  },
+  "tea_urn": {
+    "tris": 1204,
+    "materials": [
+      "steel",
+      "steel_dark",
+      "cream",
+      "black"
+    ]
+  },
+  "plant": {
+    "tris": 2736,
+    "materials": [
+      "porcelain",
+      "porcelain_blue",
+      "plant",
+      "ink_green_light"
+    ]
+  },
+  "screen": {
+    "tris": 2044,
+    "materials": [
+      "wood_red",
+      "gold",
+      "cream",
+      "wood",
+      "jade",
+      "ink_green",
+      "vermilion"
+    ]
+  },
+  "window": {
+    "tris": 808,
+    "materials": [
+      "paper_glow",
+      "wood",
+      "wood_red",
+      "gold"
+    ]
+  },
+  "menu_boards": {
+    "tris": 10168,
+    "materials": [
+      "wood",
+      "wood_red",
+      "gold",
+      "cream",
+      "vermilion"
+    ]
+  },
+  "plaque": {
+    "tris": 2518,
+    "materials": [
+      "black",
+      "gold",
+      "wood",
+      "vermilion"
+    ]
+  },
+  "lantern": {
+    "tris": 636,
+    "materials": [
+      "wood",
+      "gold",
+      "lantern_glow",
+      "vermilion"
+    ]
+  },
+  "scroll_yumcha": {
+    "tris": 1195,
+    "materials": [
+      "ink_green",
+      "cream",
+      "black",
+      "wood",
+      "gold"
+    ]
+  },
+  "scroll_tea": {
+    "tris": 1567,
+    "materials": [
+      "ink_green",
+      "cream",
+      "black",
+      "wood",
+      "gold"
+    ]
+  },
+  "clock": {
+    "tris": 768,
+    "materials": [
+      "wood",
+      "gold",
+      "cream",
+      "black"
+    ]
+  }
+}

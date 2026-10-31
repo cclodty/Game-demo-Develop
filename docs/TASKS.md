@@ -1655,9 +1655,9 @@
 - 漂亮的解法：每件道具一個腳本，一句指令重出；之後換風格只係改腳本，唔使手執
 - 涉及：`godot/lookdev/blender/`（新：生成腳本）、`godot/lookdev/models/`（新：生成嘅 .glb）、`godot/lookdev/scripts/teahouse.gd`（擺模型）、`docs/shots/godot/`
 - 驗收：
-  - [ ] 截圖：同 G⓪ 一樣四個鏡頭，加一張道具排排企嘅特寫
-  - [ ] 一句指令由腳本重出全部模型（`blender -b -P godot/lookdev/blender/build.py`），再一句出截圖；README 寫明
-  - [ ] 每件道具嘅三角形數，同成間房一格嘅 draw call，列喺 README（G① 定預算用）
+  - [x] 截圖：同 G⓪ 一樣四個鏡頭，加一張道具排排企嘅特寫（兩張：掛牆、落地；`docs/shots/godot/`）
+  - [x] 一句指令由腳本重出全部模型（`blender -b -P godot/lookdev/blender/build.py`），再一句出截圖；README 寫明
+  - [x] 每件道具嘅三角形數，同成間房一格嘅 draw call，列喺 README（G① 定預算用：遊戲鏡頭一格 2,000 個 draw call，太重，README 寫咗點減）
   - [ ] JS 遊戲同測試冇郁（npm run lint && npm test 照過）
 - 這次不做：角色模型（6.5 頭身嘅人留畀 H①）、動畫、玩法、手繪貼圖（用程序材質同頂點色）、其他房
 

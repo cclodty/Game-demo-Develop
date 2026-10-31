@@ -35,6 +35,13 @@ func _process(_delta: float) -> bool:
 	var path := _out.path_join("teahouse-%s.jpg" % VIEWS[_i])
 	var err := root.get_texture().get_image().save_jpg(path, 0.88)
 	print("%s %s" % ["saved" if err == OK else "FAILED", path])
+	# what the frame cost: draw calls and triangles, the camera's pass and the shadows' (README's table)
+	var vp := root.get_viewport_rid()
+	var info := []
+	for pass_type in [RenderingServer.VIEWPORT_RENDER_INFO_TYPE_VISIBLE, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_SHADOW]:
+		info.append(RenderingServer.viewport_get_render_info(vp, pass_type, RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME))
+		info.append(RenderingServer.viewport_get_render_info(vp, pass_type, RenderingServer.VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME))
+	print("  %s: %d draw calls, %d triangles; shadows %d draw calls, %d triangles" % [VIEWS[_i], info[0], info[1], info[2], info[3]])
 	_i += 1
 	_frames = 0
 	return _i >= VIEWS.size()

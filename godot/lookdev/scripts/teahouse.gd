@@ -1,32 +1,39 @@
 ## The teahouse (茶樓), the game's first room, set dressed as the second generation means it to look
 ## (docs/REDESIGN.md §2, the art bible): cel light in two bands with purple-blue shade, a dark ink line, vermilion
-## and ink green with gold and cream, warm lamps. Built here from the room's own data (src/rooms.js TEAHOUSE, at the
-## game's ROOM_SIZE.scale 1.2: places spread out, things keep their size) with Godot's own meshes and shaders, no
-## model files. A look test only (TASKS.md G⓪): nothing in it plays. Nothing hangs over the floor, as in the game:
-## nothing comes between the camera and a bullet.
+## and ink green with gold and cream, warm lamps. Laid out from the room's own data (room.json: src/rooms.js TEAHOUSE
+## at the game's ROOM_SIZE.scale 1.2, places spread out, things keep their size). Two ways to dress it: the props
+## modelled in Blender by script (blender/, models/*.glb: TASKS.md G⓪b), or, with `models` off, Godot's own boxes
+## and cylinders (G⓪, the first try). A look test only: nothing in it plays. Nothing hangs over the floor, as in the
+## game: nothing comes between the camera and a bullet.
 extends Node3D
 
 const TOON := preload("res://shaders/toon.gdshader")
 const OUTLINE := preload("res://shaders/outline.gdshader")
+const Dress := preload("res://scripts/dress.gd")
 const FLOOR := preload("res://shaders/floor.gdshader")
 
-## rooms.js TEAHOUSE, the template's numbers (metres; +Z is south, towards the camera).
-const SCALE := 1.2
-const SIZE := Vector2(22.0, 15.0)
-const WALL_H := 3.2
-const LOW_H := 0.9
-const LOW_SIDES := ["s", "w"]
-const DOORS := [["n", -5.0], ["n", 5.0], ["e", -3.0], ["e", 3.0]]
-const EXITS := [["n", 0.0], ["e", 0.0]]
-const ENTRY := ["s", 0.0]
-const TABLES := [[-6.0, -3.0, 0.85], [0.0, -3.0, 0.85], [6.0, -3.0, 0.85], [-6.0, 3.0, 0.85], [0.0, 3.0, 0.85], [6.0, 3.0, 0.85]]
-const TROLLEYS := [[-9.0, 5.5, 0.0], [9.0, -5.5, PI]]
-const LAMPS := [[-3.0, -3.0], [3.0, -3.0], [-3.0, 3.0], [3.0, 3.0]]
-const PLAYER := Vector2(-3.0, 1.0) ## where the block player stands (the camera follows it, as in the game)
-const DOOR_W := 1.6
-const EXIT_W := 1.8
-const DOOR_H := 2.5
-const WALL_T := 0.3
+## the Blender models (G⓪b); off, the G⓪ blocks
+@export var models := true
+
+## The room's numbers (metres; +Z is south, towards the camera), read once from room.json, which the Blender
+## scripts read too: constants in all but name.
+var SCALE: float
+var SIZE: Vector2
+var WALL_H: float
+var LOW_H: float
+var LOW_SIDES: Array
+var DOORS: Array
+var EXITS: Array
+var ENTRY: Array
+var TABLES: Array
+var TROLLEYS: Array ## [x, z, turn in radians]
+var LAMPS: Array
+var PLAYER: Vector2 ## where the block player stands (the camera follows it, as in the game)
+var DOOR_W: float
+var EXIT_W: float
+var DOOR_H: float
+var WALL_T: float
+var DECOR: Array ## [model, wall, metres along it]: what stands or hangs against the walls (the models only)
 
 ## The palette: the teahouse's vermilion and ink green (art bible), gold and cream to set them off, dark wood.
 const VERMILION := Color(0.6, 0.16, 0.11)
@@ -43,16 +50,45 @@ const WARM := Color(1.0, 0.78, 0.55)
 var _mats := {}
 var camera: Camera3D
 
+func _init() -> void:
+	var room: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://room.json"))
+	SCALE = room.scale
+	SIZE = Vector2(room.size[0], room.size[1])
+	WALL_H = room.wallH
+	LOW_H = room.lowH
+	LOW_SIDES = room.lowSides
+	DOORS = room.doors
+	EXITS = room.exits
+	ENTRY = room.entry
+	TABLES = room.tables
+	TROLLEYS = room.trolleys.map(func(t): return [t[0], t[1], deg_to_rad(t[2])])
+	LAMPS = room.lamps
+	PLAYER = Vector2(room.player[0], room.player[1])
+	DOOR_W = room.doorW
+	EXIT_W = room.exitW
+	DOOR_H = room.doorH
+	WALL_T = room.wallT
+	DECOR = room.decor
+
 func _ready() -> void:
 	_environment()
 	_floor()
-	for side in ["n", "s", "w", "e"]:
-		_wall(side)
-	for t in TABLES:
-		_table(_at(t[0], t[1]), t[2])
-	for t in TROLLEYS:
-		_trolley(_at(t[0], t[1]), t[2])
-	_wall_dress()
+	if models:
+		_model("shell", Vector3.ZERO)
+		for t in TABLES:
+			_model("table_set", _at(t[0], t[1]))
+		for t in TROLLEYS:
+			_model("trolley", _at(t[0], t[1]), t[2])
+		for d in DECOR:
+			_on_wall(d[0], d[1], d[2])
+	else:
+		for side in ["n", "s", "w", "e"]:
+			_wall(side)
+		for t in TABLES:
+			_table(_at(t[0], t[1]), t[2])
+		for t in TROLLEYS:
+			_trolley(_at(t[0], t[1]), t[2])
+		_wall_dress()
 	_figures()
 	camera = Camera3D.new()
 	camera.fov = 40.0
@@ -111,6 +147,28 @@ func _mat(color: Color, glow := 0.0, ink := true) -> ShaderMaterial:
 	_mats[key] = m
 	return m
 
+## A Blender model (models/<id>.glb) placed at `at`, turned `rot_y`, dressed in the look (scripts/dress.gd).
+func _model(id: String, at: Vector3, rot_y := 0.0) -> Node3D:
+	var node := Dress.model(id)
+	node.position = at
+	node.rotation.y = rot_y
+	add_child(node)
+	return node
+
+## A wall piece (blender/wall_decor.py, furniture.py: built facing +z from the wall's inner face) set on `side`,
+## `along` metres from the wall's middle, facing into the room.
+func _on_wall(id: String, side: String, along: float) -> void:
+	var half := _half()
+	match side:
+		"n":
+			_model(id, Vector3(along, 0.0, -half.y), 0.0)
+		"s":
+			_model(id, Vector3(along, 0.0, half.y), PI)
+		"e":
+			_model(id, Vector3(half.x, 0.0, along), -PI * 0.5)
+		"w":
+			_model(id, Vector3(-half.x, 0.0, along), PI * 0.5)
+
 func _mesh(mesh: Mesh, pos: Vector3, mat: Material, rot_y := 0.0, parent: Node3D = null) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
@@ -160,7 +218,7 @@ func _environment() -> void:
 	# the moon through the roof the camera looks in by: from the camera's side, casting the shadows
 	var sun := DirectionalLight3D.new()
 	sun.light_color = Color(1.0, 0.96, 0.9)
-	sun.light_energy = 0.7
+	sun.light_energy = 0.55
 	sun.rotation_degrees = Vector3(-58.0, -28.0, 0.0)
 	sun.shadow_enabled = true
 	add_child(sun)
@@ -168,8 +226,8 @@ func _environment() -> void:
 	for l in LAMPS:
 		var o := OmniLight3D.new()
 		o.light_color = WARM
-		o.light_energy = 0.35
-		o.omni_range = 9.0
+		o.light_energy = 0.9
+		o.omni_range = 8.0
 		o.position = _at(l[0], l[1]) + Vector3(0.0, 5.0, 0.0)
 		add_child(o)
 
@@ -178,6 +236,7 @@ func _floor() -> void:
 	plane.size = SIZE * SCALE
 	var m := ShaderMaterial.new()
 	m.shader = FLOOR
+	m.set_shader_parameter("half_size", _half())
 	_mesh(plane, Vector3.ZERO, m)
 
 ## The openings along `side`: each door, exit and the entry on it, as [middle along the wall, width].
