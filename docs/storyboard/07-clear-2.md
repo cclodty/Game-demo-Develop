@@ -5,7 +5,8 @@
 **改稿紀錄（開發者 10-31）：**
 
 - **第二稿：** 晶晶係真正嘅元兇。佢搶戲輸咗，妒忌又嬲，向金爺獻媚，主動要求揀 9527 做獵物，亦唔掩飾；靚，但唔值得原諒。佢唔識打，所以係背刺。紙條改由場務姐塞。
-- **第十稿（同日）：** 紙條改做場務姐趁 9527 未斷氣喺佢耳邊講細聲：「長鏡部機成晚都錄緊，後台都錄埋。」「記憶卡，機身第二格。」紙條帶落地府好古怪，9527 帶得走的只有記憶。
+- **第十一稿（同日）：** 場務姐唔係講俾 9527 聽：佢對住對講機呻「主機成晚冇停過錄，連後台都錄埋。」「張卡就爆，我換去機身第二格。」9527 臨死偷聽到（開發者：專登講俾就死的人聽，好似佢知道 9527 會輪迴）。
+- **第十稿（同日）：** 紙條改做場務姐趁 9527 未斷氣喺佢耳邊講細聲。紙條帶落地府好古怪，9527 帶得走的只有記憶。
 - **第九稿（同日）：** 刪咗 9527 避開螢幕時嗰句「呢個我識」（講得太多次），嗰格只有聲效。
 - **第八稿（同日，出咗圖之後）：** 大螢幕喺 9527 正前面倒落嚟，佢望住佢跌、記得佢、最後一刻避開；佢注意力喺前面，晶晶先由後面開槍。9527 中槍之後一直仆住，唔會反轉身：晶晶行到佢個頭前面蹲低。
 - **第五稿（同日）：**
@@ -33,7 +34,7 @@
   - 心甘：佢知道點解，冇遺憾。
   - 唔抵：為咗一個鏡頭俾人殺，唔值得。
 - **晶晶嘅樣：** 靚、冷、得意。開槍都係細細一支手袋槍。殺完人第一件事係對住直播機擺甫士。
-- **場務姐講細聲：** 佢好似序章咁蹲低「點屍」，頭都唔抬，喺 9527 耳邊講記憶卡喺邊（第 6 頁）。
+- **9527 偷聽到記憶卡：** 場務姐好似序章咁蹲低「點屍」，一路對住對講機呻張卡就爆，9527 臨死聽到（第 6 頁）。佢乜都唔知。
 - **連續性：** 金爺崩咗一隻金牙；9527 嘅領呔鬆咗。
 - **20 格、7 頁，約 65 秒。**
 
@@ -125,19 +126,23 @@
 
 **版面：** 左右兩格，中間斜邊。
 
-**場務姐講細聲，唔係塞紙條（10-31 第十稿）：** 紙條要帶落地府好古怪，而且輪迴之後咩都會重嚟；9527 帶得走的只有記憶（佢冇飲孟婆湯）。所以場務姐趁佢未斷氣，扮點屍，喺佢耳邊講兩句，佢記住。
+**9527 偷聽返嚟（10-31 第十一稿）：**
+- 紙條帶落地府好古怪：輪迴之後咩都會重嚟，9527 帶得走的只有記憶（佢冇飲孟婆湯）。
+- 但場務姐專登講俾一個就死的人聽，就好似佢知道 9527 會輪迴，佢的身份會唔對。
+- 所以場務姐乜都唔知。佢點屍，一路用對講機同同事呻工作，望都唔望 9527。
+- 9527 臨死聽到，記住；到地府先諗通（第 7 頁）。
 
-- **佢講乜：** 長鏡嗰部係戲棚的主直播機，成晚都冇停過錄，連後台都錄埋。即係話，金爺同晶晶喺後台講過乜，全部喺部機的記憶卡入面。
-- **點解佢知：** 佢係場務，部機的帶同卡都係佢換的。
-- **點解佢幫：** 唔講。佢成日望都唔望人；呢度係佢第一次做咗少少嘢，真結局佢第一次望住 9527（§3）。
+- **佢講乜：** 長鏡嗰部係戲棚的主直播機，成晚冇停過錄，連後台都錄埋，張卡就爆，佢要換去機身第二格。對佢嚟講只係日常工作。
+- **點解有用：** 後台都錄埋，即係金爺同晶晶喺後台講過乜，全部喺記憶卡入面。
+- **佢知唔知：** 唔知。真結局佢打板嗌收工，第一次望住 9527，只係認得呢個人做咗件大事（§3）。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
 | 16 | 中景 | 晶晶已經轉身唔再望佢，對住亮紅燈的直播機擺甫士，大螢幕入面的賭客歡呼；前景 9527 仆喺台板，慢慢合埋眼。**表情：平靜，好似終於放低咗** | 9527：「……原來係咁。」 | 長停 |
-| 17 | 近景 | 場務姐蹲喺 9527 身邊，好似平時咁剔文件夾「點屍」，頭都唔抬，嘴湊近佢耳邊講細聲；9527 對眼微微張開 | 場務姐（細聲）：「長鏡部機成晚都錄緊，後台都錄埋。」<br>場務姐（細聲）：「記憶卡，機身第二格。」 | 長停 |
+| 17 | 近景 | 場務姐蹲喺 9527 身邊，好似平時咁剔文件夾「點屍」，頭都唔抬，一路對住膊頭的對講機講嘢；佢冇望 9527。前景 9527 仆喺度，對眼微微張開，聽到 | 場務姐（對講機）：「主機成晚冇停過錄，連後台都錄埋。」<br>場務姐（對講機）：「張卡就爆，我換去機身第二格。」 | 長停 |
 
 ```text
-[共用風格] Two panels side by side with a slanted gutter. Left: Jing Jing has turned her back on him and poses for the broadcast camera with the red recording light, while on the giant screen above her the masked gamblers in their video-call windows cheer; in the foreground [9527] lies face down on the stage, one cheek on the boards, and slowly closes his eyes, calm, as if he has finally let something go. Right: a close-up: the tired crew woman in the cap and grey work shirt (as in the act cards) crouches beside [9527] as he lies face down, ticking her clipboard as if counting extras after a scene, not looking up, but her mouth is close to his ear as she whispers something; his eye, half closed, flickers open a little. Leave calm space near the top of both panels for dialogue.
+[共用風格] Two panels side by side with a slanted gutter. Left: Jing Jing has turned her back on him and poses for the broadcast camera with the red recording light, while on the giant screen above her the masked gamblers in their video-call windows cheer; in the foreground [9527] lies face down on the stage, one cheek on the boards, and slowly closes his eyes, calm, as if he has finally let something go. Right: a close-up: the tired crew woman in the cap and grey work shirt (as in the act cards) crouches beside [9527] as he lies face down, ticking her clipboard as if counting extras after a scene, and talks into the walkie-talkie clipped to her shoulder, bored, not looking at him at all; in the foreground his eye, half closed, flickers open a little: he has heard her. Leave calm space near the top of both panels for dialogue.
 ```
 
 ## 第 7 頁：心甘，但唔抵（3 格）
@@ -148,10 +153,10 @@
 |---|---|---|---|---|
 | 18 | 中景 | 地府櫃位：閻王今次冇托頭，望住 9527。**表情：罕有咁認真** | 閻王：「你知道點解，所以心甘。」 | 標準 |
 | 19 | 近景 | 閻王搖頭，蓋 NG 印 | 閻王：「但為咗一個鏡頭俾人殺——唔抵。」<br>印面（遊戲寫）：「NG」 | 標準 |
-| 20 | 近景 | 9527 坐喺櫃位前的膠凳，眼神定咗，諗緊嘢；旁邊一個褪色的細回憶格：場務姐喺佢耳邊講細聲 | 9527（心諗）：「機身第二格……」<br>字幕：「再嚟。」 | 長停 |
+| 20 | 近景 | 9527 坐喺櫃位前的膠凳，眼神定咗，諗緊嘢；旁邊一個褪色的細回憶格：場務姐喺佢身邊對住對講機講嘢 | 9527（心諗）：「後台都錄埋……」<br>9527（心諗）：「機身第二格。」<br>字幕：「再嚟。」 | 長停 |
 
 ```text
-[共用風格] Three panels. Top row, left to right: the underworld's reincarnation counter from the prologue: for once the King of the Underworld is not leaning on his hand; he looks straight at [9527], unusually serious; then the King shaking his head as he slams the big square red seal stamp onto a form (the seal face left blank). Across the bottom, a wide strip: [9527] sitting on the plastic chair in front of the counter, his eyes steady, thinking hard, remembering; beside him a small inset panel in faded old film colours shows the crew woman crouching and whispering at his ear on the stage. Leave calm space near the top of all three panels for dialogue and a caption.
+[共用風格] Three panels. Top row, left to right: the underworld's reincarnation counter from the prologue: for once the King of the Underworld is not leaning on his hand; he looks straight at [9527], unusually serious; then the King shaking his head as he slams the big square red seal stamp onto a form (the seal face left blank). Across the bottom, a wide strip: [9527] sitting on the plastic chair in front of the counter, his eyes steady, thinking hard, remembering; beside him a small inset panel in faded old film colours shows the crew woman crouching beside him on the stage, talking into her walkie-talkie. Leave calm space near the top of all three panels for dialogue and a caption.
 ```
 
 ## 出圖時附邊張
