@@ -5,6 +5,7 @@
 **改稿紀錄（開發者 10-31）：**
 
 - **第二稿：** 晶晶係真正嘅元兇。佢搶戲輸咗，妒忌又嬲，向金爺獻媚，主動要求揀 9527 做獵物，亦唔掩飾；靚，但唔值得原諒。佢唔識打，所以係背刺。紙條改由場務姐塞。
+- **第八稿（同日，出咗圖之後）：** 大螢幕喺 9527 正前面倒落嚟，佢望住佢跌、記得佢、最後一刻避開；佢注意力喺前面，晶晶先由後面開槍。9527 中槍之後一直仆住，唔會反轉身：晶晶行到佢個頭前面蹲低。
 - **第五稿（同日）：**
   - 刪咗晶晶「片商一個個唔再搵我……」「我所有嘢，全部俾你搶走！」嗰格，因為只係隔咗兩個月；佢亦唔使抹眼淚。
   - 9527 嘅道歉改做「我只係想做好演員」，同搶戲嗰場一樣係致敬周星馳《喜劇之王》。
@@ -40,28 +41,36 @@
 
 **版面：** 上面一條闊格（1）；下面兩格由左至右（2、3），3 係全黑細格。
 
+**點樣避得合理、背刺點樣入（10-31 第八稿）：**
+- 大螢幕喺 9527 正前面倒落嚟，佢望住佢跌，因為佢記得第一次通關就係俾佢壓死。
+- 佢喺最後一刻行開半步，螢幕喺佢面前撞落台。
+- 佢嘅注意力全部放晒喺前面嗰幅螢幕，鬆一口氣，背脊就留咗俾衣邊：晶晶就係揀呢一刻開槍。
+- 螢幕係前面嘅餌，晶晶係後面嘅後備（真結局揭穿嘅就係呢個局）。
+
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 1 | 遠景 | 天光，戲棚台上：大螢幕由竹架跌落嚟，9527 望都唔望，行開半步，螢幕喺佢身邊撞落台，木屑飛起；領呔鬆咗。**表情：呆，但有少少得意** | 聲效：「嘭！」<br>9527：「呢個我識。」 | 標準 |
-| 2 | 中景 | 9527 背住衣邊，伸懶腰望住台下空凳，好放鬆；金爺坐喺籌碼堆，崩咗隻金牙，笑住望佢後面。衣邊黑影入面，一隻着紫色長袖的手，舉起一支細細的鑲石手槍 | ——（冇字） | 長停 |
+| 1 | 遠景 | 天光，戲棚台上：大螢幕由前面竹架向 9527 倒落嚟；佢抬頭望住佢跌，喺最後一刻行開半步，螢幕喺佢面前撞落台，木屑飛起；領呔鬆咗。**表情：呆，但有少少得意** | 聲效：「嘭！」<br>9527：「呢個我識。」 | 標準 |
+| 2 | 中景 | 塵未散：9527 仲望住面前撞爛的螢幕，一隻手按住心口，鬆一口氣；佢背脊對住衣邊。金爺坐喺籌碼堆，崩咗隻金牙，笑住望佢後面。衣邊黑影入面，一隻着紫色長袖的手，舉起一支細細的鑲石手槍，瞄住佢背脊 | ——（冇字） | 長停 |
 | 3 | 全黑細格 | 乜都冇 | 聲效：「砰。」 | 長停 |
 
 ```text
-[共用風格] Three panels. Across the top, a wide strip: dawn on the stage of the bamboo opera theatre: the giant video screen falls from the bamboo frame and [9527], his tie pulled loose, steps half a pace aside without even looking, so it crashes onto the stage right beside him, splinters flying; his face is blank, with the faintest hint of smugness. Below it, two panels from left to right: left, [9527] stands with his back to the wings, stretching and looking out at the empty seats, relaxed; the gang boss sits among the scattered chips with his gold-toothed grin (one tooth missing), watching something behind him; in the dark of the wings behind [9527], a slender hand in a long deep purple sleeve raises a small jewelled pistol. Right, a small panel that is completely black. Leave calm space near the top of the wide panel for dialogue.
+[共用風格] Three panels. Across the top, a wide strip: dawn on the stage of the bamboo opera theatre: the giant video screen tips forward off the bamboo frame in front of [9527] and falls straight towards him; he looks up and watches it come, because he remembers it, and at the very last moment steps half a pace aside, so it crashes onto the stage right in front of him, splinters and dust flying; his tie is pulled loose; his face is blank, with the faintest hint of smugness. Below it, two panels from left to right: left, the dust still settling: [9527] stands looking at the wrecked screen in front of him, one hand on his chest, letting out a breath of relief, his back turned to the wings; the gang boss sits among the scattered chips with his gold-toothed grin (one tooth missing), watching something behind [9527]; in the dark of the wings behind him, a slender hand in a long deep purple sleeve raises a small jewelled pistol and aims at his back. Right, a small panel that is completely black. Leave calm space near the top of the wide panel for dialogue.
 ```
 
 ## 第 2 頁：記唔記得我（3 格）
 
 **版面：** 左邊一格大，約佔五分之三闊，右邊斜邊（4）；右邊兩格疊住（5 上、6 下）。
 
+9527 中咗槍，向前仆低；之後一直係仆住，唔會自己反轉身（10-31 第八稿）。晶晶行到佢個頭前面蹲低，佢塊面貼住台板，對眼向上望佢。
+
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 4 | 中景 | 慢鏡：9527 向前倒落台，就算俾人喺背後開槍，都倒得好靚（職業病）；佢後面，晶晶由衣邊行出嚟，深紫色旗袍晚裝，細手槍仲冒緊煙。**晶晶表情：靚、冷、得意** | 晶晶：「記唔記得我？」 | 標準 |
-| 5 | 近景 | 9527 瞓喺台板，側住頭望上去，認唔出。**表情：呆，努力諗** | 9527：「……你係金爺身邊嗰位小姐？」 | 標準 |
-| 6 | 近景 | 晶晶蹲低，用槍嘴托起 9527 個下巴，冷笑 | 晶晶：「我叫晶晶。」<br>晶晶：「我哋拍過戲㗎。」 | 標準 |
+| 4 | 中景 | 慢鏡：9527 中槍，向前仆落台，就算俾人喺背後開槍，都倒得好有戲（職業病）；佢後面，晶晶由衣邊行出嚟，深紫色旗袍晚裝，細手槍仲冒緊煙。**晶晶表情：靚、冷、得意** | 晶晶：「記唔記得我？」 | 標準 |
+| 5 | 近景（貼地） | 9527 仆喺台板，邊面貼住木板，眼向上望：前面一對紫色高踭鞋同裙腳行埋嚟。**表情：呆，努力諗** | 9527：「……你係金爺身邊嗰位小姐？」 | 標準 |
+| 6 | 近景 | 晶晶喺 9527 個頭前面蹲低，用槍嘴托起佢個下巴，令佢仆住都要抬頭望佢；冷笑 | 晶晶：「我叫晶晶。」<br>晶晶：「我哋拍過戲㗎。」 | 標準 |
 
 ```text
-[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: slow motion: [9527] falls forward onto the stage, shot in the back, and even so he falls in an absurdly graceful pose, a professional's reflex; behind him Jing Jing (as in the attached character sheet) steps out of the wings in her deep purple qipao-inspired evening dress, a small jewelled pistol still smoking in her hand; her expression is beautiful, cold and pleased with herself. Right column, two panels stacked with a slanted gutter: top, [9527] lying on the stage boards, his head turned to look up at her, blank and trying hard to place her; bottom, Jing Jing crouches beside him and lifts his chin with the muzzle of her pistol, a cold, contemptuous smile. Leave calm space near the top of all three panels for dialogue.
+[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: slow motion: [9527] is shot in the back and falls forward face down onto the stage, and even so he falls with a sense of drama, a professional's reflex; behind him Jing Jing (as in the attached character sheet) steps out of the wings in her deep purple qipao-inspired evening dress, a small jewelled pistol still smoking in her hand; her expression is beautiful, cold and pleased with herself. Right column, two panels stacked with a slanted gutter: top, a low shot at floor level: [9527] lies face down on the stage boards, one cheek pressed against the wood, his eyes turned up towards a pair of deep purple high heels and the hem of her dress walking up to his head; blank and trying hard to place her; bottom, Jing Jing crouches in front of his head and lifts his chin with the muzzle of her pistol, so that he has to raise his face from the boards to look at her while still lying face down; a cold, contemptuous smile. Leave calm space near the top of all three panels for dialogue.
 ```
 
 ## 第 3 頁：兩個月前（4 格，回憶）
@@ -104,10 +113,10 @@
 |---|---|---|---|---|
 | 13 | 中景（回憶，褪色） | 金爺的辦公室：晶晶坐喺金爺大腿，撒嬌咁攬住佢條頸，另一隻手指住檯面 9527 的大頭相；金爺金牙笑 | 晶晶：「所以我同金爺講：我要佢死。」<br>晶晶：「喺全腥港面前死。」 | 標準 |
 | 14 | 近景 | 返到而家：晶晶企起身，由上望落 9527，又變返冷冰冰。**表情：勝利，好靚** | 晶晶：「揀你做獵物嘅，係我。」<br>晶晶：「今晚，主角係我。」 | 標準 |
-| 15 | 特寫 | 9527 瞓喺台板，望住佢，冇嬲，反而好內疚，真心咁講 | 9527：「……對唔住。」<br>9527：「我只係想做好演員。」 | 長停 |
+| 15 | 特寫 | 9527 仍然仆喺台板，邊面貼住木板，對眼向上望住佢，冇嬲，反而好內疚，真心咁講 | 9527：「……對唔住。」<br>9527：「我只係想做好演員。」 | 長停 |
 
 ```text
-[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted, drawn in the same faded old film colours as a flashback: the gang boss's office: Jing Jing sits on the gang boss's knee, one arm wrapped around his neck as she flatters him, her other hand pointing at a headshot photo of 9527 lying on the desk; the gang boss grins with his gold teeth. Right column, two panels stacked with a slanted gutter, back in the present in full colour: top, Jing Jing stands up and looks down at the fallen [9527], cold again, triumphant and beautiful; bottom, a close-up of [9527] lying on the stage boards looking up at her, with no anger at all, only a sincere, guilty, apologetic look. Leave calm space near the top of all three panels for dialogue.
+[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted, drawn in the same faded old film colours as a flashback: the gang boss's office: Jing Jing sits on the gang boss's knee, one arm wrapped around his neck as she flatters him, her other hand pointing at a headshot photo of 9527 lying on the desk; the gang boss grins with his gold teeth. Right column, two panels stacked with a slanted gutter, back in the present in full colour: top, Jing Jing stands up and looks down at the fallen [9527], cold again, triumphant and beautiful; bottom, a close-up of [9527] still lying face down on the stage boards, one cheek against the wood, his eyes turned up to her, with no anger at all, only a sincere, guilty, apologetic look. Leave calm space near the top of all three panels for dialogue.
 ```
 
 ## 第 6 頁：原來係咁（2 格）
@@ -120,7 +129,7 @@
 | 17 | 中景 | 場務姐蹲喺 9527 屍體旁邊，好似平時咁剔文件夾「點屍」，另一隻手順手將一張摺埋的紙條塞入佢西裝袋，望都唔望佢 | ——（冇字） | 長停 |
 
 ```text
-[共用風格] Two panels side by side with a slanted gutter. Left: Jing Jing has turned her back on him and poses for the broadcast camera with the red recording light, while on the giant screen above her the masked gamblers in their video-call windows cheer; in the foreground [9527] lies on the stage and slowly closes his eyes, calm, as if he has finally let something go. Right: the tired crew woman in the cap and grey work shirt (as in the act cards) crouches beside [9527]'s body, ticking her clipboard as if counting extras after a scene, and with her other hand slips a small folded note into his white jacket pocket, not even looking at him. Leave calm space near the top of the left panel for dialogue.
+[共用風格] Two panels side by side with a slanted gutter. Left: Jing Jing has turned her back on him and poses for the broadcast camera with the red recording light, while on the giant screen above her the masked gamblers in their video-call windows cheer; in the foreground [9527] lies face down on the stage, one cheek on the boards, and slowly closes his eyes, calm, as if he has finally let something go. Right: the tired crew woman in the cap and grey work shirt (as in the act cards) crouches beside [9527]'s body, ticking her clipboard as if counting extras after a scene, and with her other hand slips a small folded note into his white jacket pocket, not even looking at him. Leave calm space near the top of the left panel for dialogue.
 ```
 
 ## 第 7 頁：心甘，但唔抵（3 格）
