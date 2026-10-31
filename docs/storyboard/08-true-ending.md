@@ -8,6 +8,7 @@
   - **一注獨中：** 9527 黃昏將份糧全部買自己「捱到天光　1 賠 500」。天光，螢幕同晶晶都殺唔到佢，全場得佢一注中（第 3 頁）。
   - **離間：** 9527 對住鏡頭多謝晶晶揀佢。天光嗰個局得金爺同晶晶知，人又係晶晶揀嘅，金爺即刻懷疑晶晶出賣佢；晶晶水洗唔清（第 4 頁）。
   - **最尾一句：**「雖然做開臨記……」「但今晚，我係主角。」（第 6 頁）
+  - 同日開發者再改兩句：收注佬「當你送錢。」改「你送錢？」；金爺兩句（「天光嗰個局，得你同我知。」「人，又係你揀嘅。」）改做一句「天光嗰下，得你同我知。」只改字，圖唔使改。
   - **生死冊：** 9527 捱過天光都冇問題，大禮係玉帝同閻王開口送嘅；佢收工之後照 §2 返櫃位等判（開發者 10-31）。
   - 頁數由 8 頁變 7 頁：舊第 3–5 頁（記憶卡、直播）冇咗，舊第 6、7 頁（找數、一次過）重新排過。
 - **第十稿（開發者 10-31，出咗圖之後）：** 晶晶唔投降：佢一路亂咁開槍。9527 唔殺佢，射佢頭頂嘅射燈，子彈反彈打甩個鈎，射燈跌落嚟撞暈佢。
@@ -34,7 +35,7 @@
   - 9527 兩樣都避得開，又買咗自己贏，人又係晶晶揀嘅：喺金爺眼中，一定係晶晶出賣佢。
   - 晶晶水洗唔清：9527 真係佢揀嘅；9527 點解知道個局，佢講唔出，因為只有 9527 知道輪迴。
   - 賭客見莊家個女人揀嘅獵物買自己贏，當佢哋夾份呃錢，全數退款，金爺破產。
-  - 冇人自爆：金爺嬲到衝口講「天光嗰個局」，晶晶只係嗌冤；兩個人都只係講咗一兩句。
+  - 冇人自爆：金爺嬲到衝口講「天光嗰下，得你同我知」，晶晶只係嗌冤；兩個人都只係講咗一句。
 - **「今晚我做莊」兌現：** 9527 打低金爺時執起籌碼講嘅一句（`04-defeats.md` 第 5 頁）。今晚贏莊家嘅，係佢。
 - **生死冊：** 9527 捱過天光，但大禮係玉帝同閻王開口送嘅，佢哋話事。佢收工之後好似每晚咁返櫃位等判（§2），閻王判心甘命抵，輪迴先完（開發者 10-31）。
 - **晶晶的收場：** 佢想 9527「喺全腥港面前死」；結果全腥港見住佢俾自己最想要嘅射燈撞暈，再俾金爺當叛徒。
@@ -46,6 +47,7 @@
   - 場務姐打場記板嗌收工，板上嘅 TAKE 數就係玩家用咗幾多晚。佢成日望都唔望人（第二次通關點屍都冇望佢），呢度第一次望住 9527，點一點頭。佢派嘅份糧，就係 9527 落嗰注。
   - 空凳：9527 終於坐喺台下第一行。佢唔再係獵物，係觀眾，好似盂蘭節神功戲終於有鬼坐（§10 第 6 項）。
   - 孟婆湯：序章佢唔飲，因為想知「點解係我」；第二次通關佢知道咗，今次佢接過碗湯。
+  - 「咁我搏冷門」：金爺入場頁，金爺話「全腥港都買你死」，9527 答「咁我搏冷門」（`03-bosses.md` 第 5 頁）。真結局佢真係買咗最冷嗰門，「捱到天光　1 賠 500」。
   - 金爺排第一千億零一號：大禮派晒。
 - **9527 的樣：** 心甘命抵（§3）。平靜、滿足；笑，但唔係型。多謝晶晶嗰下真誠有禮，嘴角得一絲笑。
 
@@ -110,7 +112,7 @@
 | 8 | 遠景 | 太陽由竹架後面升起；跌咗落嚟的大螢幕斜斜挨住台口，裂晒仲閃緊賭盤；台邊直播機紅燈亮住；9527 由貴賓位樓梯行返落台 | 賭盤（遊戲寫）：「捱到天光　1 賠 500　已派彩」<br>Action 叔（大聲公）：「天光喇！」<br>Action 叔（大聲公）：「捱到天光，一注獨中！」 | 標準 |
 | 9 | 近景 | 金爺坐喺籌碼堆，望住手機（螢幕留白，遊戲寫），崩咗金牙嗰個窿露出嚟，呆咗 | 手機（遊戲寫）：「中獎：9527」<br>Action 叔（大聲公）：「中獎嘅……係 9527？！」 | 標準 |
 | 10 | 中景（回憶，褪色） | 今晚黃昏，開機前的戲棚後台：場務姐頭都唔抬，望住文件夾，遞一個啡色人工信封俾 9527 | 字幕：「今晚，黃昏。」<br>場務姐：「9527，你份糧。」 | 標準 |
-| 11 | 中景（回憶，褪色） | 後台一張細收注枱：一個金牙幫打手做收注佬，枱面一疊注單同一個錢箱；9527 將個人工信封原封不動放上枱，個樣呆呆哋，好認真；收注佬笑到見金牙 | 9527：「全部，買捱到天光。」<br>收注佬：「當你送錢。」 | 長停 |
+| 11 | 中景（回憶，褪色） | 後台一張細收注枱：一個金牙幫打手做收注佬，枱面一疊注單同一個錢箱；9527 將個人工信封原封不動放上枱，個樣呆呆哋，好認真；收注佬笑到見金牙 | 9527：「全部，買捱到天光。」<br>收注佬：「你送錢？」 | 長停 |
 
 ```text
 [共用風格] Four panels. Top row, left to right: a larger panel: sunrise over the bamboo opera theatre: the sun comes up behind the bamboo frame; the giant video screen that fell lies tilted against the front of the stage, cracked all over but still flickering with the betting board (left blank for words to be added later); the broadcast camera at the edge of the stage has its red recording light on; [9527], his tie pulled loose, comes down the narrow staircase from the private box back onto the stage. Then a smaller panel: a close-up of the gang boss sitting among the scattered chips, his gold-toothed mouth with the one missing tooth hanging open, staring at the phone in his hand (its screen left blank), stunned. Bottom row, left to right, both drawn in faded old film colours (sepia and warm brown, a little grain, darkened edges) as a flashback to that evening: backstage at the bamboo theatre before the shoot, the tired crew woman in the cap and grey work shirt (as in the act cards) hands [9527] a small brown pay envelope without looking up from her clipboard; then a small betting table backstage: a gang henchman in a dark suit acting as the bookie, with a cash box and a stack of betting slips, laughs with his gold tooth showing, as [9527] puts the whole unopened pay envelope down on the table, his face blank and earnest. Leave calm space near the top of all four panels for dialogue and captions.
@@ -128,11 +130,11 @@
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
 | 12 | 中景 | 台中間，朝陽打喺 9527 身上；佢對住台邊亮紅燈的直播機，好有禮貌咁鞠一個躬，好似臨記收工多謝導演。**表情：真誠，嘴角得一絲笑** | 9527：「多謝晶晶小姐揀我。」 | 長停 |
-| 13 | 中景（仰角） | 金爺喺籌碼堆度慢慢抬頭，望上貴賓位，面色由青轉黑。**表情：疑心** | 金爺：「天光嗰個局，得你同我知。」<br>金爺：「人，又係你揀嘅。」 | 標準 |
+| 13 | 中景（仰角） | 金爺喺籌碼堆度慢慢抬頭，望上貴賓位，面色由青轉黑。**表情：疑心** | 金爺：「天光嗰下，得你同我知。」 | 標準 |
 | 14 | 中景 | 貴賓位：晶晶啱啱醒，頭頂腫起一舊，手仲揸住支鑲石手槍（越睇越似同謀）；佢捉住欄杆，對住下面拚命搖頭。**表情：驚、慌** | 晶晶：「唔、唔關我事！」 | 標準 |
 | 15 | 遠景 | 直播機旁邊的監視器：一格格視像窗口，戴面具的賭客嬲到拍枱、除面具（面孔普通、唔似真人），有人掟爛酒杯 | 賭客：「夾份呃錢！」<br>字幕：「賭局取消，全數退款。」 | 標準 |
 
-金爺衝口講「天光嗰個局」，全部賭客都聽到：佢自己認咗天光有局。晶晶揸住槍嗌冤，冇人信。兩個人都冇自爆，只係嬲同驚。
+金爺衝口講「天光嗰下，得你同我知」，全部賭客都聽到：佢自己認咗天光有嘢。人係晶晶揀嘅，9527 頭先已經多謝咗佢，金爺唔使再講。晶晶揸住槍嗌冤，冇人信。兩個人都冇自爆，只係嬲同驚。
 
 ```text
 [共用風格] Four panels. Top row, left to right: a larger panel: in the middle of the stage, morning sunlight falling on him, [9527] faces the broadcast camera with the red recording light at the edge of the stage and gives it a polite little bow, like an extra thanking the director at the end of a shoot; sincere, with only the faintest smile at the corner of his mouth. Then a low-angle panel: the gang boss among the chips slowly raises his head and glares up at the private box above the stage, his face darkening with suspicion. Bottom row, left to right: the private box: Jing Jing (as in the attached character sheet) has just come round, a bump on her head, her small jewelled pistol still in her hand; she grips the gilded railing and shakes her head frantically, shouting down at the boss, scared and flustered; then a monitor beside the broadcast camera showing a grid of video-call windows: the masked gamblers furious, banging the table, tearing off their masks (plain, ordinary faces that resemble no real people), one smashing a wine glass. Leave calm space near the top of all four panels for dialogue and a caption.
