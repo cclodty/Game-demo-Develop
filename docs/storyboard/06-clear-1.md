@@ -37,11 +37,13 @@
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
 | 4 | 中景（仰角） | 成幅大螢幕向住 9527 跌落嚟，個影已經蓋住佢；佢抬頭望。**表情：呆**，口少少擘開 | 聲效：「嘭！」 | 長停 |
-| 5 | 中景 | 地府櫃位：9527 坐喺膠凳，頭頂貼住一大塊四方膠布（螢幕咁大），揸住張籌，傾前身同閻王理論。**表情：唔服氣**（佢少有咁樣） | 9527：「我捱到天光㗎喎！」 | 標準 |
-| 6 | 中景 | 閻王好悶咁揭開一本厚厚的舊簿（生死冊，頁面留白），手指篤住其中一行 | 閻王：「生死冊寫咗：你今晚死。」<br>閻王：「改唔到。」 | 標準 |
+| 5 | 中景 | 地府櫃位：閻王好悶咁托住頭，揭開一本厚厚的舊簿（生死冊，頁面留白），手指篤住其中一行 | 閻王：「生死冊寫咗：你今晚死。」 | 標準 |
+| 6 | 中景 | 9527 坐喺膠凳，頭頂貼住一大塊四方膠布（螢幕咁大），揸住張籌，望住閻王抗議。**表情：唔服氣**（佢少有咁樣）；閻王一印蓋落去 | 9527：「我捱到天光㗎喎！」<br>閻王：「改唔到。」 | 標準 |
+
+**出咗圖之後（11-01）：** 圖將閻王揭生死冊放咗上面（5）、9527 抗議同閻王蓋印放咗下面（6），所以對白跟圖調位：閻王先讀生死冊，9527 抗議，閻王一印蓋落去講「改唔到」。
 
 ```text
-[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: low angle: the whole giant video screen is toppling down from the bamboo frame onto the stage, its huge shadow already covering [9527], who looks up at it with his blank, dazed face, mouth a little open. Right column, two panels stacked with a slanted gutter: top, the underworld's reincarnation counter from the prologue: [9527] sits on a plastic chair holding a queue ticket, a big square sticking plaster the shape of a screen on top of his head, his tie loose, leaning forward and protesting to the King, indignant for once; bottom, the King of the Underworld, bored, opens a thick old ledger (its pages show only blank lines, no writing) and taps one line with his finger. Leave calm space near the top of the two right panels for dialogue.
+[共用風格] Three panels. Left, the larger panel, about three fifths of the width, its right edge slanted: low angle: the whole giant video screen is toppling down from the bamboo frame onto the stage, its huge shadow already covering [9527], who looks up at it with his blank, dazed face, mouth a little open. Right column, two panels stacked with a slanted gutter: top, the underworld's reincarnation counter from the prologue: the King of the Underworld, bored, chin on his hand, opens a thick old ledger (its pages show only blank lines, no writing) and taps one line with his finger; bottom, [9527] sits on a plastic chair holding a queue ticket, a big square sticking plaster the shape of a screen on top of his head, his tie loose, protesting to the King, indignant for once, while the King slams a big square red seal stamp down. Leave calm space near the top of the two right panels for dialogue.
 ```
 
 ## 第 3 頁：點樣死，由你揀（3 格）
