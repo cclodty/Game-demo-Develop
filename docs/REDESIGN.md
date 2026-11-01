@@ -129,7 +129,7 @@
 
 **Mixamo 動畫清單：** idle、run、strafe、slide、spin（旋轉射擊用上身）、kick、carry（抱人）、shove、dive、wallrun、death × 2、hit、executed。
 
-**流程、費用、數量、提示詞第二版：** `docs/ASSET-GEN.md`（2026-11-01，H⓪；數量照 §5 現況：敵人十種、頭目五個人；Meshy 與 Tripo 試產比較、A-pose、主色表待開發者答該文 §8）。
+**人物用 Tripo 生成的流程和提示詞：** `docs/art/CHARACTERS-TRIPO.md` 和交 ChatGPT 的 `docs/art/model-sheets.txt`（2026-11-01，H⓪c；外形跟 `docs/art/CHARACTERS.md` 和過場設定圖；三視圖、A-pose、空手）。
 
 ## 8. 音樂與聲
 
