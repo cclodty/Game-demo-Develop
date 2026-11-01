@@ -1,6 +1,6 @@
 # 第三次通關：真結局《心甘命抵》
 
-2026-10-31 第十二稿 · TASKS「故事 ⑥」· 依據 `docs/STORY.md` §2（輪迴的規矩）、§3、§5、§10 第 6 項（空凳的伏筆）、§11。接住金爺倒下。
+2026-10-31 第十二稿（11-01 改最後一頁：9527 冇死）· TASKS「故事 ⑥」· 依據 `docs/STORY.md` §2（輪迴的規矩）、§3、§5、§10 第 6 項（空凳的伏筆）、§11。接住金爺倒下。
 
 **改稿紀錄：**
 
@@ -9,7 +9,7 @@
   - **離間：** 9527 對住鏡頭多謝晶晶揀佢。天光嗰個局得金爺同晶晶知，人又係晶晶揀嘅，金爺即刻懷疑晶晶出賣佢；晶晶水洗唔清（第 4 頁）。
   - **最尾一句：**「雖然做開臨記……」「但今晚，我係主角。」（第 6 頁）
   - 同日開發者再改兩句：收注佬「當你送錢。」改「你送錢？」；金爺兩句（「天光嗰個局，得你同我知。」「人，又係你揀嘅。」）改做一句「天光嗰下，得你同我知。」只改字，圖唔使改。
-  - **生死冊：** 9527 捱過天光都冇問題，大禮係玉帝同閻王開口送嘅；佢收工之後照 §2 返櫃位等判（開發者 10-31）。
+  - **生死冊：** 9527 捱過天光都冇問題，大禮係玉帝同閻王開口送嘅（開發者 10-31）。**佢最後冇死**（開發者 11-01）：佢唔再落地府，最後一頁由閻王喺地府睇直播判「心甘命抵」，親手改生死冊；孟婆收起碗湯；金爺排第一千億零一號（第 7 頁）。
   - 頁數由 8 頁變 7 頁：舊第 3–5 頁（記憶卡、直播）冇咗，舊第 6、7 頁（找數、一次過）重新排過。
 - **第十稿（開發者 10-31，出咗圖之後）：** 晶晶唔投降：佢一路亂咁開槍。9527 唔殺佢，射佢頭頂嘅射燈，子彈反彈打甩個鈎，射燈跌落嚟撞暈佢。
 - **第七稿（開發者 10-31）：** 直播播晶晶自己的錄影（第十二稿刪走）。
@@ -37,16 +37,16 @@
   - 賭客見莊家個女人揀嘅獵物買自己贏，當佢哋夾份呃錢，全數退款，金爺破產。
   - 冇人自爆：金爺嬲到衝口講「天光嗰下，得你同我知」，晶晶只係嗌冤；兩個人都只係講咗一句。
 - **「今晚我做莊」兌現：** 9527 打低金爺時執起籌碼講嘅一句（`04-defeats.md` 第 5 頁）。今晚贏莊家嘅，係佢。
-- **生死冊：** 9527 捱過天光，但大禮係玉帝同閻王開口送嘅，佢哋話事。佢收工之後好似每晚咁返櫃位等判（§2），閻王判心甘命抵，輪迴先完（開發者 10-31）。
+- **生死冊：** 9527 捱過天光，但大禮係玉帝同閻王開口送嘅，佢哋話事（開發者 10-31）。**9527 最後冇死**（開發者 11-01）：佢唔使返櫃位；閻王喺地府睇直播判佢心甘命抵，輪迴就完。第一次通關閻王講「生死冊……改唔到」，今次佢自己改：「玉帝開咗口，就改。」
 - **晶晶的收場：** 佢想 9527「喺全腥港面前死」；結果全腥港見住佢俾自己最想要嘅射燈撞暈，再俾金爺當叛徒。
   - 佢坐喺黑晒嘅貴賓位，電話震過不停；保鏢都跨過佢走咗，冇人理佢（10-31 第十稿：佢唔會投降，9527 亦唔殺佢）。
   - 唔值得原諒，所以冇人原諒佢。
 - **收晒伏筆：**
-  - 「做主角」：晶晶問佢「你一個臨記，憑咩做主角？」，佢答「……今晚唔係」；天光佢講「雖然做開臨記……但今晚，我係主角」；最後佢問閻王「下世，仲可唔可以做主角？」
+  - 「做主角」：晶晶問佢「你一個臨記，憑咩做主角？」，佢答「……今晚唔係」；天光佢講「雖然做開臨記……但今晚，我係主角」。（舊稿最尾佢問閻王「下世，仲可唔可以做主角？」：佢冇死，11-01 刪走）
   - 「呢個 take，一次過」：輪迴就係重拍，最後一次唔使 NG。
   - 場務姐打場記板嗌收工，板上嘅 TAKE 數就係玩家用咗幾多晚。佢成日望都唔望人（第二次通關點屍都冇望佢），呢度第一次望住 9527，點一點頭。佢派嘅份糧，就係 9527 落嗰注。
-  - 空凳：9527 終於坐喺台下第一行。佢唔再係獵物，係觀眾，好似盂蘭節神功戲終於有鬼坐（§10 第 6 項）。
-  - 孟婆湯：序章佢唔飲，因為想知「點解係我」；第二次通關佢知道咗，今次佢接過碗湯。
+  - 空凳：9527 終於坐喺台下第一行。佢唔再係獵物，係觀眾。神功戲本來做俾鬼睇，第一個坐落第一行嘅，反而係一個生人（§10 第 6 項）。
+  - 孟婆湯：序章佢唔飲，因為想知「點解係我」；佢最後都冇飲：孟婆對住直播冚返碗湯，將口頭禪「後生仔，飲咗佢先啦」反轉：「後生仔，遲啲先飲啦。」
   - 「咁我搏冷門」：金爺入場頁，金爺話「全腥港都買你死」，9527 答「咁我搏冷門」（`03-bosses.md` 第 5 頁）。真結局佢真係買咗最冷嗰門，「捱到天光　1 賠 500」。
   - 金爺排第一千億零一號：大禮派晒。
 - **9527 的樣：** 心甘命抵（§3）。平靜、滿足；笑，但唔係型。多謝晶晶嗰下真誠有禮，嘴角得一絲笑。
@@ -173,21 +173,29 @@
 [共用風格] Four panels. Across the top, a wide strip, low angle: the morning sun streams through the bamboo frame onto [9527] like one giant spotlight; he stands on the stage in front of the cracked, fallen giant screen, facing the broadcast camera, calm, with a small quiet smile; not cool, simply a man standing in the light at last. Below it, three panels from left to right: a close-up of [9527] looking straight into the broadcast camera's lens, the sunrise behind him, calm and content; then, behind the camera, the tired crew woman in the cap and grey work shirt (as in the act cards) raises her clapperboard and snaps it shut, motion lines (its writing area left blank); for the first time she looks straight at him, with a small nod; then the whole bamboo theatre empty in the morning sun streaming through the bamboo frame; [9527] sits alone in the front row of the empty seats, looking up at the empty stage, a small figure, peaceful. Leave calm space near the top of the wide strip and the first two lower panels for dialogue.
 ```
 
-## 第 7 頁：排隊先（4 格）
+## 第 7 頁：遲啲先飲（4 格）
 
-**版面：** 四格：上面兩格由左至右（23、24），下面兩格由左至右（25 細、26 大），斜邊。
+**版面：** 四格：上面兩格由左至右（23、24），下面兩格由左至右（25 細、26 大），斜邊（同舊稿一樣）。
 
-收工之後，9527 好似每晚咁返到櫃位等判（§2）。佢捱過咗天光，但大禮係玉帝同閻王開口送嘅，佢哋話事（開發者 10-31）。
+**9527 冇死（開發者 11-01）：** 佢冇落地府，呢頁冇佢本人，只喺地府嘅大電視度出現。閻王、孟婆喺櫃位睇住直播：
+- 閻王判「心甘命抵」，輪迴完。
+- 閻王親手改生死冊。第一次通關佢講「改唔到」，今次大禮係玉帝開口送嘅，佢就改（開發者 10-31：「玉皇大帝與閻王已經開口了」）。
+- 孟婆冚返碗湯。
+- 下一位係金爺。
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 23 | 中景 | 地府櫃位：閻王收起 NG 印；孟婆遞湯，9527 今次雙手接過碗湯 | 閻王：「心甘命抵。去投胎啦。」 | 標準 |
-| 24 | 近景 | 9527 捧住碗湯，回頭望閻王。**表情：有少少期待**，眼發光 | 9527：「下世，仲可唔可以做主角？」 | 標準 |
-| 25 | 近景 | 閻王面無表情，喺表格度蓋一個唔同的四方印（印面留白，遊戲寫「考慮」） | 印面（遊戲寫）：「考慮」<br>閻王：「排隊先。」 | 標準 |
-| 26 | 遠景 | 9527 捧住湯行開；下一個企喺櫃位前攞籌的係金爺：成身西裝、崩咗隻金牙、垂頭喪氣；叫號機留白 | 叫號機（遊戲寫）：「100,000,000,001」<br>閻王：「大禮？派晒喇。」 | 長停 |
+| 23 | 中景 | 地府櫃位：牆上一部大電視播緊直播，9527 細細個坐喺戲棚台下第一行，朝陽照住佢；閻王望住電視，將 NG 印收入櫃桶；孟婆喺佢身邊，捧住碗熱湯，笑笑口 | 閻王：「心甘命抵。」 | 標準 |
+| 24 | 近景 | 閻王揭開生死冊（頁面留白），揸住毛筆，喺其中一行劃一劃，劃走佢。**表情：面無表情，有啲唔情願** | 閻王：「生死冊改唔到……」<br>閻王：「玉帝開咗口，就改。」 | 長停 |
+| 25 | 近景 | 孟婆望住電視笑，將碗湯冚返蓋，放返上架 | 孟婆：「後生仔，遲啲先飲啦。」 | 標準 |
+| 26 | 遠景 | 下一個企喺櫃位前攞籌的係金爺：成身西裝、崩咗隻金牙、垂頭喪氣；叫號機留白；後面一條透明藍色的鬼排隊 | 叫號機（遊戲寫）：「100,000,000,001」<br>閻王：「下一位！」<br>閻王：「大禮？派晒喇。」 | 長停 |
+
+- 「下一位！」係閻王嘅口頭禪（§3）。
+- 金爺點死唔使講：佢呃咗成班有錢佬，黑色幽默，一個籌號就夠。
+- 一千億號係 9527 第一晚死嗰陣攞嘅（序章），所以金爺仍然係下一個：一千億零一。
 
 ```text
-[共用風格] Four panels. Top row, left to right: the underworld's reincarnation counter from the prologue: the King of the Underworld puts the red NG stamp away in a drawer, while the kind old woman offers a steaming bowl of soup and this time [9527] takes it gently in both hands; then a close-up of [9527] holding the bowl and looking back over his shoulder at the King, a hopeful little face, eyes shining. Bottom row, left to right: a small panel: the King, deadpan, stamps a different square seal onto a form (the seal face left blank); a large panel: [9527] walks away with his soup, and the next soul standing at the counter with a paper queue ticket is the gang boss, in his suit, the gap in his gold teeth showing, shoulders slumped, utterly deflated; the queue-number display above the counter is left blank; translucent blue ghosts queue behind him. Leave calm space near the top of all four panels for dialogue.
+[共用風格] Four panels. Top row, left to right: the underworld's reincarnation counter from the prologue: a big television on the wall shows the live broadcast, in which [9527] sits small and alone in the front row of the bamboo theatre's empty seats in the morning sun; the King of the Underworld, watching the television, puts the red NG stamp away in a drawer, while the kind old woman beside him holds a steaming bowl of soup and smiles; then a close-up of the King opening a thick old ledger (its pages show only blank lines, no writing) and striking through one line with a calligraphy brush, deadpan and a little grudging. Bottom row, left to right: a small panel: the kind old woman smiles up at the television, puts a lid on the bowl of soup and sets it back on the shelf; a large panel: the next soul standing at the counter with a paper queue ticket is the gang boss, in his suit, the gap in his gold teeth showing, shoulders slumped, utterly deflated; the queue-number display above the counter is left blank; translucent blue ghosts queue behind him. [9527] himself does not appear on this page except on the television. Leave calm space near the top of all four panels for dialogue.
 ```
 
 ## 出圖時附邊張
@@ -199,4 +207,4 @@
 | 4 | 9527 人物設定、晶晶設定圖、頭目設定圖（金爺）、序章第 5 頁（賭客） |
 | 5 | 晶晶設定圖、頭目設定圖（金爺） |
 | 6 | 9527 人物設定、層卡第 1 張（場務姐、場記板） |
-| 7 | 9527 人物設定、序章第 7、8 頁（地府、閻王、孟婆）、頭目設定圖（金爺） |
+| 7 | 序章第 7、8 頁（地府、閻王、孟婆、大電視）、頭目設定圖（金爺）、9527 人物設定（電視入面） |
