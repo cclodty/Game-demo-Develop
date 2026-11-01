@@ -1,6 +1,6 @@
 # 第三次通關：真結局《心甘命抵》
 
-2026-10-31 第十二稿（11-01 改最後一頁：9527 冇死）· TASKS「故事 ⑥」· 依據 `docs/STORY.md` §2（輪迴的規矩）、§3、§5、§10 第 6 項（空凳的伏筆）、§11。接住金爺倒下。
+2026-10-31 第十二稿（11-01：9527 冇死，最後落寞咁離開）· TASKS「故事 ⑥」· 依據 `docs/STORY.md` §2（輪迴的規矩）、§3、§5、§10 第 6 項（空凳的伏筆）、§11。接住金爺倒下。
 
 **改稿紀錄：**
 
@@ -45,11 +45,11 @@
   - 「做主角」：晶晶問佢「你一個臨記，憑咩做主角？」，佢答「……今晚唔係」；天光佢講「雖然做開臨記……但今晚，我係主角」。（舊稿最尾佢問閻王「下世，仲可唔可以做主角？」：佢冇死，11-01 刪走）
   - 「呢個 take，一次過」：輪迴就係重拍，最後一次唔使 NG。
   - 場務姐打場記板嗌收工，板上嘅 TAKE 數就係玩家用咗幾多晚。佢成日望都唔望人（第二次通關點屍都冇望佢），呢度第一次望住 9527，點一點頭。佢派嘅份糧，就係 9527 落嗰注。
-  - 空凳：9527 終於坐喺台下第一行。佢唔再係獵物，係觀眾。神功戲本來做俾鬼睇，第一個坐落第一行嘅，反而係一個生人（§10 第 6 項）。
+  - 空凳：9527 冇坐落觀眾席，一個人行過一排排空凳，落寞咁離開（開發者 11-01 改）。戲棚張張凳仍然係空，神功戲本來就係做俾鬼睇；佢係生人，戲做完就要走（§10 第 6 項）。
   - 孟婆湯：序章佢唔飲，因為想知「點解係我」；佢最後都冇飲：孟婆對住直播冚返碗湯，將口頭禪「後生仔，飲咗佢先啦」反轉：「後生仔，遲啲先飲啦。」
   - 「咁我搏冷門」：金爺入場頁，金爺話「全腥港都買你死」，9527 答「咁我搏冷門」（`03-bosses.md` 第 5 頁）。真結局佢真係買咗最冷嗰門，「捱到天光　1 賠 500」。
   - 金爺排第一千億零一號：大禮派晒。
-- **9527 的樣：** 心甘命抵（§3）。平靜、滿足；笑，但唔係型。多謝晶晶嗰下真誠有禮，嘴角得一絲笑。
+- **9527 的樣：** 心甘命抵（§3）。平靜、滿足；笑，但唔係型。多謝晶晶嗰下真誠有禮，嘴角得一絲笑。最後一格落寞：主角做完一晚，散場只得佢一個（開發者 11-01）。
 
 ## 幾時出
 
@@ -165,19 +165,19 @@
 | 19 | 遠景（仰角） | 朝陽由竹架後面照入嚟，好似一枝大射燈打正 9527；佢企喺跌爛的大螢幕前面，望住直播機。**表情：平靜，細細個笑**，唔係型，係終於企喺光入面 | 9527：「雖然做開臨記……」<br>9527：「但今晚，我係主角。」 | 長停 |
 | 20 | 近景 | 9527 望住直播機的鏡頭，陽光喺佢後面。**表情：平靜、滿足** | 9527：「呢個 take，一次過。」 | 長停 |
 | 21 | 中景 | 直播機後面：場務姐舉起場記板，「啪」一聲合埋（板上的字由遊戲寫，TAKE 數＝玩家用咗幾多晚）；佢第一次望住 9527，點一點頭 | 場記板（遊戲寫）：「一夜成名／TAKE ×××」<br>場務姐：「收工！」 | 標準 |
-| 22 | 遠景 | 成個戲棚冇人，朝早的陽光由竹架照入嚟；9527 一個人坐喺台下第一行，望住空嘅戲台 | ——（冇字） | 長停 |
+| 22 | 遠景 | 成個戲棚冇人，朝早的陽光由竹架照入嚟；9527 背住鏡頭，一個人沿住空凳之間的行人路行出戲棚，膊頭微微垂低，領呔鬆咗。**表情：落寞**（開發者 11-01：佢冇坐落觀眾席，係離開） | ——（冇字） | 長停 |
 
 「雖然做開臨記……但今晚，我係主角」（開發者 10-31）接返三句：第二次通關晶晶嘅「今晚，主角係我」、第 1 頁佢再講嘅「今晚，主角係我！」、第 2 頁 9527 答佢嘅「……今晚唔係」。
 
 ```text
-[共用風格] Four panels. Across the top, a wide strip, low angle: the morning sun streams through the bamboo frame onto [9527] like one giant spotlight; he stands on the stage in front of the cracked, fallen giant screen, facing the broadcast camera, calm, with a small quiet smile; not cool, simply a man standing in the light at last. Below it, three panels from left to right: a close-up of [9527] looking straight into the broadcast camera's lens, the sunrise behind him, calm and content; then, behind the camera, the tired crew woman in the cap and grey work shirt (as in the act cards) raises her clapperboard and snaps it shut, motion lines (its writing area left blank); for the first time she looks straight at him, with a small nod; then the whole bamboo theatre empty in the morning sun streaming through the bamboo frame; [9527] sits alone in the front row of the empty seats, looking up at the empty stage, a small figure, peaceful. Leave calm space near the top of the wide strip and the first two lower panels for dialogue.
+[共用風格] Four panels. Across the top, a wide strip, low angle: the morning sun streams through the bamboo frame onto [9527] like one giant spotlight; he stands on the stage in front of the cracked, fallen giant screen, facing the broadcast camera, calm, with a small quiet smile; not cool, simply a man standing in the light at last. Below it, three panels from left to right: a close-up of [9527] looking straight into the broadcast camera's lens, the sunrise behind him, calm and content; then, behind the camera, the tired crew woman in the cap and grey work shirt (as in the act cards) raises her clapperboard and snaps it shut, motion lines (its writing area left blank); for the first time she looks straight at him, with a small nod; then the whole bamboo theatre empty in the morning sun streaming through the bamboo frame; [9527], seen from behind, walks away alone down the aisle between the rows of empty seats towards the exit, his shoulders a little slumped, his tie loose, a small, forlorn figure. Leave calm space near the top of the wide strip and the first two lower panels for dialogue.
 ```
 
 ## 第 7 頁：遲啲先飲（4 格）
 
 **版面：** 四格：上面兩格由左至右（23、24），下面兩格由左至右（25 細、26 大），斜邊（同舊稿一樣）。
 
-**9527 冇死（開發者 11-01）：** 佢冇落地府，呢頁冇佢本人，只喺地府嘅大電視度出現。閻王、孟婆喺櫃位睇住直播：
+**9527 冇死（開發者 11-01）：** 佢冇落地府，呢頁冇佢本人，只喺地府嘅大電視度出現：一個人落寞咁行出戲棚（開發者 11-01）。閻王、孟婆喺櫃位睇住直播：
 - 閻王判「心甘命抵」，輪迴完。
 - 閻王親手改生死冊。第一次通關佢講「改唔到」，今次大禮係玉帝開口送嘅，佢就改（開發者 10-31：「玉皇大帝與閻王已經開口了」）。
 - 孟婆冚返碗湯。
@@ -185,7 +185,7 @@
 
 | 格 | 鏡頭 | 畫面 | 字／對白 | 停 |
 |---|---|---|---|---|
-| 23 | 中景 | 地府櫃位：牆上一部大電視播緊直播，9527 細細個坐喺戲棚台下第一行，朝陽照住佢；閻王望住電視，將 NG 印收入櫃桶；孟婆喺佢身邊，捧住碗熱湯，笑笑口 | 閻王：「心甘命抵。」 | 標準 |
+| 23 | 中景 | 地府櫃位：牆上一部大電視播緊直播，9527 細細個、背住鏡頭，一個人喺朝陽入面行出冇人的戲棚；閻王望住電視，將 NG 印收入櫃桶；孟婆喺佢身邊，捧住碗熱湯，笑笑口 | 閻王：「心甘命抵。」 | 標準 |
 | 24 | 近景 | 閻王揭開生死冊（頁面留白），揸住毛筆，喺其中一行劃一劃，劃走佢。**表情：面無表情，有啲唔情願** | 閻王：「生死冊改唔到……」<br>閻王：「玉帝開咗口，就改。」 | 長停 |
 | 25 | 近景 | 孟婆望住電視笑，將碗湯冚返蓋，放返上架 | 孟婆：「後生仔，遲啲先飲啦。」 | 標準 |
 | 26 | 遠景 | 下一個企喺櫃位前攞籌的係金爺：成身西裝、崩咗隻金牙、垂頭喪氣；叫號機留白；後面一條透明藍色的鬼排隊 | 叫號機（遊戲寫）：「100,000,000,001」<br>閻王：「下一位！」<br>閻王：「大禮？派晒喇。」 | 長停 |
@@ -195,7 +195,7 @@
 - 一千億號係 9527 第一晚死嗰陣攞嘅（序章），所以金爺仍然係下一個：一千億零一。
 
 ```text
-[共用風格] Four panels. Top row, left to right: the underworld's reincarnation counter from the prologue: a big television on the wall shows the live broadcast, in which [9527] sits small and alone in the front row of the bamboo theatre's empty seats in the morning sun; the King of the Underworld, watching the television, puts the red NG stamp away in a drawer, while the kind old woman beside him holds a steaming bowl of soup and smiles; then a close-up of the King opening a thick old ledger (its pages show only blank lines, no writing) and striking through one line with a calligraphy brush, deadpan and a little grudging. Bottom row, left to right: a small panel: the kind old woman smiles up at the television, puts a lid on the bowl of soup and sets it back on the shelf; a large panel: the next soul standing at the counter with a paper queue ticket is the gang boss, in his suit, the gap in his gold teeth showing, shoulders slumped, utterly deflated; the queue-number display above the counter is left blank; translucent blue ghosts queue behind him. [9527] himself does not appear on this page except on the television. Leave calm space near the top of all four panels for dialogue.
+[共用風格] Four panels. Top row, left to right: the underworld's reincarnation counter from the prologue: a big television on the wall shows the live broadcast, in which [9527], small and seen from behind, walks away alone between the empty seats of the bamboo theatre in the morning sun, a forlorn figure; the King of the Underworld, watching the television, puts the red NG stamp away in a drawer, while the kind old woman beside him holds a steaming bowl of soup and smiles; then a close-up of the King opening a thick old ledger (its pages show only blank lines, no writing) and striking through one line with a calligraphy brush, deadpan and a little grudging. Bottom row, left to right: a small panel: the kind old woman smiles up at the television, puts a lid on the bowl of soup and sets it back on the shelf; a large panel: the next soul standing at the counter with a paper queue ticket is the gang boss, in his suit, the gap in his gold teeth showing, shoulders slumped, utterly deflated; the queue-number display above the counter is left blank; translucent blue ghosts queue behind him. [9527] himself does not appear on this page except on the television. Leave calm space near the top of all four panels for dialogue.
 ```
 
 ## 出圖時附邊張
