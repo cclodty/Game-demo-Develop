@@ -1,0 +1,118 @@
+HOW TO USE THIS FILE
+
+This file holds 20 image requests: model sheets of the characters of the video game whose comic-panel cutscenes we have been making. They are drawn to be turned into 3D models: a 3D generator will read the front, left and back views of each character. They are not cutscene pages, so none of the cutscene rules apply here: no panels, no dark background, no drama. The reference images named in each request are the 9527 character sheet, the boss lineup sheet and Jing Jing's character sheet from the cutscenes; if they are not already in this conversation, I attach them now.
+
+1. Draw exactly ONE image per reply, in the order below. Start with REQUEST 1 now.
+2. After each image, stop and wait. When I write "next", draw the next request. When I write "skip", do not draw the next request: pass over it and wait again (the request after it becomes the next one). When I write "redo" and a note, redraw the last image with that change.
+3. Never put two requests into one image, and never draw any words from this file into an image.
+
+THE RULES FOR EVERY MODEL SHEET
+
+- A 3:2 landscape image on a plain, flat, light grey background: no gradient, no floor, no ground shadow, no vignette.
+- The same character three times, side by side, evenly spaced, nothing overlapping or touching: on the left the FRONT view; in the middle the LEFT SIDE view (the character's own left side towards us, so the character faces the left edge of the image); on the right the BACK view. All three exactly the same height and scale, the feet on one shared line, the whole body visible from the top of the head (or hat) to the soles of the shoes, with a clear margin all round.
+- The same neutral A-pose in all three views: standing straight; arms straight and lowered about 45 degrees from the shoulders, held away from the body so the armpits and the sides of the body are clearly visible; hands open and empty, fingers together, palms facing the thighs; legs straight, feet a little apart, toes pointing forward; head level, looking straight ahead; a neutral expression.
+- The same modern Japanese anime look as the cutscenes, but drawn as a reference for a 3D modeller: bold flat colours with only very soft, minimal shading; no black ink outlines (at most very thin, light lines); no cast shadows, no screentone, no rim light, no glow, no speed lines. About 6.5 heads tall.
+- Only the character: no weapons, shields, bags, cigars, papers or other props in the hands or strapped on, unless the request asks for them; the game adds those as separate models. Clothes close enough to the body that the arms and the legs are clearly separate; no long scarves, capes or loose ribbons.
+- Colours: each character keeps one main colour that reads from above (on the head or hat, the shoulders and the back), because the game is seen from a high camera. Only the hero, 9527, wears white. No character uses bright yellow, cyan or pure red as a main colour: those are the colours of the bullets and the laser sights in the game. The gang's colour is a dark, brassy gold: where a request mentions gold, keep it dark and brassy and use it only as small accents; where it does not, add none.
+- No text, letters, numbers, labels, arrows, measurements, logos or colour swatches anywhere.
+- Original characters that do not resemble any real person or actor.
+
+=== REQUEST 1 of 20: 9527, the hero ===
+Use as reference: the 9527 character sheet. Keep his face, hair, build, suit, shirt, tie and shoes exactly the same.
+
+9527, a skinny, harmless-looking film extra in his late twenties: soft round face, sleepy droopy eyes, a blank, slightly lost expression with his mouth a little open, messy black hair with a cowlick sticking up, a cheap white suit one size too big. For this sheet he stands up straight (his slight hunch comes from the animation later), and his too-long sleeves end at his wrists so that both hands are fully visible. No pistols.
+
+=== REQUEST 2 of 20: the street thug (the most common enemy) ===
+Use as reference: the 9527 character sheet and the boss lineup sheet, for the drawing style only: this is a new character.
+
+A gang street thug, ordinary build, the most ordinary-looking man in the gang: a charcoal grey T-shirt with orange trim on the collar and the sleeves, blue jeans, sneakers, bare forearms, short spiky black hair. The charcoal and orange must read from above. No pistol.
+
+=== REQUEST 3 of 20: the shield guard ===
+Use as reference: the 9527 character sheet and the boss lineup sheet, for the drawing style only: this is a new character.
+
+A riot security guard, solid build: a steel-blue security uniform with padded shoulders, dark boots, a round steel-blue helmet with the visor raised. On his left forearm, a padded arm guard where the game attaches a riot shield; do not draw the shield itself. The steel blue must read from above. No gun.
+
+=== REQUEST 4 of 20: the gang lieutenant (he leads a squad) ===
+Use as reference: the 9527 character sheet and the boss lineup sheet, for the drawing style only: this is a new character.
+
+A gang lieutenant who leads a squad, tall and slim: a wine-red long coat reaching just below the knees, open at the front, over a dark shirt and dark trousers, dark sunglasses, slicked-back black hair. The coat is fitted at the shoulders and split at the back, so that his legs stay clearly separate. Its wine red and its long tails must read from above. No pistols.
+
+=== REQUEST 5 of 20: the rifleman ===
+Use as reference: the 9527 character sheet and the boss lineup sheet, for the drawing style only: this is a new character.
+
+A gang rifleman, lean build: a purple short bomber jacket, dark trousers, sneakers, and a purple baseball cap; the top of the cap is what reads from above. No rifle.
+
+=== REQUEST 6 of 20: the shotgunner ===
+Use as reference: the 9527 character sheet and the boss lineup sheet, for the drawing style only: this is a new character.
+
+A street-food cook turned gangster, stocky build: a brown kitchen apron over a dark vest, bare arms, dark trousers, rubber boots; the apron's straps cross over his back. The brown apron and its straps must read from above. No shotgun.
+
+=== REQUEST 7 of 20: the security brute ===
+Use as reference: the 9527 character sheet and the boss lineup sheet, for the drawing style only: this is a new character.
+
+A huge security bouncer: a massive build, the broadest shoulders of anyone in the game, a thick neck, a navy-black suit straining at the shoulders, a dark shirt, dark sunglasses, a buzz cut. Draw him at an ordinary human height; the game makes him bigger. No gun.
+
+=== REQUEST 8 of 20: the demolition man ===
+Use as reference: the 9527 character sheet and the boss lineup sheet, for the drawing style only: this is a new character.
+
+A wiry, jittery demolition worker: a plain fitted khaki utility vest over a dark tank top, bare arms, khaki shorts, sneakers, short messy hair. Keep the vest plain: the game adds the gear he wears over it. The khaki must read from above. Nothing in his hands.
+
+=== REQUEST 9 of 20: the grenadier ===
+Use as reference: the 9527 character sheet and the boss lineup sheet, for the drawing style only: this is a new character.
+
+A gang grenadier, sturdy build with a broad back: army-green work overalls, work gloves, boots, a dark knit cap. No backpack: the game adds a large one on his back. The army green must read from above. Nothing in his hands.
+
+=== REQUEST 10 of 20: the knife punk ===
+Use as reference: the 9527 character sheet and the boss lineup sheet, for the drawing style only: this is a new character.
+
+A motorbike punk who fights with a knife, small, wiry and quick: a black leather biker jacket with green stripes down the sleeves and across the back, slim dark trousers, sneakers, a green headband tied tight with no hanging ends. The black with green stripes must read from above. No knife.
+
+=== REQUEST 11 of 20: the sniper ===
+Use as reference: the 9527 character sheet and the boss lineup sheet, for the drawing style only: this is a new character.
+
+A gang sniper, tall and thin: a dark grey long raincoat to the knees, belted and split at the back so the legs stay separate, dark boots, and a dark grey wide-brimmed bucket hat; the wide brim is what reads from above. No rifle.
+
+=== REQUEST 12 of 20: the action director (boss) ===
+Use as reference: the boss lineup sheet (the first boss, the woman with two blades). Keep her exactly as in that sheet: face, hair, coat and colours.
+
+A woman in her thirties, the gang's action director: a long fitted black coat with silver trim, split at the back so her legs stay separate, a high ponytail, a sharp, amused look. Without her two blades: her hands are empty.
+
+=== REQUEST 13 of 20: the pyrotechnics chief (boss) ===
+Use as reference: the boss lineup sheet (the second boss, the giant with the machine gun). Keep him exactly as in that sheet: face, build, clothes and colours.
+
+A giant man, the gang's pyrotechnics chief: iron-grey work overalls with orange straps. Without the rotary machine gun and without the steel chest plate (both are separate models in the game): his hands are empty and the front of his overalls shows.
+
+=== REQUEST 14 of 20: the set security chief (boss) ===
+Use as reference: the boss lineup sheet (the third boss, the armoured man with the tower shield). Keep him exactly as in that sheet: face, build, armour and colours.
+
+A huge man, the gang's set security chief: dark green heavy armour pieces over a jacket, a full helmet with a visor, a walkie-talkie clipped to his shoulder, an empty holster at his hip. Without the tower shield and without the revolver: his hands are empty.
+
+=== REQUEST 15 of 20: the cinematographer (boss) ===
+Use as reference: the boss lineup sheet (the fourth boss, the tall man with the long rifle). Keep him exactly as in that sheet: face, build, coat, hat and colours.
+
+A tall, thin man, the gang's cinematographer: a dark blue long coat, split at the back so his legs stay separate, a wide-brimmed hat, a small film camera strapped flat on his back. Without the sniper rifle: his hands are empty.
+
+=== REQUEST 16 of 20: the casting director (boss) ===
+Use as reference: the boss lineup sheet (the fifth boss) and how he looks in the prologue. Keep him exactly as in those images.
+
+A thin man in his forties, the casting director: slicked-back hair, tinted glasses, a brown leather jacket, dark trousers, gloves. Without the double-barrelled shotgun and without the headshot photos: his hands are empty.
+
+=== REQUEST 17 of 20: the producer, the gang boss (final boss) ===
+Use as reference: the boss lineup sheet (the sixth boss) and his redrawn entrance page. Keep him exactly as in those images.
+
+A heavy-set man in his late fifties, the producer and the gang's boss: slicked-back grey hair, a black double-breasted suit, a dark brassy gold chain, chunky gold rings, a grin full of gold teeth. Without the cigar: his hands are empty, the rings stay. The gold is dark and brassy, only accents.
+
+=== REQUEST 18 of 20: Jing Jing (the true ending's boss; she never fights) ===
+Use as reference: Jing Jing's character sheet. Keep her face, hair and dress exactly the same.
+
+A newly famous film actress in her early twenties, slim and delicate, long dark hair, an elegant evening dress inspired by a qipao in deep purple, with high side slits so that her legs stay clearly separate, high heels, a proud, composed face. Without the clutch bag and without the pistol: her hands are empty.
+
+=== REQUEST 19 of 20 (optional: write "skip" if not needed yet): 9527 after many loops ===
+Use as reference: the 9527 character sheet and the model sheet from REQUEST 1. Keep his face, hair, build and suit exactly the same.
+
+The same 9527 later in the story: his eyes half-lidded and steady, a small easy smile; tie pulled loose, top button undone, the sleeves of the oversized white suit rolled up to the elbows, a few scuffs and scorch marks on the suit. The same A-pose and three views as REQUEST 1. No pistols.
+
+=== REQUEST 20 of 20 (optional: write "skip" if not needed yet): the gang boss without his jacket ===
+Use as reference: the model sheet from REQUEST 17. Keep his face, hair, build and gold exactly the same.
+
+The same gang boss in his second phase: the suit jacket off, a black shirt with the sleeves rolled up, dark braces, the dark brassy gold chain and the chunky gold rings, the gold-toothed grin. The same A-pose and three views as REQUEST 17. Hands empty.

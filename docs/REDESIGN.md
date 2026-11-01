@@ -129,6 +129,8 @@
 
 **Mixamo 動畫清單：** idle、run、strafe、slide、spin（旋轉射擊用上身）、kick、carry（抱人）、shove、dive、wallrun、death × 2、hit、executed。
 
+**人物用 Tripo 生成的流程和提示詞：** `docs/art/CHARACTERS-TRIPO.md` 和交 ChatGPT 的 `docs/art/model-sheets.txt`（2026-11-01，H⓪c；外形跟 `docs/art/CHARACTERS.md` 和過場設定圖；三視圖、A-pose、空手）。
+
 ## 8. 音樂與聲
 
 | 曲 | 數 | 風格（開發者填） |
