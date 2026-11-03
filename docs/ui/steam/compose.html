@@ -59,6 +59,24 @@ function logo(g, W, H, kind, room) {
   g.fillText('DIE IN STYLE', x + zh * 0.06, ey);
   g.restore();
 }
+function logoLine(g, W, H) {
+  // One line (子彈芭蕾) over DIE IN STYLE and a gold rule: the small capsule's lockup (picked by the developer 11-03).
+  const zh = H * 0.42, en = zh * 0.33, x = W * 0.05, y = H * 0.5;
+  g.save(); g.textBaseline = 'alphabetic';
+  g.font = `900 ${zh}px 'Chiron Sung HK'`;
+  g.setTransform(1, 0, -0.14, 1, 0, 0);
+  const sx = x + y * 0.14;
+  g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillText('子彈芭蕾', sx + zh * 0.09, y + zh * 0.09);
+  g.fillStyle = '#c8281e'; g.fillText('子彈芭蕾', sx + zh * 0.045, y + zh * 0.045);
+  g.fillStyle = '#f4efe6'; g.fillText('子彈芭蕾', sx, y);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.font = `${en}px 'Bebas Neue'`; g.fillStyle = '#f2c45e'; g.letterSpacing = `${en * 0.34}px`;
+  const ey = y + en * 1.55;
+  g.fillText('DIE IN STYLE', x + zh * 0.02, ey);
+  const w = g.measureText('DIE IN STYLE').width;
+  g.fillRect(x + zh * 0.02 + w + en * 0.2, ey - en * 0.36, en * 2.2, Math.max(2, en * 0.08));
+  g.restore();
+}
 function make(kind, W, H) {
   const c = document.createElement('canvas'); c.width = W; c.height = H; c.id = kind; const g = c.getContext('2d');
   const src = art(W, H);
@@ -70,7 +88,7 @@ function make(kind, W, H) {
   if (kind === 'small') { const v = g.createLinearGradient(0, 0, W * 0.75, 0); v.addColorStop(0, 'rgba(0,0,0,0.85)'); v.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = v; g.fillRect(0, 0, W, H); }
   grain(g, W, H);
   const room = Math.max(0, (560 - sx) / sw * W) - W * 0.055 - W * 0.02; // dark room left of the suit, in capsule pixels
-  logo(g, W, H, kind, kind === 'small' ? W * 0.42 : room);
+  if (kind === 'small') logoLine(g, W, H); else logo(g, W, H, kind, room);
   document.body.appendChild(c);
 }
 Promise.all([new Promise((r) => { img.onload = r; }), document.fonts.load("900 40px 'Chiron Sung HK'", '子彈芭蕾'), document.fonts.load("40px 'Bebas Neue'", 'DIE IN STYLE')])
