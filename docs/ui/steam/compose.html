@@ -1,0 +1,78 @@
+<!doctype html><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chiron+Sung+HK:wght@900&display=block">
+<!-- Open from a local server (npm run serve, then /docs/ui/steam/compose.html?v=a or ?v=b): draws the Steam capsules from closeup-1.png in the game fonts. -->
+<style>body{margin:0;background:#222;display:grid;gap:12px;padding:12px;justify-items:start}canvas{display:block}</style>
+<body>
+<script>
+// Steam capsules from the close-up key art: crop, soften the hard left edge of the suit, optional frozen bullets and an aim line,
+// a little grain, then the logo in the game's fonts. ?v=a (plain) or ?v=b (with the bullet-time touches).
+const V = new URLSearchParams(location.search).get('v') || 'a';
+const SIZES = [['main', 1232, 706], ['header', 920, 430], ['small', 462, 174], ['header-lib', 920, 430]];
+const img = new Image(); img.src = 'closeup-1.png';
+function art(W, H) {
+  // the source picture, with the bullet-time extras drawn in source pixels (1672 × 941)
+  const c = document.createElement('canvas'); c.width = 1672; c.height = 941; const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  // soften the straight cut on the suit's left side: fade to black from x 560 to 760
+  const fade = g.createLinearGradient(540, 0, 800, 0);
+  fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(0.55, 'rgba(0,0,0,0.55)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = fade; g.fillRect(540, 0, 240, 941);
+  if (V === 'b') {
+    // an enemy's red aim line, hair-thin, from the dark top right to his chest
+    g.save(); g.strokeStyle = 'rgba(255,40,30,0.9)'; g.lineWidth = 2.2; g.shadowColor = 'rgba(255,40,30,0.9)'; g.shadowBlur = 10;
+    g.beginPath(); g.moveTo(1672, 70); g.lineTo(905, 210); g.stroke(); g.restore();
+    // frozen enemy bullets (yellow-white) coming in from the right, each with a short streak
+    for (const [x, y, ang, len] of [[1330, 128, 0.18, 150], [1560, 255, 0.05, 120], [1515, 765, -0.12, 170], [1195, 858, -0.2, 130]]) {
+      g.save(); g.translate(x, y); g.rotate(ang);
+      const tr = g.createLinearGradient(0, 0, len, 0); tr.addColorStop(0, 'rgba(255,248,210,0.95)'); tr.addColorStop(1, 'rgba(255,220,120,0)');
+      g.fillStyle = tr; g.beginPath(); g.moveTo(0, -3.2); g.lineTo(len, -0.8); g.lineTo(len, 0.8); g.lineTo(0, 3.2); g.fill();
+      g.shadowColor = 'rgba(255,230,150,1)'; g.shadowBlur = 14; g.fillStyle = '#fff6d8';
+      g.beginPath(); g.ellipse(0, 0, 11, 5, 0, 0, Math.PI * 2); g.fill(); g.restore();
+    }
+  }
+  return c;
+}
+function grain(g, W, H) {
+  const d = g.getImageData(0, 0, W, H), p = d.data;
+  let s = 7;
+  for (let i = 0; i < p.length; i += 4) { s = (s * 16807) % 2147483647; const n = ((s / 2147483647) - 0.5) * 14; p[i] += n; p[i + 1] += n; p[i + 2] += n; }
+  g.putImageData(d, 0, 0);
+}
+function logo(g, W, H, kind, room) {
+  // A stacked lockup (子彈 / 芭蕾, then DIE IN STYLE) sized to the dark room on the left of the picture, so it never covers the suit.
+  const small = kind === 'small';
+  const zh = Math.min(room / 2.35, H * (small ? 0.36 : 0.27)), en = zh * (small ? 0.36 : 0.3);
+  const x = W * 0.055, block = zh * 2 + en * 1.6;
+  const y1 = (H - block) / 2 + zh * 0.86, y2 = y1 + zh * 0.98;
+  g.save(); g.textBaseline = 'alphabetic';
+  g.font = `900 ${zh}px 'Chiron Sung HK'`;
+  const line = (t, lx, ly) => {
+    g.setTransform(1, 0, -0.14, 1, ly * 0.14, 0); // a slight forward slant, like the title screen
+    g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillText(t, lx + zh * 0.09, ly + zh * 0.09);
+    g.fillStyle = '#c8281e'; g.fillText(t, lx + zh * 0.045, ly + zh * 0.045);
+    g.fillStyle = '#f4efe6'; g.fillText(t, lx, ly);
+  };
+  line('子彈', x, y1); line('芭蕾', x + zh * 0.32, y2);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.font = `${en}px 'Bebas Neue'`; g.fillStyle = '#f2c45e'; g.letterSpacing = `${en * 0.3}px`;
+  const ey = y2 + en * 1.5;
+  g.fillText('DIE IN STYLE', x + zh * 0.06, ey);
+  g.restore();
+}
+function make(kind, W, H) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H; c.id = kind; const g = c.getContext('2d');
+  const src = art(W, H);
+  // crop to the capsule's shape, keeping the right edge (the muzzle flash) and the gun's height
+  const ar = W / H; let sw = 1672, sh = sw / ar;
+  if (sh > 941) { sh = 941; sw = sh * ar; }
+  const sx = 1672 - sw, sy = Math.min(Math.max(0, 470 - sh * 0.52), 941 - sh);
+  g.drawImage(src, sx, sy, sw, sh, 0, 0, W, H);
+  if (kind === 'small') { const v = g.createLinearGradient(0, 0, W * 0.75, 0); v.addColorStop(0, 'rgba(0,0,0,0.85)'); v.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = v; g.fillRect(0, 0, W, H); }
+  grain(g, W, H);
+  const room = Math.max(0, (560 - sx) / sw * W) - W * 0.055 - W * 0.02; // dark room left of the suit, in capsule pixels
+  logo(g, W, H, kind, kind === 'small' ? W * 0.42 : room);
+  document.body.appendChild(c);
+}
+Promise.all([new Promise((r) => { img.onload = r; }), document.fonts.load("900 40px 'Chiron Sung HK'", '子彈芭蕾'), document.fonts.load("40px 'Bebas Neue'", 'DIE IN STYLE')])
+  .then(() => { for (const [k, w, h] of SIZES.slice(0, 3)) make(k, w, h); document.title = 'ready'; });
+</script>
