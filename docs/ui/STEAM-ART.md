@@ -27,7 +27,7 @@
 | 遊戲庫：Library Header | 920 × 430 | 要（冇就用 Header Capsule） | 要 | 同 Header Capsule ✅ |
 | 遊戲庫：Library Hero | 3840 × 1240 | 要 | **唔准有任何字**；中間 860 × 380（以 1920 × 620 計）係安全區，主角塊面要喺入面 | 提示詞 2（裁做 3.1:1，Lanczos 放大 2.3 倍加銳化；冇加任何嘢）✅ |
 | 遊戲庫：Library Logo | 1280 闊及／或 720 高，透明 PNG | 要 | 淨係遊戲名嘅字款（加一個標記都得），擺喺 Hero 上面 | Claude 用字體整（一行版，1280 × 420）✅ |
-| 社群圖示 | 184 × 184 JPG（上架前再對） | 要 | 唔使 | 提示詞 4 ✅（`community-icon.jpg`：Claude 將原圖嗰個圓形紅洞改做爛邊加裂紋，似子彈窿多過似日本國旗；原圖版 `community-icon-plain.jpg`） |
+| 社群圖示 | 184 × 184 JPG（上架前再對） | 要 | 唔使 | 提示詞 4 ✅（`community-icon.jpg`：Claude 將原圖嗰個圓形紅洞改做爛邊加裂紋，似子彈窿多過似日本國旗；開發者 11-03 揀咗呢個；原圖 `docs/ui/steam/icon-1.png`） |
 
 - **遊戲名：** 中文「子彈芭蕾」、英文「DIE IN STYLE」（`docs/ui/TITLE.md` §3）。商店圖用中英兩行；Small Capsule 細，可能淨係英文或淨係中文，出圖之後試。
 - **解像度：** ChatGPT 出嘅圖大約 1672 × 941；Library Hero 要 3840 闊，要用 AI 放大（動畫圖用 Real-ESRGAN anime 之類效果好）或者叫 ChatGPT 出最大尺寸。
