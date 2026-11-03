@@ -1,0 +1,29 @@
+HOW TO USE THIS FILE
+
+This file asks for the pictures behind the game's Steam store and library images. Use the earlier images in this conversation as reference for the style and the characters: the 9527 character sheet, the title key art (the opera theatre at night) and the turning point page (9527 spinning with two pistols among frozen bullets).
+
+The game's name and logo are NOT drawn by you: they are added afterwards in the game's own fonts. So every picture must leave clean, dark space for the logo where the request says, and must contain no words at all.
+
+1. Draw exactly ONE image per reply, in the order below. Start with REQUEST 1 now.
+2. After each image, stop and wait. When I write "next", draw the next request. When I write "redo" and a note, redraw the last image with that change.
+3. Never draw any words from this file into an image.
+
+THE RULES FOR EVERY IMAGE
+
+Modern Japanese anime style, the same style as the earlier images in this conversation: bold flat colours, clean two-tone cel shading, crisp black ink outlines, halftone screentone in the shadows, dramatic cinematic lighting, strong contrast so it still reads when shrunk to a small thumbnail. 9527 looks exactly like his character sheet: a skinny film extra in a cheap white suit one size too big, tie pulled loose, messy black hair with a cowlick, sleepy droopy eyes; in action he moves like a dancer, but his face stays blank and a little dazed, with only the faintest smile. The setting is the bamboo-scaffold opera theatre from the title key art: red velvet curtains, gilded railings, red paper lanterns, haze in the spotlight. No speech bubbles, no captions, no letters, words, numbers or logos anywhere. No real-world landmarks. Original characters that do not resemble any real person or actor.
+
+=== REQUEST 1 of 4: store capsule art (landscape) ===
+
+A 16:9 widescreen landscape illustration. 9527, large in the frame, seen from the knees up on the right half of the picture: in slow motion he spins mid-air between two shots, a pistol in each outstretched hand, the white suit jacket flaring out, yellow-white bullets frozen in the air around him, two or three faint cyan afterimages trailing his spin, one muzzle flash. Behind him the theatre: red curtains, lanterns, the beam of the spotlight. The left 45% of the picture is darker and simpler (shadowed curtain and haze), with nothing important in it, because the logo goes there. Keep his head, both pistols and the main action inside the middle 60% of the height, because the picture will also be cropped to a much wider, shorter strip.
+
+=== REQUEST 2 of 4: library hero (panorama, no logo) ===
+
+A 16:9 widescreen landscape illustration that will be cropped to a very wide strip (about three times as wide as it is tall), so everything important sits in the middle band of the picture. The whole opera theatre seen from the back of the audience seats: the stage in the centre, the bamboo scaffolding rising on both sides, rows of red lanterns, the giant screen dark above the stage. On the stage, in the very centre of the picture, 9527 stands under a single white spotlight with a pistol in each lowered hand, small but clearly lit; frozen bullets glint around him. Gangsters in black suits are silhouettes in the wings on both sides. Keep 9527 and the spotlight inside the central 45% of the width and the middle 50% of the height; let the theatre spread out to both edges. This picture must contain no words and leave no special space for a logo.
+
+=== REQUEST 3 of 4: library capsule (portrait) ===
+
+A 2:3 portrait illustration (taller than wide). Low camera angle from the stage floor: 9527, full body, in the centre of the picture, mid-spin with a pistol in each hand, one leg lifted like a dancer, the white suit flaring, yellow-white bullets frozen around him in a spiral, faint cyan afterimages, the single spotlight beam coming down on him from above. Red curtains and lanterns behind. The top 30% of the picture is darker and simpler (dark rigging and the top of the spotlight beam), with nothing important in it, because the logo goes there. Keep the bottom 8% calm too (the stage boards).
+
+=== REQUEST 4 of 4: community icon (square) ===
+
+A 1:1 square icon that must still read at 32 × 32 pixels: a single bold emblem, flat colours, thick black outlines, no background detail. A white film clapperboard, slightly tilted, with one round bullet hole punched clean through its middle, on a solid deep red circle. Nothing else in the picture.

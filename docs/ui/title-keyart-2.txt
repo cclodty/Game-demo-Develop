@@ -1,0 +1,26 @@
+HOW TO USE THIS FILE
+
+This file asks for two more title screen backgrounds, to go with the title key art we drew earlier in this conversation (9527 alone on the opera theatre stage at night, under one spotlight, with frozen bullets). The game shows a different background depending on how far the player has got in the story:
+- a first launch, before the show has started (REQUEST 1);
+- after the true ending (REQUEST 2).
+Use the earlier title key art as the main reference: the SAME theatre, the SAME camera position from among the audience seats, the SAME composition, so that the three pictures feel like one place at three times of the night. Also use the 9527 character sheet and the crew woman from the act cards.
+
+1. Draw exactly ONE image per reply, in the order below. Start with REQUEST 1 now.
+2. After each image, stop and wait. When I write "next", draw the next request. When I write "redo" and a note, redraw the last image with that change.
+3. Never draw any words from this file into an image.
+
+THE RULES FOR BOTH IMAGES
+
+A 16:9 widescreen landscape key art illustration (wider than tall), one single illustration filling the whole frame, with no comic panels, no borders and no frame. Modern Japanese anime style, the same style as the earlier images in this conversation: bold flat colours, clean two-tone cel shading, crisp black ink outlines, halftone screentone in the shadows, cinematic lighting. The game puts its logo and menu on top of the picture, so:
+- the left third of the image is dark and calm, with nothing important in it;
+- the top-left corner is dark and empty;
+- the main subject sits inside the middle 60% of the width.
+No speech bubbles, no captions, no letters, words, numbers or logos anywhere, not even on the screen, the lanterns or the clapperboard. No real-world landmarks. Original characters that do not resemble any real person or actor.
+
+=== REQUEST 1 of 2: title background before the first night (dusk) ===
+
+The same bamboo-scaffold opera theatre and the same camera position as the earlier title key art, but at dusk, before the show has started. The sky beyond the bamboo frame is orange and violet; the red paper lanterns are only just being lit; the stage lights and the spotlight are still off, so the stage is in soft shadow. The giant screen on the bamboo frame is dark. The rows of red seats in the foreground are empty. On the edge of the stage, the tired crew woman in the cap and grey work shirt sits with her clipboard and a clapperboard on her knee, bored, not looking at anyone. Down the aisle between the seats, small in the picture and right of centre, 9527 in his white suit (tie still neat, as on his first night) walks in hesitantly, holding a rolled-up script, looking up at the theatre with his blank, dazed face, a little lost. No gangsters visible yet; the wings are empty and dark. Quiet, expectant mood.
+
+=== REQUEST 2 of 2: title background after the true ending (dawn) ===
+
+The same bamboo-scaffold opera theatre and the same camera position as the earlier title key art, but at dawn, after the night is over. The giant screen has fallen from the bamboo frame and lies tilted and cracked across the front of the stage. The spotlight is switched off. Morning sunlight streams in through the bamboo poles in long golden beams, with dust floating in them. The stage is empty: no 9527, no gangsters; scattered casino chips and a few spent bullet casings lie on the boards. On the edge of the stage, a clapperboard has been left behind, standing on its own (its writing area blank). The rows of red seats in the foreground are empty. Calm, bittersweet, a little lonely: the show is over and everyone has gone home.
