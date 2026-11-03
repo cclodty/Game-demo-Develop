@@ -1,0 +1,23 @@
+HOW TO USE THIS FILE
+
+This file asks for one image: the key art for the title screen of the game whose comic-panel cutscenes we drew earlier in this conversation. Use the earlier images as reference for the style and the characters: the 9527 character sheet, prologue pages 4 and 5 (the bamboo opera theatre, its giant screen and the gang's men in black suits) and the turning point page (9527 spinning with two pistols among frozen bullets).
+
+1. Draw exactly ONE image, for the request below.
+2. When I write "redo" and a note, redraw it with that change.
+3. Never draw any words from this file into the image.
+
+=== REQUEST 1 of 1: title screen key art ===
+
+A 16:9 widescreen landscape key art illustration (wider than tall) for the title screen of a video game: one single illustration filling the whole frame, with no comic panels, no borders and no frame. Modern Japanese anime style, the same style and characters as the earlier images in this conversation: bold flat colours, clean two-tone cel shading, crisp black ink outlines, halftone screentone in the shadows, cinematic lighting.
+
+The scene: inside the huge bamboo-scaffold opera theatre from the prologue, at night, in a fictional city with a Hong Kong / Macau flavour. Red velvet curtains, gilded railings, rows of red paper lanterns, bamboo poles lashed together all the way up into the dark. High above the stage, a giant screen hangs on the bamboo frame; its face is dark and blank. Rows of empty red theatre seats fill the foreground.
+
+On the stage, right of centre, 9527 (as in the attached character sheet: a skinny film extra in a cheap white suit one size too big, tie pulled loose, messy black hair with a cowlick, sleepy droopy eyes) stands alone under a single white spotlight, a pistol held low in each hand. His face is calm and a little dazed, with only the faintest smile. Around him, yellow-white bullets hang frozen in the air as if time has slowed, with a few faint cyan afterimages of him. In the dark wings behind him, the silhouettes of gangsters in black suits, one with a glint of gold teeth.
+
+Composition (important, the game puts its logo and menu on top of the picture):
+- The left third of the image is dark and calm: shadowed empty seats and dark rigging, with nothing important in it.
+- The top-left corner is dark and empty.
+- 9527 and the spotlight sit inside the middle 60% of the width, so the picture can lose a little at each side on a taller screen.
+- Low camera from among the audience seats, looking up at the stage; a beam of light with haze in it; warm red and gold against deep night-blue shadows.
+
+No speech bubbles, no captions, no letters, words, numbers or logos anywhere, not even on the screen or the lanterns. No real-world landmarks or recognisable buildings. Original characters that do not resemble any real person or actor.

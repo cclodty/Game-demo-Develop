@@ -1,0 +1,33 @@
+HOW TO USE THIS FILE
+
+This file asks for the pictures behind the game's Steam store and library images. It REPLACES the earlier Steam request in this conversation: we tried a detailed illustration of the hero firing two pistols, and it was too busy and his face read badly at thumbnail size. This time the style is a simple, mysterious graphic poster: the hero only as a white silhouette.
+
+The game's name and logo are NOT drawn by you: they are added afterwards in the game's own fonts. So every picture must leave clean, dark space for the logo where the request says, and must contain no words at all.
+
+1. Draw exactly ONE image per reply, in the order below. Start with REQUEST 1 now.
+2. After each image, stop and wait. When I write "next", draw the next request. When I write "redo" and a note, redraw the last image with that change.
+3. Never draw any words from this file into an image.
+
+THE RULES FOR EVERY IMAGE
+
+A graphic poster, not a busy illustration: flat shapes and lots of empty dark space, with a subtle screen-print grain. Only four colours: near-black indigo for the background, one deep theatre red, white, and small touches of warm gold. Crisp clean edges. It must read instantly when shrunk to a small thumbnail.
+
+The hero, 9527, appears ONLY as a flat white silhouette: no face, no eyes, no skin tones and no shading inside the body, except a few thin dark lines that mark the jacket's edges and the loose tie, so he stays mysterious. His outline must still be recognisable: messy hair with one cowlick sticking up, a suit jacket one size too big flaring out, a loose tie flying, and a pistol in each hand (the pistols are solid black). He moves like a dancer, never like a soldier.
+
+Bullets are small yellow-white dashes frozen in the air (bullet time). The setting, when it shows at all, is the bamboo-scaffold opera theatre, drawn only as faint dark-on-dark lines. No speech bubbles, no captions, no letters, words, numbers or logos anywhere. No real-world landmarks.
+
+=== REQUEST 1 of 4: store capsule (landscape) ===
+
+A 16:9 widescreen landscape poster. A huge deep-red circle fills most of the right half of the picture, like a spotlight seen through a red gel or a red moon; a few thin black lines of bamboo scaffolding cross its edge. In front of the circle, 9527's white silhouette spins in slow motion: arms out with a pistol in each hand, one knee raised like a dancer, the oversized jacket flaring, the tie flying. Around him a sparse spiral of frozen bullets, with one clear gap in it that he is turning through. The left 45% of the picture is empty near-black with only faint grain, because the logo goes there. Keep the silhouette and the circle inside the middle 60% of the height, because the picture will also be cropped to a much wider, shorter strip.
+
+=== REQUEST 2 of 4: library hero (panorama, no logo) ===
+
+A 16:9 widescreen landscape poster that will be cropped to a very wide strip (about three times as wide as it is tall), so everything important sits in the middle band. The same deep-red circle, smaller, in the exact centre of the picture, with 9527's white silhouette spinning in front of it, also small. Around them, spreading to both edges, the faint dark-on-dark outline of the whole opera theatre: bamboo scaffolding, curtains, and a row of lanterns as small dark-red dots. A few frozen bullet dashes. Keep the circle and the silhouette inside the central 45% of the width and the middle 50% of the height. No space for a logo is needed, and the picture must contain no words.
+
+=== REQUEST 3 of 4: library capsule (portrait) ===
+
+A 2:3 portrait poster (taller than wide). The deep-red circle sits in the centre of the picture, slightly below the middle. 9527's white silhouette, full body, leaps and spins down across it: a pistol in each hand, the oversized jacket and the tie flying upward, a spiral of frozen bullets around him with one gap. The top 28% of the picture is empty near-black with only faint grain, because the logo goes there. Keep the bottom 6% calm too.
+
+=== REQUEST 4 of 4: community icon (square) ===
+
+A 1:1 square icon that must still read at 32 x 32 pixels: one bold flat emblem, thick clean edges, no background detail. A white film clapperboard, slightly tilted, with one round bullet hole punched clean through its middle, on a solid deep-red circle, on near-black. Nothing else in the picture.
