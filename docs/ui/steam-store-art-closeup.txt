@@ -1,0 +1,33 @@
+HOW TO USE THIS FILE
+
+This file asks for the pictures behind the game's Steam store and library images, in a second style we want to try: an elegant, mysterious close-up of the hero's white suit, like a fashion advertisement or a film poster, never showing his face. Use the 9527 character sheet from earlier in this conversation for the suit, the tie and the pistols.
+
+The game's name and logo are NOT drawn by you: they are added afterwards in the game's own fonts. So every picture must leave clean, dark space for the logo where the request says, and must contain no words at all.
+
+1. Draw exactly ONE image per reply, in the order below. Start with REQUEST 1 now.
+2. After each image, stop and wait. When I write "next", draw the next request. When I write "redo" and a note, redraw the last image with that change.
+3. Never draw any words from this file into an image.
+
+THE RULES FOR EVERY IMAGE
+
+Modern Japanese anime style with a film-poster finish: clean cel shading, crisp ink lines, strong contrast, very little detail in the background. Only four colours: a deep black background, the white of the suit, one deep theatre red (soft out-of-focus lantern lights far behind, and the light catching the edges), and small touches of warm gold (bullets, a brass casing, the gun's muzzle flash). It must read instantly when shrunk to a small thumbnail.
+
+The hero, 9527, is NEVER shown above the collar: no face, no hair. We only see his cheap white suit, one size too big (sleeves a little too long, the jacket loose), a white shirt, a loose black tie, his hands, and plain black pistols. He moves like a dancer, so the cloth is always in motion: the jacket flaring, the tie flying.
+
+Bullets are small yellow-white dashes frozen in mid-air (bullet time); spent brass casings hang in the air, spinning. No speech bubbles, no captions, no letters, words, numbers or logos anywhere. No real-world landmarks.
+
+=== REQUEST 1 of 4: store capsule (landscape) ===
+
+A 16:9 widescreen landscape picture. On the right half, an extreme close-up from the side: 9527's arm in the oversized white sleeve reaches across the frame, the cuff a little too long, his hand holding a black pistol that points to the right edge, a small gold muzzle flash at its tip. His loose black tie whips diagonally through the frame in front of the sleeve. A single spent brass casing hangs in the air near the gun, frozen mid-spin and catching the light, with a few yellow-white bullets frozen further off. The picture is cropped at his shoulder: no face. Behind, only black with a few soft, out-of-focus red lantern lights. The left 45% of the picture is near-black and empty, because the logo goes there. Keep the gun, the hand and the casing inside the middle 60% of the height, because the picture will also be cropped to a much wider, shorter strip.
+
+=== REQUEST 2 of 4: library hero (panorama, no logo) ===
+
+A 16:9 widescreen landscape picture that will be cropped to a very wide strip (about three times as wide as it is tall), so everything important sits in the middle band. In the centre, 9527 spins like a dancer, seen only from the chest to the knees (cropped above the collar): the oversized white jacket flares out like a skirt, both arms stretched out to the sides with a black pistol in each hand reaching towards the two edges of the picture, the loose black tie flying. A line of spent brass casings and frozen bullets hangs in the air across the picture. Black background with soft, out-of-focus red lantern lights. Keep his body inside the central 45% of the width and the middle 50% of the height. No space for a logo is needed, and the picture must contain no words.
+
+=== REQUEST 3 of 4: library capsule (portrait) ===
+
+A 2:3 portrait picture (taller than wide). The top 28% is near-black and empty, because the logo goes there. Below it, a close-up from the loosened collar down to the waist (no face, the picture is cropped just under the chin): the loose black tie flies sideways across the white shirt and the open white lapel; one hand in the long white sleeve holds a black pistol pointing down and to the left; a spent brass casing falls past, frozen in mid-air, with two or three frozen bullets. Soft red lantern lights far behind in the black. Keep the bottom 6% calm too.
+
+=== REQUEST 4 of 4: community icon (square) ===
+
+A 1:1 square icon that must still read at 32 x 32 pixels: one bold flat emblem, thick clean edges, no background detail. A white film clapperboard, slightly tilted, with one round bullet hole punched clean through its middle, on a solid deep-red circle, on black. Nothing else in the picture.
