@@ -9,7 +9,7 @@
 **白西裝特寫第一張出咗（11-03，`docs/ui/steam/closeup-1.png`），開發者覺得「幾好」。** Claude 用 `docs/ui/steam/compose.html` 砌出 Main（1232×706）、Header（920×430）、Small（462×174）三個尺寸，比較圖 `docs/shots/i0-steam/closeup-capsules.jpg`：
 - 修飾：西裝左邊原圖有一條直嘅硬邊，淡入黑色；加少少網點顆粒；標誌改做兩行疊住（子彈／芭蕾，下面 DIE IN STYLE），放喺左邊黑位，大細跟黑位計，唔會遮住西裝。
 - A 版：淨係以上。B 版：再加一條紅色瞄準線射向佢心口、四粒定格嘅黃白子彈（遊戲入面敵人子彈同紅線嘅樣），一睇就知係子彈時間嘅射擊遊戲。
-- **定咗 B 版，衫袖上嘅污漬保留（開發者 11-03）。** 成品：`docs/ui/steam/out/`（main-capsule 1232×706、header-capsule 920×430、small-capsule 462×174、library-header 920×430，同 Header 一樣）。
+- **定咗 A 版（開發者 11-03：先揀 B，之後改返 A），衫袖上嘅污漬保留。** 成品：`docs/ui/steam/out/`（main-capsule 1232×706、header-capsule 920×430、small-capsule 462×174、library-header 920×430，同 Header 一樣）。
 
 **做法：** 交 ChatGPT 出四張冇字嘅圖（上面其中一個檔），之後由 Claude 用遊戲字體（昭源宋體、Bebas Neue，`docs/ui/TITLE.md` §3）加標誌、裁切、放大。AI 唔畫字：中文字會錯，而 Steam 規定圖入面除咗遊戲名之外唔可以有其他字。
 

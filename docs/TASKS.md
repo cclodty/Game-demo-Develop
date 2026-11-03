@@ -1602,7 +1602,7 @@
 - 驗收：
   - [x] 每張圖嘅尺寸、必要與否、標誌規矩、由邊張底圖嚟（`docs/ui/STEAM-ART.md`，照 Steamworks 文件）
   - [x] 四段英文提示詞，一個 .txt 上載（`docs/ui/steam-store-art.txt`）
-  - [ ] 出圖之後：加標誌、裁切、放大，逐張對尺寸。白西裝特寫做咗 Main、Header、Small、Library Header 四張（B 版，`docs/ui/steam/out/`）；Library Hero、Library Capsule、Vertical Capsule、Library Logo、社群圖示等開發者出其餘三張圖
+  - [ ] 出圖之後：加標誌、裁切、放大，逐張對尺寸。白西裝特寫做咗 Main、Header、Small、Library Header 四張（A 版，`docs/ui/steam/out/`）；Library Hero、Library Capsule、Vertical Capsule、Library Logo、社群圖示等開發者出其餘三張圖
 - 這次不做：商店截圖（要 Godot 版有得玩先影）、商店文案、預告片、上架設定（I 組其他卡）
 
 ### F②a：房內自選挑戰——無傷、限時（估計：一天；2026-10-29 由 F② 拆出：四個挑戰的獎勵各郁一套系統，一日做唔晒）✅ 2026-10-29
