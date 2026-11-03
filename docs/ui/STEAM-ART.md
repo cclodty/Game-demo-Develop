@@ -2,6 +2,8 @@
 
 2026-11-03 · TASKS「I⓪」· 尺寸同規矩照 Steamworks 文件（[商店圖](https://partner.steamgames.com/doc/store/assets/standard)、[遊戲庫圖](https://partner.steamgames.com/doc/store/assets/libraryassets)；2024 年 8 月之後嘅尺寸，舊尺寸 Steam 唔再收）。上架前再對一次。
 
+**風格（開發者 11-03 改）：** 第一版（詳細插畫：9527 開雙槍、望到塊面）「有點趕客」：塊面呆滯表情縮細之後似醉酒，細節又多。改做簡單嘅平面海報：黑底、一個大紅圓（射燈加紅色濾片／紅月）、9527 淨係一個白色剪影（認得出呆毛、大一個碼嘅西裝、甩咗嘅領呔、雙槍）、一圈定格子彈留一個缺口。四隻色：黑藍、戲棚紅、白、少少金；縮到好細都認得。
+
 **做法：** 交 ChatGPT 出四張冇字嘅圖（`docs/ui/steam-store-art.txt`），之後由 Claude 用遊戲字體（昭源宋體、Bebas Neue，`docs/ui/TITLE.md` §3）加標誌、裁切、放大。AI 唔畫字：中文字會錯，而 Steam 規定圖入面除咗遊戲名之外唔可以有其他字。
 
 | 圖 | 尺寸（px） | 必要 | 標誌 | 由邊張圖嚟 |
